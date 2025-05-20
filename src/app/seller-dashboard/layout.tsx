@@ -33,14 +33,14 @@ import type { UserRole } from '@/lib/types';
 const currentUserRole: UserRole = 'seller'; 
 
 const allSidebarNavItems = [
-  { title: 'Overview', href: '/seller-dashboard', icon: LayoutDashboard, roles: ['seller', 'buyer'] },
-  { title: 'My Profile', href: '/seller-dashboard/profile', icon: UserCircle, roles: ['seller', 'buyer'] },
+  { title: 'Overview', href: '/seller-dashboard', icon: LayoutDashboard, roles: ['seller'] },
+  { title: 'My Profile', href: '/seller-dashboard/profile', icon: UserCircle, roles: ['seller'] },
   { title: 'My Listings', href: '/seller-dashboard/listings', icon: Briefcase, roles: ['seller'] },
   { title: 'Create Listing', href: '/seller-dashboard/listings/create', icon: PlusCircle, roles: ['seller'] },
-  { title: 'My Inquiries', href: '/seller-dashboard/inquiries', icon: MessageSquare, roles: ['seller', 'buyer'] }, // Seller also needs to see inquiries for their listings
-  { title: 'Verification', href: '/seller-dashboard/verification', icon: ShieldCheck, roles: ['seller', 'buyer'] },
-  { title: 'Notifications', href: '/seller-dashboard/notifications', icon: Bell, roles: ['seller', 'buyer']},
-  { title: 'Settings', href: '/seller-dashboard/settings', icon: Settings, roles: ['seller', 'buyer'] },
+  { title: 'My Inquiries', href: '/seller-dashboard/inquiries', icon: MessageSquare, roles: ['seller'] },
+  { title: 'Verification', href: '/seller-dashboard/verification', icon: ShieldCheck, roles: ['seller'] },
+  { title: 'Notifications', href: '/seller-dashboard/notifications', icon: Bell, roles: ['seller']},
+  { title: 'Settings', href: '/seller-dashboard/settings', icon: Settings, roles: ['seller'] },
 ];
 
 
@@ -66,11 +66,31 @@ export default function SellerDashboardLayout({
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
-            {sidebarNavItems.map((item) => (
+            {sidebarNavItems.map((item) => {
+              const overviewPath = '/seller-dashboard';
+              const myListingsPath = '/seller-dashboard/listings';
+              const createListingPath = '/seller-dashboard/listings/create';
+
+              let itemIsActive: boolean;
+
+              if (item.href === overviewPath) {
+                itemIsActive = pathname === overviewPath;
+              } else if (item.href === createListingPath) {
+                itemIsActive = pathname === createListingPath;
+              } else if (item.href === myListingsPath) {
+                itemIsActive = (pathname === myListingsPath) || 
+                               (pathname.startsWith(myListingsPath + '/') && pathname !== createListingPath);
+              } else { 
+                // Default for other items like Profile, Settings, Notifications, Verification
+                // Active if exact match or if current path is a sub-route (e.g. /profile/edit)
+                itemIsActive = pathname === item.href || pathname.startsWith(item.href + '/');
+              }
+
+              return (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
-                    isActive={pathname === item.href || (item.href !== '/seller-dashboard' && pathname.startsWith(item.href))}
+                    isActive={itemIsActive}
                     tooltip={{ children: item.title, className: "bg-primary text-primary-foreground" }}
                   >
                     <Link href={item.href}>
@@ -79,8 +99,8 @@ export default function SellerDashboardLayout({
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              )
-            )}
+              );
+            })}
           </SidebarMenu>
         </SidebarContent>
         <div className="p-4 border-t border-sidebar-border mt-auto">
