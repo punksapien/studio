@@ -70,6 +70,15 @@ const PasswordChangeSchema = z.object({
   path: ["confirmNewPassword"],
 });
 
+// Default values for the profile form
+const defaultProfileValues: z.infer<typeof ProfileSchema> = {
+  fullName: "",
+  phoneNumber: "",
+  country: "", 
+  role: "buyer", // Default role
+  initialCompanyName: "", // Initialize to empty string
+  buyerType: undefined, // For Select, undefined is usually okay for placeholder
+};
 
 export default function ProfilePage() {
   const { toast } = useToast();
@@ -78,7 +87,7 @@ export default function ProfilePage() {
   
   const profileForm = useForm<z.infer<typeof ProfileSchema>>({
     resolver: zodResolver(ProfileSchema),
-    // Default values will be set in useEffect based on currentUserServerData
+    defaultValues: defaultProfileValues, // Use the defined defaults
   });
 
   const passwordForm = useForm<z.infer<typeof PasswordChangeSchema>>({
@@ -97,9 +106,12 @@ export default function ProfilePage() {
         phoneNumber: currentUserServerData.phoneNumber,
         country: currentUserServerData.country,
         role: currentUserServerData.role,
-        initialCompanyName: currentUserServerData.role === 'seller' ? currentUserServerData.initialCompanyName || "" : "",
-        buyerType: currentUserServerData.role === 'buyer' ? currentUserServerData.buyerType : undefined,
+        initialCompanyName: currentUserServerData.role === 'seller' ? (currentUserServerData.initialCompanyName || "") : "",
+        buyerType: currentUserServerData.role === 'buyer' ? (currentUserServerData.buyerType || undefined) : undefined,
       });
+    } else {
+      // Optional: if currentUserServerData becomes null/undefined after being set, reset to initial defaults.
+      // profileForm.reset(defaultProfileValues); 
     }
   }, [profileForm, currentUserServerData]);
 
@@ -131,13 +143,11 @@ export default function ProfilePage() {
   const watchedRole = profileForm.watch("role");
 
   useEffect(() => {
-    // When role changes, clear the other role's specific fields
-    // And set a default for the new role's specific field if it's empty
     if (watchedRole === 'buyer') {
       profileForm.setValue('initialCompanyName', '');
-      if (!profileForm.getValues('buyerType')) {
-        // profileForm.setValue('buyerType', buyerTypes[0]); // Set a default buyer type if needed
-      }
+      // if (!profileForm.getValues('buyerType')) {
+      // profileForm.setValue('buyerType', buyerTypes[0]); 
+      // }
     } else if (watchedRole === 'seller') {
       profileForm.setValue('buyerType', undefined);
     }
@@ -189,7 +199,7 @@ export default function ProfilePage() {
                   <FormItem>
                     <FormLabel>Country</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value} disabled={isProfilePending}>
-                      <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                      <FormControl><SelectTrigger><SelectValue placeholder="Select your country"/></SelectTrigger></FormControl>
                       <SelectContent>
                         {asianCountries.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                       </SelectContent>
@@ -220,10 +230,12 @@ export default function ProfilePage() {
                 <FormField
                   control={profileForm.control}
                   name="initialCompanyName"
-                  render={({ field }) => (
+                  render={({ field }) => ( // field.value should now be "" initially if not set by reset
                     <FormItem>
                       <FormLabel>Initial Company Name (Sellers)</FormLabel>
-                      <FormControl><Input {...field} value={field.value || ''} placeholder="Your Company Pte Ltd" disabled={isProfilePending} /></FormControl>
+                      <FormControl>
+                        <Input {...field} placeholder="Your Company Pte Ltd" disabled={isProfilePending} />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
