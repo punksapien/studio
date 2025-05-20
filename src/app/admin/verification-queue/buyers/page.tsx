@@ -1,4 +1,6 @@
 
+'use client';
+
 import {
   Table,
   TableBody,
@@ -10,8 +12,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { sampleVerificationRequests, sampleUsers } from "@/lib/placeholder-data"; // Added sampleUsers
-import type { VerificationRequestItem, VerificationQueueStatus } from "@/lib/types";
+import { sampleVerificationRequests, sampleUsers } from "@/lib/placeholder-data";
+import type { VerificationRequestItem, VerificationQueueStatus, User } from "@/lib/types";
 import Link from "next/link";
 import { Eye, CheckCircle2, XCircle, MessageSquare, FileText, Edit } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -29,6 +31,10 @@ export default function AdminBuyerVerificationQueuePage() {
       default: return <Badge>{status}</Badge>;
     }
   };
+
+  const getUserDetails = (userId: string): User | undefined => {
+    return sampleUsers.find(u => u.id === userId);
+  }
 
   return (
     <div className="space-y-8">
@@ -52,14 +58,16 @@ export default function AdminBuyerVerificationQueuePage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {buyerRequests.map((req) => (
+                {buyerRequests.map((req) => {
+                  const user = getUserDetails(req.userId);
+                  return (
                   <TableRow key={req.id}>
                     <TableCell>{new Date(req.timestamp).toLocaleString()}</TableCell>
                     <TableCell className="font-medium">
                         <Link href={`/admin/users/${req.userId}`} className="hover:underline">{req.userName}</Link>
                     </TableCell>
-                     <TableCell className="text-xs">{sampleUsers.find(u=>u.id === req.userId)?.email}</TableCell>
-                     <TableCell className="text-xs">{sampleUsers.find(u=>u.id === req.userId)?.buyerType || 'N/A'}</TableCell>
+                     <TableCell className="text-xs">{user?.email}</TableCell>
+                     <TableCell className="text-xs">{user?.buyerType || 'N/A'}</TableCell>
                      <TableCell className="text-xs">
                         {req.documentsSubmitted?.length ? `${req.documentsSubmitted.length} doc(s)` : 'None'}
                      </TableCell>
@@ -83,7 +91,7 @@ export default function AdminBuyerVerificationQueuePage() {
                       </Select>
                     </TableCell>
                   </TableRow>
-                ))}
+                )})}
                  {buyerRequests.length === 0 && (
                     <TableRow>
                         <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
