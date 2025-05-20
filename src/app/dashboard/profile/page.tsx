@@ -33,16 +33,16 @@ import { sampleUsers } from "@/lib/placeholder-data"; // For fetching current us
 const currentBuyerId = 'user2'; 
 const currentUserServerData: User | undefined = sampleUsers.find(u => u.id === currentBuyerId && u.role === 'buyer');
 
-const ProfileSchemaBase = z.object({
+const ProfileSchema = z.object({
   fullName: z.string().min(1, { message: "Full name is required." }),
   phoneNumber: z.string().min(1, { message: "Phone number is required." }),
   country: z.string().min(1, { message: "Country is required." }),
-  role: z.enum(['seller', 'buyer'], { required_error: "Role is required." }), // Role change might be complex
-});
-
-const ProfileSchema = ProfileSchemaBase.superRefine((data, ctx) => {
+  role: z.enum(['seller', 'buyer'], { required_error: "Role is required." }),
+  initialCompanyName: z.string().optional(),
+  buyerType: z.enum(buyerTypes).optional(),
+}).superRefine((data, ctx) => {
   if (data.role === 'seller') {
-    if (!data.initialCompanyName || data.initialCompanyName.length < 1) {
+    if (!data.initialCompanyName || data.initialCompanyName.trim().length < 1) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "Initial company name is required for sellers.",
@@ -58,9 +58,6 @@ const ProfileSchema = ProfileSchemaBase.superRefine((data, ctx) => {
       });
     }
   }
-}).extend({
-    initialCompanyName: z.string().optional(),
-    buyerType: z.enum(buyerTypes).optional(),
 });
 
 
@@ -100,7 +97,7 @@ export default function ProfilePage() {
         phoneNumber: currentUserServerData.phoneNumber,
         country: currentUserServerData.country,
         role: currentUserServerData.role,
-        initialCompanyName: currentUserServerData.role === 'seller' ? currentUserServerData.initialCompanyName : "",
+        initialCompanyName: currentUserServerData.role === 'seller' ? currentUserServerData.initialCompanyName || "" : "",
         buyerType: currentUserServerData.role === 'buyer' ? currentUserServerData.buyerType : undefined,
       });
     }
@@ -139,7 +136,7 @@ export default function ProfilePage() {
     if (watchedRole === 'buyer') {
       profileForm.setValue('initialCompanyName', '');
       if (!profileForm.getValues('buyerType')) {
-        profileForm.setValue('buyerType', buyerTypes[0]); // Set a default buyer type
+        // profileForm.setValue('buyerType', buyerTypes[0]); // Set a default buyer type if needed
       }
     } else if (watchedRole === 'seller') {
       profileForm.setValue('buyerType', undefined);
@@ -239,7 +236,7 @@ export default function ProfilePage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Buyer Type (Buyers)</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value} disabled={isProfilePending}>
+                      <Select onValueChange={field.onChange} value={field.value || undefined} disabled={isProfilePending}>
                         <FormControl><SelectTrigger><SelectValue placeholder="Select buyer type" /></SelectTrigger></FormControl>
                         <SelectContent>
                           {buyerTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
@@ -311,3 +308,4 @@ export default function ProfilePage() {
     </div>
   );
 }
+
