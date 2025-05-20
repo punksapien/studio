@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -22,21 +23,26 @@ import {
   MessageSquare,
   Settings,
   LogOut,
-  ShieldCheck
+  ShieldCheck,
+  Bell
 } from 'lucide-react';
+import type { UserRole } from '@/lib/types';
 
-const sidebarNavItems = [
-  { title: 'Overview', href: '/dashboard', icon: LayoutDashboard },
-  { title: 'My Profile', href: '/dashboard/profile', icon: UserCircle },
-  { title: 'My Listings', href: '/dashboard/listings', icon: Briefcase, role: 'seller' }, // Example: Seller only
-  { title: 'Create Listing', href: '/dashboard/listings/create', icon: Briefcase, role: 'seller' }, // Example: Seller only
-  { title: 'My Inquiries', href: '/dashboard/inquiries', icon: MessageSquare },
-  { title: 'Verification', href: '/dashboard/verification', icon: ShieldCheck },
-  { title: 'Settings', href: '/dashboard/settings', icon: Settings },
+
+// Placeholder for current user role - in a real app, this would come from session
+const currentUserRole: UserRole | null = 'buyer'; // Set to 'buyer' for buyer dashboard development
+
+const allSidebarNavItems = [
+  { title: 'Overview', href: '/dashboard', icon: LayoutDashboard, roles: ['seller', 'buyer'] },
+  { title: 'My Profile', href: '/dashboard/profile', icon: UserCircle, roles: ['seller', 'buyer'] },
+  { title: 'My Listings', href: '/dashboard/listings', icon: Briefcase, roles: ['seller'] },
+  { title: 'Create Listing', href: '/dashboard/listings/create', icon: Briefcase, roles: ['seller'] },
+  { title: 'My Inquiries', href: '/dashboard/inquiries', icon: MessageSquare, roles: ['seller', 'buyer'] },
+  { title: 'Verification', href: '/dashboard/verification', icon: ShieldCheck, roles: ['seller', 'buyer'] },
+  { title: 'Notifications', href: '/dashboard/notifications', icon: Bell, roles: ['seller', 'buyer']},
+  { title: 'Settings', href: '/dashboard/settings', icon: Settings, roles: ['seller', 'buyer'] },
 ];
 
-// Placeholder for user role - in a real app, this would come from session
-const currentUserRole: 'seller' | 'buyer' | null = 'seller'; 
 
 export default function DashboardLayout({
   children,
@@ -44,6 +50,10 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+
+  const sidebarNavItems = allSidebarNavItems.filter(item => 
+    !item.roles || (currentUserRole && item.roles.includes(currentUserRole))
+  );
 
   return (
     <SidebarProvider defaultOpen>
@@ -56,11 +66,7 @@ export default function DashboardLayout({
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
-            {sidebarNavItems.map((item) => {
-              if (item.role && item.role !== currentUserRole) {
-                return null;
-              }
-              return (
+            {sidebarNavItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
@@ -73,8 +79,8 @@ export default function DashboardLayout({
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              );
-            })}
+              )
+            )}
           </SidebarMenu>
         </SidebarContent>
         <div className="p-4 border-t border-sidebar-border mt-auto">

@@ -76,7 +76,16 @@ export interface Listing {
   webPresenceInfoUrl?: string; 
 }
 
-export type InquiryStatus =
+export type InquiryStatusBuyerPerspective =
+  | 'Inquiry Sent' // Buyer has inquired, seller not yet engaged
+  | 'Seller Engaged - Your Verification Required' // Buyer is anonymous, seller engaged
+  | 'Seller Engaged - Seller Verification Pending' // Seller is anonymous, buyer engaged (and presumably verified or willing to be)
+  | 'Ready for Admin Connection' // Both verified and engaged
+  | 'Connection Facilitated by Admin'
+  | 'Archived';
+
+// Keeping original InquiryStatus for potential admin/seller views, or if system uses it internally
+export type InquiryStatusSystem =
   | 'new_inquiry'
   | 'seller_engaged_buyer_pending_verification'
   | 'seller_engaged_seller_pending_verification'
@@ -84,14 +93,18 @@ export type InquiryStatus =
   | 'connection_facilitated'
   | 'archived';
 
+
 export interface Inquiry {
   id: string;
   listingId: string;
+  listingTitleAnonymous: string; // Added for easier display on buyer's dashboard
+  sellerStatus: 'Anonymous Seller' | 'Platform Verified Seller'; // Added for buyer's view
   buyerId: string;
   sellerId: string;
   inquiryTimestamp: Date;
   engagementTimestamp?: Date;
-  status: InquiryStatus;
+  status: InquiryStatusSystem; // System's internal status
+  statusBuyerPerspective: InquiryStatusBuyerPerspective; // Status as seen by the buyer
   createdAt: Date;
   updatedAt: Date;
 }
@@ -142,4 +155,13 @@ export interface ReadyToEngageItem {
   sellerName: string;
   listingId: string;
   listingTitle: string;
+}
+
+export interface NotificationItem {
+  id: string;
+  timestamp: Date;
+  message: string;
+  link?: string;
+  isRead: boolean;
+  userId: string; // To associate notification with a user
 }

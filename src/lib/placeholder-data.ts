@@ -1,5 +1,5 @@
 
-import type { Listing, User, AdminDashboardMetrics, VerificationRequestItem, ReadyToEngageItem } from './types';
+import type { Listing, User, AdminDashboardMetrics, VerificationRequestItem, ReadyToEngageItem, Inquiry, NotificationItem } from './types';
 
 export const sampleUsers: User[] = [
   {
@@ -11,7 +11,7 @@ export const sampleUsers: User[] = [
     role: 'seller',
     isEmailVerified: true,
     verificationStatus: 'verified',
-    isPaid: true, // New field
+    isPaid: true, 
     initialCompanyName: 'JD Web Solutions',
     createdAt: new Date('2023-01-10T09:00:00Z'),
     updatedAt: new Date('2023-01-15T14:30:00Z'),
@@ -25,7 +25,7 @@ export const sampleUsers: User[] = [
     role: 'buyer',
     isEmailVerified: true,
     verificationStatus: 'verified',
-    isPaid: true, // New field
+    isPaid: true, 
     buyerType: 'Individual Investor',
     createdAt: new Date('2023-02-05T11:00:00Z'),
     updatedAt: new Date('2023-02-05T11:00:00Z'),
@@ -39,7 +39,7 @@ export const sampleUsers: User[] = [
     role: 'seller',
     isEmailVerified: true,
     verificationStatus: 'anonymous',
-    isPaid: false, // New field
+    isPaid: false, 
     createdAt: new Date('2023-03-20T16:00:00Z'),
     updatedAt: new Date('2023-03-20T16:00:00Z'),
   },
@@ -52,7 +52,7 @@ export const sampleUsers: User[] = [
     role: 'buyer',
     isEmailVerified: true,
     verificationStatus: 'pending_verification',
-    isPaid: false, // New field
+    isPaid: false, 
     buyerType: 'Investment Firm',
     createdAt: new Date('2023-04-10T10:00:00Z'),
     updatedAt: new Date('2023-04-10T10:00:00Z'),
@@ -65,11 +65,25 @@ export const sampleUsers: User[] = [
     country: 'Indonesia',
     role: 'buyer',
     isEmailVerified: true,
-    verificationStatus: 'verified', // Can be verified but free
+    verificationStatus: 'verified', 
     isPaid: false,
     buyerType: 'Strategic Acquirer',
     createdAt: new Date('2023-05-01T11:00:00Z'),
     updatedAt: new Date('2023-05-01T11:00:00Z'),
+  },
+  {
+    id: 'user6',
+    fullName: 'Anna Tay (Buyer - Anonymous)',
+    email: 'anna.buyer.anon@example.com',
+    phoneNumber: '+639171234567',
+    country: 'Philippines',
+    role: 'buyer',
+    isEmailVerified: true,
+    verificationStatus: 'anonymous',
+    isPaid: false,
+    buyerType: 'Individual Investor',
+    createdAt: new Date('2023-06-15T09:00:00Z'),
+    updatedAt: new Date('2023-06-15T09:00:00Z'),
   },
 ];
 
@@ -121,11 +135,10 @@ export const sampleListings: Listing[] = [
     updatedAt: new Date('2023-11-01T14:30:00Z'),
     imageUrl: 'https://placehold.co/600x400.png',
     potentialForGrowthNarrative: 'The platform is poised for rapid expansion with further development of enterprise features and targeted sales efforts in the APAC region. Untapped potential in complementary service integrations.',
-    // No document URLs as seller is not verified / details not filled
   },
   {
     id: '3',
-    sellerId: 'user1', // Also by John Doe (Paid Seller)
+    sellerId: 'user1', 
     listingTitleAnonymous: 'Boutique Marketing Agency',
     industry: 'Services - Marketing',
     locationCountry: 'Malaysia',
@@ -147,28 +160,67 @@ export const sampleListings: Listing[] = [
   },
 ];
 
+export const sampleBuyerInquiries: Inquiry[] = [
+  {
+    id: 'inq_b1',
+    listingId: '1',
+    listingTitleAnonymous: 'Profitable E-commerce Store in SEA',
+    sellerId: 'user1',
+    buyerId: 'user2', // Jane Smith (Verified Buyer)
+    inquiryTimestamp: new Date('2023-11-10T10:00:00Z'),
+    sellerStatus: 'Platform Verified Seller',
+    status: 'seller_engaged_buyer_pending_verification', // Placeholder for now, might be 'ready_for_admin_connection' if seller engaged.
+    statusBuyerPerspective: 'Ready for Admin Connection',
+    createdAt: new Date('2023-11-10T10:00:00Z'),
+    updatedAt: new Date('2023-11-11T10:00:00Z'),
+  },
+  {
+    id: 'inq_b2',
+    listingId: '2',
+    listingTitleAnonymous: 'Established SaaS Platform - B2B Niche',
+    sellerId: 'user3',
+    buyerId: 'user2', // Jane Smith (Verified Buyer)
+    inquiryTimestamp: new Date('2023-11-08T15:30:00Z'),
+    sellerStatus: 'Anonymous Seller',
+    status: 'new_inquiry',
+    statusBuyerPerspective: 'Inquiry Sent',
+    createdAt: new Date('2023-11-08T15:30:00Z'),
+    updatedAt: new Date('2023-11-08T15:30:00Z'),
+  },
+  {
+    id: 'inq_b3',
+    listingId: '1',
+    listingTitleAnonymous: 'Profitable E-commerce Store in SEA',
+    sellerId: 'user1',
+    buyerId: 'user6', // Anna Tay (Anonymous Buyer)
+    inquiryTimestamp: new Date('2023-11-12T09:00:00Z'),
+    sellerStatus: 'Platform Verified Seller',
+    status: 'seller_engaged_buyer_pending_verification', // Assuming seller 'user1' engaged
+    statusBuyerPerspective: 'Seller Engaged - Your Verification Required',
+    createdAt: new Date('2023-11-12T09:00:00Z'),
+    updatedAt: new Date('2023-11-12T10:00:00Z'),
+  },
+];
+
+
 export const sampleAdminDashboardMetrics: AdminDashboardMetrics = {
   newUserRegistrations24h: 5,
   newUserRegistrations7d: 23,
   newListingsCreated24h: 2,
   newListingsCreated7d: 10,
-  totalActiveSellers: 58, // All sellers, paid or free
-  totalActiveBuyers: 120,  // All buyers, paid or free
-  totalActiveListingsAnonymous: 35, // Listings from non-verified sellers or not yet fully public
-  totalActiveListingsVerified: 15, // Listings from verified sellers with full details potentially available
-  
-  // New/Updated queue counts
-  buyerVerificationQueueCount: 3, // Example
-  sellerVerificationQueueCount: 4, // Example
+  totalActiveSellers: 58, 
+  totalActiveBuyers: 120,  
+  totalActiveListingsAnonymous: 35, 
+  totalActiveListingsVerified: 15, 
+  buyerVerificationQueueCount: 3, 
+  sellerVerificationQueueCount: 4, 
   readyToEngageQueueCount: 3,
-
-  // New analytics metrics
   paidBuyersCount: 40,
   freeBuyersCount: 80,
   paidSellersCount: 25,
   freeSellersCount: 33,
-  totalRevenue: 12500, // Example amount in USD
-  successfulConnectionsCount: 12, // from existing "Successful Connections (Est.)"
+  totalRevenue: 12500, 
+  successfulConnectionsCount: 12, 
   closedDealsCount: 4,
 };
 
@@ -176,7 +228,7 @@ export const sampleVerificationRequests: VerificationRequestItem[] = [
   {
     id: 'vr1',
     timestamp: new Date('2023-11-10T10:00:00Z'),
-    userId: 'user4', // Sarah Chen (Buyer - Pending)
+    userId: 'user4', 
     userName: 'Sarah Chen (Buyer - Pending)',
     userRole: 'buyer',
     reason: 'New buyer registration, requires profile verification.',
@@ -184,7 +236,7 @@ export const sampleVerificationRequests: VerificationRequestItem[] = [
   {
     id: 'vr2',
     timestamp: new Date('2023-11-09T15:30:00Z'),
-    userId: 'user3', // Alex Tan (Seller - Anonymous)
+    userId: 'user3', 
     userName: 'Alex Tan (Seller - Anonymous)',
     userRole: 'seller',
     listingId: '2',
@@ -194,7 +246,7 @@ export const sampleVerificationRequests: VerificationRequestItem[] = [
   {
     id: 'vr3',
     timestamp: new Date('2023-11-11T11:00:00Z'),
-    userId: 'user5', // Michael Lee (Buyer - Free, but wants to verify for some reason)
+    userId: 'user5', 
     userName: 'Michael Lee (Buyer - Free)',
     userRole: 'buyer',
     reason: 'Buyer requested manual verification upgrade.',
@@ -213,12 +265,37 @@ export const sampleReadyToEngageItems: ReadyToEngageItem[] = [
   {
     id: 'rte1',
     timestamp: new Date('2023-11-08T12:00:00Z'),
-    buyerId: 'user2', // Jane Smith
+    buyerId: 'user2', 
     buyerName: 'Jane Smith (Buyer)',
-    sellerId: 'user1', // John Doe
+    sellerId: 'user1', 
     sellerName: 'John Doe (Seller)',
     listingId: '1',
     listingTitle: 'Profitable E-commerce Store in SEA',
   },
 ];
 
+export const sampleBuyerNotifications: NotificationItem[] = [
+  {
+    id: 'notif1_buyer2',
+    userId: 'user2', // Jane Smith (Verified Buyer)
+    timestamp: new Date('2023-11-11T10:05:00Z'),
+    message: "Great news! Both you and the Seller for listing 'Profitable E-commerce Store in SEA' are verified and have agreed to engage. Our team will be in touch shortly.",
+    link: '/dashboard/inquiries/inq_b1', // Link to specific inquiry
+    isRead: false,
+  },
+  {
+    id: 'notif2_buyer6',
+    userId: 'user6', // Anna Tay (Anonymous Buyer)
+    timestamp: new Date('2023-11-12T10:05:00Z'),
+    message: "The seller of 'Profitable E-commerce Store in SEA' is ready to engage! To proceed, your profile needs to be verified.",
+    link: '/dashboard/verification',
+    isRead: false,
+  },
+  {
+    id: 'notif3_buyer2',
+    userId: 'user2',
+    timestamp: new Date('2023-11-09T08:00:00Z'),
+    message: "Your profile information was successfully updated.",
+    isRead: true,
+  }
+];

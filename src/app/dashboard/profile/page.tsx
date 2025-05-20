@@ -2,7 +2,7 @@
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, Controller } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,32 +22,24 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { asianCountries, buyerTypes, UserRole } from "@/lib/types"; 
+import { asianCountries, buyerTypes, UserRole, User, VerificationStatus } from "@/lib/types"; 
 import { useState, useTransition, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
+import { sampleUsers } from "@/lib/placeholder-data"; // For fetching current user data
 
 // Placeholder for current user data - in a real app, this would come from session/auth
-const currentUserServerData = {
-  fullName: "John Doe",
-  email: "john.doe@example.com",
-  phoneNumber: "+6591234567",
-  country: "Singapore",
-  role: "seller" as UserRole,
-  initialCompanyName: "JD Web Solutions", 
-  buyerType: undefined as (typeof buyerTypes[number] | undefined),
-  isPaid: true,
-  verificationStatus: "verified" as const,
-};
+// Simulating current buyer 'user2' (Jane Smith)
+const currentBuyerId = 'user2'; 
+const currentUserServerData: User | undefined = sampleUsers.find(u => u.id === currentBuyerId && u.role === 'buyer');
 
 const ProfileSchemaBase = z.object({
   fullName: z.string().min(1, { message: "Full name is required." }),
   phoneNumber: z.string().min(1, { message: "Phone number is required." }),
   country: z.string().min(1, { message: "Country is required." }),
-  role: z.enum(['seller', 'buyer'], { required_error: "Role is required." }),
+  role: z.enum(['seller', 'buyer'], { required_error: "Role is required." }), // Role change might be complex
 });
 
-// Conditional fields based on role
 const ProfileSchema = ProfileSchemaBase.superRefine((data, ctx) => {
   if (data.role === 'seller') {
     if (!data.initialCompanyName || data.initialCompanyName.length < 1) {
@@ -89,14 +81,7 @@ export default function ProfilePage() {
   
   const profileForm = useForm<z.infer<typeof ProfileSchema>>({
     resolver: zodResolver(ProfileSchema),
-    defaultValues: {
-      fullName: currentUserServerData.fullName,
-      phoneNumber: currentUserServerData.phoneNumber,
-      country: currentUserServerData.country,
-      role: currentUserServerData.role,
-      initialCompanyName: currentUserServerData.role === 'seller' ? currentUserServerData.initialCompanyName : "",
-      buyerType: currentUserServerData.role === 'buyer' ? currentUserServerData.buyerType : undefined,
-    },
+    // Default values will be set in useEffect based on currentUserServerData
   });
 
   const passwordForm = useForm<z.infer<typeof PasswordChangeSchema>>({
@@ -108,11 +93,24 @@ export default function ProfilePage() {
     },
   });
 
+  useEffect(() => {
+    if (currentUserServerData) {
+      profileForm.reset({
+        fullName: currentUserServerData.fullName,
+        phoneNumber: currentUserServerData.phoneNumber,
+        country: currentUserServerData.country,
+        role: currentUserServerData.role,
+        initialCompanyName: currentUserServerData.role === 'seller' ? currentUserServerData.initialCompanyName : "",
+        buyerType: currentUserServerData.role === 'buyer' ? currentUserServerData.buyerType : undefined,
+      });
+    }
+  }, [profileForm, currentUserServerData]);
+
+
   const onProfileSubmit = (values: z.infer<typeof ProfileSchema>) => {
     startProfileTransition(async () => {
       console.log("Profile update values:", values);
-      // Placeholder for server action to update profile and role
-      // This would involve more complex logic if role changes, e.g., clearing irrelevant fields.
+      // Placeholder for server action to update profile
       await new Promise(resolve => setTimeout(resolve, 1000));
       toast({ title: "Profile Updated", description: "Your profile information has been successfully updated." });
     });
@@ -137,12 +135,20 @@ export default function ProfilePage() {
 
   useEffect(() => {
     // When role changes, clear the other role's specific fields
+    // And set a default for the new role's specific field if it's empty
     if (watchedRole === 'buyer') {
       profileForm.setValue('initialCompanyName', '');
+      if (!profileForm.getValues('buyerType')) {
+        profileForm.setValue('buyerType', buyerTypes[0]); // Set a default buyer type
+      }
     } else if (watchedRole === 'seller') {
       profileForm.setValue('buyerType', undefined);
     }
   }, [watchedRole, profileForm]);
+
+  if (!currentUserServerData) {
+    return <div className="container py-8 text-center">Loading profile or user not found...</div>;
+  }
 
 
   return (
@@ -152,7 +158,7 @@ export default function ProfilePage() {
       <Card className="shadow-md">
         <CardHeader>
           <CardTitle>Personal Information & Role</CardTitle>
-          <CardDescription>Update your personal details and role. Your email ({currentUserServerData.email}) cannot be changed here.</CardDescription>
+          <CardDescription>Update your personal details. Your email ({currentUserServerData.email}) cannot be changed here.</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...profileForm}>
@@ -185,7 +191,7 @@ export default function ProfilePage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Country</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isProfilePending}>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={isProfilePending}>
                       <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
                       <SelectContent>
                         {asianCountries.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
@@ -201,7 +207,7 @@ export default function ProfilePage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Your Role on BizMatch Asia</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isProfilePending}>
+                     <Select onValueChange={field.onChange} value={field.value} disabled={isProfilePending /* Role change might be complex, disable for now or add warning */}>
                       <FormControl><SelectTrigger><SelectValue placeholder="Select your role" /></SelectTrigger></FormControl>
                       <SelectContent>
                         <SelectItem value="buyer">Buyer / Investor</SelectItem>
@@ -220,7 +226,7 @@ export default function ProfilePage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Initial Company Name (Sellers)</FormLabel>
-                      <FormControl><Input {...field} placeholder="Your Company Pte Ltd" disabled={isProfilePending} /></FormControl>
+                      <FormControl><Input {...field} value={field.value || ''} placeholder="Your Company Pte Ltd" disabled={isProfilePending} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -233,7 +239,7 @@ export default function ProfilePage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Buyer Type (Buyers)</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isProfilePending}>
+                      <Select onValueChange={field.onChange} value={field.value} disabled={isProfilePending}>
                         <FormControl><SelectTrigger><SelectValue placeholder="Select buyer type" /></SelectTrigger></FormControl>
                         <SelectContent>
                           {buyerTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
