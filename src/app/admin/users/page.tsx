@@ -21,7 +21,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { sampleUsers } from "@/lib/placeholder-data";
 import type { User } from "@/lib/types";
 import Link from "next/link";
-import { Eye, ShieldCheck, ShieldAlert, Filter, Search, Trash2, KeyRound, Edit } from "lucide-react";
+import { Eye, ShieldCheck, ShieldAlert, Filter, Search, Trash2, KeyRound, Edit, DollarSign, Briefcase } from "lucide-react";
 
 // In a real app, users would be fetched and paginated.
 const users: User[] = sampleUsers;
@@ -55,9 +55,9 @@ export default function AdminUsersPage() {
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input placeholder="Search by name or email..." className="pl-8 sm:w-full md:w-[300px]" />
             </div>
-            <div className="flex gap-4">
+            <div className="flex flex-wrap gap-4">
                 <Select>
-                <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectTrigger className="w-full sm:w-[160px]">
                     <SelectValue placeholder="Filter by Role" />
                 </SelectTrigger>
                 <SelectContent>
@@ -68,7 +68,7 @@ export default function AdminUsersPage() {
                 </SelectContent>
                 </Select>
                 <Select>
-                <SelectTrigger className="w-full sm:w-[200px]">
+                <SelectTrigger className="w-full sm:w-[180px]">
                     <SelectValue placeholder="Filter by Verification" />
                 </SelectTrigger>
                 <SelectContent>
@@ -77,6 +77,16 @@ export default function AdminUsersPage() {
                     <SelectItem value="pending_verification">Pending Verification</SelectItem>
                     <SelectItem value="anonymous">Anonymous</SelectItem>
                     <SelectItem value="rejected">Rejected</SelectItem>
+                </SelectContent>
+                </Select>
+                 <Select>
+                <SelectTrigger className="w-full sm:w-[160px]">
+                    <SelectValue placeholder="Filter by Paid Status" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all">All Payment Statuses</SelectItem>
+                    <SelectItem value="paid">Paid</SelectItem>
+                    <SelectItem value="free">Free</SelectItem>
                 </SelectContent>
                 </Select>
                 <Button variant="outline" className="hidden sm:inline-flex"><Filter className="h-4 w-4 mr-2"/>Apply</Button>
@@ -91,9 +101,11 @@ export default function AdminUsersPage() {
                   <TableHead>Full Name</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Role</TableHead>
+                  <TableHead>Paid</TableHead>
                   <TableHead>Country</TableHead>
                   <TableHead>Verification Status</TableHead>
                   <TableHead>Registered On</TableHead>
+                  <TableHead>Listings/Inquiries</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -103,9 +115,15 @@ export default function AdminUsersPage() {
                     <TableCell className="font-medium">{user.fullName}</TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell><Badge variant="outline" className="capitalize">{user.role}</Badge></TableCell>
+                    <TableCell>
+                        {user.isPaid ? <Badge className="bg-green-500 text-white">Paid</Badge> : <Badge variant="secondary">Free</Badge>}
+                    </TableCell>
                     <TableCell>{user.country}</TableCell>
                     <TableCell>{getVerificationBadge(user.verificationStatus)}</TableCell>
                     <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
+                    <TableCell className="text-center">
+                      {user.role === 'seller' ? user.listingCount || 0 : user.inquiryCount || 0}
+                    </TableCell>
                     <TableCell className="text-right">
                       <Button variant="ghost" size="icon" asChild title="View User Details">
                         <Link href={`/admin/users/${user.id}`}>
@@ -118,8 +136,8 @@ export default function AdminUsersPage() {
                        <Button variant="ghost" size="icon" title={`Mark as ${user.verificationStatus !== 'verified' ? 'Verified' : 'Pending'} (Not Implemented)`}>
                          {user.verificationStatus !== 'verified' ? <ShieldCheck className="h-4 w-4 text-green-600" /> : <ShieldAlert className="h-4 w-4 text-yellow-600" />}
                       </Button>
-                       <Button variant="ghost" size="icon" title="Change Password (Not Implemented)">
-                         <KeyRound className="h-4 w-4 text-blue-600" />
+                      <Button variant="ghost" size="icon" title={`Toggle Paid Status (Currently ${user.isPaid ? 'Paid' : 'Free'}) (Not Implemented)`}>
+                         <DollarSign className={`h-4 w-4 ${user.isPaid ? 'text-green-600' : 'text-gray-500'}`} />
                       </Button>
                       <Button variant="ghost" size="icon" title="Delete User (Not Implemented)">
                          <Trash2 className="h-4 w-4 text-destructive" />

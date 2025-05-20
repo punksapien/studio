@@ -1,5 +1,5 @@
 
-import type { Listing, User, AdminDashboardMetrics, VerificationRequestItem, ReadyToEngageItem, Inquiry, NotificationItem, InquiryStatusSystem, InquiryStatusBuyerPerspective, InquiryStatusSellerPerspective } from './types';
+import type { Listing, User, AdminDashboardMetrics, VerificationRequestItem, ReadyToEngageItem, Inquiry, NotificationItem, InquiryStatusSystem, InquiryStatusBuyerPerspective, InquiryStatusSellerPerspective, ListingStatus, VerificationQueueStatus } from './types';
 
 export const sampleUsers: User[] = [
   {
@@ -15,6 +15,8 @@ export const sampleUsers: User[] = [
     initialCompanyName: 'JD Web Solutions',
     createdAt: new Date('2023-01-10T09:00:00Z'),
     updatedAt: new Date('2023-01-15T14:30:00Z'),
+    lastLogin: new Date('2024-05-20T10:00:00Z'),
+    listingCount: 2,
   },
   {
     id: 'user2',
@@ -29,6 +31,8 @@ export const sampleUsers: User[] = [
     buyerType: 'Individual Investor',
     createdAt: new Date('2023-02-05T11:00:00Z'),
     updatedAt: new Date('2023-02-05T11:00:00Z'),
+    lastLogin: new Date('2024-05-21T11:00:00Z'),
+    inquiryCount: 3,
   },
   {
     id: 'user3',
@@ -43,6 +47,8 @@ export const sampleUsers: User[] = [
     initialCompanyName: 'Anonymous SaaS Co.',
     createdAt: new Date('2023-03-20T16:00:00Z'),
     updatedAt: new Date('2023-03-20T16:00:00Z'),
+    lastLogin: new Date('2024-05-19T09:00:00Z'),
+    listingCount: 1,
   },
    {
     id: 'user4',
@@ -57,6 +63,8 @@ export const sampleUsers: User[] = [
     buyerType: 'Investment Firm',
     createdAt: new Date('2023-04-10T10:00:00Z'),
     updatedAt: new Date('2023-04-10T10:00:00Z'),
+    lastLogin: new Date('2024-05-18T14:00:00Z'),
+    inquiryCount: 0,
   },
   {
     id: 'user5',
@@ -71,6 +79,8 @@ export const sampleUsers: User[] = [
     buyerType: 'Strategic Acquirer',
     createdAt: new Date('2023-05-01T11:00:00Z'),
     updatedAt: new Date('2023-05-01T11:00:00Z'),
+    lastLogin: new Date('2024-05-20T17:00:00Z'),
+    inquiryCount: 1,
   },
   {
     id: 'user6',
@@ -85,6 +95,8 @@ export const sampleUsers: User[] = [
     buyerType: 'Individual Investor',
     createdAt: new Date('2023-06-15T09:00:00Z'),
     updatedAt: new Date('2023-06-15T09:00:00Z'),
+    lastLogin: new Date('2024-05-17T10:00:00Z'),
+    inquiryCount: 1,
   },
 ];
 
@@ -103,16 +115,28 @@ export const sampleListings: Listing[] = [
     askingPriceRange: '$1M - $2.5M USD',
     dealStructureLookingFor: ['Full Acquisition'],
     reasonForSellingAnonymous: 'Owner retiring.',
-    status: 'active',
+    status: 'verified_public' as ListingStatus,
     isSellerVerified: true,
     actualCompanyName: 'GreenEarth Goods Pte. Ltd.',
+    registeredBusinessName: 'GreenEarth Goods Pte. Ltd.',
+    businessModel: "Direct-to-Consumer (DTC) E-commerce",
+    yearEstablished: 2018,
+    businessWebsiteUrl: 'https://greenearth.example.com',
+    socialMediaLinks: "https://facebook.com/greenearth\nhttps://instagram.com/greenearth",
+    numberOfEmployees: "6-10",
+    technologyStack: "Shopify Plus, Klaviyo, Gorgias, Custom Inventory Management",
     fullBusinessAddress: '123 Orchard Road, Singapore',
     specificAnnualRevenueLastYear: 750000,
     specificNetProfitLastYear: 180000,
+    financialsExplanation: "Consistent YOY growth of 25%. Net profit includes all operational costs and salaries. Minimal ad spend, mostly organic traffic.",
+    detailedReasonForSelling: "Owner wishes to retire after successfully building and scaling the business over the past 5 years. Looking for a passionate successor.",
+    sellerRoleAndTimeCommitment: "Owner currently spends ~20 hours/week on strategic oversight, supplier relations, and new product development. Day-to-day operations managed by a small team.",
+    postSaleTransitionSupport: "Willing to offer 3-6 months of transition support and training to ensure a smooth handover.",
+    growthPotentialNarrative: "Significant growth potential by expanding product catalog to adjacent niches (e.g., sustainable home goods, pet products) and targeting new customer segments in neighboring ASEAN countries. Current marketing efforts are minimal, offering substantial upside with a dedicated marketing strategy including paid advertising and influencer collaborations.",
+    specificGrowthOpportunities: "- Expand to Malaysia and Indonesia markets.\n- Launch a subscription box service for core products.\n- Invest in paid social media advertising campaigns.",
     createdAt: new Date('2023-10-15T10:00:00Z'),
     updatedAt: new Date('2023-10-15T10:00:00Z'),
     imageUrl: 'https://placehold.co/600x400.png',
-    potentialForGrowthNarrative: 'Significant growth potential by expanding product catalog to adjacent niches and targeting new customer segments in neighboring ASEAN countries. Current marketing efforts are minimal, offering substantial upside with a dedicated marketing strategy.',
     financialSnapshotUrl: '/documents/placeholder-financials.pdf',
     ownershipDetailsUrl: '/documents/placeholder-ownership.pdf',
     locationRealEstateInfoUrl: '/documents/placeholder-lease.pdf',
@@ -131,8 +155,11 @@ export const sampleListings: Listing[] = [
     annualRevenueRange: '$100K - $250K USD',
     askingPriceRange: '$250K - $500K USD',
     dealStructureLookingFor: ['Full Acquisition', 'Partial Sale/Investment'],
-    status: 'active',
+    status: 'active' as ListingStatus, // Seller is anonymous, so listing is active but not verified_public
     isSellerVerified: false,
+    businessModel: "Subscription-based SaaS",
+    yearEstablished: 2020,
+    registeredBusinessName: "VN Tech Solutions Co. Ltd.", // For admin/verification
     createdAt: new Date('2023-11-01T14:30:00Z'),
     updatedAt: new Date('2023-11-01T14:30:00Z'),
     imageUrl: 'https://placehold.co/600x400.png',
@@ -151,9 +178,13 @@ export const sampleListings: Listing[] = [
     annualRevenueRange: '$250K - $500K USD',
     netProfitMarginRange: '10% - 20%',
     askingPriceRange: '$500K - $1M USD',
-    status: 'active',
+    status: 'verified_public' as ListingStatus,
     isSellerVerified: true,
     actualCompanyName: 'Creative Spark Solutions Sdn. Bhd.',
+    registeredBusinessName: 'Creative Spark Solutions Sdn. Bhd.',
+    businessModel: "Service-based Agency",
+    yearEstablished: 2019,
+    numberOfEmployees: "1-5",
     createdAt: new Date('2023-09-20T08:00:00Z'),
     updatedAt: new Date('2023-09-20T08:00:00Z'),
     imageUrl: 'https://placehold.co/600x400.png',
@@ -174,8 +205,10 @@ export const sampleListings: Listing[] = [
     annualRevenueRange: '$100K - $250K USD',
     netProfitMarginRange: '15% - 25%',
     askingPriceRange: '$150K - $300K USD',
-    status: 'pending_verification',
+    status: 'pending_verification' as ListingStatus,
     isSellerVerified: false,
+    businessModel: "Brick-and-mortar retail cafe",
+    yearEstablished: 2021,
     createdAt: new Date('2023-12-01T09:00:00Z'),
     updatedAt: new Date('2023-12-01T09:00:00Z'),
     imageUrl: 'https://placehold.co/600x400.png',
@@ -272,24 +305,26 @@ export const sampleSellerInquiries: Inquiry[] = [
 
 
 export const sampleAdminDashboardMetrics: AdminDashboardMetrics = {
-  newUserRegistrations24h: 5,
-  newUserRegistrations7d: 23,
+  newUserRegistrations24hSellers: 2,
+  newUserRegistrations24hBuyers: 3,
+  newUserRegistrations7dSellers: 10,
+  newUserRegistrations7dBuyers: 13,
   newListingsCreated24h: 2,
   newListingsCreated7d: 10,
-  totalActiveSellers: 58, 
-  totalActiveBuyers: 120,  
-  totalActiveListingsAnonymous: 35, 
-  totalActiveListingsVerified: 15, 
+  totalActiveSellers: sampleUsers.filter(u => u.role === 'seller').length, 
+  totalPaidSellers: sampleUsers.filter(u => u.role === 'seller' && u.isPaid).length,
+  totalFreeSellers: sampleUsers.filter(u => u.role === 'seller' && !u.isPaid).length,
+  totalActiveBuyers: sampleUsers.filter(u => u.role === 'buyer').length,  
+  totalPaidBuyers: sampleUsers.filter(u => u.role === 'buyer' && u.isPaid).length,
+  totalFreeBuyers: sampleUsers.filter(u => u.role === 'buyer' && !u.isPaid).length,
+  totalActiveListingsAnonymous: sampleListings.filter(l => l.status === 'active' && !l.isSellerVerified).length, 
+  totalActiveListingsVerified: sampleListings.filter(l => l.status === 'verified_public').length, 
   buyerVerificationQueueCount: 3, 
   sellerVerificationQueueCount: 4, 
-  readyToEngageQueueCount: 3,
-  paidBuyersCount: 40,
-  freeBuyersCount: 80,
-  paidSellersCount: 25,
-  freeSellersCount: 33,
-  totalRevenue: 12500, 
-  successfulConnectionsCount: 12, 
-  closedDealsCount: 4,
+  readyToEngageQueueCount: 1,
+  successfulConnectionsMTD: 12, 
+  dealsClosedMTD: 4,
+  totalRevenueMTD: 12500,
 };
 
 export const sampleVerificationRequests: VerificationRequestItem[] = [
@@ -300,6 +335,8 @@ export const sampleVerificationRequests: VerificationRequestItem[] = [
     userName: 'Sarah Chen (Buyer - Pending)',
     userRole: 'buyer',
     reason: 'New buyer registration, requires profile verification.',
+    status: 'New Request' as VerificationQueueStatus,
+    documentsSubmitted: [{name: 'ID_Proof_Sarah.pdf', type: 'id_proof'}]
   },
   {
     id: 'vr2',
@@ -310,6 +347,8 @@ export const sampleVerificationRequests: VerificationRequestItem[] = [
     listingId: '2',
     listingTitle: 'Established SaaS Platform - B2B Niche',
     reason: 'Seller submitted new listing, requires seller and listing verification.',
+    status: 'Contacted' as VerificationQueueStatus,
+    documentsSubmitted: [{name: 'BusinessReg_Alex.pdf', type: 'business_reg'}]
   },
   {
     id: 'vr3',
@@ -318,6 +357,7 @@ export const sampleVerificationRequests: VerificationRequestItem[] = [
     userName: 'Michael Lee (Buyer - Free)',
     userRole: 'buyer',
     reason: 'Buyer requested manual verification upgrade.',
+    status: 'Docs Under Review' as VerificationQueueStatus,
   },
    {
     id: 'vr4',
@@ -326,6 +366,9 @@ export const sampleVerificationRequests: VerificationRequestItem[] = [
     userName: 'Pending Seller Alpha',
     userRole: 'seller',
     reason: 'New seller account created.',
+    listingId: '4',
+    listingTitle: 'Modern Cafe in Tourist Hotspot',
+    status: 'New Request' as VerificationQueueStatus,
   },
 ];
 
@@ -335,10 +378,13 @@ export const sampleReadyToEngageItems: ReadyToEngageItem[] = [
     timestamp: new Date('2023-11-08T12:00:00Z'),
     buyerId: 'user2', 
     buyerName: 'Jane Smith (Buyer)',
+    buyerVerificationStatus: 'verified',
     sellerId: 'user1', 
     sellerName: 'John Doe (Seller)',
+    sellerVerificationStatus: 'verified',
     listingId: '1',
     listingTitle: 'Profitable E-commerce Store in SEA',
+    listingVerificationStatus: 'verified_public'
   },
 ];
 

@@ -35,11 +35,16 @@ export interface User {
   isEmailVerified: boolean;
   verificationStatus: VerificationStatus;
   isPaid: boolean; 
-  initialCompanyName?: string;
-  buyerType?: BuyerType;
+  initialCompanyName?: string; // For sellers
+  buyerType?: BuyerType; // For buyers
   createdAt: Date;
   updatedAt: Date;
+  lastLogin?: Date; // New for Admin Panel
+  listingCount?: number; // New for Admin Panel (sellers)
+  inquiryCount?: number; // New for Admin Panel (buyers)
 }
+
+export type ListingStatus = 'active' | 'inactive' | 'pending_verification' | 'verified_anonymous' | 'verified_public'; // More detailed status
 
 export interface Listing {
   id: string;
@@ -50,35 +55,40 @@ export interface Listing {
   locationCityRegionGeneral: string;
   anonymousBusinessDescription: string;
   keyStrengthsAnonymous: string[];
+  businessModel?: string;
+  yearEstablished?: number;
+  registeredBusinessName?: string;
+  businessWebsiteUrl?: string;
+  socialMediaLinks?: string; 
+  numberOfEmployees?: EmployeeCountRange;
+  technologyStack?: string;
+
   annualRevenueRange: string; 
   netProfitMarginRange?: string;
   askingPriceRange: string; 
-  dealStructureLookingFor?: DealStructure[];
-  reasonForSellingAnonymous?: string;
-  status: 'active' | 'inactive' | 'pending_verification';
-  isSellerVerified: boolean; 
-  // Fields for Verified View (collected during creation or edit by seller)
-  actualCompanyName?: string;
-  fullBusinessAddress?: string;
-  businessModel?: string;
-  yearEstablished?: number;
-  businessWebsiteUrl?: string;
-  socialMediaLinks?: string; // Store as string, parse newlines in UI
-  numberOfEmployees?: EmployeeCountRange;
-  technologyStack?: string;
   specificAnnualRevenueLastYear?: number;
   specificNetProfitLastYear?: number;
   financialsExplanation?: string;
-  // Document URLs - will be populated after actual upload and backend processing
-  financialDocumentsUrl?: string; // Could be a folder or a manifest file
-  keyMetricsReportUrl?: string;
-  ownershipDocumentsUrl?: string;
+  
+  dealStructureLookingFor?: DealStructure[];
+  reasonForSellingAnonymous?: string;
   detailedReasonForSelling?: string;
   sellerRoleAndTimeCommitment?: string;
   postSaleTransitionSupport?: string;
-  growthPotentialNarrative?: string;
-  specificGrowthOpportunities?: string; // Store as string, parse bullets in UI
 
+  growthPotentialNarrative?: string;
+  specificGrowthOpportunities?: string;
+
+  status: ListingStatus; // Updated status type
+  isSellerVerified: boolean; 
+  
+  actualCompanyName?: string;
+  fullBusinessAddress?: string;
+  
+  financialDocumentsUrl?: string; 
+  keyMetricsReportUrl?: string;
+  ownershipDocumentsUrl?: string;
+  
   secureDataRoomLink?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -134,25 +144,30 @@ export interface Inquiry {
 }
 
 export interface AdminDashboardMetrics {
-  newUserRegistrations24h: number;
-  newUserRegistrations7d: number;
+  newUserRegistrations24hSellers: number; // Breakdown
+  newUserRegistrations24hBuyers: number;  // Breakdown
+  newUserRegistrations7dSellers: number;  // Breakdown
+  newUserRegistrations7dBuyers: number;   // Breakdown
   newListingsCreated24h: number;
   newListingsCreated7d: number;
   totalActiveSellers: number;
+  totalPaidSellers: number; // New
+  totalFreeSellers: number; // New
   totalActiveBuyers: number;
+  totalPaidBuyers: number;  // New
+  totalFreeBuyers: number;  // New
   totalActiveListingsAnonymous: number;
   totalActiveListingsVerified: number;
   buyerVerificationQueueCount: number;
-  sellerVerificationQueueCount: number;
+  sellerVerificationQueueCount: number; 
   readyToEngageQueueCount: number;
-  paidBuyersCount: number;
-  freeBuyersCount: number;
-  paidSellersCount: number;
-  freeSellersCount: number;
-  totalRevenue: number; 
-  successfulConnectionsCount: number;
-  closedDealsCount: number;
+  successfulConnectionsMTD: number; // New
+  dealsClosedMTD?: number; // New, optional
+  totalRevenueMTD?: number; // New, optional
 }
+
+
+export type VerificationQueueStatus = "New Request" | "Contacted" | "Docs Under Review" | "More Info Requested" | "Approved" | "Rejected";
 
 export interface VerificationRequestItem {
   id: string;
@@ -162,8 +177,10 @@ export interface VerificationRequestItem {
   userRole: UserRole; 
   listingId?: string; 
   listingTitle?: string; 
-  triggeringUserId?: string;
+  triggeringUserId?: string; // User who initiated the action that led to verification request
   reason: string; 
+  status: VerificationQueueStatus; // New
+  documentsSubmitted?: { name: string, type: 'id_proof' | 'business_reg' | 'financials' }[]; // Placeholder
 }
 
 export interface ReadyToEngageItem {
@@ -171,10 +188,13 @@ export interface ReadyToEngageItem {
   timestamp: Date;
   buyerId: string;
   buyerName: string;
+  buyerVerificationStatus: VerificationStatus; // New
   sellerId: string;
   sellerName: string;
+  sellerVerificationStatus: VerificationStatus; // New
   listingId: string;
   listingTitle: string;
+  listingVerificationStatus: ListingStatus; // New (or derived)
 }
 
 export type NotificationType = 'inquiry' | 'verification' | 'system' | 'engagement' | 'listing_update';

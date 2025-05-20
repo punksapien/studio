@@ -1,7 +1,7 @@
 
 import { MetricCard } from "@/components/admin/metric-card";
 import { sampleAdminDashboardMetrics, sampleVerificationRequests, sampleReadyToEngageItems } from "@/lib/placeholder-data";
-import { Users, Briefcase, BellRing, LineChart, ListChecks, UserCheck, Building } from "lucide-react";
+import { Users, Briefcase, BellRing, LineChart, ListChecks, UserCheck, Building, DollarSign, CheckCircle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -17,8 +17,8 @@ import { Badge } from "@/components/ui/badge";
 
 export default function AdminDashboardPage() {
   const metrics = sampleAdminDashboardMetrics;
-  const buyerVerificationRequests = sampleVerificationRequests.filter(req => req.userRole === 'buyer');
-  const sellerVerificationRequests = sampleVerificationRequests.filter(req => req.userRole === 'seller');
+  const buyerVerificationRequests = sampleVerificationRequests.filter(req => req.userRole === 'buyer' && req.status !== 'Approved' && req.status !== 'Rejected');
+  const sellerVerificationRequests = sampleVerificationRequests.filter(req => req.userRole === 'seller' && req.status !== 'Approved' && req.status !== 'Rejected');
 
   return (
     <div className="space-y-8">
@@ -26,16 +26,28 @@ export default function AdminDashboardPage() {
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <MetricCard
-          title="New Users (7d)"
-          value={metrics.newUserRegistrations7d}
+          title="New Sellers (7d)"
+          value={metrics.newUserRegistrations7dSellers}
           icon={Users}
-          description={`${metrics.newUserRegistrations24h} in last 24h`}
+          description={`${metrics.newUserRegistrations24hSellers} in last 24h`}
+        />
+         <MetricCard
+          title="New Buyers (7d)"
+          value={metrics.newUserRegistrations7dBuyers}
+          icon={Users}
+          description={`${metrics.newUserRegistrations24hBuyers} in last 24h`}
         />
         <MetricCard
           title="New Listings (7d)"
           value={metrics.newListingsCreated7d}
           icon={Briefcase}
           description={`${metrics.newListingsCreated24h} in last 24h`}
+        />
+         <MetricCard
+          title="Total Revenue (MTD)"
+          value={`$${(metrics.totalRevenueMTD || 0).toLocaleString()}`}
+          icon={DollarSign}
+          description="Conceptual placeholder"
         />
         <MetricCard
           title="Buyer Verification Queue"
@@ -44,7 +56,7 @@ export default function AdminDashboardPage() {
           description="Buyers awaiting verification"
         />
         <MetricCard
-          title="Seller Verification Queue"
+          title="Seller/Listing Verification Queue"
           value={metrics.sellerVerificationQueueCount}
           icon={Building}
           description="Sellers/listings awaiting verification"
@@ -54,6 +66,12 @@ export default function AdminDashboardPage() {
           value={metrics.readyToEngageQueueCount}
           icon={BellRing}
           description="Pairs ready for admin connection"
+        />
+        <MetricCard
+          title="Successful Connections (MTD)"
+          value={metrics.successfulConnectionsMTD}
+          icon={CheckCircle}
+          description="Admin facilitated introductions"
         />
       </div>
       
@@ -94,7 +112,7 @@ export default function AdminDashboardPage() {
         <Card className="shadow-md">
           <CardHeader>
             <div className="flex justify-between items-center">
-                <CardTitle>Pending Seller Verifications</CardTitle>
+                <CardTitle>Pending Seller/Listing Verifications</CardTitle>
                 <Button variant="outline" size="sm" asChild>
                     <Link href="/admin/verification-queue/sellers">View All</Link>
                 </Button>
@@ -114,13 +132,13 @@ export default function AdminDashboardPage() {
                 {sellerVerificationRequests.slice(0,3).map(req => (
                   <TableRow key={req.id}>
                     <TableCell>{req.userName}</TableCell>
-                    <TableCell>{req.listingTitle || 'N/A'}</TableCell>
+                    <TableCell>{req.listingTitle || 'N/A (Profile)'}</TableCell>
                     <TableCell>{new Date(req.timestamp).toLocaleDateString()}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
-             {sellerVerificationRequests.length === 0 && <p className="text-muted-foreground text-center py-4">No pending seller verifications.</p>}
+             {sellerVerificationRequests.length === 0 && <p className="text-muted-foreground text-center py-4">No pending seller/listing verifications.</p>}
           </CardContent>
         </Card>
 

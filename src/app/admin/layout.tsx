@@ -25,7 +25,8 @@ import {
   LogOut,
   LineChart,
   UserCheck,
-  Building
+  Building,
+  FileText // Added for document review icon
 } from 'lucide-react';
 
 const adminSidebarNavItems = [
@@ -33,7 +34,7 @@ const adminSidebarNavItems = [
   { title: 'User Management', href: '/admin/users', icon: Users },
   { title: 'Listing Management', href: '/admin/listings', icon: Briefcase },
   { title: 'Buyer Verification', href: '/admin/verification-queue/buyers', icon: UserCheck },
-  { title: 'Seller Verification', href: '/admin/verification-queue/sellers', icon: Building },
+  { title: 'Seller/Listing Verification', href: '/admin/verification-queue/sellers', icon: Building }, // Renamed for clarity
   { title: 'Engagement Queue', href: '/admin/engagement-queue', icon: BellRing },
   { title: 'Analytics', href: '/admin/analytics', icon: LineChart },
 ];

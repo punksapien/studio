@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { Separator } from "@/components/ui/separator";
-import { Mail, Phone, MapPin, CalendarDays, Briefcase, DollarSign, UserCircle, ShieldCheck, ShieldAlert, Edit, MessageSquare, Trash2, KeyRound, Edit3 } from "lucide-react";
+import { Mail, Phone, MapPin, CalendarDays, Briefcase, DollarSign, UserCircle, ShieldCheck, ShieldAlert, Edit, MessageSquare, Trash2, KeyRound, Edit3, FileText, Clock } from "lucide-react";
 import { notFound } from 'next/navigation';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 async function getUserDetails(userId: string): Promise<User | undefined> {
   return sampleUsers.find(user => user.id === userId);
@@ -48,18 +49,21 @@ export default async function AdminUserDetailPage({ params }: { params: { userId
         <h1 className="text-3xl font-bold tracking-tight flex items-center">
             <UserCircle className="h-8 w-8 mr-3 text-primary" /> User Details: {user.fullName}
         </h1>
-        <div className="flex gap-2 mt-2 md:mt-0">
-            <Button variant="outline"><Edit className="h-4 w-4 mr-2"/> Edit User Info (Not Implemented)</Button>
+        <div className="flex flex-wrap gap-2 mt-2 md:mt-0">
+            <Button variant="outline"><Edit className="h-4 w-4 mr-2"/> Edit User Profile</Button>
              <Button variant={user.verificationStatus !== 'verified' ? 'default' : 'secondary'}>
                 {user.verificationStatus !== 'verified' ? <ShieldCheck className="h-4 w-4 mr-2"/> : <ShieldAlert className="h-4 w-4 mr-2"/>}
-                Mark as {user.verificationStatus !== 'verified' ? 'Verified' : 'Pending'} (Not Implemented)
+                Mark as {user.verificationStatus !== 'verified' ? 'Verified' : 'Pending'}
             </Button>
+             <Button variant="outline">
+                <DollarSign className="h-4 w-4 mr-2"/> Toggle Paid Status (is {user.isPaid ? 'Paid' : 'Free'})
+             </Button>
         </div>
       </div>
 
       <Card className="shadow-lg">
         <CardHeader>
-          <div className="flex justify-between items-start">
+          <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
             <div>
                 <CardTitle className="text-2xl">{user.fullName}</CardTitle>
                 <CardDescription className="capitalize">{user.role} ({user.isPaid ? 'Paid User' : 'Free User'})</CardDescription>
@@ -84,68 +88,98 @@ export default async function AdminUserDetailPage({ params }: { params: { userId
               <p className="flex items-center"><DollarSign className="h-4 w-4 mr-2 text-muted-foreground" /> <span className="font-medium text-foreground">Buyer Type:</span>&nbsp;{user.buyerType}</p>
             )}
              <p className="flex items-center"><ShieldCheck className="h-4 w-4 mr-2 text-muted-foreground" /> <span className="font-medium text-foreground">Email Verified:</span>&nbsp;{user.isEmailVerified ? 'Yes' : 'No'}</p>
+             {user.lastLogin && <p className="flex items-center"><Clock className="h-4 w-4 mr-2 text-muted-foreground" /> <span className="font-medium text-foreground">Last Login:</span>&nbsp;{new Date(user.lastLogin).toLocaleString()}</p>}
           </div>
         </CardContent>
       </Card>
 
-      {user.role === 'seller' && (
-        <>
-          <Separator />
-          <Card className="shadow-md">
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle>Business Listings by {user.fullName}</CardTitle>
-                {userListings.length > 0 && (
-                  <Button variant="outline" size="sm">
-                     <Edit3 className="h-4 w-4 mr-2"/> Edit All Listings (Not Implemented)
+      <Tabs defaultValue="profile_details">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-3">
+          <TabsTrigger value="profile_details">Profile & Activity</TabsTrigger>
+          <TabsTrigger value="verification_docs" disabled={user.verificationStatus === 'anonymous'}>Verification Data</TabsTrigger>
+          <TabsTrigger value="admin_actions">Admin Actions</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="profile_details">
+          {user.role === 'seller' && (
+            <Card className="shadow-md mt-6">
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <CardTitle>Business Listings by {user.fullName}</CardTitle>
+                   <Button variant="outline" size="sm" asChild>
+                      <Link href={`/admin/listings?sellerId=${user.id}`}>View All Listings ({userListings.length})</Link>
                   </Button>
-                )}
-              </div>
-              <CardDescription>Total Listings: {userListings.length}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {userListings.length > 0 ? (
-                <ul className="space-y-4">
-                  {userListings.map(listing => (
-                    <li key={listing.id} className="p-4 border rounded-lg flex justify-between items-center hover:bg-muted/50 transition-colors">
-                      <div>
-                        <Link href={`/admin/listings/${listing.id}`} className="font-medium text-primary hover:underline">{listing.listingTitleAnonymous}</Link>
-                        <p className="text-xs text-muted-foreground">{listing.industry} | Revenue: {listing.annualRevenueRange}</p>
-                      </div>
-                       <div className="flex gap-1">
+                </div>
+              </CardHeader>
+              <CardContent>
+                {userListings.length > 0 ? (
+                  <ul className="space-y-4">
+                    {userListings.slice(0,3).map(listing => ( // Show first 3
+                      <li key={listing.id} className="p-4 border rounded-lg flex justify-between items-center hover:bg-muted/50 transition-colors">
+                        <div>
+                          <Link href={`/admin/listings/${listing.id}`} className="font-medium text-primary hover:underline">{listing.listingTitleAnonymous}</Link>
+                          <p className="text-xs text-muted-foreground">{listing.industry} | Status: {listing.status}</p>
+                        </div>
                         <Button variant="outline" size="sm" asChild>
                             <Link href={`/admin/listings/${listing.id}`}>View Listing</Link>
                         </Button>
-                        <Button variant="ghost" size="icon" title="Edit Business Details (Not Implemented)" asChild>
-                           <Link href={`/admin/listings/${listing.id}/edit`}> {/* Assuming admin edit page exists */}
-                            <Edit3 className="h-4 w-4" />
-                           </Link>
-                        </Button>
-                       </div>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-muted-foreground text-center py-4">This seller has no active listings.</p>
-              )}
-            </CardContent>
-          </Card>
-        </>
-      )}
-      
-      <Separator />
-       <Card className="shadow-md">
-          <CardHeader>
-            <CardTitle>Admin Actions on User</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-wrap gap-4">
-            <Button variant="outline"><MessageSquare className="h-4 w-4 mr-2"/> Send Message (Not Implemented)</Button>
-            <Button variant="outline"><KeyRound className="h-4 w-4 mr-2"/> Change Password (Not Implemented)</Button>
-            <Button variant="outline">View Activity Log (Not Implemented)</Button>
-            <Button variant="destructive" className="bg-red-600 hover:bg-red-700"><Trash2 className="h-4 w-4 mr-2" /> Delete User (Not Implemented)</Button>
-            <Button variant="destructive">Suspend User (Not Implemented)</Button>
-          </CardContent>
-        </Card>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-muted-foreground text-center py-4">This seller has no listings.</p>
+                )}
+              </CardContent>
+            </Card>
+          )}
+          {user.role === 'buyer' && (
+             <Card className="shadow-md mt-6">
+                <CardHeader><CardTitle>Inquiries Made by {user.fullName}</CardTitle></CardHeader>
+                <CardContent>
+                    <p className="text-muted-foreground text-center py-4">Placeholder: Table/List of inquiries made by this buyer. (Total: {user.inquiryCount || 0})</p>
+                    {/* Placeholder for inquiry list, link to filtered inquiry view if possible */}
+                     <Button variant="outline">View All Inquiries (Not Implemented)</Button>
+                </CardContent>
+             </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="verification_docs">
+           <Card className="shadow-md mt-6">
+                <CardHeader><CardTitle>Verification Application Data</CardTitle></CardHeader>
+                <CardContent>
+                    {user.verificationStatus !== 'anonymous' ? (
+                        <div className="space-y-2">
+                            <p><span className="font-medium">Registered Name (if provided):</span> {user.initialCompanyName || user.fullName}</p>
+                            {user.role === 'buyer' && user.buyerType && <p><span className="font-medium">Stated Buyer Type:</span> {user.buyerType}</p>}
+                            <p className="font-medium mt-4">Uploaded Documents (Placeholders):</p>
+                            <ul className="list-disc list-inside pl-4 text-muted-foreground">
+                                <li><Link href="#" className="text-primary hover:underline flex items-center gap-1"><FileText size={16}/> ID_Proof_Document.pdf</Link></li>
+                                {user.role === 'seller' && <li><Link href="#" className="text-primary hover:underline flex items-center gap-1"><FileText size={16}/> Business_Registration.pdf</Link></li>}
+                            </ul>
+                        </div>
+                    ) : (
+                         <p className="text-muted-foreground text-center py-4">No verification data submitted as user is anonymous.</p>
+                    )}
+                </CardContent>
+            </Card>
+        </TabsContent>
+        
+        <TabsContent value="admin_actions">
+            <Card className="shadow-md mt-6">
+              <CardHeader>
+                <CardTitle>Admin Actions on User</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-wrap gap-4">
+                <Button variant="outline"><MessageSquare className="h-4 w-4 mr-2"/> Send Message</Button>
+                <Button variant="outline"><KeyRound className="h-4 w-4 mr-2"/> Send Password Reset</Button>
+                <Button variant="outline">View Activity Log</Button>
+                <Button variant="destructive" className="bg-red-600 hover:bg-red-700"><Trash2 className="h-4 w-4 mr-2" /> Delete User</Button>
+                <Button variant="destructive">Suspend User</Button>
+              </CardContent>
+            </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
