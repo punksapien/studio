@@ -8,6 +8,17 @@ export default {
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
+    container: {
+      center: true,
+      padding: {
+        DEFAULT: '1rem',    // For mobile and up
+        sm: '1.5rem',     // Small screens (640px)
+        md: '2rem',       // Medium screens (768px)
+        lg: '2.5rem',     // Large screens (1024px)
+        // xl and 2xl will inherit from lg unless specified
+      },
+      // Default screens for max-width are fine, no need to override unless specific design.
+    },
   	extend: {
   		colors: {
   			background: 'hsl(var(--background))',
