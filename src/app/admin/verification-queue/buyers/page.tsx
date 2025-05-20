@@ -10,7 +10,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { sampleVerificationRequests } from "@/lib/placeholder-data";
+import { sampleVerificationRequests, sampleUsers } from "@/lib/placeholder-data"; // Added sampleUsers
 import type { VerificationRequestItem, VerificationQueueStatus } from "@/lib/types";
 import Link from "next/link";
 import { Eye, CheckCircle2, XCircle, MessageSquare, FileText, Edit } from "lucide-react";
