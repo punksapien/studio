@@ -1,5 +1,5 @@
 
-import type { Listing, User, AdminDashboardMetrics, VerificationRequestItem, ReadyToEngageItem, Inquiry, NotificationItem } from './types';
+import type { Listing, User, AdminDashboardMetrics, VerificationRequestItem, ReadyToEngageItem, Inquiry, NotificationItem, InquiryStatusSystem, InquiryStatusBuyerPerspective, InquiryStatusSellerPerspective } from './types';
 
 export const sampleUsers: User[] = [
   {
@@ -39,7 +39,8 @@ export const sampleUsers: User[] = [
     role: 'seller',
     isEmailVerified: true,
     verificationStatus: 'anonymous',
-    isPaid: false, 
+    isPaid: false,
+    initialCompanyName: 'Anonymous SaaS Co.',
     createdAt: new Date('2023-03-20T16:00:00Z'),
     updatedAt: new Date('2023-03-20T16:00:00Z'),
   },
@@ -116,6 +117,7 @@ export const sampleListings: Listing[] = [
     ownershipDetailsUrl: '/documents/placeholder-ownership.pdf',
     locationRealEstateInfoUrl: '/documents/placeholder-lease.pdf',
     webPresenceInfoUrl: '/documents/placeholder-web-analytics.pdf',
+    inquiryCount: 5,
   },
   {
     id: '2',
@@ -135,6 +137,7 @@ export const sampleListings: Listing[] = [
     updatedAt: new Date('2023-11-01T14:30:00Z'),
     imageUrl: 'https://placehold.co/600x400.png',
     potentialForGrowthNarrative: 'The platform is poised for rapid expansion with further development of enterprise features and targeted sales efforts in the APAC region. Untapped potential in complementary service integrations.',
+    inquiryCount: 2,
   },
   {
     id: '3',
@@ -157,6 +160,26 @@ export const sampleListings: Listing[] = [
     potentialForGrowthNarrative: 'Opportunity to scale by expanding service offerings to larger corporate clients and developing proprietary marketing tools. Strong referral network provides a solid base for growth.',
     financialSnapshotUrl: '/documents/placeholder-agency-financials.pdf',
     webPresenceInfoUrl: 'https://example-agency.com',
+    inquiryCount: 1,
+  },
+   {
+    id: '4',
+    sellerId: 'user3',
+    listingTitleAnonymous: 'Modern Cafe in Tourist Hotspot',
+    industry: 'Retail',
+    locationCountry: 'Thailand',
+    locationCityRegionGeneral: 'Phuket',
+    anonymousBusinessDescription: 'Popular cafe with excellent reviews and high foot traffic. Known for specialty coffee and unique menu. Turnkey operation with trained staff. Strong social media presence.',
+    keyStrengthsAnonymous: ['Prime Location', 'Established Reputation', 'Loyal Customer Base', 'High Online Ratings'],
+    annualRevenueRange: '$100K - $250K USD',
+    netProfitMarginRange: '15% - 25%',
+    askingPriceRange: '$150K - $300K USD',
+    status: 'pending_verification',
+    isSellerVerified: false,
+    createdAt: new Date('2023-12-01T09:00:00Z'),
+    updatedAt: new Date('2023-12-01T09:00:00Z'),
+    imageUrl: 'https://placehold.co/600x400.png',
+    inquiryCount: 0,
   },
 ];
 
@@ -169,8 +192,8 @@ export const sampleBuyerInquiries: Inquiry[] = [
     buyerId: 'user2', // Jane Smith (Verified Buyer)
     inquiryTimestamp: new Date('2023-11-10T10:00:00Z'),
     sellerStatus: 'Platform Verified Seller',
-    status: 'seller_engaged_buyer_pending_verification', // Placeholder for now, might be 'ready_for_admin_connection' if seller engaged.
-    statusBuyerPerspective: 'Ready for Admin Connection',
+    status: 'ready_for_admin_connection' as InquiryStatusSystem, 
+    statusBuyerPerspective: 'Ready for Admin Connection' as InquiryStatusBuyerPerspective,
     createdAt: new Date('2023-11-10T10:00:00Z'),
     updatedAt: new Date('2023-11-11T10:00:00Z'),
   },
@@ -182,8 +205,8 @@ export const sampleBuyerInquiries: Inquiry[] = [
     buyerId: 'user2', // Jane Smith (Verified Buyer)
     inquiryTimestamp: new Date('2023-11-08T15:30:00Z'),
     sellerStatus: 'Anonymous Seller',
-    status: 'new_inquiry',
-    statusBuyerPerspective: 'Inquiry Sent',
+    status: 'new_inquiry' as InquiryStatusSystem,
+    statusBuyerPerspective: 'Inquiry Sent' as InquiryStatusBuyerPerspective,
     createdAt: new Date('2023-11-08T15:30:00Z'),
     updatedAt: new Date('2023-11-08T15:30:00Z'),
   },
@@ -195,10 +218,55 @@ export const sampleBuyerInquiries: Inquiry[] = [
     buyerId: 'user6', // Anna Tay (Anonymous Buyer)
     inquiryTimestamp: new Date('2023-11-12T09:00:00Z'),
     sellerStatus: 'Platform Verified Seller',
-    status: 'seller_engaged_buyer_pending_verification', // Assuming seller 'user1' engaged
-    statusBuyerPerspective: 'Seller Engaged - Your Verification Required',
+    status: 'seller_engaged_buyer_pending_verification' as InquiryStatusSystem, 
+    statusBuyerPerspective: 'Seller Engaged - Your Verification Required' as InquiryStatusBuyerPerspective,
     createdAt: new Date('2023-11-12T09:00:00Z'),
     updatedAt: new Date('2023-11-12T10:00:00Z'),
+  },
+];
+
+export const sampleSellerInquiries: Inquiry[] = [
+  {
+    id: 'inq_s1',
+    listingId: '1', // John Doe's Listing
+    listingTitleAnonymous: 'Profitable E-commerce Store in SEA',
+    sellerId: 'user1',
+    buyerId: 'user2', // Jane Smith
+    buyerName: 'Jane Smith (Buyer)',
+    buyerVerificationStatus: 'verified',
+    inquiryTimestamp: new Date('2023-11-10T10:00:00Z'),
+    status: 'ready_for_admin_connection' as InquiryStatusSystem,
+    statusSellerPerspective: 'Ready for Admin Connection' as InquiryStatusSellerPerspective,
+    createdAt: new Date('2023-11-10T10:00:00Z'),
+    updatedAt: new Date('2023-11-11T10:00:00Z'),
+  },
+  {
+    id: 'inq_s2',
+    listingId: '1', // John Doe's Listing
+    listingTitleAnonymous: 'Profitable E-commerce Store in SEA',
+    sellerId: 'user1',
+    buyerId: 'user6', // Anna Tay
+    buyerName: 'Anna Tay (Buyer - Anonymous)',
+    buyerVerificationStatus: 'anonymous',
+    inquiryTimestamp: new Date('2023-11-12T09:00:00Z'),
+    status: 'new_inquiry' as InquiryStatusSystem,
+    statusSellerPerspective: 'New Inquiry' as InquiryStatusSellerPerspective,
+    createdAt: new Date('2023-11-12T09:00:00Z'),
+    updatedAt: new Date('2023-11-12T09:00:00Z'),
+  },
+   {
+    id: 'inq_s3',
+    listingId: '2', // Alex Tan's Listing
+    listingTitleAnonymous: 'Established SaaS Platform - B2B Niche',
+    sellerId: 'user3',
+    buyerId: 'user2', // Jane Smith
+    buyerName: 'Jane Smith (Buyer)',
+    buyerVerificationStatus: 'verified',
+    inquiryTimestamp: new Date('2023-11-08T15:30:00Z'),
+    status: 'new_inquiry' as InquiryStatusSystem,
+    statusSellerPerspective: 'New Inquiry' as InquiryStatusSellerPerspective,
+    createdAt: new Date('2023-11-08T15:30:00Z'),
+    updatedAt: new Date('2023-11-08T15:30:00Z'),
   },
 ];
 
@@ -280,8 +348,9 @@ export const sampleBuyerNotifications: NotificationItem[] = [
     userId: 'user2', // Jane Smith (Verified Buyer)
     timestamp: new Date('2023-11-11T10:05:00Z'),
     message: "Great news! Both you and the Seller for listing 'Profitable E-commerce Store in SEA' are verified and have agreed to engage. Our team will be in touch shortly.",
-    link: '/dashboard/inquiries/inq_b1', // Link to specific inquiry
+    link: '/dashboard/inquiries#inq_b1', // Link to specific inquiry
     isRead: false,
+    type: 'engagement'
   },
   {
     id: 'notif2_buyer6',
@@ -290,6 +359,7 @@ export const sampleBuyerNotifications: NotificationItem[] = [
     message: "The seller of 'Profitable E-commerce Store in SEA' is ready to engage! To proceed, your profile needs to be verified.",
     link: '/dashboard/verification',
     isRead: false,
+    type: 'verification'
   },
   {
     id: 'notif3_buyer2',
@@ -297,5 +367,36 @@ export const sampleBuyerNotifications: NotificationItem[] = [
     timestamp: new Date('2023-11-09T08:00:00Z'),
     message: "Your profile information was successfully updated.",
     isRead: true,
+    type: 'system'
+  }
+];
+
+export const sampleSellerNotifications: NotificationItem[] = [
+  {
+    id: 'notif1_seller1',
+    userId: 'user1', // John Doe (Seller)
+    timestamp: new Date('2023-11-12T09:05:00Z'),
+    message: "You have a new inquiry for your listing 'Profitable E-commerce Store in SEA' from Anna Tay (Buyer - Anonymous).",
+    link: '/seller-dashboard/inquiries#inq_s2',
+    isRead: false,
+    type: 'inquiry'
+  },
+  {
+    id: 'notif2_seller3',
+    userId: 'user3', // Alex Tan (Seller - Anonymous)
+    timestamp: new Date('2023-11-13T11:00:00Z'),
+    message: "You've chosen to engage with Jane Smith regarding 'Established SaaS Platform - B2B Niche'. To proceed, your listing needs to be verified.",
+    link: '/seller-dashboard/verification?listingId=2',
+    isRead: false,
+    type: 'verification'
+  },
+  {
+    id: 'notif3_seller1',
+    userId: 'user1',
+    timestamp: new Date('2023-11-11T10:05:00Z'),
+    message: "Great news! Both you and Jane Smith (Buyer) for listing 'Profitable E-commerce Store in SEA' are verified and have agreed to engage. Our team will be in touch shortly.",
+    link: '/seller-dashboard/inquiries#inq_s1',
+    isRead: true,
+    type: 'engagement'
   }
 ];

@@ -33,7 +33,7 @@ export interface User {
   role: UserRole;
   isEmailVerified: boolean;
   verificationStatus: VerificationStatus;
-  isPaid: boolean; // New field
+  isPaid: boolean; 
   // Seller specific
   initialCompanyName?: string;
   // Buyer specific
@@ -58,7 +58,6 @@ export interface Listing {
   reasonForSellingAnonymous?: string;
   status: 'active' | 'inactive' | 'pending_verification';
   isSellerVerified: boolean; 
-  // Fields visible to Verified Buyers if Seller is Verified
   actualCompanyName?: string;
   fullBusinessAddress?: string;
   specificAnnualRevenueLastYear?: number;
@@ -66,25 +65,32 @@ export interface Listing {
   secureDataRoomLink?: string;
   createdAt: Date;
   updatedAt: Date;
-  imageUrl?: string; // For placeholder or actual image
-  
-  // New fields for listing page enhancements
+  imageUrl?: string; 
   potentialForGrowthNarrative?: string;
   financialSnapshotUrl?: string; 
   ownershipDetailsUrl?: string;
   locationRealEstateInfoUrl?: string;
   webPresenceInfoUrl?: string; 
+  // New field to track inquiries for Seller Dashboard Overview
+  inquiryCount?: number; 
 }
 
 export type InquiryStatusBuyerPerspective =
-  | 'Inquiry Sent' // Buyer has inquired, seller not yet engaged
-  | 'Seller Engaged - Your Verification Required' // Buyer is anonymous, seller engaged
-  | 'Seller Engaged - Seller Verification Pending' // Seller is anonymous, buyer engaged (and presumably verified or willing to be)
-  | 'Ready for Admin Connection' // Both verified and engaged
+  | 'Inquiry Sent'
+  | 'Seller Engaged - Your Verification Required' 
+  | 'Seller Engaged - Seller Verification Pending' 
+  | 'Ready for Admin Connection' 
   | 'Connection Facilitated by Admin'
   | 'Archived';
 
-// Keeping original InquiryStatus for potential admin/seller views, or if system uses it internally
+export type InquiryStatusSellerPerspective =
+  | 'New Inquiry'
+  | 'You Engaged - Buyer Verification Pending'
+  | 'You Engaged - Your Listing Verification Pending'
+  | 'Ready for Admin Connection'
+  | 'Connection Facilitated by Admin'
+  | 'Archived';
+
 export type InquiryStatusSystem =
   | 'new_inquiry'
   | 'seller_engaged_buyer_pending_verification'
@@ -93,18 +99,20 @@ export type InquiryStatusSystem =
   | 'connection_facilitated'
   | 'archived';
 
-
 export interface Inquiry {
   id: string;
   listingId: string;
-  listingTitleAnonymous: string; // Added for easier display on buyer's dashboard
-  sellerStatus: 'Anonymous Seller' | 'Platform Verified Seller'; // Added for buyer's view
+  listingTitleAnonymous: string; 
+  sellerStatus?: 'Anonymous Seller' | 'Platform Verified Seller'; // For buyer's view
   buyerId: string;
+  buyerName?: string; // For seller's view
+  buyerVerificationStatus?: VerificationStatus; // For seller's view
   sellerId: string;
   inquiryTimestamp: Date;
   engagementTimestamp?: Date;
-  status: InquiryStatusSystem; // System's internal status
-  statusBuyerPerspective: InquiryStatusBuyerPerspective; // Status as seen by the buyer
+  status: InquiryStatusSystem; 
+  statusBuyerPerspective?: InquiryStatusBuyerPerspective; 
+  statusSellerPerspective?: InquiryStatusSellerPerspective; // New for seller
   createdAt: Date;
   updatedAt: Date;
 }
@@ -118,18 +126,14 @@ export interface AdminDashboardMetrics {
   totalActiveBuyers: number;
   totalActiveListingsAnonymous: number;
   totalActiveListingsVerified: number;
-  
-  // Updated/New verification queue counts
   buyerVerificationQueueCount: number;
   sellerVerificationQueueCount: number;
   readyToEngageQueueCount: number;
-
-  // New analytics metrics
   paidBuyersCount: number;
   freeBuyersCount: number;
   paidSellersCount: number;
   freeSellersCount: number;
-  totalRevenue: number; // Represented as a number, formatting handled in UI
+  totalRevenue: number; 
   successfulConnectionsCount: number;
   closedDealsCount: number;
 }
@@ -139,9 +143,9 @@ export interface VerificationRequestItem {
   timestamp: Date;
   userId: string;
   userName: string;
-  userRole: UserRole; // 'buyer' or 'seller'
-  listingId?: string; // Only relevant for seller verification related to a listing
-  listingTitle?: string; // Only relevant for seller verification
+  userRole: UserRole; 
+  listingId?: string; 
+  listingTitle?: string; 
   triggeringUserId?: string;
   reason: string; 
 }
@@ -157,11 +161,14 @@ export interface ReadyToEngageItem {
   listingTitle: string;
 }
 
+export type NotificationType = 'inquiry' | 'verification' | 'system' | 'engagement';
+
 export interface NotificationItem {
   id: string;
   timestamp: Date;
   message: string;
   link?: string;
   isRead: boolean;
-  userId: string; // To associate notification with a user
+  userId: string;
+  type: NotificationType; // Added for better categorization
 }

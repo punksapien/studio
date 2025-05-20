@@ -6,12 +6,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Menu, ShoppingCart, LogIn, UserPlus, LayoutDashboardIcon } from 'lucide-react';
 
 // Placeholder for authentication state logic
-// In a real app, this would come from Clerk's useAuth() or similar
-const isAuthenticated = true; // Assume user is logged in for dashboard access scenarios
-// For a more realistic Navbar that shows Login/Register when not on dashboard:
-// const pathname = usePathname(); // (would need 'use client' for this)
-// const isAuthenticated = !!useAuth().userId || pathname.startsWith('/dashboard');
-
+const isAuthenticated = false; // Set to false to show Login/Register by default
 
 export function Navbar() {
   return (
@@ -35,11 +30,11 @@ export function Navbar() {
         <div className="hidden md:flex items-center space-x-4">
           {isAuthenticated ? (
             <>
+              {/* This assumes a generic dashboard link. You might want different dashboard links for buyers/sellers */}
               <Button variant="outline" asChild>
                 <Link href="/dashboard">Dashboard</Link>
               </Button>
-              {/* Placeholder for UserButton or similar component if not using Clerk's one */}
-              {/* <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-muted-foreground">U</div> */}
+              {/* Placeholder for a user menu or avatar if not using Clerk */}
             </>
           ) : (
             <>
@@ -80,8 +75,7 @@ export function Navbar() {
                     <Link href="/dashboard" className="text-lg font-medium transition-colors hover:text-primary flex items-center">
                      <LayoutDashboardIcon className="mr-2 h-5 w-5" /> Dashboard
                     </Link>
-                    {/* Placeholder for UserButton or logout link */}
-                    {/* <Button variant="ghost" className="justify-start text-lg">Logout</Button> */}
+                    {/* Placeholder for logout link */}
                   </>
                 ) : (
                   <>
