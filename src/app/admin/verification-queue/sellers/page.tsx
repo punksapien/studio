@@ -1,4 +1,6 @@
 
+'use client';
+
 import {
   Table,
   TableBody,
@@ -10,23 +12,38 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { sampleVerificationRequests, sampleUsers } from "@/lib/placeholder-data";
+import { sampleVerificationRequests } from "@/lib/placeholder-data"; // No sampleUsers needed here directly
 import type { VerificationRequestItem, VerificationQueueStatus } from "@/lib/types";
 import Link from "next/link";
-import { Eye, CheckCircle2, XCircle, MessageSquare, FileText, Edit } from "lucide-react";
+import { Eye, FileText, MessageSquare } from "lucide-react"; // Removed unused CheckCircle2, XCircle, Edit
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-
+import React, { useState, useEffect } from "react"; // Added React import for useState, useEffect
 
 const sellerRequests: VerificationRequestItem[] = sampleVerificationRequests.filter(req => req.userRole === 'seller');
+
+// Helper component for client-side date formatting
+function FormattedTimestamp({ timestamp }: { timestamp: Date | string }) {
+  const [formattedDate, setFormattedDate] = useState<string | null>(null);
+
+  useEffect(() => {
+    setFormattedDate(new Date(timestamp).toLocaleString());
+  }, [timestamp]);
+
+  if (!formattedDate) {
+    return <span className="italic">Loading date...</span>; 
+  }
+  return <>{formattedDate}</>;
+}
 
 export default function AdminSellerVerificationQueuePage() {
   const getStatusBadge = (status: VerificationQueueStatus) => {
     switch (status) {
       case 'New Request': return <Badge variant="destructive">New Request</Badge>;
       case 'Contacted': return <Badge variant="secondary">Contacted</Badge>;
-      case 'Docs Under Review': return <Badge className="bg-blue-500 text-white">Docs Review</Badge>;
-      case 'Approved': return <Badge className="bg-green-500 text-white">Approved</Badge>;
-      case 'Rejected': return <Badge variant="destructive" className="bg-red-700 text-white">Rejected</Badge>;
+      case 'Docs Under Review': return <Badge className="bg-blue-500 text-white dark:bg-blue-700 dark:text-blue-100">Docs Review</Badge>;
+      case 'More Info Requested': return <Badge className="bg-yellow-500 text-white dark:bg-yellow-600 dark:text-yellow-100">More Info</Badge>;
+      case 'Approved': return <Badge className="bg-green-500 text-white dark:bg-green-600 dark:text-green-100">Approved</Badge>;
+      case 'Rejected': return <Badge variant="destructive" className="bg-red-700 text-white dark:bg-red-800 dark:text-red-200">Rejected</Badge>;
       default: return <Badge>{status}</Badge>;
     }
   };
@@ -54,7 +71,7 @@ export default function AdminSellerVerificationQueuePage() {
               <TableBody>
                 {sellerRequests.map((req) => (
                   <TableRow key={req.id}>
-                    <TableCell>{new Date(req.timestamp).toLocaleString()}</TableCell>
+                    <TableCell><FormattedTimestamp timestamp={req.timestamp} /></TableCell>
                     <TableCell className="font-medium">
                         <Link href={`/admin/users/${req.userId}`} className="hover:underline">{req.userName}</Link>
                     </TableCell>
