@@ -17,12 +17,13 @@ export const profitMarginRanges = [
   "< 0% (Loss-making)", "0% - 10%", "10% - 20%", 
   "20% - 30%", "30%+"
 ];
-// Asking price ranges can reuse revenueRanges or have their own set
 export const askingPriceRanges = revenueRanges; 
 
 export const industries = ["Software", "Retail", "Manufacturing", "Services - Marketing", "E-commerce", "Healthcare", "Finance", "Education", "Real Estate", "Other"];
 export const asianCountries = ["Singapore", "Malaysia", "Indonesia", "Thailand", "Vietnam", "Philippines", "Hong Kong", "Japan", "South Korea", "India", "China", "Other"];
 
+export type EmployeeCountRange = "Sole Operator" | "1-5" | "6-10" | "11-25" | "26-50" | "50+";
+export const employeeCountRanges: EmployeeCountRange[] = ["Sole Operator", "1-5", "6-10", "11-25", "26-50", "50+"];
 
 export interface User {
   id: string;
@@ -34,9 +35,7 @@ export interface User {
   isEmailVerified: boolean;
   verificationStatus: VerificationStatus;
   isPaid: boolean; 
-  // Seller specific
   initialCompanyName?: string;
-  // Buyer specific
   buyerType?: BuyerType;
   createdAt: Date;
   updatedAt: Date;
@@ -58,20 +57,37 @@ export interface Listing {
   reasonForSellingAnonymous?: string;
   status: 'active' | 'inactive' | 'pending_verification';
   isSellerVerified: boolean; 
+  // Fields for Verified View (collected during creation or edit by seller)
   actualCompanyName?: string;
   fullBusinessAddress?: string;
+  businessModel?: string;
+  yearEstablished?: number;
+  businessWebsiteUrl?: string;
+  socialMediaLinks?: string; // Store as string, parse newlines in UI
+  numberOfEmployees?: EmployeeCountRange;
+  technologyStack?: string;
   specificAnnualRevenueLastYear?: number;
   specificNetProfitLastYear?: number;
+  financialsExplanation?: string;
+  // Document URLs - will be populated after actual upload and backend processing
+  financialDocumentsUrl?: string; // Could be a folder or a manifest file
+  keyMetricsReportUrl?: string;
+  ownershipDocumentsUrl?: string;
+  detailedReasonForSelling?: string;
+  sellerRoleAndTimeCommitment?: string;
+  postSaleTransitionSupport?: string;
+  growthPotentialNarrative?: string;
+  specificGrowthOpportunities?: string; // Store as string, parse bullets in UI
+
   secureDataRoomLink?: string;
   createdAt: Date;
   updatedAt: Date;
   imageUrl?: string; 
-  potentialForGrowthNarrative?: string;
+  potentialForGrowthNarrative?: string; 
   financialSnapshotUrl?: string; 
   ownershipDetailsUrl?: string;
   locationRealEstateInfoUrl?: string;
   webPresenceInfoUrl?: string; 
-  // New field to track inquiries for Seller Dashboard Overview
   inquiryCount?: number; 
 }
 
@@ -103,16 +119,16 @@ export interface Inquiry {
   id: string;
   listingId: string;
   listingTitleAnonymous: string; 
-  sellerStatus?: 'Anonymous Seller' | 'Platform Verified Seller'; // For buyer's view
+  sellerStatus?: 'Anonymous Seller' | 'Platform Verified Seller'; 
   buyerId: string;
-  buyerName?: string; // For seller's view
-  buyerVerificationStatus?: VerificationStatus; // For seller's view
+  buyerName?: string; 
+  buyerVerificationStatus?: VerificationStatus; 
   sellerId: string;
   inquiryTimestamp: Date;
   engagementTimestamp?: Date;
   status: InquiryStatusSystem; 
   statusBuyerPerspective?: InquiryStatusBuyerPerspective; 
-  statusSellerPerspective?: InquiryStatusSellerPerspective; // New for seller
+  statusSellerPerspective?: InquiryStatusSellerPerspective; 
   createdAt: Date;
   updatedAt: Date;
 }
@@ -161,7 +177,7 @@ export interface ReadyToEngageItem {
   listingTitle: string;
 }
 
-export type NotificationType = 'inquiry' | 'verification' | 'system' | 'engagement';
+export type NotificationType = 'inquiry' | 'verification' | 'system' | 'engagement' | 'listing_update';
 
 export interface NotificationItem {
   id: string;
@@ -170,5 +186,5 @@ export interface NotificationItem {
   link?: string;
   isRead: boolean;
   userId: string;
-  type: NotificationType; // Added for better categorization
+  type: NotificationType; 
 }
