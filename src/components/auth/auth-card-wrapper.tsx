@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Logo } from "@/components/shared/logo";
 import Link from "next/link";
@@ -18,7 +19,7 @@ export const AuthCardWrapper = ({
   showSocial
 }: AuthCardWrapperProps) => {
   return (
-    <Card className="w-[400px] shadow-xl">
+    <Card className="w-full max-w-md shadow-xl mx-auto">
       <CardHeader className="text-center">
         <div className="flex justify-center mb-4">
           <Logo size="2xl" />
