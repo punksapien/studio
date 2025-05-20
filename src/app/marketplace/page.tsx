@@ -2,22 +2,24 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'; // Combined imports
 import Link from 'next/link';
 
 import { ListingCard } from '@/components/marketplace/listing-card';
 import { Filters } from '@/components/marketplace/filters';
 import { SortDropdown } from '@/components/marketplace/sort-dropdown';
 import { PaginationControls } from '@/components/shared/pagination-controls';
-import { sampleListings } from '@/lib/placeholder-data'; // Direct import for simplicity
+import { sampleListings } from '@/lib/placeholder-data';
 import type { Listing } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Briefcase } from 'lucide-react';
 
-// Simulate fetching data. In a real app, this would be an API call or DB query.
-async function getFullListings(page: number = 1, limit: number = 9): Promise<{ listings: Listing[], totalPages: number, totalListings: number }> {
+
+// Simulate fetching data for the full marketplace with pagination
+async function getPaginatedListings(page: number = 1, limit: number = 9): Promise<{ listings: Listing[], totalPages: number, totalListings: number }> {
   // Simulate API call delay
-  await new Promise(resolve => setTimeout(resolve, 500)); 
+  await new Promise(resolve => setTimeout(resolve, 300)); 
   
   const totalListings = sampleListings.length;
   const startIndex = (page - 1) * limit;
@@ -29,7 +31,9 @@ async function getFullListings(page: number = 1, limit: number = 9): Promise<{ l
 
 export default function MarketplacePage() {
   const router = useRouter();
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null); // null for loading state
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
   const [listings, setListings] = useState<Listing[]>([]);
   const [totalPages, setTotalPages] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
@@ -37,79 +41,41 @@ export default function MarketplacePage() {
   const [totalListings, setTotalListings] = useState(0);
 
   useEffect(() => {
-    // Simulate auth check
-    const authStatus = false; // TODO: Replace with actual auth check (e.g., from Clerk's useAuth())
-    setIsAuthenticated(authStatus);
+    setIsLoading(true);
+    const pageQuery = searchParams.get('page');
+    const page = pageQuery ? parseInt(pageQuery, 10) : 1;
+    setCurrentPage(page);
 
-    if (authStatus === false) { // Explicitly check for false after initial load
-      router.push('/auth/login?redirect=/marketplace');
-    }
-  }, [router]);
-
-  useEffect(() => {
-    if (isAuthenticated === true) { // Only fetch if authenticated
-      setIsLoading(true);
-      const params = new URLSearchParams(window.location.search);
-      const pageQuery = params.get('page');
-      const page = pageQuery ? parseInt(pageQuery, 10) : 1;
-      setCurrentPage(page);
-
-      getFullListings(page).then(data => {
-        setListings(data.listings);
-        setTotalPages(data.totalPages);
-        setTotalListings(data.totalListings);
-        setIsLoading(false);
-      });
-    }
-  }, [isAuthenticated]); // Re-run when auth status is confirmed
+    getPaginatedListings(page).then(data => {
+      setListings(data.listings);
+      setTotalPages(data.totalPages);
+      setTotalListings(data.totalListings);
+      setIsLoading(false);
+    }).catch(error => {
+      console.error("Failed to fetch listings:", error);
+      setIsLoading(false);
+      // Handle error state if necessary
+    });
+  }, [searchParams]); // Re-run when searchParams (and thus page query) change
 
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     setIsLoading(true);
-    router.push(`/marketplace?page=${page}`, { scroll: false }); // Update URL
-    // Fetching will be triggered by the isAuthenticated & currentPage useEffect
-     getFullListings(page).then(data => {
-        setListings(data.listings);
-        setTotalPages(data.totalPages);
-        setTotalListings(data.totalListings);
-        setIsLoading(false);
-      });
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('page', page.toString());
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
-  if (isAuthenticated === null) {
-    // Optional: Show a loading spinner while checking auth
-    return (
-        <div className="container py-8 md:py-12">
-            <div className="mb-8 flex flex-col md:flex-row justify-between items-center gap-4">
-              <Skeleton className="h-8 w-48" />
-              <Skeleton className="h-10 w-40" />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-                <aside className="md:col-span-3">
-                    <Skeleton className="h-[500px] w-full" />
-                </aside>
-                <main className="md:col-span-9">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-96 w-full" />)}
-                    </div>
-                </main>
-            </div>
-        </div>
-    );
-  }
-  
-  if (!isAuthenticated) {
-    // User will be redirected, but we can show a message or loader
-    return <div className="container py-12 text-center"><p>Redirecting to login...</p></div>;
-  }
 
   return (
     <div className="container py-8 md:py-12">
       <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">Business Marketplace</h1>
-          <p className="text-muted-foreground">Explore all available business opportunities. Found {totalListings} listings.</p>
+          <p className="text-muted-foreground">
+            {isLoading ? 'Loading listings...' : `Explore all available business opportunities. Found ${totalListings} listings.`}
+          </p>
         </div>
         <SortDropdown />
       </div>
@@ -130,14 +96,16 @@ export default function MarketplacePage() {
               ))}
             </div>
           ) : (
-            <div className="text-center py-12 col-span-full">
-              <p className="text-xl text-muted-foreground">No listings found.</p>
-              <Button variant="link" asChild className="mt-2">
-                <Link href="/marketplace">Clear filters</Link>
+            <div className="text-center py-12 col-span-full flex flex-col items-center justify-center h-[400px] bg-muted/20 rounded-md border border-dashed">
+              <Briefcase className="h-16 w-16 text-muted-foreground mb-4" />
+              <p className="text-xl text-muted-foreground font-semibold">No listings found matching your criteria.</p>
+              <p className="text-sm text-muted-foreground mt-1">Try adjusting your filters or check back later.</p>
+              <Button variant="link" asChild className="mt-4">
+                <Link href="/marketplace">Clear all filters</Link>
               </Button>
             </div>
           )}
-          {!isLoading && totalPages > 1 && (
+          {!isLoading && totalListings > 0 && totalPages > 1 && (
             <PaginationControls currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
           )}
         </main>

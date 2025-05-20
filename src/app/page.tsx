@@ -1,26 +1,21 @@
 
 import { ListingCard } from '@/components/marketplace/listing-card';
-// Removed Filters and SortDropdown imports as they are not used here anymore
-// Removed PaginationControls import
 import { sampleListings } from '@/lib/placeholder-data';
 import type { Listing } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
 
-// Simulate fetching data. For landing page, we show a fixed number of listings.
+// Simulate fetching a preview of listings for the landing page.
 async function getPreviewListings(limit: number = 6): Promise<{ listings: Listing[] }> {
-  // Simulate API call delay for realism if needed, but for preview it's often instant
+  // In a real app, this might fetch featured or recent listings.
   // await new Promise(resolve => setTimeout(resolve, 300)); 
   const previewListings = sampleListings.slice(0, limit);
   return { listings: previewListings };
 }
 
-export default async function HomePage({
-  searchParams, // Kept for consistency, though not used for pagination on landing anymore
-}: {
-  searchParams?: { [key: string]: string | string[] | undefined };
-}) {
-  const { listings: previewListings } = await getPreviewListings(6); // Fetch 6 listings for preview
+export default async function HomePage() {
+  const { listings: previewListings } = await getPreviewListings(6);
 
   return (
     <>
@@ -35,8 +30,7 @@ export default async function HomePage({
           </p>
           <div className="mt-10 flex flex-col sm:flex-row justify-center items-center gap-4">
             <Button size="lg" asChild>
-              {/* Updated href to point to the new marketplace page */}
-              <Link href="/marketplace">Browse Listings</Link>
+              <Link href="/marketplace">Browse Listings <ArrowRight className="ml-2 h-5 w-5" /></Link>
             </Button>
             <Button size="lg" variant="outline" asChild>
               <Link href="/auth/register/seller">List Your Business</Link>
@@ -46,13 +40,12 @@ export default async function HomePage({
       </section>
       
       {/* Marketplace Preview Section */}
-      <div id="marketplace-preview" className="container py-8 md:py-12">
-        <div className="mb-8 text-center"> {/* Removed SortDropdown, centered title */}
+      <div id="marketplace-preview" className="container py-12 md:py-16">
+        <div className="mb-10 text-center">
           <h2 className="text-3xl font-semibold tracking-tight">Featured Business Listings</h2>
           <p className="text-muted-foreground mt-2">A Glimpse into Our Marketplace</p>
         </div>
 
-        {/* Removed Filters sidebar and main/aside structure for preview */}
         {previewListings.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {previewListings.map((listing) => (
@@ -60,14 +53,14 @@ export default async function HomePage({
             ))}
           </div>
         ) : (
-          <div className="text-center py-12">
-            <p className="text-xl text-muted-foreground">No featured listings available at the moment.</p>
+          <div className="text-center py-12 text-muted-foreground">
+            <p className="text-xl">No featured listings available at the moment.</p>
           </div>
         )}
-        {/* Removed PaginationControls */}
+        
         <div className="mt-12 text-center">
-          <Button size="lg" asChild>
-            <Link href="/marketplace">Explore Full Marketplace</Link>
+          <Button size="lg" asChild variant="outline" className="border-primary text-primary hover:bg-primary/5 hover:text-primary">
+            <Link href="/marketplace">Explore Full Marketplace <ArrowRight className="ml-2 h-5 w-5" /></Link>
           </Button>
         </div>
       </div>

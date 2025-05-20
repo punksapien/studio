@@ -3,12 +3,11 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/shared/logo';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Menu, Briefcase, Users, LogIn, UserPlus, ShoppingCart } from 'lucide-react';
-// Removed Clerk imports: SignedIn, SignedOut, UserButton
-
+import { Menu, ShoppingCart, LogIn, UserPlus } from 'lucide-react';
+// Removed Clerk imports
 
 export function Navbar() {
-  // Placeholder for future authentication state logic if not using Clerk
+  // Placeholder for future authentication state logic
   const isAuthenticated = false; 
 
   return (
@@ -30,13 +29,13 @@ export function Navbar() {
           </Link>
         </nav>
         <div className="hidden md:flex items-center space-x-4">
-          {/* Reverted to non-Clerk auth buttons */}
           {isAuthenticated ? (
             <>
               <Button variant="outline" asChild>
                 <Link href="/dashboard">Dashboard</Link>
               </Button>
-              {/* Add a UserButton or similar placeholder here if needed */}
+              {/* Placeholder for UserButton or similar component */}
+              {/* <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-muted-foreground">U</div> */}
             </>
           ) : (
             <>
@@ -72,13 +71,13 @@ export function Navbar() {
                   About Us
                 </Link>
                 <hr/>
-                {/* Reverted to non-Clerk auth buttons for mobile */}
                 {isAuthenticated ? (
                   <>
                     <Link href="/dashboard" className="text-lg font-medium transition-colors hover:text-primary">
                      Dashboard
                     </Link>
-                    {/* Add UserButton or logout link here if needed */}
+                    {/* Placeholder for UserButton or logout link */}
+                    {/* <Button variant="ghost" className="justify-start text-lg">Logout</Button> */}
                   </>
                 ) : (
                   <>
