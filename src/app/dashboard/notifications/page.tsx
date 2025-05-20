@@ -4,10 +4,11 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Bell, Check, Mail, ShieldCheck } from "lucide-react"; // Added ShieldCheck
+import { Bell, Check, Mail, ShieldCheck } from "lucide-react";
 import type { NotificationItem, User } from "@/lib/types";
 import { sampleBuyerNotifications, sampleUsers } from "@/lib/placeholder-data";
 import { Badge } from "@/components/ui/badge";
+import { useState, useEffect } from "react"; // Added useState and useEffect
 
 // Placeholder for current buyer ID
 const currentBuyerId = 'user6'; // Change to 'user2' to see different notifications
@@ -16,7 +17,25 @@ const currentUser: User | undefined = sampleUsers.find(u => u.id === currentBuye
 // Filter notifications for the current buyer
 const buyerNotifications: NotificationItem[] = sampleBuyerNotifications
   .filter(notif => notif.userId === currentBuyerId)
-  .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()); // Newest first
+  .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()); // Newest first
+
+
+// New component to handle client-side date formatting
+function FormattedTimestamp({ timestamp }: { timestamp: Date | string }) {
+  const [formattedDate, setFormattedDate] = useState<string | null>(null);
+
+  useEffect(() => {
+    setFormattedDate(new Date(timestamp).toLocaleString());
+  }, [timestamp]);
+
+  if (!formattedDate) {
+    // You can return a placeholder or null during server render and initial client render
+    return <span className="italic">Loading date...</span>; 
+  }
+
+  return <>{formattedDate}</>;
+}
+
 
 export default function NotificationsPage() {
   
@@ -24,6 +43,7 @@ export default function NotificationsPage() {
   const handleMarkAsRead = (notificationId: string) => {
     console.log("Marking notification as read:", notificationId);
     // In a real app, update the notification's isRead status in backend/state
+    // For demo, we could update a local state if needed, but for now, it's just a console log.
   };
 
   if (!currentUser) {
@@ -70,7 +90,7 @@ export default function NotificationsPage() {
                     {notification.message}
                   </p>
                   <p className={`text-xs mt-1 ${notification.isRead ? 'text-muted-foreground/70' : 'text-primary/80'}`}>
-                    {new Date(notification.timestamp).toLocaleString()}
+                    <FormattedTimestamp timestamp={notification.timestamp} />
                   </p>
                 </div>
                 <div className="flex-shrink-0 flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
