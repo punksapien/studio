@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { Separator } from "@/components/ui/separator";
-import { Mail, Phone, MapPin, CalendarDays, Briefcase, DollarSign, UserCircle, ShieldCheck, ShieldAlert, Edit, MessageSquare, Trash2, KeyRound, Edit3, FileText, Clock } from "lucide-react";
+import { Mail, Phone, MapPin, CalendarDays, Briefcase, DollarSign, UserCircle, ShieldCheck, ShieldAlert, Edit, MessageSquare, Trash2, KeyRound, Edit3, FileText, Clock, Building, Brain, Users2, TrendingUp, Handshake, Wallet, Target } from "lucide-react";
 import { notFound } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -84,8 +84,8 @@ export default async function AdminUserDetailPage({ params }: { params: { userId
             {user.role === 'seller' && user.initialCompanyName && (
               <p className="flex items-center"><Briefcase className="h-4 w-4 mr-2 text-muted-foreground" /> <span className="font-medium text-foreground">Company (Initial):</span>&nbsp;{user.initialCompanyName}</p>
             )}
-            {user.role === 'buyer' && user.buyerType && (
-              <p className="flex items-center"><DollarSign className="h-4 w-4 mr-2 text-muted-foreground" /> <span className="font-medium text-foreground">Buyer Type:</span>&nbsp;{user.buyerType}</p>
+            {user.role === 'buyer' && user.buyerPersonaType && (
+              <p className="flex items-center"><Users2 className="h-4 w-4 mr-2 text-muted-foreground" /> <span className="font-medium text-foreground">Buyer Persona:</span>&nbsp;{user.buyerPersonaType} {user.buyerPersonaType === 'Other' && user.buyerPersonaOther ? `(${user.buyerPersonaOther})` : ''}</p>
             )}
              <p className="flex items-center"><ShieldCheck className="h-4 w-4 mr-2 text-muted-foreground" /> <span className="font-medium text-foreground">Email Verified:</span>&nbsp;{user.isEmailVerified ? 'Yes' : 'No'}</p>
              {user.lastLogin && <p className="flex items-center"><Clock className="h-4 w-4 mr-2 text-muted-foreground" /> <span className="font-medium text-foreground">Last Login:</span>&nbsp;{new Date(user.lastLogin).toLocaleString()}</p>}
@@ -94,8 +94,9 @@ export default async function AdminUserDetailPage({ params }: { params: { userId
       </Card>
 
       <Tabs defaultValue="profile_details">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4"> {/* Adjusted grid-cols for potential new tab */}
           <TabsTrigger value="profile_details">Profile & Activity</TabsTrigger>
+          {user.role === 'buyer' && <TabsTrigger value="buyer_persona">Buyer Persona</TabsTrigger>}
           <TabsTrigger value="verification_docs" disabled={user.verificationStatus === 'anonymous'}>Verification Data</TabsTrigger>
           <TabsTrigger value="admin_actions">Admin Actions</TabsTrigger>
         </TabsList>
@@ -114,7 +115,7 @@ export default async function AdminUserDetailPage({ params }: { params: { userId
               <CardContent>
                 {userListings.length > 0 ? (
                   <ul className="space-y-4">
-                    {userListings.slice(0,3).map(listing => ( // Show first 3
+                    {userListings.slice(0,3).map(listing => ( 
                       <li key={listing.id} className="p-4 border rounded-lg flex justify-between items-center hover:bg-muted/50 transition-colors">
                         <div>
                           <Link href={`/admin/listings/${listing.id}`} className="font-medium text-primary hover:underline">{listing.listingTitleAnonymous}</Link>
@@ -137,12 +138,33 @@ export default async function AdminUserDetailPage({ params }: { params: { userId
                 <CardHeader><CardTitle>Inquiries Made by {user.fullName}</CardTitle></CardHeader>
                 <CardContent>
                     <p className="text-muted-foreground text-center py-4">Placeholder: Table/List of inquiries made by this buyer. (Total: {user.inquiryCount || 0})</p>
-                    {/* Placeholder for inquiry list, link to filtered inquiry view if possible */}
                      <Button variant="outline">View All Inquiries (Not Implemented)</Button>
                 </CardContent>
              </Card>
           )}
         </TabsContent>
+
+        {user.role === 'buyer' && (
+          <TabsContent value="buyer_persona">
+            <Card className="shadow-md mt-6">
+              <CardHeader>
+                <CardTitle className="flex items-center"><Target className="h-5 w-5 mr-2 text-primary"/>Buyer Persona Details</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <p><span className="font-medium text-foreground">Primary Role / Buyer Type:</span> {user.buyerPersonaType || 'N/A'} {user.buyerPersonaType === 'Other' && user.buyerPersonaOther ? `(${user.buyerPersonaOther})` : ''}</p>
+                <div>
+                    <p className="font-medium text-foreground mb-1">Investment Focus / Description:</p>
+                    <p className="text-muted-foreground whitespace-pre-wrap">{user.investmentFocusDescription || 'N/A'}</p>
+                </div>
+                <p><span className="font-medium text-foreground">Preferred Investment Size:</span> {user.preferredInvestmentSize || 'N/A'}</p>
+                <div>
+                    <p className="font-medium text-foreground mb-1">Key Industries of Interest:</p>
+                    <p className="text-muted-foreground whitespace-pre-wrap">{user.keyIndustriesOfInterest || 'N/A'}</p>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
 
         <TabsContent value="verification_docs">
            <Card className="shadow-md mt-6">
@@ -151,7 +173,7 @@ export default async function AdminUserDetailPage({ params }: { params: { userId
                     {user.verificationStatus !== 'anonymous' ? (
                         <div className="space-y-2">
                             <p><span className="font-medium">Registered Name (if provided):</span> {user.initialCompanyName || user.fullName}</p>
-                            {user.role === 'buyer' && user.buyerType && <p><span className="font-medium">Stated Buyer Type:</span> {user.buyerType}</p>}
+                            {user.role === 'buyer' && user.buyerType && <p><span className="font-medium">Stated Buyer Type (Legacy):</span> {user.buyerType}</p>}
                             <p className="font-medium mt-4">Uploaded Documents (Placeholders):</p>
                             <ul className="list-disc list-inside pl-4 text-muted-foreground">
                                 <li><Link href="#" className="text-primary hover:underline flex items-center gap-1"><FileText size={16}/> ID_Proof_Document.pdf</Link></li>
@@ -183,3 +205,5 @@ export default async function AdminUserDetailPage({ params }: { params: { userId
     </div>
   );
 }
+
+    

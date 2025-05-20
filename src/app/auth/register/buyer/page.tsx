@@ -1,8 +1,10 @@
+
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import { useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -12,7 +14,10 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -22,8 +27,7 @@ import {
 } from "@/components/ui/select";
 import { AuthCardWrapper } from "@/components/auth/auth-card-wrapper";
 import { CommonRegistrationFields } from "@/components/auth/common-registration-fields";
-import { buyerTypes } from "@/lib/types";
-import { useState, useTransition } from "react";
+import { BuyerPersonaTypes, PreferredInvestmentSizes, asianCountries } from "@/lib/types"; // Added asianCountries
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
 
@@ -34,10 +38,17 @@ const BuyerRegisterSchema = z.object({
   confirmPassword: z.string(),
   phoneNumber: z.string().min(1, { message: "Phone number is required." }),
   country: z.string().min(1, { message: "Country is required." }),
-  buyerType: z.enum(buyerTypes, { required_error: "Buyer type is required."}),
+  buyerPersonaType: z.enum(BuyerPersonaTypes, { required_error: "Buyer persona type is required."}),
+  buyerPersonaOther: z.string().optional(),
+  investmentFocusDescription: z.string().optional(),
+  preferredInvestmentSize: z.enum(PreferredInvestmentSizes).optional(),
+  keyIndustriesOfInterest: z.string().optional(),
 }).refine(data => data.password === data.confirmPassword, {
   message: "Passwords do not match.",
   path: ["confirmPassword"],
+}).refine(data => data.buyerPersonaType !== "Other" || (data.buyerPersonaType === "Other" && data.buyerPersonaOther && data.buyerPersonaOther.trim() !== ""), {
+  message: "Please specify your role if 'Other' is selected.",
+  path: ["buyerPersonaOther"],
 });
 
 export default function BuyerRegisterPage() {
@@ -54,16 +65,21 @@ export default function BuyerRegisterPage() {
       confirmPassword: "",
       phoneNumber: "",
       country: "",
-      buyerType: undefined,
+      buyerPersonaType: undefined,
+      buyerPersonaOther: "",
+      investmentFocusDescription: "",
+      preferredInvestmentSize: undefined,
+      keyIndustriesOfInterest: "",
     },
   });
+
+  const watchedBuyerPersonaType = form.watch("buyerPersonaType");
 
   const onSubmit = (values: z.infer<typeof BuyerRegisterSchema>) => {
     setError("");
     setSuccess("");
     
     startTransition(async () => {
-      // Placeholder for actual registration server action
       console.log("Buyer Register values:", values);
       await new Promise(resolve => setTimeout(resolve, 1000));
        if (values.email === "existing@example.com") {
@@ -83,26 +99,107 @@ export default function BuyerRegisterPage() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <CommonRegistrationFields control={form.control} isPending={isPending} />
+          
           <FormField
             control={form.control}
-            name="buyerType"
+            name="buyerPersonaType"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Buyer Type</FormLabel>
+                <FormLabel>I am a/an: (Primary Role / Buyer Type)</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isPending}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select your buyer type" />
+                      <SelectValue placeholder="Select your primary role" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {buyerTypes.map((type) => (
+                    {BuyerPersonaTypes.map((type) => (
                       <SelectItem key={type} value={type}>
                         {type}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {watchedBuyerPersonaType === "Other" && (
+            <FormField
+              control={form.control}
+              name="buyerPersonaOther"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Please Specify Role</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="Your specific role" disabled={isPending} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
+
+          <FormField
+            control={form.control}
+            name="investmentFocusDescription"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Investment Focus or What You're Looking For</FormLabel>
+                <FormControl>
+                  <Textarea 
+                    {...field} 
+                    placeholder="e.g., SaaS businesses in Southeast Asia with $100k-$1M ARR, turnarounds in manufacturing, e-commerce brands for scaling." 
+                    disabled={isPending} 
+                    rows={3}
+                  />
+                </FormControl>
+                <FormDescription>Briefly describe your primary investment criteria or the types of businesses you are seeking.</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="preferredInvestmentSize"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Preferred Investment Size (Approximate)</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isPending}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select preferred investment size" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {PreferredInvestmentSizes.map((size) => (
+                      <SelectItem key={size} value={size}>
+                        {size}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="keyIndustriesOfInterest"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Key Industries of Interest</FormLabel>
+                <FormControl>
+                  <Textarea 
+                    {...field} 
+                    placeholder="e.g., Technology, E-commerce, Healthcare, Manufacturing, B2B Services. Please list a few." 
+                    disabled={isPending}
+                    rows={3}
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
@@ -131,3 +228,5 @@ export default function BuyerRegisterPage() {
     </AuthCardWrapper>
   );
 }
+
+    

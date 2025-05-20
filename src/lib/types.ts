@@ -3,8 +3,31 @@ export type UserRole = 'seller' | 'buyer' | 'admin';
 
 export type VerificationStatus = 'anonymous' | 'pending_verification' | 'verified' | 'rejected';
 
-export type BuyerType = 'Individual Investor' | 'Investment Firm' | 'Strategic Acquirer';
+export type BuyerType = 'Individual Investor' | 'Investment Firm' | 'Strategic Acquirer'; // Legacy, to be phased out or re-evaluated
 export const buyerTypes: BuyerType[] = ['Individual Investor', 'Investment Firm', 'Strategic Acquirer'];
+
+export const BuyerPersonaTypes = [
+  "Individual Investor / Entrepreneur",
+  "Private Equity Firm",
+  "Strategic Acquirer / Corporate Representative",
+  "Family Office Representative",
+  "Search Fund Principal",
+  "Angel Investor",
+  "Company Executive (MBI/MBO)",
+  "Other"
+] as const;
+export type BuyerPersona = typeof BuyerPersonaTypes[number];
+
+export const PreferredInvestmentSizes = [
+  "Up to $100,000 USD",
+  "$100,000 - $500,000 USD",
+  "$500,000 - $2,000,000 USD",
+  "$2,000,000 - $10,000,000 USD",
+  "$10,000,000+ USD",
+  "Flexible / Varies"
+] as const;
+export type PreferredInvestmentSize = typeof PreferredInvestmentSizes[number];
+
 
 export type DealStructure = 'Full Acquisition' | 'Partial Sale/Investment' | 'Open to Offers';
 export const dealStructures: DealStructure[] = ['Full Acquisition', 'Partial Sale/Investment', 'Open to Offers'];
@@ -36,12 +59,19 @@ export interface User {
   verificationStatus: VerificationStatus;
   isPaid: boolean; 
   initialCompanyName?: string; // For sellers
-  buyerType?: BuyerType; // For buyers
+  buyerType?: BuyerType; // Legacy, for buyers - can be deprecated if buyerPersonaType is sufficient
   createdAt: Date;
   updatedAt: Date;
   lastLogin?: Date; 
   listingCount?: number; 
   inquiryCount?: number; 
+
+  // New Buyer Persona Fields
+  buyerPersonaType?: BuyerPersona;
+  buyerPersonaOther?: string;
+  investmentFocusDescription?: string;
+  preferredInvestmentSize?: PreferredInvestmentSize;
+  keyIndustriesOfInterest?: string;
 }
 
 export type ListingStatus = 'active' | 'inactive' | 'pending_verification' | 'verified_anonymous' | 'verified_public';
@@ -77,7 +107,7 @@ export interface Listing {
   postSaleTransitionSupport?: string;
 
   growthPotentialNarrative?: string; 
-  specificGrowthOpportunities?: string; // Can be newline separated string or string[]
+  specificGrowthOpportunities?: string; 
 
   status: ListingStatus; 
   isSellerVerified: boolean; 
@@ -93,7 +123,6 @@ export interface Listing {
   createdAt: Date;
   updatedAt: Date;
   imageUrl?: string; 
-  // potentialForGrowthNarrative?: string; // Already added above
   financialSnapshotUrl?: string; 
   ownershipDetailsUrl?: string;
   locationRealEstateInfoUrl?: string;
@@ -162,12 +191,12 @@ export interface AdminDashboardMetrics {
   sellerVerificationQueueCount: number; 
   readyToEngageQueueCount: number;
   successfulConnectionsMTD: number; 
-  activeSuccessfulConnections: number; // New
-  closedSuccessfulConnections: number; // New (can represent deals closed or just finalized connections)
+  activeSuccessfulConnections: number; 
+  closedSuccessfulConnections: number; 
   dealsClosedMTD?: number; 
   totalRevenueMTD?: number; 
-  revenueFromBuyers: number; // New
-  revenueFromSellers: number; // New
+  revenueFromBuyers: number; 
+  revenueFromSellers: number; 
 }
 
 
@@ -212,3 +241,5 @@ export interface NotificationItem {
   userId: string;
   type: NotificationType; 
 }
+
+    

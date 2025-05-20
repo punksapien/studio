@@ -1,5 +1,7 @@
 
-import type { Listing, User, AdminDashboardMetrics, VerificationRequestItem, ReadyToEngageItem, Inquiry, NotificationItem, InquiryStatusSystem, InquiryStatusBuyerPerspective, InquiryStatusSellerPerspective, ListingStatus, VerificationQueueStatus } from './types';
+import type { Listing, User, AdminDashboardMetrics, VerificationRequestItem, ReadyToEngageItem, Inquiry, NotificationItem, InquiryStatusSystem, InquiryStatusBuyerPerspective, InquiryStatusSellerPerspective, ListingStatus, VerificationQueueStatus, BuyerPersona, PreferredInvestmentSize } from './types';
+import { BuyerPersonaTypes, PreferredInvestmentSizes } from './types';
+
 
 export const sampleUsers: User[] = [
   {
@@ -28,7 +30,11 @@ export const sampleUsers: User[] = [
     isEmailVerified: true,
     verificationStatus: 'verified',
     isPaid: true, 
-    buyerType: 'Individual Investor',
+    buyerType: 'Individual Investor', // Legacy
+    buyerPersonaType: BuyerPersonaTypes[0], // "Individual Investor / Entrepreneur"
+    investmentFocusDescription: "Early-stage SaaS and e-commerce businesses in Southeast Asia with strong growth potential.",
+    preferredInvestmentSize: PreferredInvestmentSizes[1], // "$100,000 - $500,000 USD"
+    keyIndustriesOfInterest: "Technology, E-commerce, Fintech",
     createdAt: new Date('2023-02-05T11:00:00Z'),
     updatedAt: new Date('2023-02-05T11:00:00Z'),
     lastLogin: new Date('2024-05-21T11:00:00Z'),
@@ -60,7 +66,11 @@ export const sampleUsers: User[] = [
     isEmailVerified: true,
     verificationStatus: 'pending_verification',
     isPaid: false, 
-    buyerType: 'Investment Firm',
+    buyerType: 'Investment Firm', // Legacy
+    buyerPersonaType: BuyerPersonaTypes[1], // "Private Equity Firm"
+    investmentFocusDescription: "Mid-market companies in consumer goods and services with established revenue streams. Looking for majority stakes.",
+    preferredInvestmentSize: PreferredInvestmentSizes[3], // "$2,000,000 - $10,000,000 USD"
+    keyIndustriesOfInterest: "Retail, Consumer Goods, Hospitality",
     createdAt: new Date('2023-04-10T10:00:00Z'),
     updatedAt: new Date('2023-04-10T10:00:00Z'),
     lastLogin: new Date('2024-05-18T14:00:00Z'),
@@ -76,7 +86,11 @@ export const sampleUsers: User[] = [
     isEmailVerified: true,
     verificationStatus: 'verified', 
     isPaid: false,
-    buyerType: 'Strategic Acquirer',
+    buyerType: 'Strategic Acquirer', // Legacy
+    buyerPersonaType: BuyerPersonaTypes[2], // "Strategic Acquirer / Corporate Representative"
+    investmentFocusDescription: "Acquiring businesses to integrate into our existing portfolio, primarily in logistics and supply chain.",
+    preferredInvestmentSize: PreferredInvestmentSizes[2], // "$500,000 - $2,000,000 USD"
+    keyIndustriesOfInterest: "Logistics, Supply Chain, Software",
     createdAt: new Date('2023-05-01T11:00:00Z'),
     updatedAt: new Date('2023-05-01T11:00:00Z'),
     lastLogin: new Date('2024-05-20T17:00:00Z'),
@@ -92,7 +106,11 @@ export const sampleUsers: User[] = [
     isEmailVerified: true,
     verificationStatus: 'anonymous',
     isPaid: false,
-    buyerType: 'Individual Investor',
+    buyerType: 'Individual Investor', // Legacy
+    buyerPersonaType: BuyerPersonaTypes[0], // "Individual Investor / Entrepreneur"
+    investmentFocusDescription: "Looking for small, profitable online businesses to operate and grow.",
+    preferredInvestmentSize: PreferredInvestmentSizes[0], // "Up to $100,000 USD"
+    keyIndustriesOfInterest: "E-commerce, Content Websites",
     createdAt: new Date('2023-06-15T09:00:00Z'),
     updatedAt: new Date('2023-06-15T09:00:00Z'),
     lastLogin: new Date('2024-05-17T10:00:00Z'),
@@ -305,10 +323,10 @@ export const sampleSellerInquiries: Inquiry[] = [
   },
 ];
 
-const revenueFromBuyers = 5000;
-const revenueFromSellers = 7500;
-const activeSuccessfulConnections = 8;
-const closedSuccessfulConnections = 4; // Can also be considered "dealsClosedMTD" for simplicity for now
+const revenueFromBuyersPlaceholder = 5600;
+const revenueFromSellersPlaceholder = 7850;
+const activeSuccessfulConnectionsPlaceholder = 8;
+const closedSuccessfulConnectionsPlaceholder = 4; 
 
 export const sampleAdminDashboardMetrics: AdminDashboardMetrics = {
   newUserRegistrations24hSellers: 2,
@@ -328,13 +346,13 @@ export const sampleAdminDashboardMetrics: AdminDashboardMetrics = {
   buyerVerificationQueueCount: 3, 
   sellerVerificationQueueCount: 4, 
   readyToEngageQueueCount: 1,
-  successfulConnectionsMTD: activeSuccessfulConnections + closedSuccessfulConnections, 
-  activeSuccessfulConnections: activeSuccessfulConnections,
-  closedSuccessfulConnections: closedSuccessfulConnections,
-  dealsClosedMTD: closedSuccessfulConnections, // Assuming closed connections are deals for now
-  revenueFromBuyers: revenueFromBuyers,
-  revenueFromSellers: revenueFromSellers,
-  totalRevenueMTD: revenueFromBuyers + revenueFromSellers,
+  successfulConnectionsMTD: activeSuccessfulConnectionsPlaceholder + closedSuccessfulConnectionsPlaceholder, 
+  activeSuccessfulConnections: activeSuccessfulConnectionsPlaceholder,
+  closedSuccessfulConnections: closedSuccessfulConnectionsPlaceholder,
+  dealsClosedMTD: closedSuccessfulConnectionsPlaceholder,
+  revenueFromBuyers: revenueFromBuyersPlaceholder,
+  revenueFromSellers: revenueFromSellersPlaceholder,
+  totalRevenueMTD: revenueFromBuyersPlaceholder + revenueFromSellersPlaceholder,
 };
 
 export const sampleVerificationRequests: VerificationRequestItem[] = [
@@ -456,3 +474,5 @@ export const sampleSellerNotifications: NotificationItem[] = [
     type: 'engagement'
   }
 ];
+
+    
