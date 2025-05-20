@@ -17,8 +17,25 @@ import type { VerificationRequestItem, VerificationQueueStatus, User } from "@/l
 import Link from "next/link";
 import { Eye, CheckCircle2, XCircle, MessageSquare, FileText, Edit } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import React, { useState, useEffect } from "react"; // Added React import for useState, useEffect
 
 const buyerRequests: VerificationRequestItem[] = sampleVerificationRequests.filter(req => req.userRole === 'buyer');
+
+// Helper component for client-side date formatting
+function FormattedTimestamp({ timestamp }: { timestamp: Date | string }) {
+  const [formattedDate, setFormattedDate] = useState<string | null>(null);
+
+  useEffect(() => {
+    setFormattedDate(new Date(timestamp).toLocaleString());
+  }, [timestamp]);
+
+  if (!formattedDate) {
+    // You can return a placeholder or null during server render and initial client render
+    return <span className="italic">Loading date...</span>; 
+  }
+  return <>{formattedDate}</>;
+}
+
 
 export default function AdminBuyerVerificationQueuePage() {
   const getStatusBadge = (status: VerificationQueueStatus) => {
@@ -62,7 +79,7 @@ export default function AdminBuyerVerificationQueuePage() {
                   const user = getUserDetails(req.userId);
                   return (
                   <TableRow key={req.id}>
-                    <TableCell>{new Date(req.timestamp).toLocaleString()}</TableCell>
+                    <TableCell><FormattedTimestamp timestamp={req.timestamp} /></TableCell>
                     <TableCell className="font-medium">
                         <Link href={`/admin/users/${req.userId}`} className="hover:underline">{req.userName}</Link>
                     </TableCell>
