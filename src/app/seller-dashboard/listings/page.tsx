@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { sampleListings, sampleUsers } from "@/lib/placeholder-data"; 
 import type { Listing, User } from "@/lib/types";
 import Image from "next/image";
-import { PlusCircle, Edit3, Trash2, Eye, ShieldCheck, AlertTriangle, MessageSquare, Briefcase } from "lucide-react";
+import { PlusCircle, Edit3, Trash2, Eye, ShieldCheck, AlertTriangle, MessageSquare, Briefcase, CheckCircle2 } from "lucide-react"; // Added CheckCircle2
 import { useToast } from "@/hooks/use-toast";
 
 // Placeholder for current seller - in a real app, this would come from session/auth
@@ -100,10 +100,10 @@ export default function ManageSellerListingsPage() {
                 <p className="text-sm text-muted-foreground">Asking Price: {listing.askingPriceRange}</p>
                 <p className="text-sm text-muted-foreground">Inquiries: {listing.inquiryCount || 0}</p>
                 <Badge 
-                  variant={listing.status === 'active' ? 'default' : 'secondary'}
-                  className={`mt-2 ${listing.status === 'active' ? 'bg-accent text-accent-foreground' : listing.status === 'pending_verification' ? 'bg-yellow-500 text-white' :'bg-muted text-muted-foreground'}`}
+                  variant={listing.status === 'active' || listing.status === 'verified_public' || listing.status === 'verified_anonymous' ? 'default' : 'secondary'}
+                  className={`mt-2 ${listing.status === 'active' || listing.status === 'verified_public' || listing.status === 'verified_anonymous' ? 'bg-accent text-accent-foreground' : listing.status === 'pending_verification' ? 'bg-yellow-500 text-white' :'bg-muted text-muted-foreground'}`}
                 >
-                  Status: {listing.status.charAt(0).toUpperCase() + listing.status.slice(1)}
+                  Status: {listing.status.charAt(0).toUpperCase() + listing.status.slice(1).replace('_', ' ')}
                 </Badge>
               </CardContent>
               <CardFooter className="p-4 border-t flex flex-col gap-2">
@@ -123,7 +123,7 @@ export default function ManageSellerListingsPage() {
                         <MessageSquare className="h-4 w-4 mr-1 sm:mr-2" /> Inquiries ({listing.inquiryCount || 0})
                         </Link>
                     </Button>
-                    {listing.status === 'active' ? (
+                    {listing.status === 'active' || listing.status === 'verified_public' || listing.status === 'verified_anonymous' ? (
                         <Button variant="destructive" size="sm" onClick={() => handleDeactivate(listing.id, listing.listingTitleAnonymous)}>
                             <Trash2 className="h-4 w-4 mr-1 sm:mr-2" /> Deactivate
                         </Button>
@@ -148,4 +148,3 @@ export default function ManageSellerListingsPage() {
     </div>
   );
 }
-
