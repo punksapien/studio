@@ -1,35 +1,26 @@
+
 import { ListingCard } from '@/components/marketplace/listing-card';
-import { Filters } from '@/components/marketplace/filters';
-import { SortDropdown } from '@/components/marketplace/sort-dropdown';
-import { PaginationControls } from '@/components/shared/pagination-controls';
+// Removed Filters and SortDropdown imports as they are not used here anymore
+// Removed PaginationControls import
 import { sampleListings } from '@/lib/placeholder-data';
 import type { Listing } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
-// Simulate fetching data. In a real app, this would be an API call or DB query.
-async function getListings(page: number = 1, limit: number = 9): Promise<{ listings: Listing[], totalPages: number }> {
-  // Simulate pagination
-  const startIndex = (page - 1) * limit;
-  const endIndex = startIndex + limit;
-  const paginatedListings = sampleListings.slice(startIndex, endIndex);
-  const totalPages = Math.ceil(sampleListings.length / limit);
-  return { listings: paginatedListings, totalPages };
+// Simulate fetching data. For landing page, we show a fixed number of listings.
+async function getPreviewListings(limit: number = 6): Promise<{ listings: Listing[] }> {
+  // Simulate API call delay for realism if needed, but for preview it's often instant
+  // await new Promise(resolve => setTimeout(resolve, 300)); 
+  const previewListings = sampleListings.slice(0, limit);
+  return { listings: previewListings };
 }
 
 export default async function HomePage({
-  searchParams,
+  searchParams, // Kept for consistency, though not used for pagination on landing anymore
 }: {
   searchParams?: { [key: string]: string | string[] | undefined };
 }) {
-  const currentPage = typeof searchParams?.page === 'string' ? Number(searchParams.page) : 1;
-  const { listings, totalPages } = await getListings(currentPage);
-
-  // Placeholder function for page change handling
-  const handlePageChange = (page: number) => {
-    // In a real client component, this would useRouter().push(...)
-    console.log("Navigate to page:", page);
-  };
+  const { listings: previewListings } = await getPreviewListings(6); // Fetch 6 listings for preview
 
   return (
     <>
@@ -44,7 +35,8 @@ export default async function HomePage({
           </p>
           <div className="mt-10 flex flex-col sm:flex-row justify-center items-center gap-4">
             <Button size="lg" asChild>
-              <Link href="#marketplace">Browse Listings</Link>
+              {/* Updated href to point to the new marketplace page */}
+              <Link href="/marketplace">Browse Listings</Link>
             </Button>
             <Button size="lg" variant="outline" asChild>
               <Link href="/auth/register/seller">List Your Business</Link>
@@ -53,33 +45,30 @@ export default async function HomePage({
         </div>
       </section>
       
-      {/* Marketplace Section */}
-      <div id="marketplace" className="container py-8 md:py-12">
-        <div className="mb-8 flex flex-col md:flex-row justify-between items-center gap-4">
-          <h2 className="text-3xl font-semibold tracking-tight">Business Listings</h2>
-          <SortDropdown />
+      {/* Marketplace Preview Section */}
+      <div id="marketplace-preview" className="container py-8 md:py-12">
+        <div className="mb-8 text-center"> {/* Removed SortDropdown, centered title */}
+          <h2 className="text-3xl font-semibold tracking-tight">Featured Business Listings</h2>
+          <p className="text-muted-foreground mt-2">A Glimpse into Our Marketplace</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-          <aside className="md:col-span-3">
-            <Filters />
-          </aside>
-          <main className="md:col-span-9">
-            {listings.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {listings.map((listing) => (
-                  <ListingCard key={listing.id} listing={listing} />
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <p className="text-xl text-muted-foreground">No listings found matching your criteria.</p>
-              </div>
-            )}
-            {totalPages > 1 && (
-               <PaginationControls currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
-            )}
-          </main>
+        {/* Removed Filters sidebar and main/aside structure for preview */}
+        {previewListings.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {previewListings.map((listing) => (
+              <ListingCard key={listing.id} listing={listing} />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-xl text-muted-foreground">No featured listings available at the moment.</p>
+          </div>
+        )}
+        {/* Removed PaginationControls */}
+        <div className="mt-12 text-center">
+          <Button size="lg" asChild>
+            <Link href="/marketplace">Explore Full Marketplace</Link>
+          </Button>
         </div>
       </div>
 
