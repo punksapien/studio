@@ -30,6 +30,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useTransition, useState } from "react";
 import { Separator } from "@/components/ui/separator";
 import { PlusCircle, Trash2 } from "lucide-react";
+import { Label } from "@/components/ui/label"; // Added Label import
 
 const ListingSchema = z.object({
   // Section 1: Basic Information (Anonymous)
@@ -508,3 +509,5 @@ export default function CreateSellerListingPage() {
     </div>
   );
 }
+
+        
