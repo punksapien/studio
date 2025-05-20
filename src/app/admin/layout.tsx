@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -22,14 +23,17 @@ import {
   BellRing,
   ShieldAlert,
   LogOut,
-  LineChart
+  LineChart,
+  UserCheck,
+  Building
 } from 'lucide-react';
 
 const adminSidebarNavItems = [
   { title: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { title: 'User Management', href: '/admin/users', icon: Users },
   { title: 'Listing Management', href: '/admin/listings', icon: Briefcase },
-  { title: 'Verification Queue', href: '/admin/verification-queue', icon: ShieldAlert },
+  { title: 'Buyer Verification', href: '/admin/verification-queue/buyers', icon: UserCheck },
+  { title: 'Seller Verification', href: '/admin/verification-queue/sellers', icon: Building },
   { title: 'Engagement Queue', href: '/admin/engagement-queue', icon: BellRing },
   { title: 'Analytics', href: '/admin/analytics', icon: LineChart },
 ];

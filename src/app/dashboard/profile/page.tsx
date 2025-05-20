@@ -1,7 +1,8 @@
+
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,29 +22,55 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { asianCountries, buyerTypes, UserRole } from "@/lib/types"; // Assuming UserRole type is available
-import { useState, useTransition } from "react";
+import { asianCountries, buyerTypes, UserRole } from "@/lib/types"; 
+import { useState, useTransition, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
 
-// Placeholder for current user data
-const currentUser = {
+// Placeholder for current user data - in a real app, this would come from session/auth
+const currentUserServerData = {
   fullName: "John Doe",
-  email: "john.doe@example.com", // Usually not editable or needs re-verification
+  email: "john.doe@example.com",
   phoneNumber: "+6591234567",
   country: "Singapore",
   role: "seller" as UserRole,
-  initialCompanyName: "JD Web Solutions", // seller specific
-  buyerType: undefined as (typeof buyerTypes[number] | undefined), // buyer specific
+  initialCompanyName: "JD Web Solutions", 
+  buyerType: undefined as (typeof buyerTypes[number] | undefined),
+  isPaid: true,
+  verificationStatus: "verified" as const,
 };
 
-const ProfileSchema = z.object({
+const ProfileSchemaBase = z.object({
   fullName: z.string().min(1, { message: "Full name is required." }),
   phoneNumber: z.string().min(1, { message: "Phone number is required." }),
   country: z.string().min(1, { message: "Country is required." }),
-  initialCompanyName: z.string().optional(), // Seller only
-  buyerType: z.enum(buyerTypes).optional(), // Buyer only
+  role: z.enum(['seller', 'buyer'], { required_error: "Role is required." }),
 });
+
+// Conditional fields based on role
+const ProfileSchema = ProfileSchemaBase.superRefine((data, ctx) => {
+  if (data.role === 'seller') {
+    if (!data.initialCompanyName || data.initialCompanyName.length < 1) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Initial company name is required for sellers.",
+        path: ["initialCompanyName"],
+      });
+    }
+  } else if (data.role === 'buyer') {
+    if (!data.buyerType) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Buyer type is required for buyers.",
+        path: ["buyerType"],
+      });
+    }
+  }
+}).extend({
+    initialCompanyName: z.string().optional(),
+    buyerType: z.enum(buyerTypes).optional(),
+});
+
 
 const PasswordChangeSchema = z.object({
   currentPassword: z.string().min(1, "Current password is required."),
@@ -59,15 +86,16 @@ export default function ProfilePage() {
   const { toast } = useToast();
   const [isProfilePending, startProfileTransition] = useTransition();
   const [isPasswordPending, startPasswordTransition] = useTransition();
-
+  
   const profileForm = useForm<z.infer<typeof ProfileSchema>>({
     resolver: zodResolver(ProfileSchema),
     defaultValues: {
-      fullName: currentUser.fullName,
-      phoneNumber: currentUser.phoneNumber,
-      country: currentUser.country,
-      initialCompanyName: currentUser.role === 'seller' ? currentUser.initialCompanyName : undefined,
-      buyerType: currentUser.role === 'buyer' ? currentUser.buyerType : undefined,
+      fullName: currentUserServerData.fullName,
+      phoneNumber: currentUserServerData.phoneNumber,
+      country: currentUserServerData.country,
+      role: currentUserServerData.role,
+      initialCompanyName: currentUserServerData.role === 'seller' ? currentUserServerData.initialCompanyName : "",
+      buyerType: currentUserServerData.role === 'buyer' ? currentUserServerData.buyerType : undefined,
     },
   });
 
@@ -83,7 +111,8 @@ export default function ProfilePage() {
   const onProfileSubmit = (values: z.infer<typeof ProfileSchema>) => {
     startProfileTransition(async () => {
       console.log("Profile update values:", values);
-      // Placeholder for server action
+      // Placeholder for server action to update profile and role
+      // This would involve more complex logic if role changes, e.g., clearing irrelevant fields.
       await new Promise(resolve => setTimeout(resolve, 1000));
       toast({ title: "Profile Updated", description: "Your profile information has been successfully updated." });
     });
@@ -94,7 +123,6 @@ export default function ProfilePage() {
       console.log("Password change values:", values);
       // Placeholder for server action
       await new Promise(resolve => setTimeout(resolve, 1000));
-      // Simulate error/success
       if (values.currentPassword === "wrongpassword") {
         passwordForm.setError("currentPassword", { type: "manual", message: "Incorrect current password."});
         toast({ variant: "destructive", title: "Error", description: "Failed to change password. Incorrect current password." });
@@ -105,14 +133,26 @@ export default function ProfilePage() {
     });
   };
 
+  const watchedRole = profileForm.watch("role");
+
+  useEffect(() => {
+    // When role changes, clear the other role's specific fields
+    if (watchedRole === 'buyer') {
+      profileForm.setValue('initialCompanyName', '');
+    } else if (watchedRole === 'seller') {
+      profileForm.setValue('buyerType', undefined);
+    }
+  }, [watchedRole, profileForm]);
+
+
   return (
     <div className="space-y-8">
       <h1 className="text-3xl font-bold tracking-tight">My Profile</h1>
       
       <Card className="shadow-md">
         <CardHeader>
-          <CardTitle>Personal Information</CardTitle>
-          <CardDescription>Update your personal details here. Your email address ({currentUser.email}) cannot be changed.</CardDescription>
+          <CardTitle>Personal Information & Role</CardTitle>
+          <CardDescription>Update your personal details and role. Your email ({currentUserServerData.email}) cannot be changed here.</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...profileForm}>
@@ -155,28 +195,46 @@ export default function ProfilePage() {
                   </FormItem>
                 )}
               />
-              {currentUser.role === 'seller' && (
+               <FormField
+                control={profileForm.control}
+                name="role"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Your Role on BizMatch Asia</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isProfilePending}>
+                      <FormControl><SelectTrigger><SelectValue placeholder="Select your role" /></SelectTrigger></FormControl>
+                      <SelectContent>
+                        <SelectItem value="buyer">Buyer / Investor</SelectItem>
+                        <SelectItem value="seller">Business Seller</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {watchedRole === 'seller' && (
                 <FormField
                   control={profileForm.control}
                   name="initialCompanyName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Initial Company Name (Optional)</FormLabel>
-                      <FormControl><Input {...field} disabled={isProfilePending} /></FormControl>
+                      <FormLabel>Initial Company Name (Sellers)</FormLabel>
+                      <FormControl><Input {...field} placeholder="Your Company Pte Ltd" disabled={isProfilePending} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
               )}
-              {currentUser.role === 'buyer' && (
+              {watchedRole === 'buyer' && (
                 <FormField
                   control={profileForm.control}
                   name="buyerType"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Buyer Type</FormLabel>
+                      <FormLabel>Buyer Type (Buyers)</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isProfilePending}>
-                        <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                        <FormControl><SelectTrigger><SelectValue placeholder="Select buyer type" /></SelectTrigger></FormControl>
                         <SelectContent>
                           {buyerTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
                         </SelectContent>

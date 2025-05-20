@@ -1,3 +1,4 @@
+
 import {
   Table,
   TableBody,
@@ -20,7 +21,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { sampleUsers } from "@/lib/placeholder-data";
 import type { User } from "@/lib/types";
 import Link from "next/link";
-import { Eye, ShieldCheck, ShieldAlert, Filter, Search } from "lucide-react";
+import { Eye, ShieldCheck, ShieldAlert, Filter, Search, Trash2, KeyRound, Edit } from "lucide-react";
 
 // In a real app, users would be fetched and paginated.
 const users: User[] = sampleUsers;
@@ -111,8 +112,17 @@ export default function AdminUsersPage() {
                           <Eye className="h-4 w-4" />
                         </Link>
                       </Button>
-                       <Button variant="ghost" size="icon" title={`Mark as ${user.verificationStatus !== 'verified' ? 'Verified' : 'Pending'}`}>
+                      <Button variant="ghost" size="icon" title="Edit User (Not Implemented)">
+                         <Edit className="h-4 w-4" />
+                      </Button>
+                       <Button variant="ghost" size="icon" title={`Mark as ${user.verificationStatus !== 'verified' ? 'Verified' : 'Pending'} (Not Implemented)`}>
                          {user.verificationStatus !== 'verified' ? <ShieldCheck className="h-4 w-4 text-green-600" /> : <ShieldAlert className="h-4 w-4 text-yellow-600" />}
+                      </Button>
+                       <Button variant="ghost" size="icon" title="Change Password (Not Implemented)">
+                         <KeyRound className="h-4 w-4 text-blue-600" />
+                      </Button>
+                      <Button variant="ghost" size="icon" title="Delete User (Not Implemented)">
+                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     </TableCell>
                   </TableRow>

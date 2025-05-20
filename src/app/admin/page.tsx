@@ -1,6 +1,7 @@
+
 import { MetricCard } from "@/components/admin/metric-card";
 import { sampleAdminDashboardMetrics, sampleVerificationRequests, sampleReadyToEngageItems } from "@/lib/placeholder-data";
-import { Users, Briefcase, ShieldAlert, BellRing, LineChart, ListChecks } from "lucide-react";
+import { Users, Briefcase, BellRing, LineChart, ListChecks, UserCheck, Building } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -16,6 +17,8 @@ import { Badge } from "@/components/ui/badge";
 
 export default function AdminDashboardPage() {
   const metrics = sampleAdminDashboardMetrics;
+  const buyerVerificationRequests = sampleVerificationRequests.filter(req => req.userRole === 'buyer');
+  const sellerVerificationRequests = sampleVerificationRequests.filter(req => req.userRole === 'seller');
 
   return (
     <div className="space-y-8">
@@ -35,12 +38,18 @@ export default function AdminDashboardPage() {
           description={`${metrics.newListingsCreated24h} in last 24h`}
         />
         <MetricCard
-          title="Verification Queue"
-          value={metrics.verificationRequestedQueueCount}
-          icon={ShieldAlert}
-          description="Users/listings awaiting verification"
+          title="Buyer Verification Queue"
+          value={metrics.buyerVerificationQueueCount}
+          icon={UserCheck}
+          description="Buyers awaiting verification"
         />
         <MetricCard
+          title="Seller Verification Queue"
+          value={metrics.sellerVerificationQueueCount}
+          icon={Building}
+          description="Sellers/listings awaiting verification"
+        />
+         <MetricCard
           title="Ready to Engage Queue"
           value={metrics.readyToEngageQueueCount}
           icon={BellRing}
@@ -52,35 +61,66 @@ export default function AdminDashboardPage() {
          <Card className="shadow-md">
           <CardHeader>
             <div className="flex justify-between items-center">
-                <CardTitle>Pending Verification Requests</CardTitle>
+                <CardTitle>Pending Buyer Verifications</CardTitle>
                 <Button variant="outline" size="sm" asChild>
-                    <Link href="/admin/verification-queue">View All</Link>
+                    <Link href="/admin/verification-queue/buyers">View All</Link>
                 </Button>
             </div>
-            <CardDescription>Top {sampleVerificationRequests.slice(0,3).length} items needing admin review.</CardDescription>
+            <CardDescription>Top {buyerVerificationRequests.slice(0,3).length} buyers needing admin review.</CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>User</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Listing (if any)</TableHead>
+                  <TableHead>Buyer Name</TableHead>
+                  <TableHead>Reason</TableHead>
                   <TableHead>Date</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sampleVerificationRequests.slice(0,3).map(req => (
+                {buyerVerificationRequests.slice(0,3).map(req => (
                   <TableRow key={req.id}>
                     <TableCell>{req.userName}</TableCell>
-                    <TableCell><Badge variant="secondary">{req.userRole}</Badge></TableCell>
+                    <TableCell className="truncate max-w-xs">{req.reason}</TableCell>
+                    <TableCell>{new Date(req.timestamp).toLocaleDateString()}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+             {buyerVerificationRequests.length === 0 && <p className="text-muted-foreground text-center py-4">No pending buyer verifications.</p>}
+          </CardContent>
+        </Card>
+        
+        <Card className="shadow-md">
+          <CardHeader>
+            <div className="flex justify-between items-center">
+                <CardTitle>Pending Seller Verifications</CardTitle>
+                <Button variant="outline" size="sm" asChild>
+                    <Link href="/admin/verification-queue/sellers">View All</Link>
+                </Button>
+            </div>
+            <CardDescription>Top {sellerVerificationRequests.slice(0,3).length} sellers/listings needing admin review.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Seller Name</TableHead>
+                  <TableHead>Listing</TableHead>
+                  <TableHead>Date</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {sellerVerificationRequests.slice(0,3).map(req => (
+                  <TableRow key={req.id}>
+                    <TableCell>{req.userName}</TableCell>
                     <TableCell>{req.listingTitle || 'N/A'}</TableCell>
                     <TableCell>{new Date(req.timestamp).toLocaleDateString()}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
-             {sampleVerificationRequests.length === 0 && <p className="text-muted-foreground text-center py-4">No pending verification requests.</p>}
+             {sellerVerificationRequests.length === 0 && <p className="text-muted-foreground text-center py-4">No pending seller verifications.</p>}
           </CardContent>
         </Card>
 

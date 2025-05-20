@@ -1,3 +1,4 @@
+
 import { sampleListings, sampleUsers } from '@/lib/placeholder-data';
 import type { Listing, User } from '@/lib/types';
 import Image from 'next/image';
@@ -5,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { MapPin, DollarSign, Briefcase, ShieldCheck, MessageSquare, CalendarDays, Users, Info, TrendingUp, Tag, HandCoins } from 'lucide-react';
+import { MapPin, DollarSign, Briefcase, ShieldCheck, MessageSquare, CalendarDays, Users, Info, TrendingUp, Tag, HandCoins, FileText, LinkIcon, Building, Brain } from 'lucide-react';
 import Link from 'next/link';
 
 async function getListingDetails(id: string): Promise<Listing | undefined> {
@@ -17,9 +18,11 @@ async function getSellerDetails(sellerId: string): Promise<User | undefined> {
 }
 
 // Placeholder for current user - in a real app, this would come from session
-const currentUserId = 'user2'; // Assume this is a verified buyer
+const currentUserId = 'user2'; // Assume this is Jane Smith (Buyer, Paid, Verified)
+// const currentUserId = 'user5'; // Assume this is Michael Lee (Buyer, Free, Verified)
+// const currentUserId = null; // Assume logged out user
+
 const currentUser = sampleUsers.find(u => u.id === currentUserId);
-const isCurrentUserVerifiedBuyer = currentUser?.role === 'buyer' && currentUser?.verificationStatus === 'verified';
 
 
 export default async function ListingDetailPage({ params }: { params: { listingId: string } }) {
@@ -38,7 +41,15 @@ export default async function ListingDetailPage({ params }: { params: { listingI
   }
 
   const seller = await getSellerDetails(listing.sellerId);
-  const showVerifiedDetails = listing.isSellerVerified && isCurrentUserVerifiedBuyer;
+  // Show verified details if listing's seller is verified AND current user is logged in, verified AND paid.
+  const showVerifiedDetails = listing.isSellerVerified && currentUser && currentUser.verificationStatus === 'verified' && currentUser.isPaid;
+
+  const DocumentLink = ({ href, children }: { href?: string; children: React.ReactNode }) => {
+    if (!href) return <p className="text-sm text-muted-foreground">Not provided</p>;
+    if (!showVerifiedDetails) return <p className="text-sm text-muted-foreground italic">Visible to paid, verified buyers</p>;
+    return <Link href={href} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex items-center gap-1"><FileText className="h-4 w-4"/>{children}</Link>;
+  };
+
 
   return (
     <div className="container py-8 md:py-12">
@@ -55,16 +66,26 @@ export default async function ListingDetailPage({ params }: { params: { listingI
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
             <div className="absolute bottom-0 left-0 p-6 md:p-8">
                 <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight">{listing.listingTitleAnonymous}</h1>
-                {listing.isSellerVerified && (
-                    <Badge variant="secondary" className="mt-2 bg-accent text-accent-foreground">
-                        <ShieldCheck className="h-4 w-4 mr-1" />
-                        Platform Verified Seller
-                    </Badge>
-                )}
             </div>
         </CardHeader>
         <CardContent className="p-6 md:p-8 grid md:grid-cols-3 gap-8">
             <div className="md:col-span-2 space-y-6">
+                {listing.isSellerVerified && (
+                  <div className="p-4 rounded-lg bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700/50">
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className="h-6 w-6 text-green-600 dark:text-green-400" />
+                      <h3 className="text-lg font-semibold text-green-700 dark:text-green-300">
+                        Platform Verified Seller
+                      </h3>
+                    </div>
+                    {!currentUser?.isPaid && currentUser?.verificationStatus === 'verified' && (
+                      <p className="text-sm text-green-600 dark:text-green-400 mt-1">
+                        Full verified details are available to paid subscribers. <Link href="/dashboard/subscription" className="underline font-medium">Upgrade now</Link>.
+                      </p>
+                    )}
+                  </div>
+                )}
+
                 <section>
                     <h2 className="text-2xl font-semibold text-foreground mb-3 flex items-center"><Info className="h-6 w-6 mr-2 text-primary"/>Business Overview</h2>
                     <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">{listing.anonymousBusinessDescription}</p>
@@ -80,6 +101,16 @@ export default async function ListingDetailPage({ params }: { params: { listingI
                         ))}
                     </ul>
                 </section>
+
+                {listing.potentialForGrowthNarrative && (
+                  <>
+                    <Separator />
+                    <section>
+                        <h2 className="text-2xl font-semibold text-foreground mb-3 flex items-center"><Brain className="h-6 w-6 mr-2 text-primary"/>Potential for Growth</h2>
+                        <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">{listing.potentialForGrowthNarrative}</p>
+                    </section>
+                  </>
+                )}
                 
                 {listing.reasonForSellingAnonymous && (
                     <>
@@ -91,99 +122,127 @@ export default async function ListingDetailPage({ params }: { params: { listingI
                     </>
                 )}
 
-                {showVerifiedDetails && (
+                {/* Document Sections & Verified Info - only if seller is verified */}
+                {listing.isSellerVerified && (
                   <>
                     <Separator />
-                    <section className="p-4 bg-primary/5 rounded-lg border border-primary/20">
-                        <h2 className="text-2xl font-semibold text-primary mb-3 flex items-center"><ShieldCheck className="h-6 w-6 mr-2"/>Verified Seller Information</h2>
-                        <div className="space-y-2 text-sm">
-                            <p><span className="font-medium text-foreground">Actual Company Name:</span> {listing.actualCompanyName || 'N/A'}</p>
-                            <p><span className="font-medium text-foreground">Full Business Address:</span> {listing.fullBusinessAddress || 'N/A'}</p>
-                            <p><span className="font-medium text-foreground">Specific Annual Revenue (Last Year):</span> {listing.specificAnnualRevenueLastYear ? `$${listing.specificAnnualRevenueLastYear.toLocaleString()} USD` : 'N/A'}</p>
-                            <p><span className="font-medium text-foreground">Specific Net Profit (Last Year):</span> {listing.specificNetProfitLastYear ? `$${listing.specificNetProfitLastYear.toLocaleString()} USD` : 'N/A'}</p>
-                            {listing.secureDataRoomLink && (
-                                <p><span className="font-medium text-foreground">Secure Data Room:</span> <a href={listing.secureDataRoomLink} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Access Link</a></p>
+                    <section className={`p-4 rounded-lg ${showVerifiedDetails ? 'bg-primary/5 border-primary/20' : 'bg-muted/30 border-muted/50'}`}>
+                        <h2 className="text-2xl font-semibold text-primary mb-3 flex items-center">
+                          <ShieldCheck className="h-6 w-6 mr-2"/>
+                          {showVerifiedDetails ? "Verified Seller Information & Documents" : "Verified Seller Information (Restricted Access)"}
+                        </h2>
+                        
+                        {!showVerifiedDetails && currentUser && !currentUser.isPaid && (
+                           <p className="text-sm text-muted-foreground mb-4">
+                             Detailed company information and documents are available to <Link href="/dashboard/subscription" className="font-medium text-primary hover:underline">paid, verified subscribers</Link>.
+                           </p>
+                        )}
+                        {!showVerifiedDetails && !currentUser && (
+                           <p className="text-sm text-muted-foreground mb-4">
+                             <Link href={`/auth/login?redirect=/listings/${listing.id}`} className="font-medium text-primary hover:underline">Login or Register</Link> as a paid, verified buyer to view detailed information and documents.
+                           </p>
+                        )}
+
+                        <div className="space-y-3">
+                            <div>
+                                <h3 className="font-semibold text-foreground flex items-center gap-1"><Building className="h-4 w-4"/>Company Details</h3>
+                                {showVerifiedDetails ? (
+                                  <>
+                                    <p className="text-sm"><span className="font-medium">Actual Company Name:</span> {listing.actualCompanyName || 'N/A'}</p>
+                                    <p className="text-sm"><span className="font-medium">Full Business Address:</span> {listing.fullBusinessAddress || 'N/A'}</p>
+                                  </>
+                                ) : (
+                                  <p className="text-sm text-muted-foreground italic">Restricted for free users.</p>
+                                )}
+                            </div>
+                             <div>
+                                <h3 className="font-semibold text-foreground flex items-center gap-1"><DollarSign className="h-4 w-4"/>Financials</h3>
+                                 {showVerifiedDetails ? (
+                                  <>
+                                    <p className="text-sm"><span className="font-medium">Specific Annual Revenue (Last Year):</span> {listing.specificAnnualRevenueLastYear ? `$${listing.specificAnnualRevenueLastYear.toLocaleString()} USD` : 'N/A'}</p>
+                                    <p className="text-sm"><span className="font-medium">Specific Net Profit (Last Year):</span> {listing.specificNetProfitLastYear ? `$${listing.specificNetProfitLastYear.toLocaleString()} USD` : 'N/A'}</p>
+                                  </>
+                                ) : (
+                                  <p className="text-sm text-muted-foreground italic">Restricted for free users.</p>
+                                )}
+                                <DocumentLink href={listing.financialSnapshotUrl}>Financial Snapshot</DocumentLink>
+                            </div>
+                            <div><h3 className="font-semibold text-foreground">Ownership Details</h3><DocumentLink href={listing.ownershipDetailsUrl}>Ownership Documents</DocumentLink></div>
+                            <div><h3 className="font-semibold text-foreground">Location & Real Estate</h3><DocumentLink href={listing.locationRealEstateInfoUrl}>Lease/Property Info</DocumentLink></div>
+                            <div><h3 className="font-semibold text-foreground">Web Presence</h3><DocumentLink href={listing.webPresenceInfoUrl}>Website/Social Analytics</DocumentLink></div>
+                             {showVerifiedDetails && listing.secureDataRoomLink && (
+                                <div><h3 className="font-semibold text-foreground">Secure Data Room</h3><DocumentLink href={listing.secureDataRoomLink}>Access Data Room</DocumentLink></div>
                             )}
                         </div>
                     </section>
                   </>
                 )}
-
             </div>
+
             <aside className="space-y-6 md:sticky md:top-24 h-fit"> {/* md:top-24 to account for navbar height + some padding */}
                 <Card className="shadow-md">
                     <CardHeader>
                         <CardTitle className="text-xl">Listing Summary</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-3 text-sm">
+                        {/* ... existing summary items ... */}
                         <div className="flex items-center">
                             <Briefcase className="h-5 w-5 mr-3 text-primary flex-shrink-0" />
-                            <div>
-                                <p className="font-medium text-foreground">Industry</p>
-                                <p className="text-muted-foreground">{listing.industry}</p>
-                            </div>
+                            <div><p className="font-medium text-foreground">Industry</p><p className="text-muted-foreground">{listing.industry}</p></div>
                         </div>
                         <div className="flex items-center">
                             <MapPin className="h-5 w-5 mr-3 text-primary flex-shrink-0" />
-                            <div>
-                                <p className="font-medium text-foreground">Location</p>
-                                <p className="text-muted-foreground">{listing.locationCityRegionGeneral}, {listing.locationCountry}</p>
-                            </div>
+                            <div><p className="font-medium text-foreground">Location</p><p className="text-muted-foreground">{listing.locationCityRegionGeneral}, {listing.locationCountry}</p></div>
                         </div>
                          <div className="flex items-center">
                             <DollarSign className="h-5 w-5 mr-3 text-primary flex-shrink-0" />
-                            <div>
-                                <p className="font-medium text-foreground">Annual Revenue</p>
-                                <p className="text-muted-foreground">{listing.annualRevenueRange}</p>
-                            </div>
+                            <div><p className="font-medium text-foreground">Annual Revenue</p><p className="text-muted-foreground">{listing.annualRevenueRange}</p></div>
                         </div>
                         {listing.netProfitMarginRange && (
                              <div className="flex items-center">
                                 <DollarSign className="h-5 w-5 mr-3 text-primary flex-shrink-0" />
-                                <div>
-                                    <p className="font-medium text-foreground">Net Profit Margin</p>
-                                    <p className="text-muted-foreground">{listing.netProfitMarginRange}</p>
-                                </div>
+                                <div><p className="font-medium text-foreground">Net Profit Margin</p><p className="text-muted-foreground">{listing.netProfitMarginRange}</p></div>
                             </div>
                         )}
                          <div className="flex items-center">
                             <DollarSign className="h-5 w-5 mr-3 text-primary flex-shrink-0" />
-                            <div>
-                                <p className="font-medium text-foreground">Asking Price</p>
-                                <p className="text-muted-foreground">{listing.askingPriceRange}</p>
-                            </div>
+                            <div><p className="font-medium text-foreground">Asking Price</p><p className="text-muted-foreground">{listing.askingPriceRange}</p></div>
                         </div>
                         {listing.dealStructureLookingFor && listing.dealStructureLookingFor.length > 0 && (
                              <div className="flex items-start">
                                 <HandCoins className="h-5 w-5 mr-3 text-primary flex-shrink-0 mt-0.5" />
-                                <div>
-                                    <p className="font-medium text-foreground">Deal Structure</p>
-                                    <p className="text-muted-foreground">{listing.dealStructureLookingFor.join(', ')}</p>
-                                </div>
+                                <div><p className="font-medium text-foreground">Deal Structure</p><p className="text-muted-foreground">{listing.dealStructureLookingFor.join(', ')}</p></div>
                             </div>
                         )}
                         <div className="flex items-center">
                             <CalendarDays className="h-5 w-5 mr-3 text-primary flex-shrink-0" />
-                            <div>
-                                <p className="font-medium text-foreground">Listed On</p>
-                                <p className="text-muted-foreground">{new Date(listing.createdAt).toLocaleDateString()}</p>
-                            </div>
+                            <div><p className="font-medium text-foreground">Listed On</p><p className="text-muted-foreground">{new Date(listing.createdAt).toLocaleDateString()}</p></div>
                         </div>
                         {seller && (
                              <div className="flex items-center">
                                 <Users className="h-5 w-5 mr-3 text-primary flex-shrink-0" />
                                 <div>
                                     <p className="font-medium text-foreground">Seller Status</p>
-                                    <p className="text-muted-foreground">{listing.isSellerVerified ? 'Verified' : 'Anonymous'}</p>
+                                    <p className="text-muted-foreground">
+                                      {listing.isSellerVerified ? 
+                                        (currentUser?.isPaid ? 'Verified (Full Details)' : 'Verified (Details Restricted)') 
+                                        : 'Anonymous'}
+                                    </p>
                                 </div>
                             </div>
                         )}
                     </CardContent>
-                    <CardFooter>
-                        <Button className="w-full" disabled={!currentUser}> {/* Enable if user is logged in */}
+                    <CardFooter className="flex flex-col gap-2">
+                        <Button className="w-full" disabled={!currentUser || currentUser.role !== 'buyer'}>
                             <MessageSquare className="h-4 w-4 mr-2"/>
                             Inquire About Business
                         </Button>
+                        {listing.isSellerVerified && listing.status === 'active' && currentUser?.isPaid && currentUser.role === 'buyer' && (
+                           <Button variant="outline" className="w-full">
+                             <LinkIcon className="h-4 w-4 mr-2" />
+                             Open Conversation (Placeholder)
+                           </Button>
+                        )}
                     </CardFooter>
                 </Card>
                 {!currentUser && (
@@ -192,6 +251,16 @@ export default async function ListingDetailPage({ params }: { params: { listingI
                             <p className="text-sm text-accent-foreground mb-2">Want to learn more or see verified details?</p>
                             <Button variant="outline" asChild className="border-accent text-accent hover:bg-accent/20">
                                 <Link href={`/auth/login?redirect=/listings/${listing.id}`}>Login or Register to Inquire</Link>
+                            </Button>
+                        </CardContent>
+                    </Card>
+                )}
+                 {currentUser && !currentUser.isPaid && listing.isSellerVerified && (
+                    <Card className="shadow-md bg-amber-500/10 border-amber-500/30">
+                        <CardContent className="p-4 text-center">
+                            <p className="text-sm text-amber-700 dark:text-amber-300 mb-2">Upgrade to a paid plan to view full verified details and documents.</p>
+                            <Button variant="outline" asChild className="border-amber-600 text-amber-700 hover:bg-amber-600/20">
+                                <Link href="/dashboard/subscription">View Subscription Options</Link>
                             </Button>
                         </CardContent>
                     </Card>

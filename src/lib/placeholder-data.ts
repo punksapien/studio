@@ -1,4 +1,5 @@
-import type { Listing, User, AdminDashboardMetrics, VerificationRequestItem, ReadyToEngageItem, UserRole, VerificationStatus } from './types';
+
+import type { Listing, User, AdminDashboardMetrics, VerificationRequestItem, ReadyToEngageItem } from './types';
 
 export const sampleUsers: User[] = [
   {
@@ -10,6 +11,7 @@ export const sampleUsers: User[] = [
     role: 'seller',
     isEmailVerified: true,
     verificationStatus: 'verified',
+    isPaid: true, // New field
     initialCompanyName: 'JD Web Solutions',
     createdAt: new Date('2023-01-10T09:00:00Z'),
     updatedAt: new Date('2023-01-15T14:30:00Z'),
@@ -23,6 +25,7 @@ export const sampleUsers: User[] = [
     role: 'buyer',
     isEmailVerified: true,
     verificationStatus: 'verified',
+    isPaid: true, // New field
     buyerType: 'Individual Investor',
     createdAt: new Date('2023-02-05T11:00:00Z'),
     updatedAt: new Date('2023-02-05T11:00:00Z'),
@@ -36,6 +39,7 @@ export const sampleUsers: User[] = [
     role: 'seller',
     isEmailVerified: true,
     verificationStatus: 'anonymous',
+    isPaid: false, // New field
     createdAt: new Date('2023-03-20T16:00:00Z'),
     updatedAt: new Date('2023-03-20T16:00:00Z'),
   },
@@ -48,9 +52,24 @@ export const sampleUsers: User[] = [
     role: 'buyer',
     isEmailVerified: true,
     verificationStatus: 'pending_verification',
+    isPaid: false, // New field
     buyerType: 'Investment Firm',
     createdAt: new Date('2023-04-10T10:00:00Z'),
     updatedAt: new Date('2023-04-10T10:00:00Z'),
+  },
+  {
+    id: 'user5',
+    fullName: 'Michael Lee (Buyer - Free)',
+    email: 'michael.freebuyer@example.com',
+    phoneNumber: '+6281234567890',
+    country: 'Indonesia',
+    role: 'buyer',
+    isEmailVerified: true,
+    verificationStatus: 'verified', // Can be verified but free
+    isPaid: false,
+    buyerType: 'Strategic Acquirer',
+    createdAt: new Date('2023-05-01T11:00:00Z'),
+    updatedAt: new Date('2023-05-01T11:00:00Z'),
   },
 ];
 
@@ -78,6 +97,11 @@ export const sampleListings: Listing[] = [
     createdAt: new Date('2023-10-15T10:00:00Z'),
     updatedAt: new Date('2023-10-15T10:00:00Z'),
     imageUrl: 'https://placehold.co/600x400.png',
+    potentialForGrowthNarrative: 'Significant growth potential by expanding product catalog to adjacent niches and targeting new customer segments in neighboring ASEAN countries. Current marketing efforts are minimal, offering substantial upside with a dedicated marketing strategy.',
+    financialSnapshotUrl: '/documents/placeholder-financials.pdf',
+    ownershipDetailsUrl: '/documents/placeholder-ownership.pdf',
+    locationRealEstateInfoUrl: '/documents/placeholder-lease.pdf',
+    webPresenceInfoUrl: '/documents/placeholder-web-analytics.pdf',
   },
   {
     id: '2',
@@ -96,10 +120,12 @@ export const sampleListings: Listing[] = [
     createdAt: new Date('2023-11-01T14:30:00Z'),
     updatedAt: new Date('2023-11-01T14:30:00Z'),
     imageUrl: 'https://placehold.co/600x400.png',
+    potentialForGrowthNarrative: 'The platform is poised for rapid expansion with further development of enterprise features and targeted sales efforts in the APAC region. Untapped potential in complementary service integrations.',
+    // No document URLs as seller is not verified / details not filled
   },
   {
     id: '3',
-    sellerId: 'user1',
+    sellerId: 'user1', // Also by John Doe (Paid Seller)
     listingTitleAnonymous: 'Boutique Marketing Agency',
     industry: 'Services - Marketing',
     locationCountry: 'Malaysia',
@@ -115,6 +141,9 @@ export const sampleListings: Listing[] = [
     createdAt: new Date('2023-09-20T08:00:00Z'),
     updatedAt: new Date('2023-09-20T08:00:00Z'),
     imageUrl: 'https://placehold.co/600x400.png',
+    potentialForGrowthNarrative: 'Opportunity to scale by expanding service offerings to larger corporate clients and developing proprietary marketing tools. Strong referral network provides a solid base for growth.',
+    financialSnapshotUrl: '/documents/placeholder-agency-financials.pdf',
+    webPresenceInfoUrl: 'https://example-agency.com',
   },
 ];
 
@@ -123,32 +152,60 @@ export const sampleAdminDashboardMetrics: AdminDashboardMetrics = {
   newUserRegistrations7d: 23,
   newListingsCreated24h: 2,
   newListingsCreated7d: 10,
-  totalActiveSellers: 58,
-  totalActiveBuyers: 120,
-  totalActiveListingsAnonymous: 35,
-  totalActiveListingsVerified: 15,
-  verificationRequestedQueueCount: 7,
+  totalActiveSellers: 58, // All sellers, paid or free
+  totalActiveBuyers: 120,  // All buyers, paid or free
+  totalActiveListingsAnonymous: 35, // Listings from non-verified sellers or not yet fully public
+  totalActiveListingsVerified: 15, // Listings from verified sellers with full details potentially available
+  
+  // New/Updated queue counts
+  buyerVerificationQueueCount: 3, // Example
+  sellerVerificationQueueCount: 4, // Example
   readyToEngageQueueCount: 3,
+
+  // New analytics metrics
+  paidBuyersCount: 40,
+  freeBuyersCount: 80,
+  paidSellersCount: 25,
+  freeSellersCount: 33,
+  totalRevenue: 12500, // Example amount in USD
+  successfulConnectionsCount: 12, // from existing "Successful Connections (Est.)"
+  closedDealsCount: 4,
 };
 
 export const sampleVerificationRequests: VerificationRequestItem[] = [
   {
     id: 'vr1',
     timestamp: new Date('2023-11-10T10:00:00Z'),
-    userId: 'user4',
+    userId: 'user4', // Sarah Chen (Buyer - Pending)
     userName: 'Sarah Chen (Buyer - Pending)',
     userRole: 'buyer',
-    reason: 'Buyer initiated engagement, needs verification.',
+    reason: 'New buyer registration, requires profile verification.',
   },
   {
     id: 'vr2',
     timestamp: new Date('2023-11-09T15:30:00Z'),
-    userId: 'user3',
+    userId: 'user3', // Alex Tan (Seller - Anonymous)
     userName: 'Alex Tan (Seller - Anonymous)',
     userRole: 'seller',
     listingId: '2',
     listingTitle: 'Established SaaS Platform - B2B Niche',
-    reason: 'Seller engaged in conversation, listing needs verification.',
+    reason: 'Seller submitted new listing, requires seller and listing verification.',
+  },
+  {
+    id: 'vr3',
+    timestamp: new Date('2023-11-11T11:00:00Z'),
+    userId: 'user5', // Michael Lee (Buyer - Free, but wants to verify for some reason)
+    userName: 'Michael Lee (Buyer - Free)',
+    userRole: 'buyer',
+    reason: 'Buyer requested manual verification upgrade.',
+  },
+   {
+    id: 'vr4',
+    timestamp: new Date('2023-11-12T09:00:00Z'),
+    userId: 'newSellerUser123', 
+    userName: 'Pending Seller Alpha',
+    userRole: 'seller',
+    reason: 'New seller account created.',
   },
 ];
 
@@ -156,11 +213,12 @@ export const sampleReadyToEngageItems: ReadyToEngageItem[] = [
   {
     id: 'rte1',
     timestamp: new Date('2023-11-08T12:00:00Z'),
-    buyerId: 'user2',
+    buyerId: 'user2', // Jane Smith
     buyerName: 'Jane Smith (Buyer)',
-    sellerId: 'user1',
+    sellerId: 'user1', // John Doe
     sellerName: 'John Doe (Seller)',
     listingId: '1',
     listingTitle: 'Profitable E-commerce Store in SEA',
   },
 ];
+

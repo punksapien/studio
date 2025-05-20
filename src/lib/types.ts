@@ -1,3 +1,4 @@
+
 export type UserRole = 'seller' | 'buyer' | 'admin';
 
 export type VerificationStatus = 'anonymous' | 'pending_verification' | 'verified' | 'rejected';
@@ -32,6 +33,7 @@ export interface User {
   role: UserRole;
   isEmailVerified: boolean;
   verificationStatus: VerificationStatus;
+  isPaid: boolean; // New field
   // Seller specific
   initialCompanyName?: string;
   // Buyer specific
@@ -65,6 +67,13 @@ export interface Listing {
   createdAt: Date;
   updatedAt: Date;
   imageUrl?: string; // For placeholder or actual image
+  
+  // New fields for listing page enhancements
+  potentialForGrowthNarrative?: string;
+  financialSnapshotUrl?: string; 
+  ownershipDetailsUrl?: string;
+  locationRealEstateInfoUrl?: string;
+  webPresenceInfoUrl?: string; 
 }
 
 export type InquiryStatus =
@@ -96,8 +105,20 @@ export interface AdminDashboardMetrics {
   totalActiveBuyers: number;
   totalActiveListingsAnonymous: number;
   totalActiveListingsVerified: number;
-  verificationRequestedQueueCount: number;
+  
+  // Updated/New verification queue counts
+  buyerVerificationQueueCount: number;
+  sellerVerificationQueueCount: number;
   readyToEngageQueueCount: number;
+
+  // New analytics metrics
+  paidBuyersCount: number;
+  freeBuyersCount: number;
+  paidSellersCount: number;
+  freeSellersCount: number;
+  totalRevenue: number; // Represented as a number, formatting handled in UI
+  successfulConnectionsCount: number;
+  closedDealsCount: number;
 }
 
 export interface VerificationRequestItem {
@@ -105,9 +126,9 @@ export interface VerificationRequestItem {
   timestamp: Date;
   userId: string;
   userName: string;
-  userRole: UserRole;
-  listingId?: string;
-  listingTitle?: string;
+  userRole: UserRole; // 'buyer' or 'seller'
+  listingId?: string; // Only relevant for seller verification related to a listing
+  listingTitle?: string; // Only relevant for seller verification
   triggeringUserId?: string;
   reason: string; 
 }

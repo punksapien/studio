@@ -1,11 +1,12 @@
+
 import { sampleUsers, sampleListings } from "@/lib/placeholder-data";
 import type { User, Listing } from "@/lib/types";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { Separator } from "@/components/ui/separator";
-import { Mail, Phone, MapPin, CalendarDays, Briefcase, DollarSign, UserCircle, ShieldCheck, ShieldAlert, Edit, MessageSquare } from "lucide-react";
+import { Mail, Phone, MapPin, CalendarDays, Briefcase, DollarSign, UserCircle, ShieldCheck, ShieldAlert, Edit, MessageSquare, Trash2, KeyRound, Edit3 } from "lucide-react";
 import { notFound } from 'next/navigation';
 
 async function getUserDetails(userId: string): Promise<User | undefined> {
@@ -48,10 +49,10 @@ export default async function AdminUserDetailPage({ params }: { params: { userId
             <UserCircle className="h-8 w-8 mr-3 text-primary" /> User Details: {user.fullName}
         </h1>
         <div className="flex gap-2 mt-2 md:mt-0">
-            <Button variant="outline"><Edit className="h-4 w-4 mr-2"/> Edit User (Not Implemented)</Button>
-            <Button variant={user.verificationStatus !== 'verified' ? 'default' : 'secondary'}>
+            <Button variant="outline"><Edit className="h-4 w-4 mr-2"/> Edit User Info (Not Implemented)</Button>
+             <Button variant={user.verificationStatus !== 'verified' ? 'default' : 'secondary'}>
                 {user.verificationStatus !== 'verified' ? <ShieldCheck className="h-4 w-4 mr-2"/> : <ShieldAlert className="h-4 w-4 mr-2"/>}
-                Mark as {user.verificationStatus !== 'verified' ? 'Verified' : 'Pending'}
+                Mark as {user.verificationStatus !== 'verified' ? 'Verified' : 'Pending'} (Not Implemented)
             </Button>
         </div>
       </div>
@@ -61,7 +62,7 @@ export default async function AdminUserDetailPage({ params }: { params: { userId
           <div className="flex justify-between items-start">
             <div>
                 <CardTitle className="text-2xl">{user.fullName}</CardTitle>
-                <CardDescription className="capitalize">{user.role}</CardDescription>
+                <CardDescription className="capitalize">{user.role} ({user.isPaid ? 'Paid User' : 'Free User'})</CardDescription>
             </div>
             {getVerificationBadge(user.verificationStatus, true)}
           </div>
@@ -92,7 +93,14 @@ export default async function AdminUserDetailPage({ params }: { params: { userId
           <Separator />
           <Card className="shadow-md">
             <CardHeader>
-              <CardTitle>Business Listings by {user.fullName}</CardTitle>
+              <div className="flex justify-between items-center">
+                <CardTitle>Business Listings by {user.fullName}</CardTitle>
+                {userListings.length > 0 && (
+                  <Button variant="outline" size="sm">
+                     <Edit3 className="h-4 w-4 mr-2"/> Edit All Listings (Not Implemented)
+                  </Button>
+                )}
+              </div>
               <CardDescription>Total Listings: {userListings.length}</CardDescription>
             </CardHeader>
             <CardContent>
@@ -104,9 +112,16 @@ export default async function AdminUserDetailPage({ params }: { params: { userId
                         <Link href={`/admin/listings/${listing.id}`} className="font-medium text-primary hover:underline">{listing.listingTitleAnonymous}</Link>
                         <p className="text-xs text-muted-foreground">{listing.industry} | Revenue: {listing.annualRevenueRange}</p>
                       </div>
-                      <Button variant="outline" size="sm" asChild>
-                        <Link href={`/admin/listings/${listing.id}`}>View Listing</Link>
-                      </Button>
+                       <div className="flex gap-1">
+                        <Button variant="outline" size="sm" asChild>
+                            <Link href={`/admin/listings/${listing.id}`}>View Listing</Link>
+                        </Button>
+                        <Button variant="ghost" size="icon" title="Edit Business Details (Not Implemented)" asChild>
+                           <Link href={`/admin/listings/${listing.id}/edit`}> {/* Assuming admin edit page exists */}
+                            <Edit3 className="h-4 w-4" />
+                           </Link>
+                        </Button>
+                       </div>
                     </li>
                   ))}
                 </ul>
@@ -121,15 +136,16 @@ export default async function AdminUserDetailPage({ params }: { params: { userId
       <Separator />
        <Card className="shadow-md">
           <CardHeader>
-            <CardTitle>Admin Actions</CardTitle>
+            <CardTitle>Admin Actions on User</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-4">
-            <Button variant="outline"><MessageSquare className="h-4 w-4 mr-2"/> Send Message to User (Not Implemented)</Button>
+            <Button variant="outline"><MessageSquare className="h-4 w-4 mr-2"/> Send Message (Not Implemented)</Button>
+            <Button variant="outline"><KeyRound className="h-4 w-4 mr-2"/> Change Password (Not Implemented)</Button>
             <Button variant="outline">View Activity Log (Not Implemented)</Button>
-            <Button variant="destructive" className="bg-red-600 hover:bg-red-700">Suspend User (Not Implemented)</Button>
+            <Button variant="destructive" className="bg-red-600 hover:bg-red-700"><Trash2 className="h-4 w-4 mr-2" /> Delete User (Not Implemented)</Button>
+            <Button variant="destructive">Suspend User (Not Implemented)</Button>
           </CardContent>
         </Card>
-
     </div>
   );
 }
