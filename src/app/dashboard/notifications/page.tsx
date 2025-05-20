@@ -4,7 +4,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Bell, Check, Mail } from "lucide-react";
+import { Bell, Check, Mail, ShieldCheck } from "lucide-react"; // Added ShieldCheck
 import type { NotificationItem, User } from "@/lib/types";
 import { sampleBuyerNotifications, sampleUsers } from "@/lib/placeholder-data";
 import { Badge } from "@/components/ui/badge";
