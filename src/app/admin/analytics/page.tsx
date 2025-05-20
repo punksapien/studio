@@ -1,12 +1,8 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, LineChart, PieChart, Users, Briefcase, DollarSign, CheckCircle, TrendingUp, UserMinus, UserPlus, Banknote, ShieldCheck } from "lucide-react";
+import { BarChart, LineChart, PieChart, Users, Briefcase, DollarSign, CheckCircle, TrendingUp, UserMinus, UserPlus, Banknote, ShieldCheck, Handshake } from "lucide-react";
 import { sampleAdminDashboardMetrics, sampleUsers } from "@/lib/placeholder-data";
 import { Separator } from "@/components/ui/separator";
-
-// Assuming you have Chart components from shadcn/ui or recharts
-// For MVP, we'll use placeholders.
-// import { ChartContainer, ChartTooltip, ChartTooltipContent, Bar, XAxis, YAxis } from "@/components/ui/chart"; // Example if using shadcn charts
 
 const chartConfigPlaceholder = {
   users: { label: "Users", color: "hsl(var(--chart-1))" },
@@ -44,17 +40,17 @@ export default function AdminAnalyticsPage() {
         </Card>
          <Card className="shadow-md">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Successful Connections (MTD)</CardTitle>
-            <CheckCircle className="h-5 w-5 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Total Facilitated Connections (MTD)</CardTitle>
+            <Handshake className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{metrics.successfulConnectionsMTD}</div>
-            <p className="text-xs text-muted-foreground">Admin facilitated connections</p>
+            <p className="text-xs text-muted-foreground">{metrics.activeSuccessfulConnections} active, {metrics.closedSuccessfulConnections} closed</p>
           </CardContent>
         </Card>
         <Card className="shadow-md">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Closed Deals (MTD)</CardTitle>
+            <CardTitle className="text-sm font-medium">Deals Closed (MTD)</CardTitle>
             <DollarSign className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -97,18 +93,64 @@ export default function AdminAnalyticsPage() {
       
       <Separator/>
       <h2 className="text-2xl font-semibold tracking-tight pt-4">Financials</h2>
-       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-         <Card className="shadow-md md:col-span-2">
+       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3"> {/* Changed to lg:grid-cols-3 for better fit */}
+         <Card className="shadow-md">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue Generated (MTD)</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Revenue (MTD)</CardTitle>
             <Banknote className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">${(metrics.totalRevenueMTD || 0).toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">From subscriptions and services (Conceptual)</p>
+            <p className="text-xs text-muted-foreground">Sum from subscriptions (Conceptual)</p>
+          </CardContent>
+        </Card>
+        <Card className="shadow-md">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Revenue from Buyers (MTD)</CardTitle>
+            <DollarSign className="h-5 w-5 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">${(metrics.revenueFromBuyers || 0).toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">Buyer subscriptions (Conceptual)</p>
+          </CardContent>
+        </Card>
+        <Card className="shadow-md">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Revenue from Sellers (MTD)</CardTitle>
+            <DollarSign className="h-5 w-5 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">${(metrics.revenueFromSellers || 0).toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">Seller subscriptions/services (Conceptual)</p>
           </CardContent>
         </Card>
       </div>
+
+      <Separator/>
+      <h2 className="text-2xl font-semibold tracking-tight pt-4">Connection Funnel</h2>
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <Card className="shadow-md">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Active Successful Connections</CardTitle>
+                <CheckCircle className="h-5 w-5 text-blue-500"/>
+            </CardHeader>
+            <CardContent>
+                <div className="text-2xl font-bold">{metrics.activeSuccessfulConnections}</div>
+                <p className="text-xs text-muted-foreground">Connections facilitated, ongoing</p>
+            </CardContent>
+        </Card>
+        <Card className="shadow-md">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Deals Closed (MTD)</CardTitle>
+                <DollarSign className="h-5 w-5 text-green-500"/>
+            </CardHeader>
+            <CardContent>
+                <div className="text-2xl font-bold">{metrics.dealsClosedMTD || 0}</div>
+                <p className="text-xs text-muted-foreground">Reported or tracked</p>
+            </CardContent>
+        </Card>
+      </div>
+
 
       <Separator/>
       <h2 className="text-2xl font-semibold tracking-tight pt-4">Activity Charts (Placeholders)</h2>

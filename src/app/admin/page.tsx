@@ -1,7 +1,7 @@
 
 import { MetricCard } from "@/components/admin/metric-card";
 import { sampleAdminDashboardMetrics, sampleVerificationRequests, sampleReadyToEngageItems } from "@/lib/placeholder-data";
-import { Users, Briefcase, BellRing, LineChart, ListChecks, UserCheck, Building, DollarSign, CheckCircle } from "lucide-react";
+import { Users, Briefcase, BellRing, LineChart, ListChecks, UserCheck, Building, DollarSign, CheckCircle, Banknote } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -13,7 +13,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 
 export default function AdminDashboardPage() {
   const metrics = sampleAdminDashboardMetrics;
@@ -44,10 +43,22 @@ export default function AdminDashboardPage() {
           description={`${metrics.newListingsCreated24h} in last 24h`}
         />
          <MetricCard
-          title="Total Revenue (MTD)"
+          title="Total Platform Revenue (MTD)"
           value={`$${(metrics.totalRevenueMTD || 0).toLocaleString()}`}
+          icon={Banknote}
+          description="Sum of buyer & seller revenue"
+        />
+        <MetricCard
+          title="Revenue from Buyers (MTD)"
+          value={`$${(metrics.revenueFromBuyers || 0).toLocaleString()}`}
           icon={DollarSign}
-          description="Conceptual placeholder"
+          description="From buyer subscriptions"
+        />
+        <MetricCard
+          title="Revenue from Sellers (MTD)"
+          value={`$${(metrics.revenueFromSellers || 0).toLocaleString()}`}
+          icon={DollarSign}
+          description="From seller subscriptions/services"
         />
         <MetricCard
           title="Buyer Verification Queue"
@@ -68,10 +79,22 @@ export default function AdminDashboardPage() {
           description="Pairs ready for admin connection"
         />
         <MetricCard
-          title="Successful Connections (MTD)"
+          title="Total Facilitated Connections (MTD)"
           value={metrics.successfulConnectionsMTD}
           icon={CheckCircle}
-          description="Admin facilitated introductions"
+          description={`${metrics.activeSuccessfulConnections} active, ${metrics.closedSuccessfulConnections} closed`}
+        />
+        <MetricCard
+          title="Active Successful Connections"
+          value={metrics.activeSuccessfulConnections}
+          icon={CheckCircle}
+          description="Connections facilitated, ongoing"
+        />
+        <MetricCard
+          title="Closed Successful Connections"
+          value={metrics.closedSuccessfulConnections}
+          icon={CheckCircle}
+          description="Connections marked as deal closed/archived"
         />
       </div>
       
@@ -103,9 +126,9 @@ export default function AdminDashboardPage() {
                     <TableCell>{new Date(req.timestamp).toLocaleDateString()}</TableCell>
                   </TableRow>
                 ))}
+                 {buyerVerificationRequests.length === 0 && <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-4">No pending buyer verifications.</TableCell></TableRow>}
               </TableBody>
             </Table>
-             {buyerVerificationRequests.length === 0 && <p className="text-muted-foreground text-center py-4">No pending buyer verifications.</p>}
           </CardContent>
         </Card>
         
@@ -136,9 +159,9 @@ export default function AdminDashboardPage() {
                     <TableCell>{new Date(req.timestamp).toLocaleDateString()}</TableCell>
                   </TableRow>
                 ))}
+                 {sellerVerificationRequests.length === 0 && <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-4">No pending seller/listing verifications.</TableCell></TableRow>}
               </TableBody>
             </Table>
-             {sellerVerificationRequests.length === 0 && <p className="text-muted-foreground text-center py-4">No pending seller/listing verifications.</p>}
           </CardContent>
         </Card>
 
@@ -171,9 +194,9 @@ export default function AdminDashboardPage() {
                     <TableCell>{new Date(item.timestamp).toLocaleDateString()}</TableCell>
                   </TableRow>
                 ))}
+                {sampleReadyToEngageItems.length === 0 && <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-4">No engagements ready for connection.</TableCell></TableRow>}
               </TableBody>
             </Table>
-             {sampleReadyToEngageItems.length === 0 && <p className="text-muted-foreground text-center py-4">No engagements ready for connection.</p>}
           </CardContent>
         </Card>
       </div>

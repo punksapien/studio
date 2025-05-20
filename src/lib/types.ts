@@ -39,12 +39,12 @@ export interface User {
   buyerType?: BuyerType; // For buyers
   createdAt: Date;
   updatedAt: Date;
-  lastLogin?: Date; // New for Admin Panel
-  listingCount?: number; // New for Admin Panel (sellers)
-  inquiryCount?: number; // New for Admin Panel (buyers)
+  lastLogin?: Date; 
+  listingCount?: number; 
+  inquiryCount?: number; 
 }
 
-export type ListingStatus = 'active' | 'inactive' | 'pending_verification' | 'verified_anonymous' | 'verified_public'; // More detailed status
+export type ListingStatus = 'active' | 'inactive' | 'pending_verification' | 'verified_anonymous' | 'verified_public';
 
 export interface Listing {
   id: string;
@@ -76,10 +76,10 @@ export interface Listing {
   sellerRoleAndTimeCommitment?: string;
   postSaleTransitionSupport?: string;
 
-  growthPotentialNarrative?: string;
-  specificGrowthOpportunities?: string;
+  growthPotentialNarrative?: string; 
+  specificGrowthOpportunities?: string; // Can be newline separated string or string[]
 
-  status: ListingStatus; // Updated status type
+  status: ListingStatus; 
   isSellerVerified: boolean; 
   
   actualCompanyName?: string;
@@ -93,7 +93,7 @@ export interface Listing {
   createdAt: Date;
   updatedAt: Date;
   imageUrl?: string; 
-  potentialForGrowthNarrative?: string; 
+  // potentialForGrowthNarrative?: string; // Already added above
   financialSnapshotUrl?: string; 
   ownershipDetailsUrl?: string;
   locationRealEstateInfoUrl?: string;
@@ -144,26 +144,30 @@ export interface Inquiry {
 }
 
 export interface AdminDashboardMetrics {
-  newUserRegistrations24hSellers: number; // Breakdown
-  newUserRegistrations24hBuyers: number;  // Breakdown
-  newUserRegistrations7dSellers: number;  // Breakdown
-  newUserRegistrations7dBuyers: number;   // Breakdown
+  newUserRegistrations24hSellers: number;
+  newUserRegistrations24hBuyers: number;
+  newUserRegistrations7dSellers: number;
+  newUserRegistrations7dBuyers: number;
   newListingsCreated24h: number;
   newListingsCreated7d: number;
   totalActiveSellers: number;
-  totalPaidSellers: number; // New
-  totalFreeSellers: number; // New
-  totalActiveBuyers: number;
-  totalPaidBuyers: number;  // New
-  totalFreeBuyers: number;  // New
+  totalPaidSellers: number; 
+  totalFreeSellers: number; 
+  totalActiveBuyers: number;  
+  totalPaidBuyers: number;  
+  totalFreeBuyers: number;  
   totalActiveListingsAnonymous: number;
-  totalActiveListingsVerified: number;
+  totalActiveListingsVerified: number; 
   buyerVerificationQueueCount: number;
   sellerVerificationQueueCount: number; 
   readyToEngageQueueCount: number;
-  successfulConnectionsMTD: number; // New
-  dealsClosedMTD?: number; // New, optional
-  totalRevenueMTD?: number; // New, optional
+  successfulConnectionsMTD: number; 
+  activeSuccessfulConnections: number; // New
+  closedSuccessfulConnections: number; // New (can represent deals closed or just finalized connections)
+  dealsClosedMTD?: number; 
+  totalRevenueMTD?: number; 
+  revenueFromBuyers: number; // New
+  revenueFromSellers: number; // New
 }
 
 
@@ -177,10 +181,10 @@ export interface VerificationRequestItem {
   userRole: UserRole; 
   listingId?: string; 
   listingTitle?: string; 
-  triggeringUserId?: string; // User who initiated the action that led to verification request
+  triggeringUserId?: string; 
   reason: string; 
-  status: VerificationQueueStatus; // New
-  documentsSubmitted?: { name: string, type: 'id_proof' | 'business_reg' | 'financials' }[]; // Placeholder
+  status: VerificationQueueStatus; 
+  documentsSubmitted?: { name: string, type: 'id_proof' | 'business_reg' | 'financials' }[]; 
 }
 
 export interface ReadyToEngageItem {
@@ -188,13 +192,13 @@ export interface ReadyToEngageItem {
   timestamp: Date;
   buyerId: string;
   buyerName: string;
-  buyerVerificationStatus: VerificationStatus; // New
+  buyerVerificationStatus: VerificationStatus; 
   sellerId: string;
   sellerName: string;
-  sellerVerificationStatus: VerificationStatus; // New
+  sellerVerificationStatus: VerificationStatus; 
   listingId: string;
   listingTitle: string;
-  listingVerificationStatus: ListingStatus; // New (or derived)
+  listingVerificationStatus: ListingStatus; 
 }
 
 export type NotificationType = 'inquiry' | 'verification' | 'system' | 'engagement' | 'listing_update';

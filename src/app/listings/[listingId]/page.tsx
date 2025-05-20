@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { MapPin, DollarSign, Briefcase, ShieldCheck, MessageSquare, CalendarDays, Users, Info, TrendingUp, Tag, HandCoins, FileText, LinkIcon, Building, Brain } from 'lucide-react';
+import { MapPin, DollarSign, Briefcase, ShieldCheck, MessageSquare, CalendarDays, Users, Info, TrendingUp, Tag, HandCoins, FileText, LinkIcon, Building, Brain, BookOpen } from 'lucide-react';
 import Link from 'next/link';
 
 async function getListingDetails(id: string): Promise<Listing | undefined> {
@@ -17,11 +17,7 @@ async function getSellerDetails(sellerId: string): Promise<User | undefined> {
   return sampleUsers.find(user => user.id === sellerId && user.role === 'seller');
 }
 
-// Placeholder for current user - in a real app, this would come from session
-const currentUserId = 'user2'; // Assume this is Jane Smith (Buyer, Paid, Verified)
-// const currentUserId = 'user5'; // Assume this is Michael Lee (Buyer, Free, Verified)
-// const currentUserId = null; // Assume logged out user
-
+const currentUserId = 'user2'; 
 const currentUser = sampleUsers.find(u => u.id === currentUserId);
 
 
@@ -41,7 +37,6 @@ export default async function ListingDetailPage({ params }: { params: { listingI
   }
 
   const seller = await getSellerDetails(listing.sellerId);
-  // Show verified details if listing's seller is verified AND current user is logged in, verified AND paid.
   const showVerifiedDetails = listing.isSellerVerified && currentUser && currentUser.verificationStatus === 'verified' && currentUser.isPaid;
 
   const DocumentLink = ({ href, children }: { href?: string; children: React.ReactNode }) => {
@@ -102,12 +97,25 @@ export default async function ListingDetailPage({ params }: { params: { listingI
                     </ul>
                 </section>
 
-                {listing.potentialForGrowthNarrative && (
+                {(listing.potentialForGrowthNarrative || listing.specificGrowthOpportunities) && (
                   <>
                     <Separator />
                     <section>
                         <h2 className="text-2xl font-semibold text-foreground mb-3 flex items-center"><Brain className="h-6 w-6 mr-2 text-primary"/>Potential for Growth</h2>
-                        <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">{listing.potentialForGrowthNarrative}</p>
+                        {listing.potentialForGrowthNarrative && (
+                           <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap mb-3">{listing.potentialForGrowthNarrative}</p>
+                        )}
+                        {listing.specificGrowthOpportunities && (
+                          <>
+                            <h3 className="text-lg font-medium text-foreground mb-1">Specific Opportunities:</h3>
+                            <div className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                              {/* Assuming specificGrowthOpportunities is a newline-separated string */}
+                              {listing.specificGrowthOpportunities.split('\n').map((line, index) => (
+                                line.trim() && <p key={index} className="ml-4 before:content-['•'] before:mr-2">{line.trim().replace(/^- /, '')}</p>
+                              ))}
+                            </div>
+                          </>
+                        )}
                     </section>
                   </>
                 )}
@@ -122,7 +130,6 @@ export default async function ListingDetailPage({ params }: { params: { listingI
                     </>
                 )}
 
-                {/* Document Sections & Verified Info - only if seller is verified */}
                 {listing.isSellerVerified && (
                   <>
                     <Separator />
@@ -179,13 +186,12 @@ export default async function ListingDetailPage({ params }: { params: { listingI
                 )}
             </div>
 
-            <aside className="space-y-6 md:sticky md:top-24 h-fit"> {/* md:top-24 to account for navbar height + some padding */}
+            <aside className="space-y-6 md:sticky md:top-24 h-fit">
                 <Card className="shadow-md">
                     <CardHeader>
                         <CardTitle className="text-xl">Listing Summary</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-3 text-sm">
-                        {/* ... existing summary items ... */}
                         <div className="flex items-center">
                             <Briefcase className="h-5 w-5 mr-3 text-primary flex-shrink-0" />
                             <div><p className="font-medium text-foreground">Industry</p><p className="text-muted-foreground">{listing.industry}</p></div>

@@ -155,15 +155,16 @@ export const sampleListings: Listing[] = [
     annualRevenueRange: '$100K - $250K USD',
     askingPriceRange: '$250K - $500K USD',
     dealStructureLookingFor: ['Full Acquisition', 'Partial Sale/Investment'],
-    status: 'active' as ListingStatus, // Seller is anonymous, so listing is active but not verified_public
+    status: 'active' as ListingStatus, 
     isSellerVerified: false,
     businessModel: "Subscription-based SaaS",
     yearEstablished: 2020,
-    registeredBusinessName: "VN Tech Solutions Co. Ltd.", // For admin/verification
+    registeredBusinessName: "VN Tech Solutions Co. Ltd.", 
     createdAt: new Date('2023-11-01T14:30:00Z'),
     updatedAt: new Date('2023-11-01T14:30:00Z'),
     imageUrl: 'https://placehold.co/600x400.png',
-    potentialForGrowthNarrative: 'The platform is poised for rapid expansion with further development of enterprise features and targeted sales efforts in the APAC region. Untapped potential in complementary service integrations.',
+    growthPotentialNarrative: 'The platform is poised for rapid expansion with further development of enterprise features and targeted sales efforts in the APAC region. Untapped potential in complementary service integrations.',
+    specificGrowthOpportunities: "- Develop enterprise-tier features.\n- Expand sales team for direct outreach in APAC.\n- Integrate with complementary services X and Y.",
     inquiryCount: 2,
   },
   {
@@ -188,7 +189,8 @@ export const sampleListings: Listing[] = [
     createdAt: new Date('2023-09-20T08:00:00Z'),
     updatedAt: new Date('2023-09-20T08:00:00Z'),
     imageUrl: 'https://placehold.co/600x400.png',
-    potentialForGrowthNarrative: 'Opportunity to scale by expanding service offerings to larger corporate clients and developing proprietary marketing tools. Strong referral network provides a solid base for growth.',
+    growthPotentialNarrative: 'Opportunity to scale by expanding service offerings to larger corporate clients and developing proprietary marketing tools. Strong referral network provides a solid base for growth.',
+    specificGrowthOpportunities: "- Target larger corporate clients.\n- Develop proprietary marketing software/tools.\n- Expand service offerings to include PR and event management.",
     financialSnapshotUrl: '/documents/placeholder-agency-financials.pdf',
     webPresenceInfoUrl: 'https://example-agency.com',
     inquiryCount: 1,
@@ -222,7 +224,7 @@ export const sampleBuyerInquiries: Inquiry[] = [
     listingId: '1',
     listingTitleAnonymous: 'Profitable E-commerce Store in SEA',
     sellerId: 'user1',
-    buyerId: 'user2', // Jane Smith (Verified Buyer)
+    buyerId: 'user2', 
     inquiryTimestamp: new Date('2023-11-10T10:00:00Z'),
     sellerStatus: 'Platform Verified Seller',
     status: 'ready_for_admin_connection' as InquiryStatusSystem, 
@@ -235,7 +237,7 @@ export const sampleBuyerInquiries: Inquiry[] = [
     listingId: '2',
     listingTitleAnonymous: 'Established SaaS Platform - B2B Niche',
     sellerId: 'user3',
-    buyerId: 'user2', // Jane Smith (Verified Buyer)
+    buyerId: 'user2', 
     inquiryTimestamp: new Date('2023-11-08T15:30:00Z'),
     sellerStatus: 'Anonymous Seller',
     status: 'new_inquiry' as InquiryStatusSystem,
@@ -248,7 +250,7 @@ export const sampleBuyerInquiries: Inquiry[] = [
     listingId: '1',
     listingTitleAnonymous: 'Profitable E-commerce Store in SEA',
     sellerId: 'user1',
-    buyerId: 'user6', // Anna Tay (Anonymous Buyer)
+    buyerId: 'user6', 
     inquiryTimestamp: new Date('2023-11-12T09:00:00Z'),
     sellerStatus: 'Platform Verified Seller',
     status: 'seller_engaged_buyer_pending_verification' as InquiryStatusSystem, 
@@ -261,10 +263,10 @@ export const sampleBuyerInquiries: Inquiry[] = [
 export const sampleSellerInquiries: Inquiry[] = [
   {
     id: 'inq_s1',
-    listingId: '1', // John Doe's Listing
+    listingId: '1', 
     listingTitleAnonymous: 'Profitable E-commerce Store in SEA',
     sellerId: 'user1',
-    buyerId: 'user2', // Jane Smith
+    buyerId: 'user2', 
     buyerName: 'Jane Smith (Buyer)',
     buyerVerificationStatus: 'verified',
     inquiryTimestamp: new Date('2023-11-10T10:00:00Z'),
@@ -275,10 +277,10 @@ export const sampleSellerInquiries: Inquiry[] = [
   },
   {
     id: 'inq_s2',
-    listingId: '1', // John Doe's Listing
+    listingId: '1', 
     listingTitleAnonymous: 'Profitable E-commerce Store in SEA',
     sellerId: 'user1',
-    buyerId: 'user6', // Anna Tay
+    buyerId: 'user6', 
     buyerName: 'Anna Tay (Buyer - Anonymous)',
     buyerVerificationStatus: 'anonymous',
     inquiryTimestamp: new Date('2023-11-12T09:00:00Z'),
@@ -289,10 +291,10 @@ export const sampleSellerInquiries: Inquiry[] = [
   },
    {
     id: 'inq_s3',
-    listingId: '2', // Alex Tan's Listing
+    listingId: '2', 
     listingTitleAnonymous: 'Established SaaS Platform - B2B Niche',
     sellerId: 'user3',
-    buyerId: 'user2', // Jane Smith
+    buyerId: 'user2', 
     buyerName: 'Jane Smith (Buyer)',
     buyerVerificationStatus: 'verified',
     inquiryTimestamp: new Date('2023-11-08T15:30:00Z'),
@@ -303,6 +305,10 @@ export const sampleSellerInquiries: Inquiry[] = [
   },
 ];
 
+const revenueFromBuyers = 5000;
+const revenueFromSellers = 7500;
+const activeSuccessfulConnections = 8;
+const closedSuccessfulConnections = 4; // Can also be considered "dealsClosedMTD" for simplicity for now
 
 export const sampleAdminDashboardMetrics: AdminDashboardMetrics = {
   newUserRegistrations24hSellers: 2,
@@ -318,13 +324,17 @@ export const sampleAdminDashboardMetrics: AdminDashboardMetrics = {
   totalPaidBuyers: sampleUsers.filter(u => u.role === 'buyer' && u.isPaid).length,
   totalFreeBuyers: sampleUsers.filter(u => u.role === 'buyer' && !u.isPaid).length,
   totalActiveListingsAnonymous: sampleListings.filter(l => l.status === 'active' && !l.isSellerVerified).length, 
-  totalActiveListingsVerified: sampleListings.filter(l => l.status === 'verified_public').length, 
+  totalActiveListingsVerified: sampleListings.filter(l => l.status === 'verified_public' || l.status === 'verified_anonymous').length, 
   buyerVerificationQueueCount: 3, 
   sellerVerificationQueueCount: 4, 
   readyToEngageQueueCount: 1,
-  successfulConnectionsMTD: 12, 
-  dealsClosedMTD: 4,
-  totalRevenueMTD: 12500,
+  successfulConnectionsMTD: activeSuccessfulConnections + closedSuccessfulConnections, 
+  activeSuccessfulConnections: activeSuccessfulConnections,
+  closedSuccessfulConnections: closedSuccessfulConnections,
+  dealsClosedMTD: closedSuccessfulConnections, // Assuming closed connections are deals for now
+  revenueFromBuyers: revenueFromBuyers,
+  revenueFromSellers: revenueFromSellers,
+  totalRevenueMTD: revenueFromBuyers + revenueFromSellers,
 };
 
 export const sampleVerificationRequests: VerificationRequestItem[] = [
