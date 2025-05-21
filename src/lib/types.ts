@@ -7,13 +7,11 @@ export type BuyerType = 'Individual Investor' | 'Investment Firm' | 'Strategic A
 export const buyerTypes: BuyerType[] = ['Individual Investor', 'Investment Firm', 'Strategic Acquirer'];
 
 export const BuyerPersonaTypes = [
-  "Individual Investor / Entrepreneur",
   "Private Equity Firm",
   "Strategic Acquirer / Corporate Representative",
   "Family Office Representative",
   "Search Fund Principal",
   "Angel Investor",
-  "Company Executive (MBI/MBO)",
   "Other"
 ] as const;
 export type BuyerPersona = typeof BuyerPersonaTypes[number];
