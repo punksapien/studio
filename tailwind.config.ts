@@ -12,23 +12,30 @@ export default {
     container: {
       center: true,
       padding: {
-        DEFAULT: '1rem',
-        sm: '1.5rem',
-        md: '2rem',
-        lg: '2.5rem',
+        DEFAULT: '1rem', // Default padding for container
+        sm: '1.5rem',    // Padding for sm screens and up
+        md: '2rem',     // Padding for md screens and up
+        lg: '2.5rem',    // Padding for lg screens and up
+        xl: '3rem',     // Padding for xl screens and up
       },
     },
   	extend: {
       fontFamily: {
-        // Assuming Inter is set as the base sans-serif font in layout.tsx (via next/font or global CSS)
-        // Or define explicitly: sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', '"Noto Sans"', 'sans-serif'],
-        // For now, we rely on the global body font being Inter and use Tailwind's default 'sans' key.
-        // If Montaser Arabic and Satoshi are added via next/font, their CSS variables can be used here:
-        // heading: ['var(--font-montaser-arabic)', 'sans-serif'],
-        // body: ['var(--font-satoshi)', 'sans-serif'],
+        sans: ['var(--font-geist-sans)', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', '"Noto Sans"', 'sans-serif'],
+        mono: ['var(--font-geist-mono)', 'monospace'],
+        // heading: ['var(--font-montaser-arabic)', 'var(--font-geist-sans)', 'sans-serif'], // Example if using specific heading font
+        // body: ['var(--font-satoshi)', 'var(--font-geist-sans)', 'sans-serif'], // Example for body
       },
   		colors: {
-        // Updated to use CSS variables from globals.css
+        // Nobridge Brand Colors (using HSL variables defined in globals.css)
+        'brand-dark-blue': 'hsl(var(--brand-dark-blue-hsl))',
+        'brand-sky-blue': 'hsl(var(--brand-sky-blue-hsl))',
+        'brand-light-gray': 'hsl(var(--brand-light-gray-hsl))',
+        'brand-white': 'hsl(var(--brand-white-hsl))',
+        'brand-text-dark': 'hsl(var(--brand-text-dark-hsl))',
+        'brand-text-light': 'hsl(var(--brand-text-light-hsl))',
+
+        // ShadCN UI Theme Colors (mapped to Nobridge brand HSL variables)
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
   			card: {
@@ -78,11 +85,7 @@ export default {
   				'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
   				border: 'hsl(var(--sidebar-border))',
   				ring: 'hsl(var(--sidebar-ring))'
-  			},
-        // Nobridge specific brand colors directly (can also be done via CSS variables if preferred)
-        'brand-dark-blue': '#0D0D39',
-        'brand-light-gray': '#F4F6FC',
-        'brand-white': '#FFFFFF',
+  			}
   		},
   		borderRadius: {
   			lg: 'var(--radius)',

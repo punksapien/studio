@@ -1,106 +1,106 @@
 
 import Link from 'next/link';
-import { Logo } from '@/components/shared/logo';
+import { Briefcase } from 'lucide-react'; // Using Briefcase for generic Nobridge logo
+
+const NobridgeLogoFooter = () => (
+  <Link href="/" className="flex items-center gap-2 text-xl font-bold text-brand-light-gray hover:opacity-80 transition-opacity">
+    <Briefcase className="h-6 w-6" />
+    <span>Nobridge</span>
+  </Link>
+);
 
 export function Footer() {
+  const currentYear = new Date().getFullYear();
+
   return (
-    <footer className="border-t bg-secondary/50 text-secondary-foreground">
-      <div className="container py-12 md:py-16 px-4 md:px-6">
-        <div className="grid gap-10 row-gap-6 mb-8 sm:grid-cols-2 lg:grid-cols-6">
-          <div className="sm:col-span-2">
-            <Logo size="lg" />
-            <p className="mt-3 text-sm text-muted-foreground">
+    <footer className="bg-brand-dark-blue text-brand-light-gray/80">
+      <div className="container mx-auto py-16 md:py-20 px-6 md:px-8">
+        <div className="grid gap-10 row-gap-6 mb-8 sm:grid-cols-2 lg:grid-cols-5"> {/* Adjusted to 5 columns for better balance */}
+          <div className="sm:col-span-2 lg:col-span-1"> {/* Logo takes 1 full col on lg */}
+            <NobridgeLogoFooter />
+            <p className="mt-4 text-sm ">
               Connecting SME owners with investors and buyers across Asia. Your trusted partner for business transitions.
             </p>
           </div>
 
           <div className="space-y-2 text-sm">
-            <p className="text-base font-bold tracking-wide text-foreground">
+            <p className="text-base font-semibold tracking-wide text-brand-white">
               Sell Your Business
             </p>
             <div className="flex flex-col space-y-2">
-              <Link href="/seller-dashboard/listings/create" className="text-muted-foreground transition-colors duration-300 hover:text-primary">
+              <Link href="/seller-dashboard/listings/create" className="hover:text-brand-white transition-colors duration-300">
                 List Your Business
               </Link>
-              <Link href="/how-selling-works" className="text-muted-foreground transition-colors duration-300 hover:text-primary">
+              <Link href="/how-selling-works" className="hover:text-brand-white transition-colors duration-300">
                 How Selling Works
               </Link>
-              <Link href="/seller-faq" className="text-muted-foreground transition-colors duration-300 hover:text-primary">
-                Seller FAQ [Future]
+              <Link href="/seller-faq" className="hover:text-brand-white transition-colors duration-300">
+                Seller FAQ <span className="text-xs opacity-70">[Future]</span>
               </Link>
             </div>
           </div>
 
           <div className="space-y-2 text-sm">
-            <p className="text-base font-bold tracking-wide text-foreground">
+            <p className="text-base font-semibold tracking-wide text-brand-white">
               Buy a Business
             </p>
             <div className="flex flex-col space-y-2">
-              <Link href="/marketplace" className="text-muted-foreground transition-colors duration-300 hover:text-primary">
+              <Link href="/marketplace" className="hover:text-brand-white transition-colors duration-300">
                 Browse Listings
               </Link>
-              <Link href="/how-buying-works" className="text-muted-foreground transition-colors duration-300 hover:text-primary">
+              <Link href="/how-buying-works" className="hover:text-brand-white transition-colors duration-300">
                 How Buying Works
               </Link>
-              <Link href="/buyer-faq" className="text-muted-foreground transition-colors duration-300 hover:text-primary">
-                Buyer FAQ [Future]
+              <Link href="/buyer-faq" className="hover:text-brand-white transition-colors duration-300">
+                Buyer FAQ <span className="text-xs opacity-70">[Future]</span>
               </Link>
             </div>
           </div>
           
           <div className="space-y-2 text-sm">
-            <p className="text-base font-bold tracking-wide text-foreground">
-              Platform
+            <p className="text-base font-semibold tracking-wide text-brand-white">
+              Company
             </p>
             <div className="flex flex-col space-y-2">
-               <Link href="/marketplace" className="text-muted-foreground transition-colors duration-300 hover:text-primary">
-                Marketplace
+              <Link href="/about" className="hover:text-brand-white transition-colors duration-300">
+                About Us
               </Link>
-              <Link href="/auth/login" className="text-muted-foreground transition-colors duration-300 hover:text-primary">
-                Login
+              <Link href="/contact" className="hover:text-brand-white transition-colors duration-300">
+                Contact Us
               </Link>
-              <Link href="/auth/register" className="text-muted-foreground transition-colors duration-300 hover:text-primary">
-                Register
+              <Link href="/blog" className="hover:text-brand-white transition-colors duration-300">
+                Blog <span className="text-xs opacity-70">[Future]</span>
+              </Link>
+              <Link href="/careers" className="hover:text-brand-white transition-colors duration-300">
+                Careers <span className="text-xs opacity-70">[Future]</span>
               </Link>
             </div>
           </div>
 
           <div className="space-y-2 text-sm">
-            <p className="text-base font-bold tracking-wide text-foreground">
-              Company
+            <p className="text-base font-semibold tracking-wide text-brand-white">
+              Legal
             </p>
             <div className="flex flex-col space-y-2">
-              <Link href="/about" className="text-muted-foreground transition-colors duration-300 hover:text-primary">
-                About Us
-              </Link>
-              <Link href="/contact" className="text-muted-foreground transition-colors duration-300 hover:text-primary">
-                Contact Us
-              </Link>
-              <Link href="/blog" className="text-muted-foreground transition-colors duration-300 hover:text-primary">
-                Blog [Future]
-              </Link>
-              <Link href="/careers" className="text-muted-foreground transition-colors duration-300 hover:text-primary">
-                Careers [Future]
-              </Link>
-               <Link href="/terms" className="text-muted-foreground transition-colors duration-300 hover:text-primary">
+               <Link href="/terms" className="hover:text-brand-white transition-colors duration-300">
                 Terms of Service
               </Link>
-              <Link href="/privacy" className="text-muted-foreground transition-colors duration-300 hover:text-primary">
+              <Link href="/privacy" className="hover:text-brand-white transition-colors duration-300">
                 Privacy Policy
               </Link>
             </div>
           </div>
         </div>
 
-        <div className="mt-10 border-t pt-8 flex flex-col-reverse justify-between items-center sm:flex-row">
-          <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} BizMatch Asia. All rights reserved.
+        <div className="mt-12 border-t border-brand-light-gray/20 pt-8 flex flex-col-reverse justify-between items-center sm:flex-row">
+          <p className="text-sm">
+            © {currentYear} Nobridge. All rights reserved.
           </p>
           {/* Optional: Social media icons 
           <div className="flex items-center space-x-4">
-            <Link href="#" className="text-muted-foreground hover:text-primary"><Twitter className="h-5 w-5" /></Link>
-            <Link href="#" className="text-muted-foreground hover:text-primary"><Linkedin className="h-5 w-5" /></Link>
-            <Link href="#" className="text-muted-foreground hover:text-primary"><Facebook className="h-5 w-5" /></Link>
+            <Link href="#" className="hover:text-brand-white"><Twitter className="h-5 w-5" /></Link>
+            <Link href="#" className="hover:text-brand-white"><Linkedin className="h-5 w-5" /></Link>
+            <Link href="#" className="hover:text-brand-white"><Facebook className="h-5 w-5" /></Link>
           </div>
           */}
         </div>
