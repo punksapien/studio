@@ -1,18 +1,18 @@
 
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowRight, CheckCircle, Shield, Zap, Briefcase, Search, Star, Building, MessageSquare, MapPin, DollarSign, Users } from 'lucide-react';
+import { ArrowRight, CheckCircle, Shield, Zap, Briefcase, Search, Star, Building, MessageSquare, MapPin, DollarSign, Users, ShieldCheck } from 'lucide-react'; // Added ShieldCheck
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge'; // Ensured Badge is imported
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils'; // Added cn import
 
 // Placeholder for simple gray box image
 const PlaceholderImage = ({ className = "", text = "Placeholder Image", width = 600, height = 400, aiHint = "abstract business" }: { className?: string, text?: string, width?: number, height?: number, aiHint?: string }) => (
   <div
     className={cn("bg-brand-light-gray/50 flex items-center justify-center rounded-lg overflow-hidden", className)}
-    style={{ aspectRatio: `${width}/${height}` }} // Using aspect ratio for responsive images
+    style={{ aspectRatio: `${width}/${height}` }}
     data-ai-hint={aiHint}
   >
-    {/* Simulating image content, actual image tag would go here */}
     <div className="w-full h-full bg-gray-300 dark:bg-gray-700 flex items-center justify-center">
       <span className="text-gray-500 dark:text-gray-400 text-xs">{text}</span>
     </div>
@@ -41,6 +41,13 @@ export default function HomePage() {
     { imageHint: "business team success", category: "Success Story", title: "How a Tech Startup Found its Strategic Acquirer via Nobridge", excerpt: "Read about the journey of 'Innovate Solutions' and their successful exit facilitated by our platform." },
   ];
 
+  const previewListings = [
+    { id: 'p1', title: 'High-Growth SaaS Platform in FinTech', industry: 'Technology', location: 'Singapore', price: '$1M - $2.5M USD', verified: true, imageUrl: 'https://placehold.co/400x250.png', aiHint: 'software interface dashboard' },
+    { id: 'p2', title: 'Luxury Boutique Hotel Chain', industry: 'Hospitality', location: 'Bali, Indonesia', price: '$5M - $10M USD', verified: true, imageUrl: 'https://placehold.co/400x250.png', aiHint: 'hotel resort luxury' },
+    { id: 'p3', title: 'Sustainable Agriculture Enterprise', industry: 'Agriculture', location: 'Vietnam', price: '$500K - $1M USD', verified: false, imageUrl: 'https://placehold.co/400x250.png', aiHint: 'farm agriculture sustainable' },
+  ];
+
+
   return (
     <>
       {/* Hero Section */}
@@ -57,18 +64,18 @@ export default function HomePage() {
             <div className="flex items-center">
               <Shield className="h-5 w-5 mr-2 text-brand-light-gray" /> Verified Network: Connect with trusted parties.
             </div>
-            <span className="hidden sm:inline">|</span>
+            <span className="hidden sm:inline text-brand-light-gray/50">|</span>
             <div className="flex items-center">
               <Zap className="h-5 w-5 mr-2 text-brand-light-gray" /> Efficient Process: Streamlined steps.
             </div>
-            <span className="hidden sm:inline">|</span>
+            <span className="hidden sm:inline text-brand-light-gray/50">|</span>
             <div className="flex items-center">
               <CheckCircle className="h-5 w-5 mr-2 text-brand-light-gray" /> Expert Support: Guidance throughout.
             </div>
           </div>
           <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
             {/* TODO: Add button hover animations */}
-            <Button size="lg" asChild className="bg-brand-white text-brand-dark-blue hover:bg-brand-light-gray font-semibold py-3 px-8 rounded-md text-base">
+            <Button size="lg" asChild className="bg-brand-white text-brand-dark-blue hover:bg-brand-light-gray/90 font-semibold py-3 px-8 rounded-md text-base">
               <Link href="/auth/register/seller">List Your Business <ArrowRight className="ml-2 h-5 w-5" /></Link>
             </Button>
             <Button size="lg" variant="outline" asChild className="border-brand-white text-brand-white hover:bg-brand-white/10 hover:text-brand-white font-semibold py-3 px-8 rounded-md text-base">
@@ -85,31 +92,32 @@ export default function HomePage() {
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-brand-dark-blue">Featured Opportunities</h2>
             <p className="text-muted-foreground mt-3 text-lg">A Glimpse into Our Curated Marketplace</p>
           </div>
-          {/* Simulate loading 3 preview listings. In real app, fetch from API */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[...Array(3)].map((_, i) => (
-              <Card key={i} className="bg-brand-white shadow-xl hover:shadow-2xl transition-shadow duration-300 rounded-lg flex flex-col">
+            {previewListings.map((listing, i) => (
+              <Card key={listing.id} className="bg-brand-white shadow-xl hover:shadow-2xl transition-shadow duration-300 rounded-lg flex flex-col">
                 <CardHeader className="p-0">
-                  <PlaceholderImage width={400} height={250} text={`Listing Image ${i+1}`} aiHint="business storefront city" />
+                  <PlaceholderImage width={400} height={250} text={`Listing Image ${i+1}`} aiHint={listing.aiHint} />
                 </CardHeader>
                 <CardContent className="p-6 flex-grow">
                   <div className="flex justify-between items-start mb-2">
-                    <Badge variant="secondary" className="bg-brand-dark-blue/10 text-brand-dark-blue text-xs">Technology</Badge>
-                    <Badge variant="outline" className="text-xs border-green-500 text-green-600 bg-green-50">
-                      <ShieldCheck className="h-3 w-3 mr-1" /> Verified
-                    </Badge>
+                    <Badge variant="secondary" className="bg-brand-dark-blue/10 text-brand-dark-blue text-xs">{listing.industry}</Badge>
+                    {listing.verified && (
+                      <Badge variant="outline" className="text-xs border-green-500 text-green-600 bg-green-50">
+                        <ShieldCheck className="h-3 w-3 mr-1" /> Verified
+                      </Badge>
+                    )}
                   </div>
                   <CardTitle className="text-xl font-semibold text-brand-dark-blue mb-2 leading-tight hover:text-brand-sky-blue transition-colors">
-                    <Link href="#">High-Growth SaaS Platform in FinTech</Link>
+                    <Link href={`/listings/${listing.id}`}>{listing.title}</Link>
                   </CardTitle>
                   <div className="space-y-1 text-sm text-muted-foreground">
-                    <p className="flex items-center"><MapPin className="h-4 w-4 mr-2 text-brand-dark-blue/70" /> Singapore, Singapore</p>
-                    <p className="flex items-center"><DollarSign className="h-4 w-4 mr-2 text-brand-dark-blue/70" /> Asking: $1M - $2.5M USD</p>
+                    <p className="flex items-center"><MapPin className="h-4 w-4 mr-2 text-brand-dark-blue/70" /> {listing.location}</p>
+                    <p className="flex items-center"><DollarSign className="h-4 w-4 mr-2 text-brand-dark-blue/70" /> Asking: {listing.price}</p>
                   </div>
                 </CardContent>
                 <CardFooter className="p-6 border-t border-brand-light-gray/80">
                   <Button asChild className="w-full bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90">
-                    <Link href="#">View Details <ArrowRight className="ml-2 h-4 w-4" /></Link>
+                    <Link href={`/listings/${listing.id}`}>View Details <ArrowRight className="ml-2 h-4 w-4" /></Link>
                   </Button>
                 </CardFooter>
               </Card>
@@ -132,7 +140,6 @@ export default function HomePage() {
           </div>
           <div className="grid md:grid-cols-2 gap-8 lg:gap-12 items-start">
             <div className="bg-brand-light-gray/50 p-8 rounded-lg shadow-lg">
-              {/* Icon Placeholder */}
               <div className="p-3 bg-brand-dark-blue/10 rounded-full w-fit mb-4">
                 <Briefcase className="h-8 w-8 text-brand-dark-blue" />
               </div>
@@ -141,27 +148,26 @@ export default function HomePage() {
                 Nobridge provides a secure and efficient platform to connect with verified buyers, guiding you through every step.
               </p>
               <ul className="space-y-2 text-muted-foreground mb-6">
-                <li className="flex items-center"><CheckCircle className="h-5 w-5 mr-2 text-brand-dark-blue" /> Reach Verified Buyers</li>
-                <li className="flex items-center"><CheckCircle className="h-5 w-5 mr-2 text-brand-dark-blue" /> Confidential Listings</li>
-                <li className="flex items-center"><CheckCircle className="h-5 w-5 mr-2 text-brand-dark-blue" /> Expert Support</li>
+                <li className="flex items-center"><CheckCircle className="h-5 w-5 mr-2 text-brand-dark-blue" /> Access to Verified Buyers</li>
+                <li className="flex items-center"><CheckCircle className="h-5 w-5 mr-2 text-brand-dark-blue" /> Step-by-Step Listing Guidance</li>
+                <li className="flex items-center"><CheckCircle className="h-5 w-5 mr-2 text-brand-dark-blue" /> Secure Inquiry Management</li>
               </ul>
               <Button asChild className="bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90">
                 <Link href="/how-selling-works">Learn More About Selling</Link>
               </Button>
             </div>
             <div className="bg-brand-light-gray/50 p-8 rounded-lg shadow-lg">
-              {/* Icon Placeholder */}
                <div className="p-3 bg-brand-dark-blue/10 rounded-full w-fit mb-4">
                 <Search className="h-8 w-8 text-brand-dark-blue" />
               </div>
               <h3 className="text-2xl font-semibold text-brand-dark-blue mb-3">For Business Buyers</h3>
               <p className="text-muted-foreground mb-4">
-                Explore a curated marketplace of businesses for sale. Access detailed information and engage with motivated sellers.
+                Explore a curated marketplace of businesses for sale. Get access to detailed information on verified businesses and engage directly with sellers.
               </p>
               <ul className="space-y-2 text-muted-foreground mb-6">
-                <li className="flex items-center"><CheckCircle className="h-5 w-5 mr-2 text-brand-dark-blue" /> Verified Business Listings</li>
-                <li className="flex items-center"><CheckCircle className="h-5 w-5 mr-2 text-brand-dark-blue" /> Detailed Due Diligence Info</li>
-                <li className="flex items-center"><CheckCircle className="h-5 w-5 mr-2 text-brand-dark-blue" /> Direct Seller Communication</li>
+                <li className="flex items-center"><CheckCircle className="h-5 w-5 mr-2 text-brand-dark-blue" /> Vetted Business Listings</li>
+                <li className="flex items-center"><CheckCircle className="h-5 w-5 mr-2 text-brand-dark-blue" /> Advanced Search & Filters</li>
+                <li className="flex items-center"><CheckCircle className="h-5 w-5 mr-2 text-brand-dark-blue" /> Direct Seller Engagement (Post-Verification)</li>
               </ul>
               <Button asChild className="bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90">
                 <Link href="/how-buying-works">Learn More About Buying</Link>
@@ -244,9 +250,9 @@ export default function HomePage() {
       </section>
 
       {/* Our Mission Section */}
-      <section className="py-20 md:py-32 bg-brand-dark-blue-section text-brand-white">
+      <section className="py-20 md:py-32 bg-brand-dark text-brand-white"> {/* Updated to bg-brand-dark */}
         <div className="container mx-auto px-4 text-center">
-          <p className="text-sm font-semibold uppercase tracking-wider text-brand-sky-blue mb-3">OUR COMMITMENT</p>
+          <p className="text-sm font-semibold uppercase tracking-wider text-brand-light-gray/70 mb-3">OUR COMMITMENT</p> {/* Adjusted text color for contrast */}
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight mb-6">Empowering SME Growth and Transitions Across Asia</h2>
           <p className="text-lg md:text-xl text-brand-light-gray/90 max-w-3xl mx-auto mb-10">
             At Nobridge, we believe in the power of small and medium-sized enterprises. Our mission is to provide a transparent, efficient, and supportive platform that connects business owners with the right investors and buyers, fostering growth and successful transitions throughout the continent.
@@ -278,4 +284,3 @@ export default function HomePage() {
   );
 }
 
-    
