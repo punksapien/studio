@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -11,16 +12,23 @@ export default {
     container: {
       center: true,
       padding: {
-        DEFAULT: '1rem',    // For mobile and up
-        sm: '1.5rem',     // Small screens (640px)
-        md: '2rem',       // Medium screens (768px)
-        lg: '2.5rem',     // Large screens (1024px)
-        // xl and 2xl will inherit from lg unless specified
+        DEFAULT: '1rem',
+        sm: '1.5rem',
+        md: '2rem',
+        lg: '2.5rem',
       },
-      // Default screens for max-width are fine, no need to override unless specific design.
     },
   	extend: {
+      fontFamily: {
+        // Assuming Inter is set as the base sans-serif font in layout.tsx (via next/font or global CSS)
+        // Or define explicitly: sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', '"Noto Sans"', 'sans-serif'],
+        // For now, we rely on the global body font being Inter and use Tailwind's default 'sans' key.
+        // If Montaser Arabic and Satoshi are added via next/font, their CSS variables can be used here:
+        // heading: ['var(--font-montaser-arabic)', 'sans-serif'],
+        // body: ['var(--font-satoshi)', 'sans-serif'],
+      },
   		colors: {
+        // Updated to use CSS variables from globals.css
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
   			card: {
@@ -70,7 +78,11 @@ export default {
   				'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
   				border: 'hsl(var(--sidebar-border))',
   				ring: 'hsl(var(--sidebar-ring))'
-  			}
+  			},
+        // Nobridge specific brand colors directly (can also be done via CSS variables if preferred)
+        'brand-dark-blue': '#0D0D39',
+        'brand-light-gray': '#F4F6FC',
+        'brand-white': '#FFFFFF',
   		},
   		borderRadius: {
   			lg: 'var(--radius)',
@@ -103,3 +115,5 @@ export default {
   },
   plugins: [require("tailwindcss-animate")],
 } satisfies Config;
+
+    
