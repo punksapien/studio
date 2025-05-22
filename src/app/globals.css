@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -14,30 +15,36 @@ body {
     --card-foreground: 210 29% 24%; /* #2c3e50 */
     --popover: 0 0% 100%; /* white */
     --popover-foreground: 210 29% 24%; /* #2c3e50 */
-    --primary: 207 68% 53%; /* #3498db Deep Sky Blue */
+    
+    /* Primary: Midnight Blue for BizMatch Asia */
+    --primary: 210 29% 24%; /* #2c3e50 */
     --primary-foreground: 0 0% 100%; /* white for good contrast on primary */
+    
+    /* Accent: Sky Blue for BizMatch Asia */
+    --accent: 206 98% 73%; /* #77B5FE Sky Blue */
+    --accent-foreground: 210 29% 24%; /* Dark text for contrast on light blue accent */
+    
     --secondary: 210 15% 88%; /* #dde1e3 Lighter Gray */
     --secondary-foreground: 210 29% 24%; /* #2c3e50 */
     --muted: 210 17% 75%; /* #b6bec6 Medium Gray */
     --muted-foreground: 210 15% 45%; /* #626c76 Darker Medium Gray */
-    --accent: 145 63% 49%; /* #2ecc71 Emerald Green */
-    --accent-foreground: 0 0% 100%; /* white */
+    
     --destructive: 0 84.2% 60.2%; /* default shadcn red */
     --destructive-foreground: 0 0% 98%; /* default shadcn white */
     --border: 210 14% 80%; /* #c8cdd2 Gray Border */
     --input: 210 14% 80%; /* #c8cdd2 Gray Input */
-    --ring: 207 68% 53%; /* #3498db Deep Sky Blue for focus rings */
+    --ring: 206 98% 73%; /* Sky Blue for focus rings */
     --radius: 0.5rem;
 
-    /* Sidebar specific colors */
-    --sidebar-background: 210 16% 90%; /* #e0e4e8 Slightly darker light gray */
-    --sidebar-foreground: 210 29% 24%; /* #2c3e50 */
-    --sidebar-primary: 207 68% 53%; /* #3498db */
-    --sidebar-primary-foreground: 0 0% 100%; /* white */
-    --sidebar-accent: 145 63% 49%; /* #2ecc71 */
-    --sidebar-accent-foreground: 0 0% 100%; /* white */
-    --sidebar-border: 210 14% 80%; /* #c8cdd2 */
-    --sidebar-ring: 207 68% 53%; /* #3498db */
+    /* Sidebar specific colors - can use primary/accent or define separately */
+    --sidebar-background: 210 29% 20%; /* Darker than primary for depth #263241 */
+    --sidebar-foreground: 200 17% 94%; /* #ecf0f1 Light Gray text */
+    --sidebar-primary: 206 98% 73%; /* Sky Blue for active items */
+    --sidebar-primary-foreground: 210 29% 24%; /* Dark text on sky blue */
+    --sidebar-accent: 206 98% 73%; /* Sky Blue for hover */
+    --sidebar-accent-foreground: 210 29% 24%; /* Dark text on sky blue */
+    --sidebar-border: 210 20% 30%; /* #3b4a5c */
+    --sidebar-ring: 206 98% 73%; /* Sky Blue */
 
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;
@@ -46,35 +53,41 @@ body {
     --chart-5: 27 87% 67%;
   }
   .dark {
-    --background: 210 29% 16%; /* #1f2937 Dark Gray */
-    --foreground: 200 17% 94%; /* #ecf0f1 Light Gray text */
-    --card: 210 29% 20%; /* #263241 Slightly lighter dark gray */
-    --card-foreground: 200 17% 94%; /* #ecf0f1 */
-    --popover: 210 29% 16%; /* #1f2937 */
-    --popover-foreground: 200 17% 94%; /* #ecf0f1 */
-    --primary: 207 68% 53%; /* #3498db */
+    --background: 210 29% 10%; /* #12181f Very Dark Blue/Gray */
+    --foreground: 200 17% 90%; /* #dde1e3 Lighter Gray text */
+    --card: 210 29% 14%; /* #1a222c Darker Card */
+    --card-foreground: 200 17% 90%; /* #dde1e3 */
+    --popover: 210 29% 10%; /* #12181f */
+    --popover-foreground: 200 17% 90%; /* #dde1e3 */
+
+    /* Primary: Midnight Blue for BizMatch Asia - slightly brighter for dark mode if needed */
+    --primary: 210 29% 30%; /* #3b4a5c A bit lighter than pure #2c3e50 */
     --primary-foreground: 0 0% 100%; /* white */
-    --secondary: 210 25% 30%; /* #3b4a5c Medium Dark Gray */
-    --secondary-foreground: 200 17% 94%; /* #ecf0f1 */
-    --muted: 210 20% 40%; /* #515e6f */
-    --muted-foreground: 200 15% 70%; /* #a9b4bd Light Muted Gray */
-    --accent: 145 63% 49%; /* #2ecc71 */
-    --accent-foreground: 0 0% 100%; /* white */
-    --destructive: 0 62.8% 30.6%; /* default shadcn dark red */
+    
+    /* Accent: Sky Blue for BizMatch Asia */
+    --accent: 206 98% 73%; /* #77B5FE Sky Blue */
+    --accent-foreground: 210 29% 10%; /* Dark text for contrast */
+    
+    --secondary: 210 25% 25%; /* #303c4a Darker Secondary */
+    --secondary-foreground: 200 17% 90%; /* #dde1e3 */
+    --muted: 210 20% 30%; /* #3b4a5c */
+    --muted-foreground: 200 15% 65%; /* #98a3ad Lighter Muted Gray */
+    
+    --destructive: 0 72.2% 50.6%; /* default shadcn dark red */
     --destructive-foreground: 0 0% 98%;
-    --border: 210 20% 30%; /* #3b4a5c */
-    --input: 210 20% 30%; /* #3b4a5c */
-    --ring: 207 68% 53%; /* #3498db */
+    --border: 210 20% 25%; /* #303c4a */
+    --input: 210 20% 25%; /* #303c4a */
+    --ring: 206 98% 73%; /* Sky Blue */
 
     /* Dark Sidebar specific colors */
-    --sidebar-background: 210 29% 20%; /* #263241 */
-    --sidebar-foreground: 200 17% 94%; /* #ecf0f1 */
-    --sidebar-primary: 207 68% 53%; /* #3498db */
-    --sidebar-primary-foreground: 0 0% 100%; /* white */
-    --sidebar-accent: 145 63% 49%; /* #2ecc71 */
-    --sidebar-accent-foreground: 0 0% 100%; /* white */
-    --sidebar-border: 210 20% 30%; /* #3b4a5c */
-    --sidebar-ring: 207 68% 53%; /* #3498db */
+    --sidebar-background: 210 29% 12%; /* #161d25 Even Darker Sidebar */
+    --sidebar-foreground: 200 17% 90%; /* #dde1e3 */
+    --sidebar-primary: 206 98% 73%; /* Sky Blue */
+    --sidebar-primary-foreground: 210 29% 10%; /* Dark text */
+    --sidebar-accent: 206 98% 73%; /* Sky Blue for hover */
+    --sidebar-accent-foreground: 210 29% 10%; /* Dark text */
+    --sidebar-border: 210 20% 22%; /* #2a3440 */
+    --sidebar-ring: 206 98% 73%; /* Sky Blue */
 
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
@@ -92,3 +105,14 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* Custom utility class for Our Mission section background */
+.bg-brand-dark {
+  background-color: hsl(var(--primary)); /* Using the primary color (Midnight Blue) */
+}
+
+.dark .bg-brand-dark {
+   background-color: hsl(210 29% 12%); /* A very dark variant for dark mode */
+}
+
+    
