@@ -3,7 +3,8 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ArrowRight, CheckCircle, Shield, Zap, BarChart, BookText, Target, User, Briefcase, Search, Star, Building, MessageSquare, MapPin, DollarSign } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import Image from 'next/image'; // For potential image placeholders later
+import Image from 'next/image'; 
+import { Badge } from '@/components/ui/badge'; // Added Badge import
 
 // Placeholder for simple gray box image
 const PlaceholderImage = ({ width = 600, height = 400, text = "Placeholder Image" }: { width?: number, height?: number, text?: string }) => (
@@ -64,7 +65,7 @@ export default function HomePage() {
           </div>
           <div className="mt-10 flex flex-col sm:flex-row justify-center items-center gap-4">
             <Button size="lg" asChild className="w-full sm:w-auto">
-              <Link href="/seller-dashboard/listings/create">List Your Business <ArrowRight className="ml-2 h-5 w-5" /></Link>
+              <Link href="/auth/register/seller">List Your Business <ArrowRight className="ml-2 h-5 w-5" /></Link>
             </Button>
             <Button size="lg" variant="outline" asChild className="w-full sm:w-auto">
               <Link href="/marketplace">Browse Businesses</Link>
@@ -159,7 +160,7 @@ export default function HomePage() {
                  <ul className="list-disc list-inside space-y-1 pl-1 text-muted-foreground">
                   <li><span className="font-medium text-foreground">Vetted Business Listings:</span> Focus on quality, verified opportunities.</li>
                   <li><span className="font-medium text-foreground">Advanced Search & Filters:</span> Find exactly what you&apos;re looking for.</li>
-                  <li><span className="font-medium text-foreground">Direct Seller Engagement:</span> Connect post-verification to explore deals.</li>
+                  <li><span className="font-medium text-foreground">Direct Seller Engagement (Post-Verification):</span> Connect post-verification to explore deals.</li>
                 </ul>
               </CardContent>
               <CardFooter>
@@ -240,5 +241,4 @@ export default function HomePage() {
     </>
   );
 }
-
     

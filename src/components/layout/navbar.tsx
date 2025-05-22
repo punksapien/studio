@@ -1,6 +1,7 @@
 
 'use client';
 
+import * as React from 'react'; // Added this import
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/shared/logo';
@@ -17,10 +18,10 @@ import { Menu, ShoppingCart, LogIn, UserPlus, ChevronDown, Briefcase, Search, He
 const isAuthenticated = false; // Set to false to show Login/Register by default
 
 const navLinks = [
-  { href: "/marketplace", label: "Marketplace", icon: <ShoppingCart className="mr-2 h-4 w-4" /> },
+  { href: "/marketplace", label: "Marketplace", icon: <ShoppingCart /> },
   {
     label: "Sell Your Business",
-    icon: <Briefcase className="mr-2 h-4 w-4" />,
+    icon: <Briefcase />,
     dropdown: true,
     items: [
       { href: "/seller-dashboard/listings/create", label: "List Your Business" },
@@ -30,7 +31,7 @@ const navLinks = [
   },
   {
     label: "Buy a Business",
-    icon: <Search className="mr-2 h-4 w-4" />,
+    icon: <Search />,
     dropdown: true,
     items: [
       { href: "/marketplace", label: "Browse Listings" },
@@ -38,10 +39,10 @@ const navLinks = [
       { href: "/buyer-resources", label: "Buyer Resources [Future]" },
     ],
   },
-  { href: "/pricing", label: "Pricing", icon: <DollarSign className="mr-2 h-4 w-4" /> },
+  { href: "/pricing", label: "Pricing", icon: <DollarSign /> },
   {
     label: "Company",
-    icon: <Users className="mr-2 h-4 w-4" />,
+    icon: <Users />,
     dropdown: true,
     items: [
       { href: "/about", label: "About Us" },
@@ -165,5 +166,3 @@ export function Navbar() {
     </header>
   );
 }
-
-    
