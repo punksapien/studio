@@ -1,7 +1,7 @@
 
 'use client';
 
-import * as React from 'react'; // Added this line
+import * as React from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,11 +12,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Menu, ChevronDown, Briefcase, ShoppingCart, Building, FileText, Phone, Users, UserCircle, LogIn, UserPlus, ArrowRight } from 'lucide-react';
+import { Menu, ChevronDown, Briefcase, Building, FileText, Phone, Users, UserCircle, LogIn, UserPlus, ArrowRight, Home, Info, MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePathname } from 'next/navigation';
 
-// Placeholder for authentication state logic - adjust as per your auth solution
+// Placeholder for authentication state logic
 const isAuthenticated = false; 
 
 const NobridgeLogo = () => (
@@ -28,17 +28,17 @@ const NobridgeLogo = () => (
 interface NavLinkItem {
   href: string;
   label: string;
-  icon?: React.ElementType; // Optional icon for the link itself
+  icon?: React.ElementType;
 }
 
 interface NavLinkGroup {
   label: string;
-  triggerIcon?: React.ElementType; // Icon for the dropdown trigger
+  triggerIcon?: React.ElementType;
   items: NavLinkItem[];
 }
 
+// Updated navLinks: Removed top-level "Marketplace"
 const navLinks: (NavLinkItem | NavLinkGroup)[] = [
-  { href: "/marketplace", label: "Marketplace", icon: ShoppingCart },
   {
     label: "Sell Your Business",
     triggerIcon: Briefcase,
@@ -52,12 +52,12 @@ const navLinks: (NavLinkItem | NavLinkGroup)[] = [
     label: "Buy a Business",
     triggerIcon: Building,
     items: [
-      { href: "/marketplace", label: "Browse Listings" },
+      { href: "/marketplace", label: "Browse Listings" }, // This still points to /marketplace
       { href: "/how-buying-works", label: "How Buying Works" },
       // { href: "/buyer-resources", label: "Buyer Resources [Future]" },
     ],
   },
-  { href: "#pricing", label: "Pricing", icon: FileText }, // Placeholder link
+  { href: "/#pricing", label: "Pricing", icon: FileText }, // Placeholder link
   {
     label: "Company",
     triggerIcon: Users,
@@ -76,15 +76,15 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-brand-light-gray/60 bg-brand-white text-brand-dark-blue shadow-sm">
-      <div className="container flex h-20 items-center justify-between px-6 md:px-8">
+      <div className="container mx-auto flex h-20 items-center justify-between px-6 md:px-8">
         <NobridgeLogo />
-        <nav className="hidden md:flex items-center space-x-1 text-sm">
+        <nav className="hidden md:flex items-center space-x-2 text-sm"> {/* Reduced space-x for potentially more items */}
           {navLinks.map((link) =>
-            'items' in link ? ( // This is a NavLinkGroup
+            'items' in link ? ( 
               <DropdownMenu key={link.label}>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="px-3 py-2 text-base font-medium text-brand-dark-blue hover:bg-brand-light-gray/50 hover:text-brand-dark-blue focus-visible:ring-brand-dark-blue">
-                    {link.triggerIcon && React.createElement(link.triggerIcon, { className: "mr-2 h-4 w-4"})}
+                  <Button variant="ghost" className="px-3 py-2 text-base font-medium text-brand-dark-blue hover:bg-brand-light-gray/50 hover:text-brand-dark-blue/90 focus-visible:ring-brand-dark-blue">
+                    {link.triggerIcon && React.createElement(link.triggerIcon, { className: "mr-2 h-4 w-4 opacity-80"})}
                     {link.label}
                     <ChevronDown className="ml-1 h-4 w-4 opacity-70" />
                   </Button>
@@ -93,17 +93,17 @@ export function Navbar() {
                   {link.items.map((item) => (
                     <DropdownMenuItem key={item.label} asChild className="text-sm hover:bg-brand-light-gray focus:bg-brand-light-gray cursor-pointer">
                       <Link href={item.href} className="flex items-center text-brand-dark-blue hover:text-brand-dark-blue px-3 py-2">
-                        {item.icon && React.createElement(item.icon, { className: "mr-2 h-4 w-4"})}
+                        {item.icon && React.createElement(item.icon, { className: "mr-2 h-4 w-4 opacity-80"})}
                         {item.label}
                       </Link>
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
-            ) : ( // This is a NavLinkItem
-              <Button variant="ghost" asChild key={link.label} className={cn("px-3 py-2 text-base font-medium text-brand-dark-blue hover:bg-brand-light-gray/50 hover:text-brand-dark-blue focus-visible:ring-brand-dark-blue", pathname === link.href && "bg-brand-light-gray/70 font-semibold")}>
+            ) : ( 
+              <Button variant="ghost" asChild key={link.label} className={cn("px-3 py-2 text-base font-medium text-brand-dark-blue hover:bg-brand-light-gray/50 hover:text-brand-dark-blue/90 focus-visible:ring-brand-dark-blue", pathname === link.href && "bg-brand-light-gray/70 font-semibold")}>
                 <Link href={link.href} className="flex items-center">
-                   {link.icon && React.createElement(link.icon, { className: "mr-1.5 h-4 w-4"})}
+                   {link.icon && React.createElement(link.icon, { className: "mr-1.5 h-4 w-4 opacity-80"})}
                   {link.label}
                 </Link>
               </Button>
@@ -113,11 +113,13 @@ export function Navbar() {
         <div className="hidden md:flex items-center space-x-3">
           {isAuthenticated ? (
             <>
-              <Button variant="outline" asChild className="border-brand-dark-blue/30 text-brand-dark-blue hover:bg-brand-light-gray/50 hover:border-brand-dark-blue/50 py-2 px-4 font-medium">
+              <Button variant="outline" asChild className="border-brand-dark-blue/30 text-brand-dark-blue hover:bg-brand-light-gray/50 hover:border-brand-dark-blue/50 py-2 px-4 font-medium text-sm">
                 <Link href="/dashboard">Dashboard</Link>
               </Button>
-              {/* Placeholder for UserButton if Clerk or similar is used */}
-              <div className="h-9 w-9 bg-brand-dark-blue rounded-full flex items-center justify-center text-brand-white text-sm font-semibold">
+              {/* Placeholder for UserButton if Clerk or similar is used 
+              <UserButton afterSignOutUrl="/" /> 
+              */}
+               <div className="h-9 w-9 bg-brand-dark-blue rounded-full flex items-center justify-center text-brand-white text-sm font-semibold">
                 U
               </div>
             </>
@@ -147,27 +149,27 @@ export function Navbar() {
               </div>
               <nav className="flex flex-col space-y-1 p-4">
                 {navLinks.map((link) =>
-                  'items' in link ? ( // NavLinkGroup
+                  'items' in link ? ( 
                     <div key={link.label} className="flex flex-col space-y-1">
                        <Button variant="ghost" className="text-lg font-medium justify-start px-3 py-3 w-full text-brand-dark-blue hover:bg-brand-light-gray">
-                        {link.triggerIcon && React.createElement(link.triggerIcon, { className: "mr-2 h-5 w-5"})}
+                        {link.triggerIcon && React.createElement(link.triggerIcon, { className: "mr-2 h-5 w-5 opacity-80"})}
                         {link.label}
                       </Button>
                       <div className="pl-8 flex flex-col space-y-1">
                         {link.items.map((item) => (
                            <Button variant="ghost" asChild key={item.label} className="justify-start text-base font-normal px-3 py-2 text-brand-dark-blue/80 hover:text-brand-dark-blue hover:bg-brand-light-gray">
                             <Link href={item.href}>
-                               {item.icon && React.createElement(item.icon, { className: "mr-2 h-4 w-4"})}
+                               {item.icon && React.createElement(item.icon, { className: "mr-2 h-4 w-4 opacity-80"})}
                               {item.label}
                             </Link>
                            </Button>
                         ))}
                       </div>
                     </div>
-                  ) : ( // NavLinkItem
+                  ) : ( 
                      <Button variant="ghost" asChild key={link.label} className={cn("text-lg font-medium justify-start px-3 py-3 w-full text-brand-dark-blue hover:bg-brand-light-gray", pathname === link.href && "bg-brand-light-gray/70 font-semibold")}>
                        <Link href={link.href} className="flex items-center">
-                        {link.icon && React.createElement(link.icon, { className: "mr-2 h-5 w-5"})}
+                        {link.icon && React.createElement(link.icon, { className: "mr-2 h-5 w-5 opacity-80"})}
                         {link.label}
                       </Link>
                      </Button>
@@ -201,3 +203,4 @@ export function Navbar() {
     </header>
   );
 }
+    
