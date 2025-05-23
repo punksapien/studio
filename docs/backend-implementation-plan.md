@@ -184,3 +184,103 @@ This section details the core authentication mechanisms. While a dedicated auth 
     6.  **Return Success Response:** Return 200 OK with a success message (e.g., "Password has been reset successfully. You can now login with your new password.").
 
 ---
+
+## II. Business Listing Management (Seller Actions)
+
+This section details the backend processes for sellers creating and managing their business listings. Authentication is required for all these actions, and the `seller_id` from the authenticated session must be used.
+
+### A. Create New Business Listing
+
+*   **Triggering UI:** Seller Dashboard -> "Create New Listing" form submission (`src/app/seller-dashboard/listings/create/page.tsx`).
+*   **Next.js API Route Stub (Conceptual):** `POST /api/listings/route.ts`
+*   **Detailed Backend Worker Logic (Step-by-Step):**
+    1.  **Receive Request:** Worker receives a POST request with all listing data:
+        *   `listingTitleAnonymous`, `industry`, `locationCountry`, `locationCityRegionGeneral`.
+        *   `anonymousBusinessDescription`, `keyStrengthsAnonymous` (array).
+        *   `businessModel`, `yearEstablished`, `registeredBusinessName`, `businessWebsiteUrl`, `socialMediaLinks`, `numberOfEmployees`, `technologyStack`.
+        *   `annualRevenueRange`, `netProfitMarginRange`, `askingPriceRange`.
+        *   `specificAnnualRevenueLastYear`, `specificNetProfitLastYear`, `financialsExplanation`.
+        *   `dealStructureLookingFor` (array), `reasonForSellingAnonymous`, `detailedReasonForSelling`.
+        *   `sellerRoleAndTimeCommitment`, `postSaleTransitionSupport`.
+        *   `growthPotentialNarrative`, `specificGrowthOpportunities`.
+        *   Placeholders for document names/keys if a pre-signed URL upload flow is used for `financialDocumentsUrl`, `keyMetricsReportUrl`, `ownershipDocumentsUrl`.
+    2.  **Authenticate Seller:** Verify the request is from an authenticated seller and retrieve their `user_id` (this will be the `seller_id` for the listing).
+    3.  **Validate Input:**
+        *   Use the Zod schema (`ListingSchema` from the create listing page) to validate the received data.
+        *   If validation fails, return a 400 Bad Request error with details.
+    4.  **Process Document Placeholders (Conceptual for R2):**
+        *   If the request includes references to files already uploaded to R2 (e.g., via a pre-signed URL flow handled by the client prior to this API call), store these R2 object keys/paths.
+        *   If direct file upload to this worker is intended (less ideal for serverless, but possible for small files), handle `multipart/form-data`, upload to R2, and get the R2 object keys/paths.
+    5.  **Create Listing Record in D1:**
+        *   Generate a unique `listing_id` (e.g., UUID).
+        *   Insert a new record into the `listings` table in D1 with:
+            *   `listing_id`, `seller_id` (from authenticated user).
+            *   All validated fields from the request.
+            *   Document URLs/keys for `financialDocumentsUrl`, `keyMetricsReportUrl`, `ownershipDocumentsUrl` (pointing to R2 locations).
+            *   `status`: Set to `'PENDING_ADMIN_REVIEW'` or `'ACTIVE_ANONYMOUS'` (depending on platform policy).
+            *   `is_seller_verified`: This should reflect the current verification status of the `seller_id` from the `user_profiles` table.
+            *   `created_at`, `updated_at`: Current UTC timestamps.
+    6.  **Return Success Response:**
+        *   Return a 201 Created status with a success message (e.g., "Listing created successfully and is pending review.") and the new `listing_id`.
+
+### B. Edit Existing Business Listing
+
+*   **Triggering UI:** Seller Dashboard -> "My Listings" -> "Edit Listing" button (`src/app/seller-dashboard/listings/[listingId]/edit/page.tsx`).
+*   **Next.js API Route Stub (Conceptual):** `PUT /api/listings/[listingId]/route.ts`
+*   **Detailed Backend Worker Logic (Step-by-Step):**
+    1.  **Receive Request:** Worker receives a PUT request with the `listingId` in the path and updated listing data in the body.
+    2.  **Authenticate Seller:** Verify the request is from an authenticated seller and retrieve their `user_id`.
+    3.  **Authorize Seller:** Query the `listings` table in D1: `SELECT seller_id FROM listings WHERE listing_id = ?`.
+        *   If listing not found, return 404.
+        *   If `seller_id` from listing does not match authenticated `user_id`, return 403 Forbidden (not owner).
+    4.  **Validate Input:**
+        *   Use a partial/update version of the Zod `ListingSchema` (all fields optional) to validate the received data.
+    5.  **Process Document Updates (Conceptual for R2):**
+        *   If new document placeholders are provided, handle potential new uploads to R2 (e.g., via pre-signed URLs generated on client or a separate upload endpoint).
+        *   If existing documents are meant to be removed, this might involve deleting objects from R2 (or just removing their reference from D1).
+    6.  **Update Listing Record in D1:**
+        *   Update the specified fields for the given `listing_id` in the `listings` table.
+        *   Update `updated_at` timestamp.
+        *   If significant content changes are made that require re-verification, potentially update `status` to `'PENDING_ADMIN_REVIEW'`.
+    7.  **Return Success Response:**
+        *   Return a 200 OK status with a success message (e.g., "Listing updated successfully.") and the updated listing data.
+
+### C. Deactivate/Reactivate Listing
+
+*   **Triggering UI:** Seller Dashboard -> "My Listings" -> "Deactivate/Reactivate" button.
+*   **Next.js API Route Stub (Conceptual):** `PUT /api/listings/[listingId]/status/route.ts` (or a more generic update endpoint).
+*   **Detailed Backend Worker Logic (Step-by-Step):**
+    1.  **Receive Request:** Worker receives PUT request with `listingId` and desired new status (e.g., `{ status: 'INACTIVE' }` or `{ status: 'ACTIVE_ANONYMOUS' }`).
+    2.  **Authenticate Seller:** Verify authenticated seller and get `user_id`.
+    3.  **Authorize Seller:** Verify ownership of the `listingId` as in "Edit Listing."
+    4.  **Validate New Status:** Ensure the new status is a valid transition (e.g., can't reactivate a 'REJECTED' listing without admin action).
+    5.  **Update Listing Status in D1:**
+        *   Update the `status` field for the `listingId` in the `listings` table.
+        *   Update `updated_at` timestamp.
+    6.  **Return Success Response:** 200 OK with success message.
+
+### D. Seller Requests Listing Verification
+
+*   **Triggering UI:** Seller Dashboard -> "Verification" page, or "Request Verification Call for this Listing" button on "My Listings" page.
+*   **Next.js API Route Stub (Conceptual):** `POST /api/verification-requests/route.ts` (with type 'listing') or `POST /api/listings/[listingId]/request-verification/route.ts`.
+*   **Detailed Backend Worker Logic (Step-by-Step):**
+    1.  **Receive Request:** Worker receives request with `listingId` (if verifying specific listing), `bestTimeToCall` (optional), `notes` (optional). Requires authenticated seller `user_id`.
+    2.  **Authenticate Seller:** Get `user_id`.
+    3.  **Authorize (if specific listing):** If `listingId` is provided, verify the authenticated seller owns this listing.
+    4.  **Update Listing Status (if specific listing):**
+        *   If `listingId` is provided, query the `listings` table in D1.
+        *   If listing status is already 'VERIFIED_PUBLIC', 'VERIFIED_ANONYMOUS', or 'PENDING_VERIFICATION', return appropriate message (e.g., "Listing is already verified or pending verification.").
+        *   Update `listings.status` to `'PENDING_VERIFICATION'`.
+    5.  **Create Verification Request Record in D1:**
+        *   Insert a new record into a `verification_requests` table with:
+            *   `request_id` (UUID).
+            *   `user_id` (seller's ID).
+            *   `listing_id` (if applicable).
+            *   `request_type`: 'LISTING_VERIFICATION' (or 'PROFILE_VERIFICATION' if general).
+            *   `best_time_to_call`, `notes`.
+            *   `status`: 'NEW_REQUEST'.
+            *   `created_at`, `updated_at`.
+    6.  **Conceptual: Notify Admin Team:** Trigger an internal mechanism (e.g., add to an admin task queue, send an email to admin group) about the new verification request. This is managed by the Admin Panel.
+    7.  **Return Success Response:** 201 Created with a success message (e.g., "Verification request submitted. Our team will contact you.").
+
+---
