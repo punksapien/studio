@@ -1,5 +1,6 @@
 
 import type { Config } from "tailwindcss";
+const { fontFamily } = require("tailwindcss/defaultTheme")
 
 export default {
     darkMode: ["class"],
@@ -12,25 +13,25 @@ export default {
     container: {
       center: true,
       padding: {
-        DEFAULT: '1rem', 
-        sm: '1.5rem',    
-        md: '2rem',     
-        lg: '2.5rem',    
-        xl: '3rem',     
+        DEFAULT: '1rem',
+        sm: '1.5rem',
+        md: '2rem',
+        lg: '2.5rem',
+        xl: '3rem',
       },
     },
   	extend: {
       fontFamily: {
-        sans: ['Satoshi', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', '"Noto Sans"', 'sans-serif', '"Apple Color Emoji"', '"Segoe UI Emoji"', '"Segoe UI Symbol"', '"Noto Color Emoji"'],
-        mono: ['var(--font-geist-mono)', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', '"Liberation Mono"', '"Courier New"', 'monospace'], 
+        sans: ["Satoshi", ...fontFamily.sans], // Prioritize Satoshi
+        // mono: ['var(--font-geist-mono)', ...fontFamily.mono], // Keep if you use a specific mono font elsewhere
       },
   		colors: {
         // Direct brand colors (optional, primarily for utility classes if needed outside theme context)
         'brand-dark-blue': 'hsl(var(--brand-dark-blue-hsl))',      // #0D0D39
         'brand-light-gray': 'hsl(var(--brand-light-gray-hsl))',   // #F4F6FC
         'brand-white': 'hsl(var(--brand-white-hsl))',           // #FFFFFF
-        
-        // ShadCN UI theme colors mapped to CSS variables
+
+        // ShadCN UI theme colors mapped to CSS variables from globals.css
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
   			card: {
@@ -113,3 +114,5 @@ export default {
   },
   plugins: [require("tailwindcss-animate")],
 } satisfies Config;
+
+    

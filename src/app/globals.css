@@ -9,8 +9,8 @@ body {
 
 @layer base {
   :root {
-    --brand-dark-blue-hsl: 228 68% 14%;    /* #0D0D39 */
-    --brand-light-gray-hsl: 220 60% 96%;   /* #F4F6FC */
+    --brand-dark-blue-hsl: 222 61% 14%;    /* #0D0D39 */
+    --brand-light-gray-hsl: 220 33% 95%;   /* #F4F6FC */
     --brand-white-hsl: 0 0% 100%;          /* #FFFFFF */
 
     /* Light Mode - Nobridge Palette */
@@ -25,21 +25,20 @@ body {
 
     --primary: var(--brand-dark-blue-hsl);                    /* Primary interactive: Dark Blue */
     --primary-foreground: var(--brand-white-hsl);             /* Text on primary: White */
-    
+
     --secondary: var(--brand-light-gray-hsl);                 /* Secondary elements background: Light Gray */
     --secondary-foreground: var(--brand-dark-blue-hsl);       /* Text on secondary: Dark Blue */
 
     --muted: var(--brand-light-gray-hsl);                     /* Muted backgrounds: Light Gray */
-    --muted-foreground: 228 30% 45%;                          /* Muted text: A less saturated dark blue */
+    --muted-foreground: 222 20% 45%;                          /* Muted text: A less saturated dark blue/gray */
 
-    /* Using brand-light-gray as a soft accent, or define a specific accent if needed */
-    --accent: var(--brand-light-gray-hsl);                    
-    --accent-foreground: var(--brand-dark-blue-hsl);        
-    
+    --accent: 211 98% 71%; /* Sky Blue #77B5FE, used for specific accents if needed, not primary buttons */
+    --accent-foreground: var(--brand-dark-blue-hsl); /* Text on sky blue accent */
+
     --destructive: 0 72% 51%; /* Default ShadCN Red */
     --destructive-foreground: 0 0% 98%; /* Light text for destructive */
 
-    --border: 220 30% 90%;            /* Border: Based on light gray but slightly darker/more visible */
+    --border: 220 20% 88%;            /* Border: Based on light gray but slightly darker/more visible */
     --input: var(--brand-light-gray-hsl); /* Input background: Light Gray */
     --ring: var(--brand-dark-blue-hsl);   /* Focus ring: Dark Blue */
 
@@ -52,61 +51,65 @@ body {
     --sidebar-primary-foreground: var(--brand-white-hsl); /* Active item text */
     --sidebar-accent: var(--brand-light-gray-hsl);        /* Hover background */
     --sidebar-accent-foreground: var(--brand-dark-blue-hsl);
-    --sidebar-border: 220 30% 92%; 
+    --sidebar-border: 220 20% 92%;
     --sidebar-ring: var(--brand-dark-blue-hsl);
 
     /* Chart colors (can be adjusted) */
     --chart-1: hsl(var(--brand-dark-blue-hsl));
-    --chart-2: 210 70% 55%; 
-    --chart-3: 220 30% 70%; 
-    --chart-4: 210 80% 75%; 
-    --chart-5: 220 20% 50%; 
+    --chart-2: hsl(var(--accent)); /* Sky Blue */
+    --chart-3: 220 30% 70%;
+    --chart-4: 210 80% 75%;
+    --chart-5: 220 20% 50%;
   }
 
   .dark {
+    --brand-dark-blue-hsl: 222 61% 14%;
+    --brand-light-gray-hsl: 220 33% 95%;
+    --brand-white-hsl: 0 0% 100%;
+
     /* Dark Mode - Nobridge Palette */
     --background: var(--brand-dark-blue-hsl);                 /* Main page background: Dark Blue */
     --foreground: var(--brand-light-gray-hsl);                /* Default text: Light Gray */
 
-    --card: 228 60% 18%;                                      /* Card background: Slightly lighter Dark Blue */
+    --card: 222 50% 18%;                                      /* Card background: Slightly lighter Dark Blue */
     --card-foreground: var(--brand-light-gray-hsl);           /* Card text: Light Gray */
 
-    --popover: 228 60% 10%;                                   /* Popover background: Very Dark Blue */
+    --popover: 222 50% 10%;                                   /* Popover background: Very Dark Blue */
     --popover-foreground: var(--brand-light-gray-hsl);        /* Popover text: Light Gray */
 
     --primary: var(--brand-light-gray-hsl);                   /* Primary interactive: Light Gray */
     --primary-foreground: var(--brand-dark-blue-hsl);         /* Text on primary: Dark Blue */
-    
-    --secondary: 228 50% 22%;                                 /* Secondary elements background: Lighter shade of dark blue */
+
+    --secondary: 222 50% 22%;                                 /* Secondary elements background: Lighter shade of dark blue */
     --secondary-foreground: var(--brand-light-gray-hsl);      /* Text on secondary: Light Gray */
 
-    --muted: 228 40% 25%;                                     /* Muted backgrounds */
+    --muted: 222 40% 25%;                                     /* Muted backgrounds */
     --muted-foreground: 220 30% 70%;                          /* Muted text: Lighter Gray */
 
-    --accent: var(--brand-white-hsl);                         /* Accent: White for high contrast */
-    --accent-foreground: var(--brand-dark-blue-hsl);          /* Text on accent: Dark Blue */
-    
-    --destructive: 0 63% 40%; 
+    --accent: 211 98% 71%; /* Sky Blue */
+    --accent-foreground: var(--brand-dark-blue-hsl);
+
+    --destructive: 0 63% 40%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 228 40% 28%;      
-    --input: 228 50% 22%;       
-    --ring: var(--brand-light-gray-hsl); 
+    --border: 222 40% 28%;
+    --input: 222 50% 22%;
+    --ring: var(--brand-light-gray-hsl);
 
     /* Sidebar specific colors - Dark Mode (Aligned with Nobridge) */
-    --sidebar-background: 228 65% 12%; /* Slightly darker than main dark blue bg */
+    --sidebar-background: 222 65% 10%; /* Slightly darker than main dark blue bg */
     --sidebar-foreground: var(--brand-light-gray-hsl);
-    --sidebar-primary: var(--brand-light-gray-hsl);         
+    --sidebar-primary: var(--brand-light-gray-hsl);
     --sidebar-primary-foreground: var(--brand-dark-blue-hsl);
-    --sidebar-accent: 228 60% 20%;                         
+    --sidebar-accent: 222 60% 20%;
     --sidebar-accent-foreground: var(--brand-light-gray-hsl);
-    --sidebar-border: 228 40% 25%; 
+    --sidebar-border: 222 40% 25%;
     --sidebar-ring: var(--brand-light-gray-hsl);
 
     /* Chart colors for dark mode */
     --chart-1: hsl(var(--brand-light-gray-hsl));
-    --chart-2: 210 70% 75%; 
-    --chart-3: 220 30% 50%; 
+    --chart-2: hsl(var(--accent)); /* Sky Blue */
+    --chart-3: 220 30% 50%;
     --chart-4: 210 80% 85%;
     --chart-5: 220 20% 30%;
   }
@@ -118,21 +121,24 @@ body {
   }
   body {
     @apply bg-background text-foreground;
-    font-family: 'Satoshi', sans-serif; 
+    font-family: 'Satoshi', sans-serif;
   }
   h1, h2, h3, h4, h5, h6 {
-    @apply font-sans tracking-tight; 
+    @apply font-sans tracking-tight;
   }
 }
 
 /* Utility class for sections that need the primary dark blue background */
-.bg-brand-dark-blue {
+.bg-brand-dark {
   background-color: hsl(var(--brand-dark-blue-hsl));
+  color: hsl(var(--brand-white-hsl)); /* Default text on this dark bg */
 }
-.text-on-dark-blue {
+.text-on-dark-blue { /* For primary text on dark blue */
   color: hsl(var(--brand-white-hsl));
 }
-.text-on-dark-blue-muted {
+.text-on-dark-blue-muted { /* For secondary/muted text on dark blue */
   color: hsl(var(--brand-light-gray-hsl));
-  opacity: 0.9;
+  opacity: 0.85; /* Slightly reduced opacity for muted feel */
 }
+
+    
