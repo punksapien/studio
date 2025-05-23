@@ -15,7 +15,7 @@ import {
   SidebarInset,
   SidebarTrigger,
   SidebarSeparator,
-  SidebarFooter // Added SidebarFooter import
+  SidebarFooter 
 } from '@/components/ui/sidebar';
 import { Logo } from '@/components/shared/logo';
 import { Button } from '@/components/ui/button';
@@ -31,7 +31,7 @@ import {
   PlusCircle,
   HelpCircle,
   FileText,
-  MessageSquareQuote,
+  MessageSquareQuote, 
   Home,
 } from 'lucide-react';
 import type { UserRole } from '@/lib/types';
@@ -53,7 +53,7 @@ const sellerSidebarNavItems = [
 const utilityNavItems = [
   { title: 'Help', href: '/help', icon: HelpCircle, tooltip: "Get Help" },
   { title: 'Refer Docs', href: '/docs', icon: FileText, tooltip: "View Documentation" },
-  { title: 'FAQ', href: '/faq', icon: MessageSquareQuote, tooltip: "Frequently Asked Questions" },
+  { title: 'FAQ', href: '/faq', icon: MessageSquareQuote, tooltip: "Frequently Asked Questions" }, 
   { title: 'Back to Homepage', href: '/', icon: Home, tooltip: "Go to Homepage" },
 ];
 
@@ -84,7 +84,7 @@ export default function SellerDashboardLayout({
               <SidebarTrigger className="md:hidden" />
             </div>
           </SidebarHeader>
-          <SidebarContent className="flex-grow overflow-y-auto">
+          <SidebarContent>
             <SidebarMenu>
               {sellerSidebarNavItems.map((item) => {
                 const overviewPath = '/seller-dashboard';
@@ -98,13 +98,12 @@ export default function SellerDashboardLayout({
                 } else if (item.href === createListingPath) {
                   itemIsActive = pathname === createListingPath;
                 } else if (item.href === myListingsPath) {
-                  itemIsActive = (pathname === myListingsPath || (pathname.startsWith(myListingsPath + '/') && !pathname.endsWith('/create'))) ;
+                  // Active if it's the "My Listings" page OR a sub-page of it (like edit),
+                  // but NOT if it's the "Create Listing" page.
+                  itemIsActive = (pathname === myListingsPath || (pathname.startsWith(myListingsPath + '/') && !pathname.startsWith(createListingPath))) ;
                 } else {
+                  // For other items, active if current path is an exact match or a sub-path.
                   itemIsActive = pathname === item.href || pathname.startsWith(item.href + '/');
-                }
-
-                if (item.href === myListingsPath && pathname.startsWith(createListingPath)) {
-                  itemIsActive = false;
                 }
                 
                 return (
@@ -116,7 +115,7 @@ export default function SellerDashboardLayout({
                     >
                       <Link href={item.href}>
                         <item.icon className="h-5 w-5" />
-                        <span className="group-data-[state=collapsed]:hidden">{item.title}</span>
+                        <span>{item.title}</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -134,7 +133,7 @@ export default function SellerDashboardLayout({
                   >
                     <Link href={item.href}>
                       <item.icon className="h-5 w-5" />
-                      <span className="group-data-[state=collapsed]:hidden">{item.title}</span>
+                      <span>{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -144,7 +143,7 @@ export default function SellerDashboardLayout({
           <SidebarFooter className="p-4 border-t border-sidebar-border">
             <Button variant="outline" className="w-full text-destructive-foreground bg-destructive hover:bg-destructive/90">
               <LogOut className="h-5 w-5" />
-              <span className="group-data-[state=collapsed]:hidden">Logout</span>
+              <span>Logout</span>
             </Button>
           </SidebarFooter>
         </Sidebar>
