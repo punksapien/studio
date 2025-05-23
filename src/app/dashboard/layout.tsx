@@ -26,15 +26,15 @@ import {
   LogOut,
   ShieldCheck,
   Bell,
-  ShoppingCart, 
-  HelpCircle,   
-  FileText,     
-  MessageSquareQuote, // Corrected from MessageSquareQuestion
-  Home,         
+  ShoppingCart,
+  HelpCircle,
+  FileText,
+  MessageSquareQuote,
+  Home,
 } from 'lucide-react';
 import type { UserRole } from '@/lib/types';
 
-const currentUserRole: UserRole | null = 'buyer'; 
+const currentUserRole: UserRole | null = 'buyer';
 
 const buyerSidebarNavItems = [
   { title: 'Overview', href: '/dashboard', icon: LayoutDashboard, tooltip: "Dashboard Overview" },
@@ -47,8 +47,8 @@ const buyerSidebarNavItems = [
 
 const utilityNavItems = [
   { title: 'Marketplace', href: '/marketplace', icon: ShoppingCart, tooltip: "Browse Marketplace" },
-  { title: 'Help', href: '/help', icon: HelpCircle, tooltip: "Get Help" }, 
-  { title: 'Refer Docs', href: '/docs', icon: FileText, tooltip: "View Documentation" }, 
+  { title: 'Help', href: '/help', icon: HelpCircle, tooltip: "Get Help" },
+  { title: 'Refer Docs', href: '/docs', icon: FileText, tooltip: "View Documentation" },
   { title: 'FAQ', href: '/faq', icon: MessageSquareQuote, tooltip: "Frequently Asked Questions" },
   { title: 'Back to Homepage', href: '/', icon: Home, tooltip: "Go to Homepage" },
 ];
@@ -71,8 +71,8 @@ export default function DashboardLayout({
   }
 
   return (
-    <SidebarProvider defaultOpen className="flex min-h-screen"> {/* Ensure flex-row behavior */}
-      <Sidebar variant="sidebar" collapsible="icon" className="border-r border-sidebar-border">
+    <SidebarProvider defaultOpen className="flex min-h-screen">
+      <Sidebar variant="sidebar" collapsible="icon" className="border-r border-sidebar-border bg-brand-white">
         <SidebarHeader className="p-4 border-b border-sidebar-border">
           <div className="flex items-center justify-between">
             <Logo size="lg" />
@@ -121,7 +121,7 @@ export default function DashboardLayout({
           </Button>
         </div>
       </Sidebar>
-      <SidebarInset className="flex-grow flex flex-col overflow-hidden"> 
+      <SidebarInset className="flex-grow flex flex-col overflow-hidden">
         <div className="flex-grow flex flex-col p-4 md:p-6 lg:p-8 overflow-y-auto">
           <header className="md:hidden flex items-center justify-between mb-4 p-2 border rounded-md bg-card">
             <Logo size="lg" />

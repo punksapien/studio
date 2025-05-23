@@ -29,7 +29,7 @@ import {
   Building,
   HelpCircle,
   FileText,
-  MessageSquareQuote, 
+  MessageSquareQuote,
   Home,
 } from 'lucide-react';
 
@@ -50,7 +50,7 @@ const utilityNavItems = [
   { title: 'Back to Homepage', href: '/', icon: Home, tooltip: "Go to Homepage" },
 ];
 
-const isAdminAuthenticated = true; 
+const isAdminAuthenticated = true;
 
 export default function AdminLayout({
   children,
@@ -61,7 +61,7 @@ export default function AdminLayout({
 
   if (!isAdminAuthenticated && pathname !== '/admin/login') {
     if (typeof window !== 'undefined') {
-      window.location.href = '/admin/login'; 
+      window.location.href = '/admin/login';
     }
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background">
@@ -81,11 +81,11 @@ export default function AdminLayout({
 
   return (
     <SidebarProvider defaultOpen className="flex min-h-screen"> {/* Ensure flex-row behavior for sidebar and inset */}
-      <Sidebar variant="sidebar" collapsible="icon" className="border-r border-sidebar-border">
+      <Sidebar variant="sidebar" collapsible="icon" className="border-r border-sidebar-border bg-brand-white">
         <SidebarHeader className="p-4 border-b border-sidebar-border">
           <div className="flex items-center justify-between">
             <Logo size="lg" />
-            <SidebarTrigger className="md:hidden" /> 
+            <SidebarTrigger className="md:hidden" />
           </div>
         </SidebarHeader>
         <SidebarContent>
@@ -123,14 +123,14 @@ export default function AdminLayout({
             ))}
           </SidebarMenu>
         </SidebarContent>
-        <div className="p-4 border-t border-sidebar-border mt-auto"> 
+        <div className="p-4 border-t border-sidebar-border mt-auto">
           <Button variant="outline" className="w-full text-destructive-foreground bg-destructive hover:bg-destructive/90">
             <LogOut className="h-5 w-5" />
             <span className="group-data-[collapsible=icon]:hidden">Logout Admin</span>
           </Button>
         </div>
       </Sidebar>
-      <SidebarInset className="flex-grow flex flex-col overflow-hidden"> 
+      <SidebarInset className="flex-grow flex flex-col overflow-hidden">
          <div className="flex-grow flex flex-col p-4 md:p-6 lg:p-8 overflow-y-auto">
           <header className="md:hidden flex items-center justify-between mb-4 p-2 border rounded-md bg-card">
             <Logo size="lg" />

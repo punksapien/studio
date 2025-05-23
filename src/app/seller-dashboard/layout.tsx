@@ -30,7 +30,7 @@ import {
   PlusCircle,
   HelpCircle,
   FileText,
-  MessageSquareQuote, // Corrected from MessageSquareQuestion
+  MessageSquareQuote,
   Home,
 } from 'lucide-react';
 import type { UserRole } from '@/lib/types';
@@ -73,8 +73,8 @@ export default function SellerDashboardLayout({
   }
 
   return (
-    <SidebarProvider defaultOpen className="flex min-h-screen"> {/* Ensure flex-row behavior */}
-      <Sidebar variant="sidebar" collapsible="icon" className="border-r border-sidebar-border">
+    <SidebarProvider defaultOpen className="flex min-h-screen">
+      <Sidebar variant="sidebar" collapsible="icon" className="border-r border-sidebar-border bg-brand-white">
         <SidebarHeader className="p-4 border-b border-sidebar-border">
           <div className="flex items-center justify-between">
             <Logo size="lg" />
@@ -95,14 +95,18 @@ export default function SellerDashboardLayout({
               } else if (item.href === createListingPath) {
                 itemIsActive = pathname === createListingPath;
               } else if (item.href === myListingsPath) {
-                itemIsActive = pathname === myListingsPath || (pathname.startsWith(myListingsPath + '/') && !pathname.endsWith('/create'));
+                // Active if it's the "My Listings" page or any sub-page of it (like edit),
+                // but NOT if it's the "Create Listing" page.
+                itemIsActive = (pathname === myListingsPath || (pathname.startsWith(myListingsPath + '/') && !pathname.endsWith('/create'))) ;
               } else {
                 itemIsActive = pathname === item.href || pathname.startsWith(item.href + '/');
               }
-              
+
+              // Specifically ensure "My Listings" is not active if "Create Listing" is active
               if (item.href === myListingsPath && pathname.startsWith(createListingPath)) {
                 itemIsActive = false;
               }
+
 
               return (
                 <SidebarMenuItem key={item.title}>
@@ -145,7 +149,7 @@ export default function SellerDashboardLayout({
           </Button>
         </div>
       </Sidebar>
-      <SidebarInset className="flex-grow flex flex-col overflow-hidden"> 
+      <SidebarInset className="flex-grow flex flex-col overflow-hidden">
         <div className="flex-grow flex flex-col p-4 md:p-6 lg:p-8 overflow-y-auto">
           <header className="md:hidden flex items-center justify-between mb-4 p-2 border rounded-md bg-card">
             <Logo size="lg" />
