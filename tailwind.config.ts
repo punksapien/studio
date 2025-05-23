@@ -21,16 +21,14 @@ export default {
     },
   	extend: {
       fontFamily: {
-        // Set Satoshi as the primary sans-serif font, with system fallbacks
-        sans: ['Satoshi', ...require('tailwindcss/defaultTheme').fontFamily.sans],
-        // Keep Geist Mono if used, or replace with a brand-specific mono font if available
-        mono: ['var(--font-geist-mono)', ...require('tailwindcss/defaultTheme').fontFamily.mono], 
+        sans: ['Satoshi', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', '"Noto Sans"', 'sans-serif', '"Apple Color Emoji"', '"Segoe UI Emoji"', '"Segoe UI Symbol"', '"Noto Color Emoji"'],
+        mono: ['var(--font-geist-mono)', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', '"Liberation Mono"', '"Courier New"', 'monospace'], 
       },
   		colors: {
-        // Direct brand colors (optional, as CSS variables are primary)
-        'brand-dark-blue': 'hsl(var(--brand-dark-blue-hsl))',
-        'brand-light-gray': 'hsl(var(--brand-light-gray-hsl))',
-        'brand-white': 'hsl(var(--brand-white-hsl))',
+        // Direct brand colors (optional, primarily for utility classes if needed outside theme context)
+        'brand-dark-blue': 'hsl(var(--brand-dark-blue-hsl))',      // #0D0D39
+        'brand-light-gray': 'hsl(var(--brand-light-gray-hsl))',   // #F4F6FC
+        'brand-white': 'hsl(var(--brand-white-hsl))',           // #FFFFFF
         
         // ShadCN UI theme colors mapped to CSS variables
   			background: 'hsl(var(--background))',

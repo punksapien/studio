@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet" // Added SheetHeader, SheetTitle
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet" 
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Tooltip,
@@ -19,17 +19,17 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { Logo } from "@/components/shared/logo" // Assuming Logo is used in mobile sheet
+import { Logo } from "@/components/shared/logo" 
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
 const SIDEBAR_WIDTH = "16rem" // approx 256px
 const SIDEBAR_WIDTH_MOBILE = "18rem" // approx 288px
-// Removed SIDEBAR_WIDTH_ICON as we are simplifying collapsible logic for desktop
+const SIDEBAR_WIDTH_ICON = "3.5rem" // approx 56px, for icon-only collapsed state (if re-enabled)
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
 
 type SidebarContextValue = {
-  state: "expanded" | "collapsed" // state might be simplified if collapsible="icon" is removed from layouts
+  state: "expanded" | "collapsed" 
   open: boolean
   setOpen: (open: boolean) => void
   openMobile: boolean
@@ -58,7 +58,7 @@ const SidebarProvider = React.forwardRef<
 >(
   (
     {
-      defaultOpen = true, // Default to true for expanded desktop sidebar
+      defaultOpen = true, 
       open: openProp,
       onOpenChange: setOpenProp,
       className,
@@ -71,6 +71,9 @@ const SidebarProvider = React.forwardRef<
     const isMobile = useIsMobile()
     const [openMobile, setOpenMobile] = React.useState(false)
 
+    // For desktop sidebar state (expanded/collapsed to icons)
+    // If collapsible="icon" is used, this state will be toggled.
+    // If collapsible="none" (or omitted) from dashboard layouts, it should remain 'expanded'.
     const [_open, _setOpen] = React.useState(defaultOpen)
     const open = openProp ?? _open
     const setOpen = React.useCallback(
@@ -91,7 +94,7 @@ const SidebarProvider = React.forwardRef<
     const toggleSidebar = React.useCallback(() => {
       return isMobile
         ? setOpenMobile((prevOpen) => !prevOpen)
-        : setOpen((prevOpen) => !prevOpen) // This will toggle desktop sidebar if a trigger is present
+        : setOpen((prevOpen) => !prevOpen) // This would toggle desktop icon-only mode IF a trigger was present on desktop
     }, [isMobile, setOpen, setOpenMobile])
 
     React.useEffect(() => {
@@ -110,8 +113,6 @@ const SidebarProvider = React.forwardRef<
       }
     }, [toggleSidebar])
 
-    // If collapsible="icon" is removed from dashboard layouts, 'state' might always be 'expanded' on desktop.
-    // For simplicity with the "always show text" requirement, we'll rely on CSS not hiding text unless explicitly icon-only mode is active.
     const state = open ? "expanded" : "collapsed"
 
     const contextValue = React.useMemo<SidebarContextValue>(
@@ -134,12 +135,12 @@ const SidebarProvider = React.forwardRef<
             style={
               {
                 "--sidebar-width": SIDEBAR_WIDTH,
-                // Removed --sidebar-width-icon as we are simplifying
+                "--sidebar-width-icon": SIDEBAR_WIDTH_ICON, // Keep for potential future use
                 ...style,
               } as React.CSSProperties
             }
             className={cn(
-              "group/sidebar-wrapper flex w-full", // Ensure this is flex-row by default
+              "group/sidebar-wrapper flex w-full", 
               className
             )}
             ref={ref}
@@ -159,7 +160,7 @@ const Sidebar = React.forwardRef<
   React.ComponentProps<"div"> & {
     side?: "left" | "right"
     variant?: "sidebar" | "floating" | "inset"
-    collapsible?: "offcanvas" | "icon" | "none" // Will be set to "none" or omitted in dashboard layouts
+    collapsible?: "offcanvas" | "icon" | "none" 
   }
 >(
   (
@@ -179,22 +180,21 @@ const Sidebar = React.forwardRef<
       return (
         <Sheet open={openMobile} onOpenChange={setOpenMobile}>
           <SheetContent
-            data-sidebar="sidebar" // Keep data attributes for potential specific styling
+            data-sidebar="sidebar" 
             data-mobile="true"
             className={cn(
-              "w-[var(--sidebar-width-mobile)] bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden", // Remove SheetClose icon from here if it's part of content
+              "w-[var(--sidebar-width-mobile)] bg-sidebar p-0 text-sidebar-foreground", 
               side === "left" ? "border-r" : "border-l",
               className
             )}
             style={{ "--sidebar-width-mobile": SIDEBAR_WIDTH_MOBILE } as React.CSSProperties}
             side={side}
-            // Removed {...props} from SheetContent to avoid passing unintended props like 'collapsible'
           >
-            {/* Add SheetHeader and SheetTitle for accessibility */}
+            {/* Added SheetHeader and SheetTitle for accessibility */}
             <SheetHeader className="p-4 border-b border-sidebar-border">
               <SheetTitle>
-                <span className="sr-only">Main Menu</span> {/* Accessible title */}
-                <Logo size="lg" /> {/* Visible logo/title */}
+                <span className="sr-only">Main Navigation Menu</span> {/* Accessible title */}
+                <Logo size="lg" /> 
               </SheetTitle>
             </SheetHeader>
             <div className="flex h-full w-full flex-col">{children}</div>
@@ -203,17 +203,20 @@ const Sidebar = React.forwardRef<
       )
     }
 
-    // Desktop sidebar - simplified for always showing text if collapsible="none"
+    // Desktop sidebar
     return (
       <div
         ref={ref}
         className={cn(
             "group peer hidden md:flex flex-col bg-sidebar text-sidebar-foreground transition-all duration-300 ease-in-out",
             side === "left" ? "border-r border-sidebar-border" : "border-l border-sidebar-border",
-            "w-[var(--sidebar-width)]", // Always use full width on desktop now
+            // If collapsible is 'icon', apply conditional width, otherwise always full width
+            collapsible === "icon" && state === "expanded" ? "w-[var(--sidebar-width)]" : 
+            collapsible === "icon" && state === "collapsed" ? "w-[var(--sidebar-width-icon)]" : 
+            "w-[var(--sidebar-width)]", // Default to full width if not icon collapsible or if 'none'
             className
         )}
-        data-state={collapsible === "none" ? "expanded" : state} // If not collapsible, it's always expanded effectively
+        data-state={collapsible === "none" ? "expanded" : state} 
         data-collapsible={collapsible}
         data-variant={variant}
         data-side={side}
@@ -240,10 +243,10 @@ const SidebarTrigger = React.forwardRef<
   return (
     <Button
       ref={ref}
-      data-sidebar="trigger" // Keep data attributes for potential specific styling
+      data-sidebar="trigger"
       variant="ghost"
       size="icon"
-      className={cn("h-7 w-7", className)} // Primarily for mobile now
+      className={cn("h-7 w-7", className)} 
       onClick={(event) => {
         onClick?.(event)
         toggleSidebar()
@@ -266,9 +269,7 @@ const SidebarInset = React.forwardRef<
     <div 
       ref={ref}
       className={cn(
-        // This needs to be a flex item that grows to fill remaining space
-        // And handle its own scrolling for its content
-        "flex-grow flex flex-col overflow-auto", 
+        "flex-grow flex flex-col overflow-auto", // Main content area scrolls
         className
       )}
       {...props}
@@ -344,7 +345,7 @@ const SidebarContent = React.forwardRef<
     <div
       ref={ref}
       className={cn(
-        "flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto", // Ensures sidebar content itself scrolls if too long
+        "flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto", 
         className
       )}
       {...props}
@@ -372,14 +373,13 @@ const SidebarGroupLabel = React.forwardRef<
   React.ComponentProps<"div"> & { asChild?: boolean }
 >(({ className, asChild = false, ...props }, ref) => {
   const Comp = asChild ? Slot : "div"
-  // Removed state dependency for visibility as we aim for always expanded on desktop
+  const { state, isMobile } = useSidebar()
   return (
     <Comp
       ref={ref}
       className={cn(
         "flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-medium text-sidebar-foreground/70 outline-none ring-sidebar-ring focus-visible:ring-2",
-        // "opacity-0 -mt-8" : "opacity-100", // Removed conditional opacity
-        "opacity-100",
+        state === "collapsed" && !isMobile ? "opacity-0 -mt-8" : "opacity-100",
         className
       )}
       {...props}
@@ -393,14 +393,14 @@ const SidebarGroupAction = React.forwardRef<
   React.ComponentProps<"button"> & { asChild?: boolean }
 >(({ className, asChild = false, ...props }, ref) => {
   const Comp = asChild ? Slot : "button"
-  // Removed state dependency for visibility
+  const { state } = useSidebar()
   return (
     <Comp
       ref={ref}
       className={cn(
         "absolute right-3 top-3.5 flex aspect-square w-5 items-center justify-center rounded-md p-0 text-sidebar-foreground outline-none ring-sidebar-ring transition-transform hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0",
         "after:absolute after:-inset-2 after:md:hidden",
-        // "hidden", // Removed conditional hidden
+        state === "collapsed" && "hidden",
         className
       )}
       {...props}
@@ -468,8 +468,8 @@ const sidebarMenuButtonVariants = cva(
 )
 
 const SidebarMenuButton = React.forwardRef<
-  HTMLButtonElement, // Changed to HTMLButtonElement for direct button/link usage
-  React.ComponentProps<"button"> & { // Changed to button props
+  HTMLButtonElement,
+  React.ComponentProps<"button"> & { 
     asChild?: boolean
     isActive?: boolean
     tooltip?: string | React.ComponentProps<typeof TooltipContent>
@@ -491,39 +491,37 @@ const SidebarMenuButton = React.forwardRef<
     const Comp = asChild ? Slot : "button"
     const { isMobile, state } = useSidebar()
 
-    const iconElement = React.Children.toArray(children)[0];
-    const textElement = React.Children.toArray(children)[1];
-    
-    // Simplified button content rendering, text span is always present unless explicitly hidden by parent logic (not here)
-    // The flex container should handle icon and text alignment.
-    const buttonContent = (
-      <>
-        {iconElement}
-        {textElement && (
-          <span className={cn("truncate")}> {/* Removed conditional hidden based on state/isMobile for desktop text visibility */}
-            {textElement}
-          </span>
-        )}
-      </>
+    const iconElement = React.Children.toArray(children).find(
+      (child) => React.isValidElement(child) && child.type !== "span" // Assuming icon is not a span
     );
+    const textElement = React.Children.toArray(children).find(
+      (child) => React.isValidElement(child) && child.type === "span"
+    ) || React.Children.toArray(children).find(child => typeof child === 'string');
 
-    // Apply data-sidebar to the Comp element (button or Slot -> which resolves to its child)
+
+    // This is where data-sidebar attribute was incorrectly on React.Fragment
     const button = (
       <Comp
         ref={ref}
-        data-sidebar="menu-button" // Moved data-sidebar here
+        data-sidebar="menu-button" // Moved here
         data-size={size}
         data-active={isActive}
         className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
         {...props}
       >
-        {buttonContent}
+        {iconElement}
+        {textElement && (
+          // Text is hidden only if sidebar state is 'collapsed' AND it's not mobile
+          // AND the collapsible prop on Sidebar was 'icon' (which we removed from layouts for desktop)
+          // So on desktop with defaultOpen, this should always show.
+           <span className={cn("truncate", state === "collapsed" && !isMobile && "hidden")}>
+            {textElement}
+          </span>
+        )}
       </Comp>
     )
-
-    // Tooltip logic remains largely the same, shows only when collapsed and not mobile
-    // (Though if collapsible="icon" is removed from layouts, state might always be "expanded" on desktop)
-    if (!tooltip) {
+    
+    if (!tooltip || isMobile || state === "expanded") { // Don't show tooltip if mobile or expanded
       return button
     }
 
@@ -533,11 +531,8 @@ const SidebarMenuButton = React.forwardRef<
       }
     }
     
-    // This tooltip logic might become mostly for mobile or if desktop collapse is re-enabled later
-    const showTooltip = state === "collapsed" && !isMobile; 
-
     return (
-      <Tooltip open={showTooltip ? undefined : false} > 
+      <Tooltip open={state === "collapsed" && !isMobile ? undefined : false} > 
         <TooltipTrigger asChild>{button}</TooltipTrigger>
         <TooltipContent
           side="right"
@@ -558,7 +553,7 @@ const SidebarMenuAction = React.forwardRef<
   }
 >(({ className, asChild = false, showOnHover = false, ...props }, ref) => {
   const Comp = asChild ? Slot : "button"
-  // Removed state dependency for visibility as sidebar is intended to be always expanded on desktop
+  const { state } = useSidebar()
   return (
     <Comp
       ref={ref}
@@ -568,7 +563,7 @@ const SidebarMenuAction = React.forwardRef<
         "peer-data-[size=sm]/menu-button:top-1",
         "peer-data-[size=default]/menu-button:top-1.5",
         "peer-data-[size=lg]/menu-button:top-2.5",
-        // Removed: state === "collapsed" && "hidden", 
+        state === "collapsed" && "hidden", 
         showOnHover &&
           "group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 data-[state=open]:opacity-100 peer-data-[active=true]/menu-button:text-sidebar-accent-foreground md:opacity-0",
         className
@@ -583,7 +578,7 @@ const SidebarMenuBadge = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div">
 >(({ className, ...props }, ref) => {
-  // Removed state dependency for visibility
+  const { state, isMobile } = useSidebar()
   return (
   <div
     ref={ref}
@@ -593,7 +588,7 @@ const SidebarMenuBadge = React.forwardRef<
       "peer-data-[size=sm]/menu-button:top-1",
       "peer-data-[size=default]/menu-button:top-1.5",
       "peer-data-[size=lg]/menu-button:top-2.5",
-      // Removed: state === "collapsed" && "hidden", 
+      state === "collapsed" && !isMobile && "hidden", 
       className
     )}
     {...props}
@@ -639,13 +634,13 @@ const SidebarMenuSub = React.forwardRef<
   HTMLUListElement,
   React.ComponentProps<"ul">
 >(({ className, ...props }, ref) => {
-  // Removed state dependency for visibility
+  const { state, isMobile } = useSidebar()
   return (
   <ul
     ref={ref}
     className={cn(
       "mx-3.5 flex min-w-0 translate-x-px flex-col gap-1 border-l border-sidebar-border px-2.5 py-0.5",
-      // Removed: state === "collapsed" && "hidden", 
+      state === "collapsed" && !isMobile && "hidden", 
       className
     )}
     {...props}
@@ -668,7 +663,7 @@ const SidebarMenuSubButton = React.forwardRef<
   }
 >(({ asChild = false, size = "md", isActive, className, ...props }, ref) => {
   const Comp = asChild ? Slot : "a"
-  // Removed state dependency for visibility
+  const { state, isMobile } = useSidebar()
   return (
     <Comp
       ref={ref}
@@ -679,7 +674,7 @@ const SidebarMenuSubButton = React.forwardRef<
         "data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground",
         size === "sm" && "text-xs",
         size === "md" && "text-sm",
-        // Removed: state === "collapsed" && "hidden", 
+        state === "collapsed" && !isMobile && "hidden", 
         className
       )}
       {...props}
