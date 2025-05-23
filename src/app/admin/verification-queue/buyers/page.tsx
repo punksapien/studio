@@ -17,7 +17,7 @@ import type { VerificationRequestItem, VerificationQueueStatus, User } from "@/l
 import Link from "next/link";
 import { Eye, CheckCircle2, XCircle, MessageSquare, FileText, Edit } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import React, { useState, useEffect } from "react"; // Added React import for useState, useEffect
+import React, { useState, useEffect } from "react";
 
 const buyerRequests: VerificationRequestItem[] = sampleVerificationRequests.filter(req => req.userRole === 'buyer');
 
@@ -30,28 +30,27 @@ function FormattedTimestamp({ timestamp }: { timestamp: Date | string }) {
   }, [timestamp]);
 
   if (!formattedDate) {
-    // You can return a placeholder or null during server render and initial client render
-    return <span className="italic">Loading date...</span>; 
+    return <span className="italic text-xs">Loading...</span>; 
   }
   return <>{formattedDate}</>;
 }
 
+const getUserDetails = (userId: string): User | undefined => {
+  return sampleUsers.find(u => u.id === userId);
+}
 
 export default function AdminBuyerVerificationQueuePage() {
   const getStatusBadge = (status: VerificationQueueStatus) => {
     switch (status) {
       case 'New Request': return <Badge variant="destructive">New Request</Badge>;
       case 'Contacted': return <Badge variant="secondary">Contacted</Badge>;
-      case 'Docs Under Review': return <Badge className="bg-blue-500 text-white">Docs Review</Badge>;
-      case 'Approved': return <Badge className="bg-green-500 text-white">Approved</Badge>;
-      case 'Rejected': return <Badge variant="destructive" className="bg-red-700 text-white">Rejected</Badge>;
+      case 'Docs Under Review': return <Badge className="bg-blue-500 text-white dark:bg-blue-700 dark:text-blue-100">Docs Review</Badge>;
+      case 'More Info Requested': return <Badge className="bg-yellow-500 text-white dark:bg-yellow-600 dark:text-yellow-100">More Info</Badge>;
+      case 'Approved': return <Badge className="bg-green-500 text-white dark:bg-green-600 dark:text-green-100">Approved</Badge>;
+      case 'Rejected': return <Badge variant="destructive" className="bg-red-700 text-white dark:bg-red-800 dark:text-red-200">Rejected</Badge>;
       default: return <Badge>{status}</Badge>;
     }
   };
-
-  const getUserDetails = (userId: string): User | undefined => {
-    return sampleUsers.find(u => u.id === userId);
-  }
 
   return (
     <div className="space-y-8">
@@ -61,15 +60,15 @@ export default function AdminBuyerVerificationQueuePage() {
           <CardDescription>Manage buyers awaiting verification. Total pending: {buyerRequests.filter(r => r.status !== 'Approved' && r.status !== 'Rejected').length}</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
+          <div className="rounded-md border overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Date Requested</TableHead>
-                  <TableHead>Buyer Name</TableHead>
+                  <TableHead className="whitespace-nowrap">Date Requested</TableHead>
+                  <TableHead className="whitespace-nowrap">Buyer Name</TableHead>
                   <TableHead>Email</TableHead>
-                  <TableHead>Buyer Type</TableHead>
-                  <TableHead>Docs Submitted</TableHead>
+                  <TableHead className="whitespace-nowrap">Buyer Type</TableHead>
+                  <TableHead className="whitespace-nowrap">Docs Submitted</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -79,17 +78,17 @@ export default function AdminBuyerVerificationQueuePage() {
                   const user = getUserDetails(req.userId);
                   return (
                   <TableRow key={req.id}>
-                    <TableCell><FormattedTimestamp timestamp={req.timestamp} /></TableCell>
-                    <TableCell className="font-medium">
+                    <TableCell className="text-xs whitespace-nowrap"><FormattedTimestamp timestamp={req.timestamp} /></TableCell>
+                    <TableCell className="font-medium whitespace-nowrap">
                         <Link href={`/admin/users/${req.userId}`} className="hover:underline">{req.userName}</Link>
                     </TableCell>
                      <TableCell className="text-xs">{user?.email}</TableCell>
-                     <TableCell className="text-xs">{user?.buyerType || 'N/A'}</TableCell>
-                     <TableCell className="text-xs">
+                     <TableCell className="text-xs whitespace-nowrap">{user?.buyerPersonaType || user?.buyerType || 'N/A'}</TableCell>
+                     <TableCell className="text-xs whitespace-nowrap">
                         {req.documentsSubmitted?.length ? `${req.documentsSubmitted.length} doc(s)` : 'None'}
                      </TableCell>
                     <TableCell>{getStatusBadge(req.status)}</TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right whitespace-nowrap">
                       <Button variant="ghost" size="icon" asChild title="View Buyer Details">
                         <Link href={`/admin/users/${req.userId}`}>
                           <Eye className="h-4 w-4" />

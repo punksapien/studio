@@ -1,4 +1,5 @@
 
+'use client';
 import {
   Table,
   TableBody,
@@ -37,8 +38,9 @@ export default function AdminListingsPage() {
     if (status === 'verified_anonymous') return <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-800 dark:text-blue-200 border-blue-300 dark:border-blue-600"><ShieldCheck className="h-3 w-3 mr-1" /> Verified (Anon)</Badge>;
     if (status === 'pending_verification') return <Badge variant="secondary" className="bg-yellow-100 text-yellow-700 dark:bg-yellow-800 dark:text-yellow-200 border-yellow-300 dark:border-yellow-600"><AlertTriangle className="h-3 w-3 mr-1" /> Pending Verification</Badge>;
     if (status === 'active' && !isSellerVerified) return <Badge variant="outline">Active (Anonymous)</Badge>;
+    if (status === 'active' && isSellerVerified) return <Badge className="bg-green-100 text-green-700 dark:bg-green-800 dark:text-green-200 border-green-300 dark:border-green-600"><ShieldCheck className="h-3 w-3 mr-1" /> Active (Verified Seller)</Badge>;
     if (status === 'inactive') return <Badge variant="destructive">Inactive</Badge>;
-    return <Badge variant="outline" className="capitalize">{status}</Badge>;
+    return <Badge variant="outline" className="capitalize">{status.replace(/_/g, ' ')}</Badge>;
   };
 
   return (
@@ -52,11 +54,11 @@ export default function AdminListingsPage() {
            <div className="mb-6 flex flex-col sm:flex-row gap-4">
             <div className="relative flex-grow">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search by title or Listing ID..." className="pl-8 sm:w-full md:w-[300px]" />
+                <Input placeholder="Search by title or Listing ID..." className="pl-8 w-full md:w-[300px]" />
             </div>
-            <div className="flex flex-wrap gap-4">
+            <div className="flex flex-wrap gap-2 sm:gap-4">
                 <Select>
-                <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectTrigger className="w-full sm:w-auto min-w-[180px]">
                     <SelectValue placeholder="Filter by Industry" />
                 </SelectTrigger>
                 <SelectContent>
@@ -67,7 +69,7 @@ export default function AdminListingsPage() {
                 </SelectContent>
                 </Select>
                 <Select>
-                <SelectTrigger className="w-full sm:w-[200px]">
+                <SelectTrigger className="w-full sm:w-auto min-w-[200px]">
                     <SelectValue placeholder="Filter by Seller Verification" />
                 </SelectTrigger>
                 <SelectContent>
@@ -77,7 +79,7 @@ export default function AdminListingsPage() {
                 </SelectContent>
                 </Select>
                  <Select>
-                <SelectTrigger className="w-full sm:w-[200px]">
+                <SelectTrigger className="w-full sm:w-auto min-w-[200px]">
                     <SelectValue placeholder="Filter by Listing Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -86,24 +88,24 @@ export default function AdminListingsPage() {
                     <SelectItem value="inactive">Inactive</SelectItem>
                     <SelectItem value="pending_verification">Pending Verification</SelectItem>
                     <SelectItem value="verified_public">Verified (Public)</SelectItem>
+                    <SelectItem value="verified_anonymous">Verified (Anonymous)</SelectItem>
                 </SelectContent>
                 </Select>
-                <Button variant="outline" className="hidden sm:inline-flex"><Filter className="h-4 w-4 mr-2"/>Apply</Button>
+                <Button variant="outline" className="w-full sm:w-auto"><Filter className="h-4 w-4 mr-2"/>Apply</Button>
             </div>
-             <Button variant="outline" className="sm:hidden w-full"><Filter className="h-4 w-4 mr-2"/>Apply Filters</Button>
           </div>
 
-          <div className="rounded-md border">
+          <div className="rounded-md border overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Anonymous Title</TableHead>
-                  <TableHead>Seller Name</TableHead>
-                  <TableHead>Seller Paid</TableHead>
+                  <TableHead className="whitespace-nowrap">Anonymous Title</TableHead>
+                  <TableHead className="whitespace-nowrap">Seller Name</TableHead>
+                  <TableHead className="whitespace-nowrap">Seller Paid</TableHead>
                   <TableHead>Industry</TableHead>
-                  <TableHead>Price Range</TableHead>
-                  <TableHead>Listing Status</TableHead>
-                  <TableHead>Created On</TableHead>
+                  <TableHead className="whitespace-nowrap">Price Range</TableHead>
+                  <TableHead className="whitespace-nowrap">Listing Status</TableHead>
+                  <TableHead className="whitespace-nowrap">Created On</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -112,20 +114,20 @@ export default function AdminListingsPage() {
                   const seller = getSellerDetails(listing.sellerId);
                   return (
                   <TableRow key={listing.id}>
-                    <TableCell className="font-medium max-w-xs truncate" title={listing.listingTitleAnonymous}>
+                    <TableCell className="font-medium max-w-[200px] sm:max-w-xs truncate" title={listing.listingTitleAnonymous}>
                         <Link href={`/admin/listings/${listing.id}`} className="hover:underline">{listing.listingTitleAnonymous}</Link>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="whitespace-nowrap">
                         {seller ? <Link href={`/admin/users/${listing.sellerId}`} className="hover:underline">{seller.fullName}</Link> : 'Unknown Seller'}
                     </TableCell>
                     <TableCell>
                       {seller?.isPaid ? <Badge className="bg-green-500 text-white">Yes</Badge> : <Badge variant="secondary">No</Badge>}
                     </TableCell>
                     <TableCell>{listing.industry}</TableCell>
-                    <TableCell>{listing.askingPriceRange}</TableCell>
+                    <TableCell className="whitespace-nowrap">{listing.askingPriceRange}</TableCell>
                     <TableCell>{getListingStatusBadge(listing.status, listing.isSellerVerified)}</TableCell>
                     <TableCell>{new Date(listing.createdAt).toLocaleDateString()}</TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right whitespace-nowrap">
                       <Button variant="ghost" size="icon" asChild title="View Listing Details">
                         <Link href={`/admin/listings/${listing.id}`}>
                           <Eye className="h-4 w-4" />

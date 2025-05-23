@@ -12,12 +12,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { sampleVerificationRequests } from "@/lib/placeholder-data"; // No sampleUsers needed here directly
+import { sampleVerificationRequests } from "@/lib/placeholder-data";
 import type { VerificationRequestItem, VerificationQueueStatus } from "@/lib/types";
 import Link from "next/link";
-import { Eye, FileText, MessageSquare } from "lucide-react"; // Removed unused CheckCircle2, XCircle, Edit
+import { Eye, FileText, MessageSquare } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import React, { useState, useEffect } from "react"; // Added React import for useState, useEffect
+import React, { useState, useEffect } from "react";
 
 const sellerRequests: VerificationRequestItem[] = sampleVerificationRequests.filter(req => req.userRole === 'seller');
 
@@ -30,7 +30,7 @@ function FormattedTimestamp({ timestamp }: { timestamp: Date | string }) {
   }, [timestamp]);
 
   if (!formattedDate) {
-    return <span className="italic">Loading date...</span>; 
+    return <span className="italic text-xs">Loading...</span>; 
   }
   return <>{formattedDate}</>;
 }
@@ -56,14 +56,14 @@ export default function AdminSellerVerificationQueuePage() {
           <CardDescription>Manage sellers and their listings awaiting verification. Total pending: {sellerRequests.filter(r => r.status !== 'Approved' && r.status !== 'Rejected').length}</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
+          <div className="rounded-md border overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Date Requested</TableHead>
-                  <TableHead>Seller Name</TableHead>
-                  <TableHead>Associated Listing</TableHead>
-                  <TableHead>Docs Submitted</TableHead>
+                  <TableHead className="whitespace-nowrap">Date Requested</TableHead>
+                  <TableHead className="whitespace-nowrap">Seller Name</TableHead>
+                  <TableHead className="whitespace-nowrap">Associated Listing</TableHead>
+                  <TableHead className="whitespace-nowrap">Docs Submitted</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -71,20 +71,20 @@ export default function AdminSellerVerificationQueuePage() {
               <TableBody>
                 {sellerRequests.map((req) => (
                   <TableRow key={req.id}>
-                    <TableCell><FormattedTimestamp timestamp={req.timestamp} /></TableCell>
-                    <TableCell className="font-medium">
+                    <TableCell className="text-xs whitespace-nowrap"><FormattedTimestamp timestamp={req.timestamp} /></TableCell>
+                    <TableCell className="font-medium whitespace-nowrap">
                         <Link href={`/admin/users/${req.userId}`} className="hover:underline">{req.userName}</Link>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="whitespace-nowrap">
                         {req.listingId && req.listingTitle ? (
                             <Link href={`/admin/listings/${req.listingId}`} className="hover:underline">{req.listingTitle}</Link>
                         ) : "N/A (Profile Only)"}
                     </TableCell>
-                    <TableCell className="text-xs">
+                    <TableCell className="text-xs whitespace-nowrap">
                         {req.documentsSubmitted?.length ? `${req.documentsSubmitted.length} doc(s)` : 'None'}
                      </TableCell>
                     <TableCell>{getStatusBadge(req.status)}</TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right whitespace-nowrap">
                       <Button variant="ghost" size="icon" asChild title="View User Details">
                         <Link href={`/admin/users/${req.userId}`}>
                           <Eye className="h-4 w-4" />

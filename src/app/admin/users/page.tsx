@@ -1,4 +1,5 @@
 
+'use client';
 import {
   Table,
   TableBody,
@@ -53,9 +54,9 @@ export default function AdminUsersPage() {
           <div className="mb-6 flex flex-col sm:flex-row gap-4">
             <div className="relative flex-grow">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search by name or email..." className="pl-8 sm:w-full md:w-[300px]" />
+                <Input placeholder="Search by name or email..." className="pl-8 w-full md:w-[300px]" />
             </div>
-            <div className="flex flex-wrap gap-4">
+            <div className="flex flex-wrap gap-2 sm:gap-4">
                 <Select>
                 <SelectTrigger className="w-full sm:w-[160px]">
                     <SelectValue placeholder="Filter by Role" />
@@ -89,30 +90,29 @@ export default function AdminUsersPage() {
                     <SelectItem value="free">Free</SelectItem>
                 </SelectContent>
                 </Select>
-                <Button variant="outline" className="hidden sm:inline-flex"><Filter className="h-4 w-4 mr-2"/>Apply</Button>
+                <Button variant="outline" className="w-full sm:w-auto"><Filter className="h-4 w-4 mr-2"/>Apply</Button>
             </div>
-            <Button variant="outline" className="sm:hidden w-full"><Filter className="h-4 w-4 mr-2"/>Apply Filters</Button>
           </div>
 
-          <div className="rounded-md border">
+          <div className="rounded-md border overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Full Name</TableHead>
+                  <TableHead className="whitespace-nowrap">Full Name</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Role</TableHead>
                   <TableHead>Paid</TableHead>
                   <TableHead>Country</TableHead>
-                  <TableHead>Verification Status</TableHead>
-                  <TableHead>Registered On</TableHead>
-                  <TableHead>Listings/Inquiries</TableHead>
+                  <TableHead className="whitespace-nowrap">Verification Status</TableHead>
+                  <TableHead className="whitespace-nowrap">Registered On</TableHead>
+                  <TableHead className="whitespace-nowrap">Listings/Inquiries</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {users.map((user) => (
                   <TableRow key={user.id}>
-                    <TableCell className="font-medium">{user.fullName}</TableCell>
+                    <TableCell className="font-medium whitespace-nowrap">{user.fullName}</TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell><Badge variant="outline" className="capitalize">{user.role}</Badge></TableCell>
                     <TableCell>
@@ -124,7 +124,7 @@ export default function AdminUsersPage() {
                     <TableCell className="text-center">
                       {user.role === 'seller' ? user.listingCount || 0 : user.inquiryCount || 0}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right whitespace-nowrap">
                       <Button variant="ghost" size="icon" asChild title="View User Details">
                         <Link href={`/admin/users/${user.id}`}>
                           <Eye className="h-4 w-4" />

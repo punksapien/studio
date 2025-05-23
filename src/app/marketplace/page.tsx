@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'; // Combined imports
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 import { ListingCard } from '@/components/marketplace/listing-card';
@@ -13,12 +13,11 @@ import { sampleListings } from '@/lib/placeholder-data';
 import type { Listing } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Briefcase } from 'lucide-react';
-
+import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
+import { SlidersHorizontal, Briefcase } from 'lucide-react';
 
 // Simulate fetching data for the full marketplace with pagination
 async function getPaginatedListings(page: number = 1, limit: number = 9): Promise<{ listings: Listing[], totalPages: number, totalListings: number }> {
-  // Simulate API call delay
   await new Promise(resolve => setTimeout(resolve, 300)); 
   
   const totalListings = sampleListings.length;
@@ -39,8 +38,27 @@ export default function MarketplacePage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [totalListings, setTotalListings] = useState(0);
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+
+  // Placeholder for authentication - in a real app, use Clerk's useAuth hook
+  const [isAuthenticated, setIsAuthenticated] = useState(true); // Default to true for dev
+  const [authLoading, setAuthLoading] = useState(false); // Simulate auth check loading
 
   useEffect(() => {
+    // Simulate auth check
+    // setAuthLoading(true);
+    // const authStatus = true; // Replace with actual auth check from Clerk
+    // setIsAuthenticated(authStatus);
+    // setAuthLoading(false);
+
+    // if (!authLoading && !isAuthenticated) {
+    //   router.replace(`/auth/login?redirect=${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`);
+    // }
+  }, [authLoading, isAuthenticated, router, pathname, searchParams]);
+
+  useEffect(() => {
+    if (authLoading || !isAuthenticated) return; // Don't fetch if auth is loading or not authenticated
+
     setIsLoading(true);
     const pageQuery = searchParams.get('page');
     const page = pageQuery ? parseInt(pageQuery, 10) : 1;
@@ -54,10 +72,8 @@ export default function MarketplacePage() {
     }).catch(error => {
       console.error("Failed to fetch listings:", error);
       setIsLoading(false);
-      // Handle error state if necessary
     });
-  }, [searchParams]); // Re-run when searchParams (and thus page query) change
-
+  }, [searchParams, authLoading, isAuthenticated]);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -67,27 +83,52 @@ export default function MarketplacePage() {
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
+  if (authLoading) {
+    return (
+      <div className="container py-8 md:py-12 text-center">
+        <p>Checking authentication...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="container py-8 md:py-12">
       <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Business Marketplace</h1>
+          <h1 className="text-3xl font-semibold tracking-tight text-brand-dark-blue">Business Marketplace</h1>
           <p className="text-muted-foreground">
             {isLoading ? 'Loading listings...' : `Explore all available business opportunities. Found ${totalListings} listings.`}
           </p>
         </div>
-        <SortDropdown />
+        <div className="flex items-center gap-4 w-full md:w-auto">
+          <div className="md:hidden flex-grow">
+             <Sheet open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
+              <SheetTrigger asChild>
+                <Button variant="outline" className="w-full">
+                  <SlidersHorizontal className="mr-2 h-4 w-4" />
+                  Filters
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-[300px] sm:w-[350px] p-0">
+                <Filters />
+                <SheetClose asChild>
+                    <Button className="m-4">Apply Filters & Close</Button>
+                </SheetClose>
+              </SheetContent>
+            </Sheet>
+          </div>
+          <SortDropdown />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-        <aside className="md:col-span-3 md:sticky md:top-24 h-fit">
+        <aside className="hidden md:block md:col-span-3 md:sticky md:top-24 h-fit">
           <Filters />
         </aside>
         <main className="md:col-span-9">
           {isLoading ? (
              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-96 w-full" />)}
+                {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-96 w-full rounded-lg" />)}
             </div>
           ) : listings.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -100,7 +141,7 @@ export default function MarketplacePage() {
               <Briefcase className="h-16 w-16 text-muted-foreground mb-4" />
               <p className="text-xl text-muted-foreground font-semibold">No listings found matching your criteria.</p>
               <p className="text-sm text-muted-foreground mt-1">Try adjusting your filters or check back later.</p>
-              <Button variant="link" asChild className="mt-4">
+              <Button variant="link" asChild className="mt-4 text-brand-dark-blue hover:text-brand-sky-blue">
                 <Link href="/marketplace">Clear all filters</Link>
               </Button>
             </div>
