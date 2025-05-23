@@ -15,6 +15,7 @@ import {
   SidebarInset,
   SidebarTrigger,
   SidebarSeparator,
+  SidebarFooter // Added SidebarFooter import
 } from '@/components/ui/sidebar';
 import { Logo } from '@/components/shared/logo';
 import { Button } from '@/components/ui/button';
@@ -30,13 +31,13 @@ import {
   PlusCircle,
   HelpCircle,
   FileText,
-  MessageSquareQuote, // Corrected from MessageSquareQuestion
+  MessageSquareQuote,
   Home,
 } from 'lucide-react';
 import type { UserRole } from '@/lib/types';
 
 // Placeholder for current user role
-const currentUserRole: UserRole | null = 'seller'; 
+const currentUserRole: UserRole | null = 'seller';
 
 const sellerSidebarNavItems = [
   { title: 'Overview', href: '/seller-dashboard', icon: LayoutDashboard, tooltip: "Dashboard Overview" },
@@ -52,7 +53,7 @@ const sellerSidebarNavItems = [
 const utilityNavItems = [
   { title: 'Help', href: '/help', icon: HelpCircle, tooltip: "Get Help" },
   { title: 'Refer Docs', href: '/docs', icon: FileText, tooltip: "View Documentation" },
-  { title: 'FAQ', href: '/faq', icon: MessageSquareQuote, tooltip: "Frequently Asked Questions" }, // Corrected Icon
+  { title: 'FAQ', href: '/faq', icon: MessageSquareQuote, tooltip: "Frequently Asked Questions" },
   { title: 'Back to Homepage', href: '/', icon: Home, tooltip: "Go to Homepage" },
 ];
 
@@ -74,16 +75,16 @@ export default function SellerDashboardLayout({
   }
 
   return (
-    <SidebarProvider defaultOpen> {/* Ensures sidebar is open by default */}
-      <div className="flex min-h-screen"> {/* Added flex container */}
-        <Sidebar variant="sidebar" className="border-r border-sidebar-border bg-brand-white"> {/* Removed collapsible="icon" */}
+    <SidebarProvider defaultOpen>
+      <div className="flex min-h-screen">
+        <Sidebar variant="sidebar" className="border-r border-sidebar-border bg-brand-white">
           <SidebarHeader className="p-4 border-b border-sidebar-border">
             <div className="flex items-center justify-between">
               <Logo size="lg" />
-              <SidebarTrigger className="md:hidden" /> {/* This trigger is for mobile sheet */}
+              <SidebarTrigger className="md:hidden" />
             </div>
           </SidebarHeader>
-          <SidebarContent>
+          <SidebarContent className="flex-grow overflow-y-auto">
             <SidebarMenu>
               {sellerSidebarNavItems.map((item) => {
                 const overviewPath = '/seller-dashboard';
@@ -105,7 +106,7 @@ export default function SellerDashboardLayout({
                 if (item.href === myListingsPath && pathname.startsWith(createListingPath)) {
                   itemIsActive = false;
                 }
-
+                
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
@@ -115,7 +116,7 @@ export default function SellerDashboardLayout({
                     >
                       <Link href={item.href}>
                         <item.icon className="h-5 w-5" />
-                        <span>{item.title}</span>
+                        <span className="group-data-[state=collapsed]:hidden">{item.title}</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -133,7 +134,7 @@ export default function SellerDashboardLayout({
                   >
                     <Link href={item.href}>
                       <item.icon className="h-5 w-5" />
-                      <span>{item.title}</span>
+                      <span className="group-data-[state=collapsed]:hidden">{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -143,16 +144,14 @@ export default function SellerDashboardLayout({
           <SidebarFooter className="p-4 border-t border-sidebar-border">
             <Button variant="outline" className="w-full text-destructive-foreground bg-destructive hover:bg-destructive/90">
               <LogOut className="h-5 w-5" />
-              {/* Removed conditional class for text span */}
-              <span>Logout</span>
+              <span className="group-data-[state=collapsed]:hidden">Logout</span>
             </Button>
           </SidebarFooter>
         </Sidebar>
         <SidebarInset className="flex-grow flex flex-col overflow-hidden">
-          {/* Mobile header - shown when sidebar is a sheet on small screens */}
-          <header className="md:hidden flex items-center justify-between p-4 border-b bg-brand-white">
+          <header className="md:hidden flex items-center justify-between p-4 border-b bg-brand-white sticky top-0 z-10">
             <Logo size="lg" />
-            <SidebarTrigger />
+            <SidebarTrigger/>
           </header>
           <div className="flex-grow flex flex-col p-4 md:p-6 lg:p-8 overflow-y-auto">
             <div className="flex-grow">
