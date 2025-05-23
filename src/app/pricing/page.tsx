@@ -1,8 +1,11 @@
 
+'use client'; // Ensure this is a client component if it uses hooks like useState for future interactivity
+
+import * as React from "react"; // Added React import
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Check, X, ArrowRight } from "lucide-react"; // Using Lucide icons
+import { Check, X, ArrowRight, DollarSign, Briefcase, Users, FileText, Info, Phone, Newspaper, ShoppingCart } from "lucide-react";
 import Link from "next/link";
 
 const plans = [
@@ -17,6 +20,7 @@ const plans = [
       "Buyer Interest Dashboard",
     ],
     cta: "Get Started Free",
+    ctaLink: "/auth/register/seller", // Example link
     variant: "secondary",
   },
   {
@@ -31,6 +35,7 @@ const plans = [
       "Negotiation support",
     ],
     cta: "Choose Lite",
+    ctaLink: "/auth/register/seller?plan=lite", // Example link
     variant: "secondary",
   },
   {
@@ -45,7 +50,8 @@ const plans = [
       "Hands-on advisor support",
     ],
     cta: "Choose Pro",
-    variant: "default", // Primary CTA style
+    ctaLink: "/auth/register/seller?plan=pro", // Example link
+    variant: "default",
     popular: true,
   },
   {
@@ -60,6 +66,7 @@ const plans = [
       "Legal services covered (up to X hours)",
     ],
     cta: "Choose Premium",
+    ctaLink: "/auth/register/seller?plan=premium", // Example link
     variant: "secondary",
   },
 ];
@@ -157,7 +164,7 @@ export default function PricingPage() {
             Select the Best Plan to Sell Your Business
           </h1>
           <p className="mt-4 text-lg md:text-xl text-brand-dark-blue/80 max-w-3xl mx-auto">
-            Selling your business can feel overwhelming, so we've designed plans to meet your needs – whether you want full-service support or a cost-effective way to explore the market with Nobridge.
+            Selling your business can feel overwhelming, so we&apos;ve designed plans to meet your needs – whether you want full-service support or a cost-effective way to explore the market with Nobridge.
           </p>
         </div>
       </section>
@@ -167,11 +174,11 @@ export default function PricingPage() {
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 items-stretch">
             {plans.map((plan) => (
-              <Card key={plan.name} className={`flex flex-col shadow-xl rounded-lg overflow-hidden ${plan.popular ? 'border-2 border-brand-sky-blue relative' : 'border border-brand-light-gray'}`}>
+              <Card key={plan.name} className={`flex flex-col shadow-xl rounded-lg overflow-hidden ${plan.popular ? 'border-2 border-brand-sky-blue relative' : 'border border-brand-light-gray/70'}`}>
                 {plan.popular && (
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 transform">
                     <span className="px-4 py-1 bg-brand-sky-blue text-brand-white text-xs font-semibold rounded-full uppercase tracking-wider">
-                      Most Popular
+                      MOST POPULAR
                     </span>
                   </div>
                 )}
@@ -179,9 +186,9 @@ export default function PricingPage() {
                   <CardTitle className="text-2xl font-bold text-brand-dark-blue mb-2">{plan.name}</CardTitle>
                   <p className="text-4xl font-extrabold text-brand-dark-blue">
                     {plan.price}
-                    {plan.priceDetails !== "$0" && <span className="text-base font-normal text-brand-dark-blue/70">{plan.priceDetails}</span>}
+                    {(plan.price !== "$0" && plan.priceDetails) && <span className="text-base font-normal text-brand-dark-blue/70">{plan.priceDetails.replace('/month', '').replace('Success Fee','').trim()}</span>}
                   </p>
-                  {plan.price === "$0" && <p className="text-sm text-brand-dark-blue/70 mt-1">{plan.priceDetails}</p>}
+                  {plan.priceDetails && <p className="text-sm text-brand-dark-blue/70 mt-1">{plan.priceDetails.includes('/month') ? '/month' : ''} {plan.priceDetails.includes('Success Fee') ? `+ ${plan.priceDetails.split('+')[1].trim()}` : ''}</p>}
                   <CardDescription className="text-sm text-brand-dark-blue/70 mt-3 min-h-[3em]">{plan.description}</CardDescription>
                 </CardHeader>
                 <CardContent className="p-6 flex-grow">
@@ -195,17 +202,12 @@ export default function PricingPage() {
                   </ul>
                 </CardContent>
                 <CardFooter className="p-6 mt-auto">
-                  <Button 
-                    size="lg" 
+                  <Button
+                    size="lg"
                     className={`w-full font-semibold ${plan.variant === 'default' ? 'bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90' : 'bg-brand-sky-blue text-brand-white hover:bg-brand-sky-blue/90'}`}
-                    // For primary, maybe use brand-dark-blue. For secondary, brand-sky-blue or outlined.
-                    // Correcting based on typical CTA hierarchy:
-                    // Most popular (Pro) should be primary (dark blue)
-                    // Others can be Sky Blue or outline. Let's make non-popular sky blue for now.
-                    // variant={plan.popular ? "default" : "outline"}
-                    // className={`w-full font-semibold ${plan.popular ? 'bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90' : 'text-brand-dark-blue border-brand-dark-blue hover:bg-brand-dark-blue/5'}`}
+                    asChild
                   >
-                    {plan.cta}
+                    <Link href={plan.ctaLink || '#'}>{plan.cta}</Link>
                   </Button>
                 </CardFooter>
               </Card>
@@ -217,7 +219,7 @@ export default function PricingPage() {
       {/* Get Started Central CTA */}
       <section className="py-16 bg-brand-white text-center">
         <div className="container mx-auto px-4">
-          <Button size="xl" className="bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90 py-4 px-10 text-lg font-semibold">
+          <Button size="xl" className="bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90 py-4 px-10 text-lg font-semibold rounded-md">
             Get Started with Nobridge <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
         </div>
@@ -229,11 +231,11 @@ export default function PricingPage() {
           <h2 className="text-3xl md:text-4xl font-bold text-brand-dark-blue text-center mb-12">
             Compare Our Seller Plans
           </h2>
-          <div className="overflow-x-auto rounded-lg border border-brand-light-gray shadow-lg">
-            <table className="min-w-full divide-y divide-brand-light-gray bg-brand-white">
+          <div className="overflow-x-auto rounded-lg border border-brand-light-gray/70 shadow-lg">
+            <table className="min-w-full divide-y divide-brand-light-gray/70 bg-brand-white">
               <thead className="bg-brand-light-gray/50">
                 <tr>
-                  <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-brand-dark-blue uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-brand-dark-blue uppercase tracking-wider sticky left-0 bg-brand-light-gray/50 z-10">
                     Feature
                   </th>
                   {plans.map((plan) => (
@@ -244,17 +246,17 @@ export default function PricingPage() {
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-brand-light-gray">
+              <tbody className="divide-y divide-brand-light-gray/70">
                 {featureComparison.map((group) => (
                   <React.Fragment key={group.category}>
                     <tr>
-                      <th colSpan={plans.length + 1} className="px-6 py-3 text-left text-sm font-semibold text-brand-white bg-brand-dark-blue/80 tracking-wide">
+                      <th colSpan={plans.length + 1} className="px-6 py-3 text-left text-sm font-semibold text-brand-white bg-brand-dark-blue/90 tracking-wide sticky left-0 z-10">
                         {group.category}
                       </th>
                     </tr>
                     {group.features.map((feature) => (
-                      <tr key={feature.name} className="even:bg-brand-light-gray/30">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-brand-dark-blue/90">{feature.name}</td>
+                      <tr key={feature.name} className="even:bg-brand-light-gray/30 hover:bg-brand-sky-blue/5">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-brand-dark-blue/90 sticky left-0 bg-inherit z-0">{feature.name}</td>
                         {(['free', 'lite', 'pro', 'premium'] as const).map(planKey => {
                           const value = feature[planKey as keyof typeof feature];
                           return (
@@ -262,7 +264,7 @@ export default function PricingPage() {
                               {typeof value === 'boolean' ? (
                                 value ? <Check className="h-5 w-5 text-green-500 mx-auto" /> : <X className="h-5 w-5 text-red-500 mx-auto" />
                               ) : (
-                                value || '-'
+                                value || '—'
                               )}
                             </td>
                           );
@@ -274,7 +276,7 @@ export default function PricingPage() {
               </tbody>
             </table>
           </div>
-          <p className="text-xs text-muted-foreground mt-4">
+          <p className="text-xs text-brand-dark-blue/70 mt-4">
             ¹ Feature details: Refresh Financials on Listing is Quarterly for Pro, Monthly for Premium.
             <br />
             ² Feature details: Owner Legal Services Covered up to X hours for Pro, up to Y hours for Premium (specifics to be defined).
@@ -282,15 +284,24 @@ export default function PricingPage() {
         </div>
       </section>
 
+      {/* Another "Get Started" Central CTA */}
+      <section className="py-16 bg-brand-white text-center">
+        <div className="container mx-auto px-4">
+            <Button size="xl" className="bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90 py-4 px-10 text-lg font-semibold rounded-md">
+             Get Started with Nobridge <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+        </div>
+      </section>
+
       {/* FAQ Section */}
-      <section className="py-16 md:py-24 bg-brand-white">
+      <section className="py-16 md:py-24 bg-brand-light-gray">
         <div className="container mx-auto px-4 max-w-3xl">
           <h2 className="text-3xl md:text-4xl font-bold text-brand-dark-blue text-center mb-12">
             Frequently Asked Questions
           </h2>
           <Accordion type="single" collapsible className="w-full">
             {faqs.map((faq, index) => (
-              <AccordionItem value={`item-${index + 1}`} key={index} className="border-b-brand-light-gray">
+              <AccordionItem value={`item-${index + 1}`} key={index} className="border-b-brand-light-gray/70">
                 <AccordionTrigger className="py-5 text-left text-lg font-medium text-brand-dark-blue hover:text-brand-sky-blue hover:no-underline">
                   {faq.question}
                 </AccordionTrigger>
