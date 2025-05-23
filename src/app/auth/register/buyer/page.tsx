@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation"; // Import useRouter
 
 import { Button } from "@/components/ui/button";
 import {
@@ -27,9 +28,11 @@ import {
 } from "@/components/ui/select";
 import { AuthCardWrapper } from "@/components/auth/auth-card-wrapper";
 import { CommonRegistrationFields } from "@/components/auth/common-registration-fields";
-import { BuyerPersonaTypes, PreferredInvestmentSizes, asianCountries } from "@/lib/types"; // Added asianCountries
+import { BuyerPersonaTypes, PreferredInvestmentSizes, asianCountries } from "@/lib/types"; 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+
 
 const BuyerRegisterSchema = z.object({
   fullName: z.string().min(1, { message: "Full name is required." }),
@@ -41,7 +44,7 @@ const BuyerRegisterSchema = z.object({
   buyerPersonaType: z.enum(BuyerPersonaTypes, { required_error: "Buyer persona type is required."}),
   buyerPersonaOther: z.string().optional(),
   investmentFocusDescription: z.string().optional(),
-  preferredInvestmentSize: z.enum(PreferredInvestmentSizes).optional(),
+  preferredInvestmentSize: z.enum(PreferredInvestmentSizes, {errorMap: () => ({ message: "Please select a preferred investment size." }) }).optional(),
   keyIndustriesOfInterest: z.string().optional(),
 }).refine(data => data.password === data.confirmPassword, {
   message: "Passwords do not match.",
@@ -53,8 +56,9 @@ const BuyerRegisterSchema = z.object({
 
 export default function BuyerRegisterPage() {
   const [error, setError] = useState<string | undefined>("");
-  const [success, setSuccess] = useState<string | undefined>("");
   const [isPending, startTransition] = useTransition();
+  const router = useRouter(); // Initialize useRouter
+  const { toast } = useToast();
 
   const form = useForm<z.infer<typeof BuyerRegisterSchema>>({
     resolver: zodResolver(BuyerRegisterSchema),
@@ -77,15 +81,19 @@ export default function BuyerRegisterPage() {
 
   const onSubmit = (values: z.infer<typeof BuyerRegisterSchema>) => {
     setError("");
-    setSuccess("");
     
     startTransition(async () => {
       console.log("Buyer Register values:", values);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-       if (values.email === "existing@example.com") {
-         setError("Email already in use.");
+      // Placeholder for actual registration server action (e.g., call to /api/auth/register/buyer)
+      // This action would then trigger OTP sending
+      await new Promise(resolve => setTimeout(resolve, 1000)); 
+      if (values.email === "existing@example.com") { // Simulate existing email
+         setError("Email already in use. Please use a different email or login.");
+         toast({ variant: "destructive", title: "Registration Failed", description: "Email already in use."});
       } else {
-        setSuccess("Registration successful! Please check your email to verify your account.");
+        // Simulate successful initiation of registration (OTP sent by backend)
+        toast({ title: "Registration Initiated", description: "Please check your email for an OTP to complete registration."});
+        router.push(`/auth/verify-otp?email=${encodeURIComponent(values.email)}&type=register`);
       }
     });
   };
@@ -106,7 +114,7 @@ export default function BuyerRegisterPage() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>I am a/an: (Primary Role / Buyer Type)</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isPending}>
+                <Select onValueChange={field.onChange} value={field.value || ""} disabled={isPending}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select your primary role" />
@@ -146,7 +154,7 @@ export default function BuyerRegisterPage() {
             name="investmentFocusDescription"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Investment Focus or What You're Looking For</FormLabel>
+                <FormLabel>Investment Focus or What You&apos;re Looking For</FormLabel>
                 <FormControl>
                   <Textarea 
                     {...field} 
@@ -167,7 +175,7 @@ export default function BuyerRegisterPage() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Preferred Investment Size (Approximate)</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isPending}>
+                <Select onValueChange={field.onChange} value={field.value || ""} disabled={isPending}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select preferred investment size" />
@@ -212,16 +220,9 @@ export default function BuyerRegisterPage() {
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
-          {success && (
-             <Alert variant="default" className="bg-green-50 border-green-200 dark:bg-green-900 dark:border-green-700">
-               <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
-              <AlertTitle className="text-green-700 dark:text-green-300">Success</AlertTitle>
-              <AlertDescription className="text-green-600 dark:text-green-400">{success}</AlertDescription>
-            </Alert>
-          )}
-
+          
           <Button type="submit" className="w-full" disabled={isPending}>
-             {isPending ? "Creating Account..." : "Create Buyer Account"}
+             {isPending ? "Processing..." : "Register as Buyer"}
           </Button>
         </form>
       </Form>

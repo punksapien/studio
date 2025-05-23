@@ -1,9 +1,11 @@
+
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import Link from "next/link";
+import { useRouter } from "next/navigation"; // Import useRouter
 
 import { Button } from "@/components/ui/button";
 import {
@@ -19,6 +21,7 @@ import { AuthCardWrapper } from "@/components/auth/auth-card-wrapper";
 import { useState, useTransition } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const LoginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
@@ -27,8 +30,9 @@ const LoginSchema = z.object({
 
 export default function LoginPage() {
   const [error, setError] = useState<string | undefined>("");
-  const [success, setSuccess] = useState<string | undefined>("");
   const [isPending, startTransition] = useTransition();
+  const router = useRouter(); // Initialize useRouter
+  const { toast } = useToast();
 
   const form = useForm<z.infer<typeof LoginSchema>>({
     resolver: zodResolver(LoginSchema),
@@ -40,18 +44,19 @@ export default function LoginPage() {
 
   const onSubmit = (values: z.infer<typeof LoginSchema>) => {
     setError("");
-    setSuccess("");
 
     startTransition(async () => {
-      // Placeholder for actual login server action
       console.log("Login values:", values);
-      // Simulate API call
+      // Placeholder for actual primary login server action (e.g., call to /api/auth/login)
+      // This action would validate credentials and then trigger OTP sending
       await new Promise(resolve => setTimeout(resolve, 1000));
-      if (values.email === "error@example.com") {
+      if (values.email === "error@example.com" || values.password === "wrong") { // Simulate incorrect primary credentials
         setError("Invalid email or password.");
+        toast({ variant: "destructive", title: "Login Failed", description: "Invalid email or password."});
       } else {
-        setSuccess("Login successful! Redirecting...");
-        // In a real app, redirect to dashboard: router.push('/dashboard');
+        // Simulate successful primary credential check (OTP sent by backend)
+        toast({ title: "Credentials Verified", description: "Please check your email for an OTP to complete login."});
+        router.push(`/auth/verify-otp?email=${encodeURIComponent(values.email)}&type=login`);
       }
     });
   };
@@ -61,7 +66,7 @@ export default function LoginPage() {
       headerLabel="Welcome back! Please login to your account."
       backButtonLabel="Don't have an account? Register here."
       backButtonHref="/auth/register"
-      showSocial // Example: Can be turned on/off
+      showSocial 
     >
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -112,19 +117,14 @@ export default function LoginPage() {
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
-          {success && (
-            <Alert variant="default" className="bg-green-50 border-green-200 dark:bg-green-900 dark:border-green-700">
-               <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
-              <AlertTitle className="text-green-700 dark:text-green-300">Success</AlertTitle>
-              <AlertDescription className="text-green-600 dark:text-green-400">{success}</AlertDescription>
-            </Alert>
-          )}
-
+          
           <Button type="submit" className="w-full" disabled={isPending}>
-            {isPending ? "Logging in..." : "Login"}
+            {isPending ? "Processing..." : "Login"}
           </Button>
         </form>
       </Form>
     </AuthCardWrapper>
   );
 }
+
+    

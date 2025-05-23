@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { industries, asianCountries, revenueRanges, profitMarginRanges, dealStructures, Listing, User, employeeCountRanges } from "@/lib/types"; // Removed askingPriceRanges
+import { industries, asianCountries, revenueRanges, profitMarginRanges, dealStructures, Listing, User, employeeCountRanges } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { useTransition, useState, useEffect } from "react";
 import { Separator } from "@/components/ui/separator";
@@ -34,15 +34,11 @@ import { PlusCircle, Trash2, DollarSign } from "lucide-react";
 import { notFound, useRouter } from 'next/navigation';
 import { Label } from "@/components/ui/label";
 
-
 const ListingSchema = z.object({
-  // Section 1: Basic Information (Anonymous)
   listingTitleAnonymous: z.string().min(5, "Title must be at least 5 characters.").max(100, "Title too long."),
   industry: z.string().min(1, "Industry is required."),
   locationCountry: z.string().min(1, "Country is required."),
   locationCityRegionGeneral: z.string().min(2, "City/Region is required.").max(50, "City/Region too long."),
-  
-  // Section 2: Business Profile & Operations (Enhanced)
   anonymousBusinessDescription: z.string().min(50, "Description must be at least 50 characters.").max(2000, "Description too long (max 2000 chars)."),
   keyStrengthsAnonymous: z.array(z.string().min(1, "Strength cannot be empty.")).min(1, "At least one key strength is required.").max(5, "Maximum of 5 key strengths."),
   businessModel: z.string().optional(),
@@ -54,23 +50,17 @@ const ListingSchema = z.object({
   socialMediaLinks: z.string().optional(), 
   numberOfEmployees: z.string().optional(), 
   technologyStack: z.string().optional(), 
-  
-  // Section 3: Financial Performance (Enhanced)
   annualRevenueRange: z.string().min(1, "Annual revenue range is required."),
   netProfitMarginRange: z.string().optional(),
-  askingPrice: z.coerce.number({invalid_type_error: "Asking price must be a number."}).positive({message: "Asking price must be positive."}).optional(), // Changed
+  askingPrice: z.coerce.number({invalid_type_error: "Asking price must be a number."}).positive({message: "Asking price must be positive."}).optional(),
   specificAnnualRevenueLastYear: z.coerce.number().optional(), 
   specificNetProfitLastYear: z.coerce.number().optional(), 
   financialsExplanation: z.string().optional(), 
-  
-  // Section 4: Deal & Seller Information (Enhanced)
   dealStructureLookingFor: z.array(z.string()).optional(),
   reasonForSellingAnonymous: z.string().max(500, "Reason too long (max 500 chars).").optional(),
   detailedReasonForSelling: z.string().optional(), 
   sellerRoleAndTimeCommitment: z.string().optional(), 
   postSaleTransitionSupport: z.string().optional(), 
-  
-  // Section 5: Growth & Future Potential
   growthPotentialNarrative: z.string().optional(), 
   specificGrowthOpportunities: z.string().optional(), 
 });
@@ -81,10 +71,8 @@ interface EditSellerListingPageProps {
   params: { listingId: string };
 }
 
-// Placeholder for current seller - in a real app, this would come from session/auth
 const currentSellerId = 'user1'; 
 const currentUser: User | undefined = sampleUsers.find(u => u.id === currentSellerId && u.role === 'seller');
-
 
 export default function EditSellerListingPage({ params }: EditSellerListingPageProps) {
   const { toast } = useToast();
@@ -145,9 +133,9 @@ export default function EditSellerListingPage({ params }: EditSellerListingPageP
         technologyStack: fetchedListing.technologyStack || "",
         annualRevenueRange: fetchedListing.annualRevenueRange || "",
         netProfitMarginRange: fetchedListing.netProfitMarginRange || "",
-        askingPrice: fetchedListing.askingPrice || undefined,
-        specificAnnualRevenueLastYear: fetchedListing.specificAnnualRevenueLastYear || undefined,
-        specificNetProfitLastYear: fetchedListing.specificNetProfitLastYear || undefined,
+        askingPrice: fetchedListing.askingPrice === undefined ? undefined : Number(fetchedListing.askingPrice),
+        specificAnnualRevenueLastYear: fetchedListing.specificAnnualRevenueLastYear === undefined ? undefined : Number(fetchedListing.specificAnnualRevenueLastYear),
+        specificNetProfitLastYear: fetchedListing.specificNetProfitLastYear === undefined ? undefined : Number(fetchedListing.specificNetProfitLastYear),
         financialsExplanation: fetchedListing.financialsExplanation || "",
         dealStructureLookingFor: fetchedListing.dealStructureLookingFor || [],
         reasonForSellingAnonymous: fetchedListing.reasonForSellingAnonymous || "",
@@ -162,7 +150,6 @@ export default function EditSellerListingPage({ params }: EditSellerListingPageP
       notFound();
     }
   }, [params.listingId, form, currentUser?.id]);
-
 
   const handleAddStrength = () => {
     if (keyStrengthsFields.length < 5) {
@@ -186,7 +173,6 @@ export default function EditSellerListingPage({ params }: EditSellerListingPageP
     setKeyStrengthsFields(newFields);
     form.setValue("keyStrengthsAnonymous", newFields);
   };
-
 
   const onSubmit = (values: ListingFormValues) => {
      const cleanedValues = {
@@ -213,7 +199,6 @@ export default function EditSellerListingPage({ params }: EditSellerListingPageP
       <h1 className="text-3xl font-bold tracking-tight text-brand-dark-blue">Edit Listing: {listing.listingTitleAnonymous}</h1>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          {/* Sections identical to CreateListingPage, but pre-filled */}
           <Card className="shadow-md bg-brand-white">
             <CardHeader>
               <CardTitle className="text-brand-dark-blue">Section 1: Basic Information</CardTitle>
@@ -304,7 +289,7 @@ export default function EditSellerListingPage({ params }: EditSellerListingPageP
                           <PlusCircle className="h-4 w-4 mr-2" /> Add Strength
                         </Button>
                     )}
-                     <FormMessage>{form.formState.errors.keyStrengthsAnonymous?.message || form.formState.errors.keyStrengthsAnonymous?.[0]?.message}</FormMessage>
+                     <FormMessage>{form.formState.errors.keyStrengthsAnonymous?.message || (form.formState.errors.keyStrengthsAnonymous as any)?.[0]?.message}</FormMessage>
                   </FormItem>
                 )}
               />
@@ -318,7 +303,7 @@ export default function EditSellerListingPage({ params }: EditSellerListingPageP
               <FormField control={form.control} name="yearEstablished" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Year Business Established</FormLabel>
-                  <FormControl><Input type="number" {...field} value={field.value || ""} placeholder="YYYY" disabled={isPending} /></FormControl>
+                  <FormControl><Input type="number" {...field} value={field.value === undefined ? '' : field.value} onChange={e => field.onChange(e.target.value === '' ? undefined : parseInt(e.target.value, 10))} placeholder="YYYY" disabled={isPending} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
@@ -393,7 +378,7 @@ export default function EditSellerListingPage({ params }: EditSellerListingPageP
                  <FormField control={form.control} name="askingPrice" render={({ field }) => (
                     <FormItem>
                          <FormLabel className="flex items-center"><DollarSign className="h-4 w-4 mr-1 text-muted-foreground"/>Asking Price (USD - Fixed Amount)</FormLabel>
-                        <FormControl><Input type="number" {...field} value={field.value || ""} placeholder="e.g., 750000" disabled={isPending} /></FormControl>
+                        <FormControl><Input type="number" {...field} value={field.value === undefined ? '' : field.value} onChange={e => field.onChange(e.target.value === '' ? undefined : parseInt(e.target.value, 10))} placeholder="e.g., 750000" disabled={isPending} /></FormControl>
                          <FormDescription>Enter a specific asking price. This will be shown to verified/paid buyers.</FormDescription>
                         <FormMessage />
                     </FormItem>
@@ -403,14 +388,14 @@ export default function EditSellerListingPage({ params }: EditSellerListingPageP
                  <FormField control={form.control} name="specificAnnualRevenueLastYear" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Actual Annual Revenue (TTM, in USD)</FormLabel>
-                      <FormControl><Input type="number" {...field} value={field.value || ""} placeholder="e.g., 750000" disabled={isPending} /></FormControl>
+                      <FormControl><Input type="number" {...field} value={field.value === undefined ? '' : field.value} onChange={e => field.onChange(e.target.value === '' ? undefined : parseInt(e.target.value, 10))} placeholder="e.g., 750000" disabled={isPending} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
                   <FormField control={form.control} name="specificNetProfitLastYear" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Actual Net Profit (TTM, in USD)</FormLabel>
-                      <FormControl><Input type="number" {...field} value={field.value || ""} placeholder="e.g., 180000" disabled={isPending} /></FormControl>
+                      <FormControl><Input type="number" {...field} value={field.value === undefined ? '' : field.value} onChange={e => field.onChange(e.target.value === '' ? undefined : parseInt(e.target.value, 10))} placeholder="e.g., 180000" disabled={isPending} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
@@ -445,7 +430,7 @@ export default function EditSellerListingPage({ params }: EditSellerListingPageP
                 <FormField
                     control={form.control}
                     name="dealStructureLookingFor"
-                    render={() => (
+                    render={() => ( 
                         <FormItem>
                         <FormLabel>Looking for (Deal Structure - Anonymous):</FormLabel>
                         <FormDescription>Select all that apply.</FormDescription>
@@ -559,26 +544,26 @@ export default function EditSellerListingPage({ params }: EditSellerListingPageP
                 locationCityRegionGeneral: listing.locationCityRegionGeneral,
                 anonymousBusinessDescription: listing.anonymousBusinessDescription,
                 keyStrengthsAnonymous: listing.keyStrengthsAnonymous.length > 0 ? listing.keyStrengthsAnonymous : [''],
-                businessModel: listing.businessModel,
-                yearEstablished: listing.yearEstablished,
-                registeredBusinessName: listing.registeredBusinessName,
-                businessWebsiteUrl: listing.businessWebsiteUrl,
-                socialMediaLinks: listing.socialMediaLinks,
-                numberOfEmployees: listing.numberOfEmployees,
-                technologyStack: listing.technologyStack,
+                businessModel: listing.businessModel || "",
+                yearEstablished: listing.yearEstablished || undefined,
+                registeredBusinessName: listing.registeredBusinessName || "",
+                businessWebsiteUrl: listing.businessWebsiteUrl || "",
+                socialMediaLinks: listing.socialMediaLinks || "",
+                numberOfEmployees: listing.numberOfEmployees || undefined,
+                technologyStack: listing.technologyStack || "",
                 annualRevenueRange: listing.annualRevenueRange,
                 netProfitMarginRange: listing.netProfitMarginRange || "",
-                askingPrice: listing.askingPrice,
-                specificAnnualRevenueLastYear: listing.specificAnnualRevenueLastYear,
-                specificNetProfitLastYear: listing.specificNetProfitLastYear,
-                financialsExplanation: listing.financialsExplanation,
+                askingPrice: listing.askingPrice === undefined ? undefined : Number(listing.askingPrice),
+                specificAnnualRevenueLastYear: listing.specificAnnualRevenueLastYear === undefined ? undefined : Number(listing.specificAnnualRevenueLastYear),
+                specificNetProfitLastYear: listing.specificNetProfitLastYear === undefined ? undefined : Number(listing.specificNetProfitLastYear),
+                financialsExplanation: listing.financialsExplanation || "",
                 dealStructureLookingFor: listing.dealStructureLookingFor || [],
                 reasonForSellingAnonymous: listing.reasonForSellingAnonymous || "",
-                detailedReasonForSelling: listing.detailedReasonForSelling,
-                sellerRoleAndTimeCommitment: listing.sellerRoleAndTimeCommitment,
-                postSaleTransitionSupport: listing.postSaleTransitionSupport,
-                growthPotentialNarrative: listing.growthPotentialNarrative,
-                specificGrowthOpportunities: listing.specificGrowthOpportunities,
+                detailedReasonForSelling: listing.detailedReasonForSelling || "",
+                sellerRoleAndTimeCommitment: listing.sellerRoleAndTimeCommitment || "",
+                postSaleTransitionSupport: listing.postSaleTransitionSupport || "",
+                growthPotentialNarrative: listing.growthPotentialNarrative || "",
+                specificGrowthOpportunities: listing.specificGrowthOpportunities || "",
               } : undefined)} disabled={isPending}>
                 Reset Changes
             </Button>
@@ -591,3 +576,5 @@ export default function EditSellerListingPage({ params }: EditSellerListingPageP
     </div>
   );
 }
+
+    

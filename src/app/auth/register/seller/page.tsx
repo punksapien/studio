@@ -1,9 +1,10 @@
+
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-
+import { useRouter } from "next/navigation"; // Import useRouter
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -19,6 +20,7 @@ import { CommonRegistrationFields } from "@/components/auth/common-registration-
 import { useState, useTransition } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const SellerRegisterSchema = z.object({
   fullName: z.string().min(1, { message: "Full name is required." }),
@@ -35,8 +37,9 @@ const SellerRegisterSchema = z.object({
 
 export default function SellerRegisterPage() {
   const [error, setError] = useState<string | undefined>("");
-  const [success, setSuccess] = useState<string | undefined>("");
   const [isPending, startTransition] = useTransition();
+  const router = useRouter(); // Initialize useRouter
+  const { toast } = useToast();
 
   const form = useForm<z.infer<typeof SellerRegisterSchema>>({
     resolver: zodResolver(SellerRegisterSchema),
@@ -53,18 +56,19 @@ export default function SellerRegisterPage() {
 
   const onSubmit = (values: z.infer<typeof SellerRegisterSchema>) => {
     setError("");
-    setSuccess("");
 
     startTransition(async () => {
-      // Placeholder for actual registration server action
       console.log("Seller Register values:", values);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      // Simulate success/error
-      if (values.email === "existing@example.com") {
-         setError("Email already in use.");
+      // Placeholder for actual registration server action (e.g., call to /api/auth/register/seller)
+      // This action would then trigger OTP sending
+      await new Promise(resolve => setTimeout(resolve, 1000)); 
+      if (values.email === "existing@example.com") { // Simulate existing email
+         setError("Email already in use. Please use a different email or login.");
+         toast({ variant: "destructive", title: "Registration Failed", description: "Email already in use."});
       } else {
-        setSuccess("Registration successful! Please check your email to verify your account.");
-        // In a real app, redirect or show message.
+        // Simulate successful initiation of registration (OTP sent by backend)
+        toast({ title: "Registration Initiated", description: "Please check your email for an OTP to complete registration."});
+        router.push(`/auth/verify-otp?email=${encodeURIComponent(values.email)}&type=register`);
       }
     });
   };
@@ -99,19 +103,14 @@ export default function SellerRegisterPage() {
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
-          {success && (
-             <Alert variant="default" className="bg-green-50 border-green-200 dark:bg-green-900 dark:border-green-700">
-               <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
-              <AlertTitle className="text-green-700 dark:text-green-300">Success</AlertTitle>
-              <AlertDescription className="text-green-600 dark:text-green-400">{success}</AlertDescription>
-            </Alert>
-          )}
-
+          
           <Button type="submit" className="w-full" disabled={isPending}>
-            {isPending ? "Creating Account..." : "Create Seller Account"}
+            {isPending ? "Processing..." : "Register as Seller"}
           </Button>
         </form>
       </Form>
     </AuthCardWrapper>
   );
 }
+
+    

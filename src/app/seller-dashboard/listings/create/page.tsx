@@ -25,21 +25,18 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { industries, asianCountries, revenueRanges, profitMarginRanges, dealStructures, employeeCountRanges } from "@/lib/types"; // Removed askingPriceRanges
+import { industries, asianCountries, revenueRanges, profitMarginRanges, dealStructures, employeeCountRanges } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { useTransition, useState } from "react";
 import { Separator } from "@/components/ui/separator";
 import { PlusCircle, Trash2, DollarSign } from "lucide-react";
-import { Label } from "@/components/ui/label";
+import { Label } from "@/components/ui/label"; // Ensured Label is imported
 
 const ListingSchema = z.object({
-  // Section 1: Basic Information (Anonymous)
   listingTitleAnonymous: z.string().min(5, "Title must be at least 5 characters.").max(100, "Title too long."),
   industry: z.string().min(1, "Industry is required."),
   locationCountry: z.string().min(1, "Country is required."),
   locationCityRegionGeneral: z.string().min(2, "City/Region is required.").max(50, "City/Region too long."),
-  
-  // Section 2: Business Profile & Operations (Enhanced)
   anonymousBusinessDescription: z.string().min(50, "Description must be at least 50 characters.").max(2000, "Description too long (max 2000 chars)."),
   keyStrengthsAnonymous: z.array(z.string().min(1, "Strength cannot be empty.")).min(1, "At least one key strength is required.").max(5, "Maximum of 5 key strengths."),
   businessModel: z.string().optional(),
@@ -51,23 +48,17 @@ const ListingSchema = z.object({
   socialMediaLinks: z.string().optional(), 
   numberOfEmployees: z.string().optional(), 
   technologyStack: z.string().optional(), 
-  
-  // Section 3: Financial Performance (Enhanced)
   annualRevenueRange: z.string().min(1, "Annual revenue range is required."),
   netProfitMarginRange: z.string().optional(),
-  askingPrice: z.coerce.number({invalid_type_error: "Asking price must be a number."}).positive({message: "Asking price must be positive."}).optional(), // Changed from askingPriceRange
+  askingPrice: z.coerce.number({invalid_type_error: "Asking price must be a number."}).positive({message: "Asking price must be positive."}).optional(),
   specificAnnualRevenueLastYear: z.coerce.number().optional(), 
   specificNetProfitLastYear: z.coerce.number().optional(), 
   financialsExplanation: z.string().optional(), 
-  
-  // Section 4: Deal & Seller Information (Enhanced)
   dealStructureLookingFor: z.array(z.string()).optional(),
   reasonForSellingAnonymous: z.string().max(500, "Reason too long (max 500 chars).").optional(),
   detailedReasonForSelling: z.string().optional(), 
   sellerRoleAndTimeCommitment: z.string().optional(), 
   postSaleTransitionSupport: z.string().optional(), 
-  
-  // Section 5: Growth & Future Potential
   growthPotentialNarrative: z.string().optional(), 
   specificGrowthOpportunities: z.string().optional(), 
 });
@@ -89,7 +80,7 @@ export default function CreateSellerListingPage() {
       anonymousBusinessDescription: "",
       keyStrengthsAnonymous: [""],
       businessModel: "",
-      yearEstablished: undefined,
+      yearEstablished: undefined, // Explicitly undefined for optional numbers
       registeredBusinessName: "",
       businessWebsiteUrl: "",
       socialMediaLinks: "",
@@ -97,7 +88,7 @@ export default function CreateSellerListingPage() {
       technologyStack: "",
       annualRevenueRange: "",
       netProfitMarginRange: "",
-      askingPrice: undefined, // Changed from askingPriceRange
+      askingPrice: undefined, // Explicitly undefined for optional numbers
       specificAnnualRevenueLastYear: undefined,
       specificNetProfitLastYear: undefined,
       financialsExplanation: "",
@@ -247,11 +238,11 @@ export default function CreateSellerListingPage() {
                           <PlusCircle className="h-4 w-4 mr-2" /> Add Strength
                         </Button>
                     )}
-                    <FormMessage>{form.formState.errors.keyStrengthsAnonymous?.message || form.formState.errors.keyStrengthsAnonymous?.[0]?.message}</FormMessage>
+                    <FormMessage>{form.formState.errors.keyStrengthsAnonymous?.message || (form.formState.errors.keyStrengthsAnonymous as any)?.[0]?.message}</FormMessage>
                   </FormItem>
                 )}
               />
-              <FormField control={form.control} name="businessModel" render={({ field }) => (
+               <FormField control={form.control} name="businessModel" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Business Model</FormLabel>
                   <FormControl><Textarea {...field} placeholder="e.g., SaaS, E-commerce (dropshipping/inventory), Service-based, Lead Generation, Content Site (Adsense/Affiliate), etc." disabled={isPending} /></FormControl>
@@ -261,7 +252,7 @@ export default function CreateSellerListingPage() {
               <FormField control={form.control} name="yearEstablished" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Year Business Established</FormLabel>
-                  <FormControl><Input type="number" {...field} placeholder="YYYY" disabled={isPending} /></FormControl>
+                  <FormControl><Input type="number" {...field} value={field.value === undefined ? '' : field.value} onChange={e => field.onChange(e.target.value === '' ? undefined : parseInt(e.target.value, 10))} placeholder="YYYY" disabled={isPending} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
@@ -333,27 +324,27 @@ export default function CreateSellerListingPage() {
                         </FormItem>
                     )}/>
                 </div>
-                 <FormField control={form.control} name="askingPrice" render={({ field }) => ( // Changed from askingPriceRange
+                 <FormField control={form.control} name="askingPrice" render={({ field }) => (
                     <FormItem>
                         <FormLabel className="flex items-center"><DollarSign className="h-4 w-4 mr-1 text-muted-foreground"/>Asking Price (USD - Fixed Amount)</FormLabel>
-                        <FormControl><Input type="number" {...field} placeholder="e.g., 750000" disabled={isPending} /></FormControl>
+                        <FormControl><Input type="number" {...field} value={field.value === undefined ? '' : field.value} onChange={e => field.onChange(e.target.value === '' ? undefined : parseInt(e.target.value, 10))} placeholder="e.g., 750000" disabled={isPending} /></FormControl>
                         <FormDescription>Enter a specific asking price. This will be shown to verified/paid buyers.</FormDescription>
                         <FormMessage />
                     </FormItem>
                 )}/>
-                <Separator />
+                <Separator/>
                 <h3 className="text-md font-medium text-muted-foreground">Specific Financials (For Verified View)</h3>
                  <FormField control={form.control} name="specificAnnualRevenueLastYear" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Actual Annual Revenue (TTM, in USD)</FormLabel>
-                      <FormControl><Input type="number" {...field} placeholder="e.g., 750000" disabled={isPending} /></FormControl>
+                      <FormControl><Input type="number" {...field} value={field.value === undefined ? '' : field.value} onChange={e => field.onChange(e.target.value === '' ? undefined : parseInt(e.target.value, 10))} placeholder="e.g., 750000" disabled={isPending} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
                   <FormField control={form.control} name="specificNetProfitLastYear" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Actual Net Profit (TTM, in USD)</FormLabel>
-                      <FormControl><Input type="number" {...field} placeholder="e.g., 180000" disabled={isPending} /></FormControl>
+                      <FormControl><Input type="number" {...field} value={field.value === undefined ? '' : field.value} onChange={e => field.onChange(e.target.value === '' ? undefined : parseInt(e.target.value, 10))} placeholder="e.g., 180000" disabled={isPending} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
@@ -507,3 +498,5 @@ export default function CreateSellerListingPage() {
     </div>
   );
 }
+
+    
