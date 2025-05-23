@@ -14,7 +14,7 @@ import {
   SidebarMenuButton,
   SidebarInset,
   SidebarTrigger,
-  SidebarSeparator, // Added SidebarSeparator
+  SidebarSeparator,
 } from '@/components/ui/sidebar';
 import { Logo } from '@/components/shared/logo';
 import { Button } from '@/components/ui/button';
@@ -28,10 +28,10 @@ import {
   ShieldCheck,
   Bell,
   PlusCircle,
-  HelpCircle,   // Added
-  FileText,     // Added
-  MessageSquareQuestion, // Added for FAQ
-  Home,         // Added for Back to Home
+  HelpCircle,
+  FileText,
+  MessageSquareQuote, // Corrected import
+  Home,
 } from 'lucide-react';
 import type { UserRole } from '@/lib/types';
 
@@ -50,9 +50,9 @@ const sellerSidebarNavItems = [
 ];
 
 const utilityNavItems = [
-  { title: 'Help', href: '#', icon: HelpCircle }, // Placeholder href
-  { title: 'Refer Docs', href: '#', icon: FileText }, // Placeholder href
-  { title: 'FAQ', href: '#', icon: MessageSquareQuestion }, // Placeholder href
+  { title: 'Help', href: '/help', icon: HelpCircle }, 
+  { title: 'Refer Docs', href: '/docs', icon: FileText }, 
+  { title: 'FAQ', href: '/faq', icon: MessageSquareQuote }, // Corrected icon
   { title: 'Back to Homepage', href: '/', icon: Home },
 ];
 
@@ -97,7 +97,7 @@ export default function SellerDashboardLayout({
                 itemIsActive = pathname === createListingPath;
               } else if (item.href === myListingsPath) {
                 itemIsActive = (pathname === myListingsPath) || 
-                               (pathname.startsWith(myListingsPath + '/') && !pathname.endsWith('/create') && pathname.includes('/edit'));
+                               (pathname.startsWith(myListingsPath + '/') && !pathname.endsWith('/create') && !pathname.startsWith(createListingPath + '/'));
               } else {
                 itemIsActive = pathname === item.href || pathname.startsWith(item.href + '/');
               }
@@ -105,6 +105,18 @@ export default function SellerDashboardLayout({
               if (item.href === myListingsPath && pathname === createListingPath) {
                 itemIsActive = false;
               }
+              if (item.href === myListingsPath && pathname.startsWith(createListingPath)) { // Ensure /create doesn't highlight /listings
+                itemIsActive = false;
+              }
+              if (item.href !== myListingsPath && item.href !== createListingPath && pathname.startsWith(myListingsPath) && !pathname.startsWith(item.href)){
+                 // Make sure other items are not active when on a listings sub-page unless it's their own sub-page
+                itemIsActive = false;
+              }
+               if (item.href === myListingsPath && pathname.startsWith(myListingsPath) && pathname.includes('/edit/')) {
+                // Specifically make "My Listings" active for edit pages
+                itemIsActive = true;
+              }
+
 
               return (
                 <SidebarMenuItem key={item.title}>

@@ -14,7 +14,7 @@ import {
   SidebarMenuButton,
   SidebarInset,
   SidebarTrigger,
-  SidebarSeparator, // Added SidebarSeparator
+  SidebarSeparator,
 } from '@/components/ui/sidebar';
 import { Logo } from '@/components/shared/logo';
 import { Button } from '@/components/ui/button';
@@ -27,10 +27,10 @@ import {
   LineChart,
   UserCheck,
   Building,
-  HelpCircle,   // Added
-  FileText,     // Added
-  MessageSquareQuestion, // Added for FAQ
-  Home,         // Added for Back to Home
+  HelpCircle,
+  FileText,
+  MessageSquareQuote, // Corrected import
+  Home,
 } from 'lucide-react';
 
 const adminSidebarNavItems = [
@@ -44,9 +44,9 @@ const adminSidebarNavItems = [
 ];
 
 const utilityNavItems = [
-  { title: 'Help', href: '#', icon: HelpCircle }, // Placeholder href
-  { title: 'Refer Docs', href: '#', icon: FileText }, // Placeholder href
-  { title: 'FAQ', href: '#', icon: MessageSquareQuestion }, // Placeholder href
+  { title: 'Help', href: '/help', icon: HelpCircle }, 
+  { title: 'Refer Docs', href: '/docs', icon: FileText }, 
+  { title: 'FAQ', href: '/faq', icon: MessageSquareQuote }, // Corrected icon
   { title: 'Back to Homepage', href: '/', icon: Home },
 ];
 

@@ -14,7 +14,7 @@ import {
   SidebarMenuButton,
   SidebarInset,
   SidebarTrigger,
-  SidebarSeparator, // Added SidebarSeparator
+  SidebarSeparator,
 } from '@/components/ui/sidebar';
 import { Logo } from '@/components/shared/logo';
 import { Button } from '@/components/ui/button';
@@ -26,11 +26,11 @@ import {
   LogOut,
   ShieldCheck,
   Bell,
-  ShoppingCart, // Added
-  HelpCircle,   // Added
-  FileText,     // Added
-  MessageSquareQuestion, // Added for FAQ
-  Home,         // Added for Back to Home
+  ShoppingCart, 
+  HelpCircle,   
+  FileText,     
+  MessageSquareQuote, // Corrected: Was MessageSquareQuestion
+  Home,         
 } from 'lucide-react';
 import type { UserRole } from '@/lib/types';
 
@@ -47,11 +47,11 @@ const buyerSidebarNavItems = [
 ];
 
 const utilityNavItems = [
-  { title: 'Marketplace', href: '/marketplace', icon: ShoppingCart },
-  { title: 'Help', href: '#', icon: HelpCircle }, // Placeholder href
-  { title: 'Refer Docs', href: '#', icon: FileText }, // Placeholder href
-  { title: 'FAQ', href: '#', icon: MessageSquareQuestion }, // Placeholder href
-  { title: 'Back to Homepage', href: '/', icon: Home },
+  { title: 'Marketplace', href: '/marketplace', icon: ShoppingCart, tooltip: "Browse Marketplace" },
+  { title: 'Help', href: '/help', icon: HelpCircle, tooltip: "Get Help" }, 
+  { title: 'Refer Docs', href: '/docs', icon: FileText, tooltip: "View Documentation" }, 
+  { title: 'FAQ', href: '/faq', icon: MessageSquareQuote, tooltip: "Frequently Asked Questions" }, // Corrected
+  { title: 'Back to Homepage', href: '/', icon: Home, tooltip: "Go to Homepage" },
 ];
 
 export default function DashboardLayout({
@@ -104,7 +104,7 @@ export default function DashboardLayout({
                 <SidebarMenuButton
                   asChild
                   isActive={pathname === item.href}
-                  tooltip={{ children: item.title, className: "bg-primary text-primary-foreground" }}
+                  tooltip={{ children: item.tooltip || item.title, className: "bg-primary text-primary-foreground" }}
                 >
                   <Link href={item.href}>
                     <item.icon className="h-5 w-5" />
