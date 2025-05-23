@@ -265,7 +265,7 @@ This section details the backend processes for sellers creating and managing the
 *   **Detailed Backend Worker Logic (Step-by-Step):**
     1.  **Authenticate Seller:** Get authenticated `user_id`.
     2.  **Receive Request:** Worker receives POST request with:
-        *   `verificationType`: 'PROFILE' or 'LISTING'.
+        *   `verificationType`: 'PROFILE_SELLER' or 'LISTING'.
         *   `listingId` (conditionally required if `verificationType` is 'LISTING').
         *   `bestTimeToCall` (optional string).
         *   `notes` (optional string).
@@ -274,10 +274,10 @@ This section details the backend processes for sellers creating and managing the
         *   If `listingId` is provided, query `listings` table in D1 to ensure the `seller_id` matches the authenticated `user_id`. If not, return 403 Forbidden.
         *   Also, check if the listing is already 'PENDING_VERIFICATION' or verified.
     5.  **Check Current Status & Prevent Redundant Requests:**
-        *   If `verificationType` is 'PROFILE': Query `user_profiles` for `user_id`. If `verification_status` is already 'PENDING_VERIFICATION' or 'VERIFIED', return an appropriate message (e.g., 409 Conflict "Profile verification already in progress or completed").
+        *   If `verificationType` is 'PROFILE_SELLER': Query `user_profiles` for `user_id`. If `verification_status` is already 'PENDING_VERIFICATION' or 'VERIFIED', return an appropriate message (e.g., 409 Conflict "Profile verification already in progress or completed").
         *   If `verificationType` is 'LISTING': Query `listings` for `listing_id`. If `status` is already 'PENDING_VERIFICATION', 'VERIFIED_ANONYMOUS', or 'VERIFIED_PUBLIC', return 409 Conflict.
     6.  **Update Entity Status in D1 (Tentative - marks intent):**
-        *   If `verificationType` is 'PROFILE': `UPDATE user_profiles SET verification_status = 'PENDING_VERIFICATION', updated_at = DATETIME('now') WHERE user_id = ?`.
+        *   If `verificationType` is 'PROFILE_SELLER': `UPDATE user_profiles SET verification_status = 'PENDING_VERIFICATION', updated_at = DATETIME('now') WHERE user_id = ?`.
         *   If `verificationType` is 'LISTING' (and `listingId` is valid and owned): `UPDATE listings SET status = 'PENDING_VERIFICATION', updated_at = DATETIME('now') WHERE listing_id = ?`.
     7.  **Create Verification Request Record in D1:**
         *   Insert a new record into a `verification_requests` table (or similar queue table) with:
@@ -794,3 +794,5 @@ This section details the intended multi-step process for handling file uploads f
         4.  **Return Success Response:** 200 OK.
 
 This multi-step process is standard for secure direct-to-cloud-storage uploads, offloading the bandwidth and processing of the file transfer from your application server/worker.
+
+    
