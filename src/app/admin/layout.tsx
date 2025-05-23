@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import * as React from 'react'; // Ensured React import for JSX
+import * as React from 'react';
 import {
   SidebarProvider,
   Sidebar,
@@ -15,19 +15,19 @@ import {
   SidebarInset,
   SidebarTrigger,
 } from '@/components/ui/sidebar';
-import { Logo } from '@/components/shared/logo';
+import { Logo } from '@/components/shared/logo'; // Assuming Logo uses Nobridge
 import { Button } from '@/components/ui/button';
 import {
   LayoutDashboard,
   Users,
   Briefcase,
   BellRing,
-  ShieldAlert,
   LogOut,
   LineChart,
   UserCheck,
   Building,
-  FileText
+  FileText,
+  ShieldAlert
 } from 'lucide-react';
 
 const adminSidebarNavItems = [
@@ -40,7 +40,8 @@ const adminSidebarNavItems = [
   { title: 'Analytics', href: '/admin/analytics', icon: LineChart },
 ];
 
-const isAdminAuthenticated = true; 
+// Placeholder for admin authentication
+const isAdminAuthenticated = true;
 
 export default function AdminLayout({
   children,
@@ -50,30 +51,31 @@ export default function AdminLayout({
   const pathname = usePathname();
 
   if (!isAdminAuthenticated && pathname !== '/admin/login') {
+    // This redirect should ideally be handled by middleware in a real app
     if (typeof window !== 'undefined') {
-      // window.location.href = '/admin/login'; 
+      // window.location.href = '/admin/login';
     }
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-background">
-            <Logo size="2xl" />
-            <p className="mt-4 text-lg text-muted-foreground">Access Denied. Redirecting to login...</p>
-        </div>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-background">
+        <Logo size="2xl" />
+        <p className="mt-4 text-lg text-muted-foreground">Access Denied. Redirecting to login...</p>
+      </div>
     );
   }
-  
+
   if (pathname === '/admin/login') {
-      return (
-        <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-primary/5 via-background to-background py-12">
-          {children}
-        </div>
-      );
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-primary/5 via-background to-background py-12">
+        {children}
+      </div>
+    );
   }
 
   return (
     <SidebarProvider defaultOpen>
-      <Sidebar variant="sidebar" collapsible="icon">
-        <SidebarHeader className="p-4 border-b border-sidebar-border">
-           <div className="flex items-center justify-between">
+      <Sidebar variant="sidebar" collapsible="icon" className="border-r border-brand-light-gray/60">
+        <SidebarHeader className="p-4 border-b border-brand-light-gray/60">
+          <div className="flex items-center justify-between">
             <Logo size="lg" />
             <SidebarTrigger className="md:hidden" />
           </div>
@@ -85,10 +87,10 @@ export default function AdminLayout({
                 <SidebarMenuButton
                   asChild
                   isActive={pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href))}
-                  tooltip={{ children: item.title, className:"bg-primary text-primary-foreground" }}
+                  tooltip={{ children: item.title, className: "bg-primary text-primary-foreground" }}
                 >
                   <Link href={item.href}>
-                    <item.icon />
+                    <item.icon className="h-5 w-5" />
                     <span>{item.title}</span>
                   </Link>
                 </SidebarMenuButton>
@@ -96,20 +98,20 @@ export default function AdminLayout({
             ))}
           </SidebarMenu>
         </SidebarContent>
-         <div className="p-4 border-t border-sidebar-border mt-auto">
-           <SidebarMenuButton variant="outline" className="w-full text-destructive-foreground bg-destructive hover:bg-destructive/90">
-                <LogOut />
-                <span>Logout Admin</span>
-           </SidebarMenuButton>
+        <div className="p-4 border-t border-brand-light-gray/60 mt-auto">
+          <SidebarMenuButton variant="outline" className="w-full text-destructive-foreground bg-destructive hover:bg-destructive/90">
+            <LogOut className="h-5 w-5" />
+            <span>Logout Admin</span>
+          </SidebarMenuButton>
         </div>
       </Sidebar>
-      <SidebarInset className="flex-grow pt-20"> {/* Added pt-20 for sticky navbar offset and flex-grow */}
-        <div className="p-4 md:p-6 lg:p-8 flex-grow flex flex-col"> {/* flex-grow and flex-col here too */}
-           <header className="md:hidden flex items-center justify-between mb-4 p-2 border rounded-md bg-card">
-             <Logo size="lg" />
-             <SidebarTrigger/>
+      <SidebarInset className="flex-grow flex flex-col"> {/* Removed pt-20, ensure flex-grow */}
+        <div className="p-4 md:p-6 lg:p-8 flex-grow flex flex-col">
+          <header className="md:hidden flex items-center justify-between mb-4 p-2 border rounded-md bg-card">
+            <Logo size="lg" />
+            <SidebarTrigger />
           </header>
-          <div className="flex-grow"> {/* This div will take the remaining space */}
+          <div className="flex-grow">
             {children}
           </div>
         </div>

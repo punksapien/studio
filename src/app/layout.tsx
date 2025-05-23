@@ -1,26 +1,21 @@
+
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Inter } from 'next/font/google'; // Using Inter as a professional sans-serif
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
-import { Navbar } from '@/components/layout/navbar';
-import { Footer } from '@/components/layout/footer';
-// Removed ClerkProvider import
+// Removed Navbar and Footer imports, they are now in GlobalLayoutWrapper
+import GlobalLayoutWrapper from '@/components/layout/GlobalLayoutWrapper'; // Import the new wrapper
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
-  subsets: ['latin'],
-});
-
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
+const inter = Inter({
+  variable: '--font-sans', // Using --font-sans as Tailwind will pick this up
   subsets: ['latin'],
 });
 
 export const metadata: Metadata = {
-  title: 'BizMatch Asia - Business Marketplace Platform',
+  title: 'Nobridge - Business Marketplace Platform', // Updated Project Name
   description: 'Connecting SME owners with investors and buyers in Asia.',
   icons: {
-    icon: '/favicon.ico', 
+    icon: '/favicon.ico',
   },
 };
 
@@ -30,14 +25,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    // Removed ClerkProvider wrapper
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased flex flex-col min-h-screen`}>
-        <Navbar />
-        <main className="flex-grow">
+    <html lang="en" suppressHydrationWarning className={inter.variable}>
+      <body className="antialiased flex flex-col min-h-screen bg-background text-foreground">
+        <GlobalLayoutWrapper>
           {children}
-        </main>
-        <Footer />
+        </GlobalLayoutWrapper>
         <Toaster />
       </body>
     </html>
