@@ -15,10 +15,11 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { AuthCardWrapper } from "@/components/auth/auth-card-wrapper";
-import { useState, useTransition, Suspense } from "react"; // Added Suspense
+import { useState, useTransition, Suspense } from "react"; 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { useToast } from "@/hooks/use-toast"; // Correctly import useToast
 
 const OTPSchema = z.object({
   otp: z.string().min(6, { message: "OTP must be 6 digits." }).max(6, { message: "OTP must be 6 digits." }),
@@ -28,12 +29,13 @@ function VerifyOTPFormContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const email = searchParams.get("email");
-  const type = searchParams.get("type"); // 'register' or 'login'
+  const type = searchParams.get("type"); 
 
   const [error, setError] = useState<string | undefined>("");
   const [success, setSuccess] = useState<string | undefined>("");
   const [isPending, startTransition] = useTransition();
   const [isResendPending, startResendTransition] = useTransition();
+  const { toast } = useToast(); 
 
   const form = useForm<z.infer<typeof OTPSchema>>({
     resolver: zodResolver(OTPSchema),
@@ -49,11 +51,10 @@ function VerifyOTPFormContent() {
     startTransition(async () => {
       console.log("Verify OTP values:", { ...values, email, type });
       // Placeholder for actual OTP verification server action
-      // This would call something like /api/auth/verify-otp
       await new Promise(resolve => setTimeout(resolve, 1000));
-      if (values.otp === "000000") { // Simulate incorrect OTP
+      if (values.otp === "000000") { 
         setError("Invalid or expired OTP. Please try again or request a new one.");
-      } else { // Simulate correct OTP
+      } else { 
         if (type === 'register') {
           setSuccess("Account verified successfully! Redirecting to login...");
           setTimeout(() => router.push('/auth/login'), 2000);
@@ -74,7 +75,6 @@ function VerifyOTPFormContent() {
     startResendTransition(async () => {
       console.log("Resend OTP for:", email);
       // Placeholder for actual resend OTP server action
-      // This would call something like /api/auth/send-otp
       await new Promise(resolve => setTimeout(resolve, 1000));
       toast({
         title: "OTP Resent",
@@ -83,13 +83,11 @@ function VerifyOTPFormContent() {
     });
   };
   
-  const { toast } = useToast(); // Moved useToast here as it's client-side
-
   return (
     <AuthCardWrapper
       headerLabel={`An OTP has been sent to ${email || 'your email'}. Please enter it below to ${type === 'login' ? 'complete login' : 'verify your account'}.`}
       backButtonLabel={type === 'login' ? "Back to Login" : "Back to Registration"}
-      backButtonHref={type === 'login' ? "/auth/login" : (email ? `/auth/register/buyer?email=${email}` : "/auth/register")} // A bit generic, might need refinement
+      backButtonHref={type === 'login' ? "/auth/login" : (email ? `/auth/register/buyer?email=${email}` : "/auth/register")}
     >
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -143,14 +141,10 @@ function VerifyOTPFormContent() {
   );
 }
 
-
 export default function VerifyOTPPage() {
   return (
-    // Suspense is required by Next.js when using useSearchParams in a page.
     <Suspense fallback={<div>Loading...</div>}> 
       <VerifyOTPFormContent />
     </Suspense>
   );
 }
-
-    
