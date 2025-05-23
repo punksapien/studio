@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -20,17 +21,18 @@ export default {
     },
   	extend: {
       fontFamily: {
-        sans: ['Satoshi', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', '"Noto Sans"', 'sans-serif'],
-        mono: ['var(--font-geist-mono)', 'monospace'], // Keeping Geist Mono for mono, can be changed if needed
+        // Set Satoshi as the primary sans-serif font, with system fallbacks
+        sans: ['Satoshi', ...require('tailwindcss/defaultTheme').fontFamily.sans],
+        // Keep Geist Mono if used, or replace with a brand-specific mono font if available
+        mono: ['var(--font-geist-mono)', ...require('tailwindcss/defaultTheme').fontFamily.mono], 
       },
   		colors: {
+        // Direct brand colors (optional, as CSS variables are primary)
         'brand-dark-blue': 'hsl(var(--brand-dark-blue-hsl))',
-        'brand-sky-blue': 'hsl(var(--brand-sky-blue-hsl))',
         'brand-light-gray': 'hsl(var(--brand-light-gray-hsl))',
         'brand-white': 'hsl(var(--brand-white-hsl))',
-        'brand-text-dark': 'hsl(var(--brand-text-dark-hsl))',
-        'brand-text-light': 'hsl(var(--brand-text-light-hsl))',
-
+        
+        // ShadCN UI theme colors mapped to CSS variables
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
   			card: {

@@ -36,7 +36,6 @@ import {
 } from 'lucide-react';
 import type { UserRole } from '@/lib/types';
 
-// Placeholder for current user role
 const currentUserRole: UserRole | null = 'seller';
 
 const sellerSidebarNavItems = [
@@ -77,7 +76,7 @@ export default function SellerDashboardLayout({
   return (
     <SidebarProvider defaultOpen>
       <div className="flex min-h-screen">
-        <Sidebar variant="sidebar" className="border-r border-sidebar-border bg-brand-white">
+        <Sidebar variant="sidebar" className="border-r border-sidebar-border bg-brand-white"> {/* Removed collapsible="icon" */}
           <SidebarHeader className="p-4 border-b border-sidebar-border">
             <div className="flex items-center justify-between">
               <Logo size="lg" />
@@ -98,11 +97,8 @@ export default function SellerDashboardLayout({
                 } else if (item.href === createListingPath) {
                   itemIsActive = pathname === createListingPath;
                 } else if (item.href === myListingsPath) {
-                  // Active if it's the "My Listings" page OR a sub-page of it (like edit),
-                  // but NOT if it's the "Create Listing" page.
                   itemIsActive = (pathname === myListingsPath || (pathname.startsWith(myListingsPath + '/') && !pathname.startsWith(createListingPath))) ;
                 } else {
-                  // For other items, active if current path is an exact match or a sub-path.
                   itemIsActive = pathname === item.href || pathname.startsWith(item.href + '/');
                 }
                 
@@ -143,15 +139,17 @@ export default function SellerDashboardLayout({
           <SidebarFooter className="p-4 border-t border-sidebar-border">
             <Button variant="outline" className="w-full text-destructive-foreground bg-destructive hover:bg-destructive/90">
               <LogOut className="h-5 w-5" />
+              {/* Ensured text span is always rendered for expanded view */}
               <span>Logout</span>
             </Button>
           </SidebarFooter>
         </Sidebar>
-        <SidebarInset className="flex-grow flex flex-col overflow-hidden">
+        <SidebarInset className="flex-grow flex flex-col overflow-hidden"> {/* Ensure this grows */}
           <header className="md:hidden flex items-center justify-between p-4 border-b bg-brand-white sticky top-0 z-10">
             <Logo size="lg" />
             <SidebarTrigger/>
           </header>
+          {/* Main content area that scrolls */}
           <div className="flex-grow flex flex-col p-4 md:p-6 lg:p-8 overflow-y-auto">
             <div className="flex-grow">
               {children}

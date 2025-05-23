@@ -35,7 +35,6 @@ import {
 } from 'lucide-react';
 import type { UserRole } from '@/lib/types';
 
-// Placeholder for current user role - in a real app, this would come from session
 const currentUserRole: UserRole | null = 'buyer'; 
 
 const buyerSidebarNavItems = [
@@ -75,7 +74,7 @@ export default function DashboardLayout({
   return (
     <SidebarProvider defaultOpen> 
       <div className="flex min-h-screen"> 
-        <Sidebar variant="sidebar" className="border-r border-sidebar-border bg-brand-white"> 
+        <Sidebar variant="sidebar" className="border-r border-sidebar-border bg-brand-white"> {/* Removed collapsible="icon" */}
           <SidebarHeader className="p-4 border-b border-sidebar-border">
             <div className="flex items-center justify-between">
               <Logo size="lg" />
@@ -120,15 +119,17 @@ export default function DashboardLayout({
           <SidebarFooter className="p-4 border-t border-sidebar-border">
             <Button variant="outline" className="w-full text-destructive-foreground bg-destructive hover:bg-destructive/90">
               <LogOut className="h-5 w-5" />
+              {/* Ensured text span is always rendered for expanded view */}
               <span>Logout</span> 
             </Button>
           </SidebarFooter>
         </Sidebar>
-        <SidebarInset className="flex-grow flex flex-col overflow-hidden">
+        <SidebarInset className="flex-grow flex flex-col overflow-hidden"> {/* Ensure this grows */}
            <header className="md:hidden flex items-center justify-between p-4 border-b bg-brand-white sticky top-0 z-10">
             <Logo size="lg" />
             <SidebarTrigger />
           </header>
+          {/* Main content area that scrolls */}
           <div className="flex-grow flex flex-col p-4 md:p-6 lg:p-8 overflow-y-auto">
             <div className="flex-grow">
              {children}
