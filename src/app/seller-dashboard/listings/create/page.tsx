@@ -25,12 +25,12 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { industries, asianCountries, revenueRanges, profitMarginRanges, askingPriceRanges, dealStructures, employeeCountRanges } from "@/lib/types";
+import { industries, asianCountries, revenueRanges, profitMarginRanges, dealStructures, employeeCountRanges } from "@/lib/types"; // Removed askingPriceRanges
 import { useToast } from "@/hooks/use-toast";
 import { useTransition, useState } from "react";
 import { Separator } from "@/components/ui/separator";
-import { PlusCircle, Trash2 } from "lucide-react";
-import { Label } from "@/components/ui/label"; // Added Label import
+import { PlusCircle, Trash2, DollarSign } from "lucide-react";
+import { Label } from "@/components/ui/label";
 
 const ListingSchema = z.object({
   // Section 1: Basic Information (Anonymous)
@@ -46,30 +46,30 @@ const ListingSchema = z.object({
   yearEstablished: z.coerce.number().optional().refine(val => val === undefined || (val >= 1900 && val <= new Date().getFullYear()), {
     message: "Please enter a valid year.",
   }),
-  registeredBusinessName: z.string().optional(), // Collected now, for later verified view
-  businessWebsiteUrl: z.string().url({ message: "Please enter a valid URL." }).optional(), // Collected now, for later verified view
-  socialMediaLinks: z.string().optional(), // Textarea, one link per line
-  numberOfEmployees: z.string().optional(), // Dropdown, EmployeeCountRange type
-  technologyStack: z.string().optional(), // Textarea
+  registeredBusinessName: z.string().optional(), 
+  businessWebsiteUrl: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
+  socialMediaLinks: z.string().optional(), 
+  numberOfEmployees: z.string().optional(), 
+  technologyStack: z.string().optional(), 
   
   // Section 3: Financial Performance (Enhanced)
   annualRevenueRange: z.string().min(1, "Annual revenue range is required."),
   netProfitMarginRange: z.string().optional(),
-  askingPriceRange: z.string().min(1, "Asking price range is required."),
-  specificAnnualRevenueLastYear: z.coerce.number().optional(), // Number input, for later verified view
-  specificNetProfitLastYear: z.coerce.number().optional(), // Number input, for later verified view
-  financialsExplanation: z.string().optional(), // Textarea
+  askingPrice: z.coerce.number({invalid_type_error: "Asking price must be a number."}).positive({message: "Asking price must be positive."}).optional(), // Changed from askingPriceRange
+  specificAnnualRevenueLastYear: z.coerce.number().optional(), 
+  specificNetProfitLastYear: z.coerce.number().optional(), 
+  financialsExplanation: z.string().optional(), 
   
   // Section 4: Deal & Seller Information (Enhanced)
   dealStructureLookingFor: z.array(z.string()).optional(),
   reasonForSellingAnonymous: z.string().max(500, "Reason too long (max 500 chars).").optional(),
-  detailedReasonForSelling: z.string().optional(), // Textarea, for later verified view
-  sellerRoleAndTimeCommitment: z.string().optional(), // Textarea
-  postSaleTransitionSupport: z.string().optional(), // Textarea
+  detailedReasonForSelling: z.string().optional(), 
+  sellerRoleAndTimeCommitment: z.string().optional(), 
+  postSaleTransitionSupport: z.string().optional(), 
   
   // Section 5: Growth & Future Potential
-  growthPotentialNarrative: z.string().optional(), // Large textarea / rich text editor placeholder
-  specificGrowthOpportunities: z.string().optional(), // Textarea, bullet points
+  growthPotentialNarrative: z.string().optional(), 
+  specificGrowthOpportunities: z.string().optional(), 
 });
 
 type ListingFormValues = z.infer<typeof ListingSchema>;
@@ -97,7 +97,7 @@ export default function CreateSellerListingPage() {
       technologyStack: "",
       annualRevenueRange: "",
       netProfitMarginRange: "",
-      askingPriceRange: "",
+      askingPrice: undefined, // Changed from askingPriceRange
       specificAnnualRevenueLastYear: undefined,
       specificNetProfitLastYear: undefined,
       financialsExplanation: "",
@@ -151,12 +151,12 @@ export default function CreateSellerListingPage() {
 
   return (
     <div className="space-y-8">
-      <h1 className="text-3xl font-bold tracking-tight">Create New Business Listing</h1>
+      <h1 className="text-3xl font-bold tracking-tight text-brand-dark-blue">Create New Business Listing</h1>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          <Card className="shadow-md">
+          <Card className="shadow-md bg-brand-white">
             <CardHeader>
-              <CardTitle>Section 1: Basic Information (Anonymous)</CardTitle>
+              <CardTitle className="text-brand-dark-blue">Section 1: Basic Information (Anonymous)</CardTitle>
               <CardDescription>Provide the essential details for your listing. This information will be displayed anonymously initially.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -205,9 +205,9 @@ export default function CreateSellerListingPage() {
             </CardContent>
           </Card>
 
-          <Card className="shadow-md">
+          <Card className="shadow-md bg-brand-white">
             <CardHeader>
-              <CardTitle>Section 2: Business Profile &amp; Operations</CardTitle>
+              <CardTitle className="text-brand-dark-blue">Section 2: Business Profile &amp; Operations</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <FormField control={form.control} name="anonymousBusinessDescription" render={({ field }) => (
@@ -306,9 +306,9 @@ export default function CreateSellerListingPage() {
             </CardContent>
           </Card>
           
-          <Card className="shadow-md">
+          <Card className="shadow-md bg-brand-white">
             <CardHeader>
-                <CardTitle>Section 3: Financial Performance (Anonymous &amp; Verified)</CardTitle>
+                <CardTitle className="text-brand-dark-blue">Section 3: Financial Performance (Anonymous &amp; Verified)</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
                 <div className="grid md:grid-cols-2 gap-6">
@@ -333,13 +333,11 @@ export default function CreateSellerListingPage() {
                         </FormItem>
                     )}/>
                 </div>
-                 <FormField control={form.control} name="askingPriceRange" render={({ field }) => (
+                 <FormField control={form.control} name="askingPrice" render={({ field }) => ( // Changed from askingPriceRange
                     <FormItem>
-                        <FormLabel>Asking Price Range (Anonymous)</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isPending}>
-                            <FormControl><SelectTrigger><SelectValue placeholder="Select asking price range" /></SelectTrigger></FormControl>
-                            <SelectContent>{askingPriceRanges.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
-                        </Select>
+                        <FormLabel className="flex items-center"><DollarSign className="h-4 w-4 mr-1 text-muted-foreground"/>Asking Price (USD - Fixed Amount)</FormLabel>
+                        <FormControl><Input type="number" {...field} placeholder="e.g., 750000" disabled={isPending} /></FormControl>
+                        <FormDescription>Enter a specific asking price. This will be shown to verified/paid buyers.</FormDescription>
                         <FormMessage />
                     </FormItem>
                 )}/>
@@ -382,15 +380,15 @@ export default function CreateSellerListingPage() {
             </CardContent>
           </Card>
 
-          <Card className="shadow-md">
+          <Card className="shadow-md bg-brand-white">
             <CardHeader>
-                <CardTitle>Section 4: Deal &amp; Seller Information</CardTitle>
+                <CardTitle className="text-brand-dark-blue">Section 4: Deal &amp; Seller Information</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
                 <FormField
                     control={form.control}
                     name="dealStructureLookingFor"
-                    render={() => ( // Use form.watch or Controller if needed for complex array logic
+                    render={() => ( 
                         <FormItem>
                         <FormLabel>Looking for (Deal Structure - Anonymous):</FormLabel>
                         <FormDescription>Select all that apply.</FormDescription>
@@ -472,9 +470,9 @@ export default function CreateSellerListingPage() {
             </CardContent>
           </Card>
 
-          <Card className="shadow-md">
+          <Card className="shadow-md bg-brand-white">
             <CardHeader>
-                <CardTitle>Section 5: Growth &amp; Future Potential</CardTitle>
+                <CardTitle className="text-brand-dark-blue">Section 5: Growth &amp; Future Potential</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
                 <FormField control={form.control} name="growthPotentialNarrative" render={({ field }) => (
@@ -497,10 +495,10 @@ export default function CreateSellerListingPage() {
           <Separator />
           
           <div className="flex justify-end gap-4">
-            <Button type="button" variant="outline" onClick={() => form.reset()} disabled={isPending}>
+            <Button type="button" variant="outline" onClick={() => { form.reset(); setKeyStrengthsFields(['']); }} disabled={isPending}>
                 Reset Form
             </Button>
-            <Button type="submit" className="min-w-[150px]" disabled={isPending}>
+            <Button type="submit" className="min-w-[150px] bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90" disabled={isPending}>
                 {isPending ? "Submitting..." : "Create Listing"}
             </Button>
           </div>
@@ -509,5 +507,3 @@ export default function CreateSellerListingPage() {
     </div>
   );
 }
-
-        

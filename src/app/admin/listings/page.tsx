@@ -22,13 +22,28 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { sampleListings, sampleUsers } from "@/lib/placeholder-data";
 import type { Listing, User } from "@/lib/types";
 import Link from "next/link";
-import { Eye, Edit3, Trash2, Filter, Search, ShieldCheck, AlertTriangle, DollarSign } from "lucide-react";
+import { Eye, Edit3, Trash2, Filter, Search, ShieldCheck, AlertTriangle, DollarSign, CalendarDays } from "lucide-react"; // Added CalendarDays
 import { industries } from "@/lib/types";
+import { useEffect, useState } from "react"; // Added useEffect, useState
 
-// In a real app, listings would be fetched and paginated.
-const listings: Listing[] = sampleListings;
+// Helper component for client-side date formatting
+function FormattedDate({ dateString }: { dateString: Date | string }) {
+  const [formattedDate, setFormattedDate] = useState<string | null>(null);
+
+  useEffect(() => {
+    setFormattedDate(new Date(dateString).toLocaleDateString());
+  }, [dateString]);
+
+  if (!formattedDate) {
+    return <span className="italic text-xs">Loading date...</span>;
+  }
+  return <>{formattedDate}</>;
+}
+
 
 export default function AdminListingsPage() {
+  const listings: Listing[] = sampleListings; // In a real app, this would be fetched
+
   const getSellerDetails = (sellerId: string): User | undefined => {
     return sampleUsers.find(u => u.id === sellerId);
   };
@@ -40,14 +55,15 @@ export default function AdminListingsPage() {
     if (status === 'active' && !isSellerVerified) return <Badge variant="outline">Active (Anonymous)</Badge>;
     if (status === 'active' && isSellerVerified) return <Badge className="bg-green-100 text-green-700 dark:bg-green-800 dark:text-green-200 border-green-300 dark:border-green-600"><ShieldCheck className="h-3 w-3 mr-1" /> Active (Verified Seller)</Badge>;
     if (status === 'inactive') return <Badge variant="destructive">Inactive</Badge>;
+    if (status === 'rejected_by_admin') return <Badge variant="destructive" className="bg-red-700 text-white dark:bg-red-800 dark:text-red-200">Rejected</Badge>;
     return <Badge variant="outline" className="capitalize">{status.replace(/_/g, ' ')}</Badge>;
   };
 
   return (
     <div className="space-y-8">
-      <Card className="shadow-md">
+      <Card className="shadow-md bg-brand-white">
         <CardHeader>
-          <CardTitle>Listing Management</CardTitle>
+          <CardTitle className="text-brand-dark-blue">Listing Management</CardTitle>
           <CardDescription>View, search, filter, and manage all business listings on the platform.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -89,6 +105,7 @@ export default function AdminListingsPage() {
                     <SelectItem value="pending_verification">Pending Verification</SelectItem>
                     <SelectItem value="verified_public">Verified (Public)</SelectItem>
                     <SelectItem value="verified_anonymous">Verified (Anonymous)</SelectItem>
+                    <SelectItem value="rejected_by_admin">Rejected by Admin</SelectItem>
                 </SelectContent>
                 </Select>
                 <Button variant="outline" className="w-full sm:w-auto"><Filter className="h-4 w-4 mr-2"/>Apply</Button>
@@ -103,9 +120,9 @@ export default function AdminListingsPage() {
                   <TableHead className="whitespace-nowrap">Seller Name</TableHead>
                   <TableHead className="whitespace-nowrap">Seller Paid</TableHead>
                   <TableHead>Industry</TableHead>
-                  <TableHead className="whitespace-nowrap">Price Range</TableHead>
-                  <TableHead className="whitespace-nowrap">Listing Status</TableHead>
-                  <TableHead className="whitespace-nowrap">Created On</TableHead>
+                  <TableHead className="whitespace-nowrap">Asking Price</TableHead>
+                  <TableHead className="whitespace-nowrap">Listing Status Detail</TableHead>
+                  <TableHead className="whitespace-nowrap flex items-center"><CalendarDays className="h-4 w-4 mr-1"/>Created On</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -115,18 +132,18 @@ export default function AdminListingsPage() {
                   return (
                   <TableRow key={listing.id}>
                     <TableCell className="font-medium max-w-[200px] sm:max-w-xs truncate" title={listing.listingTitleAnonymous}>
-                        <Link href={`/admin/listings/${listing.id}`} className="hover:underline">{listing.listingTitleAnonymous}</Link>
+                        <Link href={`/admin/listings/${listing.id}`} className="text-primary hover:underline">{listing.listingTitleAnonymous}</Link>
                     </TableCell>
                     <TableCell className="whitespace-nowrap">
-                        {seller ? <Link href={`/admin/users/${listing.sellerId}`} className="hover:underline">{seller.fullName}</Link> : 'Unknown Seller'}
+                        {seller ? <Link href={`/admin/users/${listing.sellerId}`} className="text-primary hover:underline">{seller.fullName}</Link> : 'Unknown Seller'}
                     </TableCell>
                     <TableCell>
                       {seller?.isPaid ? <Badge className="bg-green-500 text-white">Yes</Badge> : <Badge variant="secondary">No</Badge>}
                     </TableCell>
                     <TableCell>{listing.industry}</TableCell>
-                    <TableCell className="whitespace-nowrap">{listing.askingPriceRange}</TableCell>
+                    <TableCell className="whitespace-nowrap">{listing.askingPrice ? `$${listing.askingPrice.toLocaleString()} USD` : 'N/A'}</TableCell>
                     <TableCell>{getListingStatusBadge(listing.status, listing.isSellerVerified)}</TableCell>
-                    <TableCell>{new Date(listing.createdAt).toLocaleDateString()}</TableCell>
+                    <TableCell><FormattedDate dateString={listing.createdAt} /></TableCell>
                     <TableCell className="text-right whitespace-nowrap">
                       <Button variant="ghost" size="icon" asChild title="View Listing Details">
                         <Link href={`/admin/listings/${listing.id}`}>

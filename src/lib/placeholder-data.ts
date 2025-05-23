@@ -30,10 +30,9 @@ export const sampleUsers: User[] = [
     isEmailVerified: true,
     verificationStatus: 'verified',
     isPaid: true, 
-    buyerType: 'Individual Investor', // Legacy
-    buyerPersonaType: BuyerPersonaTypes[0], // "Individual Investor / Entrepreneur"
+    buyerPersonaType: BuyerPersonaTypes[0], 
     investmentFocusDescription: "Early-stage SaaS and e-commerce businesses in Southeast Asia with strong growth potential.",
-    preferredInvestmentSize: PreferredInvestmentSizes[1], // "$100,000 - $500,000 USD"
+    preferredInvestmentSize: PreferredInvestmentSizes[1], 
     keyIndustriesOfInterest: "Technology, E-commerce, Fintech",
     createdAt: new Date('2023-02-05T11:00:00Z'),
     updatedAt: new Date('2023-02-05T11:00:00Z'),
@@ -66,10 +65,9 @@ export const sampleUsers: User[] = [
     isEmailVerified: true,
     verificationStatus: 'pending_verification',
     isPaid: false, 
-    buyerType: 'Investment Firm', // Legacy
-    buyerPersonaType: BuyerPersonaTypes[1], // "Private Equity Firm"
+    buyerPersonaType: BuyerPersonaTypes[1], 
     investmentFocusDescription: "Mid-market companies in consumer goods and services with established revenue streams. Looking for majority stakes.",
-    preferredInvestmentSize: PreferredInvestmentSizes[3], // "$2,000,000 - $10,000,000 USD"
+    preferredInvestmentSize: PreferredInvestmentSizes[3], 
     keyIndustriesOfInterest: "Retail, Consumer Goods, Hospitality",
     createdAt: new Date('2023-04-10T10:00:00Z'),
     updatedAt: new Date('2023-04-10T10:00:00Z'),
@@ -86,10 +84,9 @@ export const sampleUsers: User[] = [
     isEmailVerified: true,
     verificationStatus: 'verified', 
     isPaid: false,
-    buyerType: 'Strategic Acquirer', // Legacy
-    buyerPersonaType: BuyerPersonaTypes[2], // "Strategic Acquirer / Corporate Representative"
+    buyerPersonaType: BuyerPersonaTypes[2], 
     investmentFocusDescription: "Acquiring businesses to integrate into our existing portfolio, primarily in logistics and supply chain.",
-    preferredInvestmentSize: PreferredInvestmentSizes[2], // "$500,000 - $2,000,000 USD"
+    preferredInvestmentSize: PreferredInvestmentSizes[2], 
     keyIndustriesOfInterest: "Logistics, Supply Chain, Software",
     createdAt: new Date('2023-05-01T11:00:00Z'),
     updatedAt: new Date('2023-05-01T11:00:00Z'),
@@ -106,10 +103,9 @@ export const sampleUsers: User[] = [
     isEmailVerified: true,
     verificationStatus: 'anonymous',
     isPaid: false,
-    buyerType: 'Individual Investor', // Legacy
-    buyerPersonaType: BuyerPersonaTypes[0], // "Individual Investor / Entrepreneur"
+    buyerPersonaType: BuyerPersonaTypes[0], 
     investmentFocusDescription: "Looking for small, profitable online businesses to operate and grow.",
-    preferredInvestmentSize: PreferredInvestmentSizes[0], // "Up to $100,000 USD"
+    preferredInvestmentSize: PreferredInvestmentSizes[0], 
     keyIndustriesOfInterest: "E-commerce, Content Websites",
     createdAt: new Date('2023-06-15T09:00:00Z'),
     updatedAt: new Date('2023-06-15T09:00:00Z'),
@@ -130,7 +126,7 @@ export const sampleListings: Listing[] = [
     keyStrengthsAnonymous: ['Strong Brand Recognition', 'High Customer Retention', 'Scalable Operations'],
     annualRevenueRange: '$500K - $1M USD',
     netProfitMarginRange: '20% - 30%',
-    askingPriceRange: '$1M - $2.5M USD',
+    askingPrice: 1500000, // Changed from askingPriceRange
     dealStructureLookingFor: ['Full Acquisition'],
     reasonForSellingAnonymous: 'Owner retiring.',
     status: 'verified_public' as ListingStatus,
@@ -171,7 +167,7 @@ export const sampleListings: Listing[] = [
     anonymousBusinessDescription: 'Innovative SaaS solution catering to a specific B2B vertical. Growing subscriber base with high MRR. Lean operations, ready for scaling with marketing investment. Solid tech stack.',
     keyStrengthsAnonymous: ['Unique Market Position', 'Recurring Revenue Model', 'High Growth Potential'],
     annualRevenueRange: '$100K - $250K USD',
-    askingPriceRange: '$250K - $500K USD',
+    askingPrice: 350000, // Changed from askingPriceRange
     dealStructureLookingFor: ['Full Acquisition', 'Partial Sale/Investment'],
     status: 'active' as ListingStatus, 
     isSellerVerified: false,
@@ -196,7 +192,7 @@ export const sampleListings: Listing[] = [
     keyStrengthsAnonymous: ['Strong Client Relationships', 'Creative Team', 'Diverse Service Offering'],
     annualRevenueRange: '$250K - $500K USD',
     netProfitMarginRange: '10% - 20%',
-    askingPriceRange: '$500K - $1M USD',
+    askingPrice: 700000, // Changed from askingPriceRange
     status: 'verified_public' as ListingStatus,
     isSellerVerified: true,
     actualCompanyName: 'Creative Spark Solutions Sdn. Bhd.',
@@ -224,7 +220,7 @@ export const sampleListings: Listing[] = [
     keyStrengthsAnonymous: ['Prime Location', 'Established Reputation', 'Loyal Customer Base', 'High Online Ratings'],
     annualRevenueRange: '$100K - $250K USD',
     netProfitMarginRange: '15% - 25%',
-    askingPriceRange: '$150K - $300K USD',
+    askingPrice: 220000, // Changed from askingPriceRange
     status: 'pending_verification' as ListingStatus,
     isSellerVerified: false,
     businessModel: "Brick-and-mortar retail cafe",
@@ -302,7 +298,7 @@ export const sampleSellerInquiries: Inquiry[] = [
     buyerName: 'Anna Tay (Buyer - Anonymous)',
     buyerVerificationStatus: 'anonymous',
     inquiryTimestamp: new Date('2023-11-12T09:00:00Z'),
-    status: 'new_inquiry' as InquiryStatusSystem,
+    status: 'new_inquiry' as InquiryStatusSystem, // Seller needs to engage
     statusSellerPerspective: 'New Inquiry' as InquiryStatusSellerPerspective,
     createdAt: new Date('2023-11-12T09:00:00Z'),
     updatedAt: new Date('2023-11-12T09:00:00Z'),
@@ -311,15 +307,17 @@ export const sampleSellerInquiries: Inquiry[] = [
     id: 'inq_s3',
     listingId: '2', 
     listingTitleAnonymous: 'Established SaaS Platform - B2B Niche',
-    sellerId: 'user3',
+    sellerId: 'user3', // Alex Tan (Seller - Anonymous)
     buyerId: 'user2', 
     buyerName: 'Jane Smith (Buyer)',
     buyerVerificationStatus: 'verified',
     inquiryTimestamp: new Date('2023-11-08T15:30:00Z'),
-    status: 'new_inquiry' as InquiryStatusSystem,
-    statusSellerPerspective: 'New Inquiry' as InquiryStatusSellerPerspective,
+    // Example: Alex (seller) engaged, but his listing needs verification because Jane (buyer) is verified
+    status: 'seller_engaged_seller_pending_verification' as InquiryStatusSystem, 
+    statusSellerPerspective: 'You Engaged - Your Listing Verification Pending' as InquiryStatusSellerPerspective,
     createdAt: new Date('2023-11-08T15:30:00Z'),
-    updatedAt: new Date('2023-11-08T15:30:00Z'),
+    updatedAt: new Date('2023-11-09T15:30:00Z'), // Updated when seller engaged
+    engagementTimestamp: new Date('2023-11-09T15:30:00Z'),
   },
 ];
 
@@ -343,9 +341,9 @@ export const sampleAdminDashboardMetrics: AdminDashboardMetrics = {
   totalFreeBuyers: sampleUsers.filter(u => u.role === 'buyer' && !u.isPaid).length,
   totalActiveListingsAnonymous: sampleListings.filter(l => l.status === 'active' && !l.isSellerVerified).length, 
   totalActiveListingsVerified: sampleListings.filter(l => l.status === 'verified_public' || l.status === 'verified_anonymous').length, 
-  buyerVerificationQueueCount: 3, 
-  sellerVerificationQueueCount: 4, 
-  readyToEngageQueueCount: 1,
+  buyerVerificationQueueCount: sampleUsers.filter(u => u.role === 'buyer' && u.verificationStatus === 'pending_verification').length, 
+  sellerVerificationQueueCount: sampleUsers.filter(u => u.role === 'seller' && u.verificationStatus === 'pending_verification').length + sampleListings.filter(l => l.status === 'pending_verification').length, 
+  readyToEngageQueueCount: sampleSellerInquiries.filter(i => i.status === 'ready_for_admin_connection').length,
   successfulConnectionsMTD: activeSuccessfulConnectionsPlaceholder + closedSuccessfulConnectionsPlaceholder, 
   activeSuccessfulConnections: activeSuccessfulConnectionsPlaceholder,
   closedSuccessfulConnections: closedSuccessfulConnectionsPlaceholder,
@@ -390,7 +388,7 @@ export const sampleVerificationRequests: VerificationRequestItem[] = [
    {
     id: 'vr4',
     timestamp: new Date('2023-11-12T09:00:00Z'),
-    userId: 'newSellerUser123', 
+    userId: 'sellerNew', 
     userName: 'Pending Seller Alpha',
     userRole: 'seller',
     reason: 'New seller account created.',
@@ -402,8 +400,8 @@ export const sampleVerificationRequests: VerificationRequestItem[] = [
 
 export const sampleReadyToEngageItems: ReadyToEngageItem[] = [
   {
-    id: 'rte1',
-    timestamp: new Date('2023-11-08T12:00:00Z'),
+    id: 'rte1', // Corresponds to inq_s1 / inq_b1
+    timestamp: new Date('2023-11-11T10:00:00Z'), // When it became ready for connection
     buyerId: 'user2', 
     buyerName: 'Jane Smith (Buyer)',
     buyerVerificationStatus: 'verified',
@@ -422,7 +420,7 @@ export const sampleBuyerNotifications: NotificationItem[] = [
     userId: 'user2', // Jane Smith (Verified Buyer)
     timestamp: new Date('2023-11-11T10:05:00Z'),
     message: "Great news! Both you and the Seller for listing 'Profitable E-commerce Store in SEA' are verified and have agreed to engage. Our team will be in touch shortly.",
-    link: '/dashboard/inquiries#inq_b1', // Link to specific inquiry
+    link: '/dashboard/inquiries#inq_b1', 
     isRead: false,
     type: 'engagement'
   },
@@ -474,5 +472,3 @@ export const sampleSellerNotifications: NotificationItem[] = [
     type: 'engagement'
   }
 ];
-
-    

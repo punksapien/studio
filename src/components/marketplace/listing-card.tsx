@@ -1,3 +1,4 @@
+
 import type { Listing } from '@/lib/types';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -16,7 +17,7 @@ export function ListingCard({ listing }: ListingCardProps) {
     : listing.anonymousBusinessDescription;
 
   return (
-    <Card className="flex flex-col h-full overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 rounded-lg">
+    <Card className="flex flex-col h-full overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 rounded-lg bg-brand-white">
       <CardHeader className="p-0 relative">
         <Image
           src={listing.imageUrl || "https://placehold.co/400x250.png"}
@@ -24,43 +25,49 @@ export function ListingCard({ listing }: ListingCardProps) {
           width={400}
           height={250}
           className="w-full h-48 object-cover"
-          data-ai-hint="business storefront building"
+          data-ai-hint={listing.imageUrl ? "business storefront building" : "generic business"}
         />
         {listing.isSellerVerified && (
-          <Badge variant="secondary" className="absolute top-2 right-2 bg-accent text-accent-foreground">
-            <ShieldCheck className="h-4 w-4 mr-1" />
-            Verified
+          <Badge variant="outline" className="absolute top-2 right-2 bg-green-100 border-green-500 text-green-700 dark:bg-green-700 dark:text-green-200 dark:border-green-500">
+            <ShieldCheck className="h-3 w-3 mr-1" />
+            Verified Seller
           </Badge>
         )}
       </CardHeader>
       <CardContent className="p-4 flex-grow">
-        <CardTitle className="text-lg mb-2 leading-tight">
-          <Link href={`/listings/${listing.id}`} className="hover:text-primary transition-colors">
+        <CardTitle className="text-lg text-brand-dark-blue mb-2 leading-tight">
+          <Link href={`/listings/${listing.id}`} className="hover:text-brand-sky-blue transition-colors">
             {listing.listingTitleAnonymous}
           </Link>
         </CardTitle>
         <div className="space-y-2 text-sm text-muted-foreground">
           <div className="flex items-center">
-            <Briefcase className="h-4 w-4 mr-2 text-primary" />
+            <Briefcase className="h-4 w-4 mr-2 text-brand-dark-blue/70" />
             <span>{listing.industry}</span>
           </div>
           <div className="flex items-center">
-            <MapPin className="h-4 w-4 mr-2 text-primary" />
+            <MapPin className="h-4 w-4 mr-2 text-brand-dark-blue/70" />
             <span>{listing.locationCityRegionGeneral}, {listing.locationCountry}</span>
           </div>
           <div className="flex items-center">
-            <DollarSign className="h-4 w-4 mr-2 text-primary" />
+            <DollarSign className="h-4 w-4 mr-2 text-brand-dark-blue/70" />
             <span>Revenue: {listing.annualRevenueRange}</span>
           </div>
-          <p className="text-sm text-foreground pt-1">{truncatedDescription}</p>
+           {listing.askingPrice && (
+            <div className="flex items-center">
+                <DollarSign className="h-4 w-4 mr-2 text-brand-dark-blue/70" />
+                <span>Asking Price: ${listing.askingPrice.toLocaleString()} USD</span>
+            </div>
+          )}
+          <p className="text-sm text-brand-dark-blue/90 pt-1">{truncatedDescription}</p>
         </div>
       </CardContent>
-      <CardFooter className="p-4 border-t">
+      <CardFooter className="p-4 border-t border-brand-light-gray/80">
         <div className="flex justify-between items-center w-full">
-          <span className="text-sm text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             Listed: {new Date(listing.createdAt).toLocaleDateString()}
           </span>
-          <Button asChild size="sm">
+          <Button asChild size="sm" className="bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90">
             <Link href={`/listings/${listing.id}`}>
               View Details <ExternalLink className="ml-2 h-4 w-4" />
             </Link>

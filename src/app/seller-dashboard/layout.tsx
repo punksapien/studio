@@ -30,30 +30,29 @@ import {
   PlusCircle,
   HelpCircle,
   FileText,
-  MessageSquareQuote, // Corrected import
+  MessageSquareQuote,
   Home,
 } from 'lucide-react';
 import type { UserRole } from '@/lib/types';
 
-// Placeholder for current user role - in a real app, this would come from session
 const currentUserRole: UserRole | null = 'seller';
 
 const sellerSidebarNavItems = [
-  { title: 'Overview', href: '/seller-dashboard', icon: LayoutDashboard },
-  { title: 'My Profile', href: '/seller-dashboard/profile', icon: UserCircle },
-  { title: 'My Listings', href: '/seller-dashboard/listings', icon: Briefcase },
-  { title: 'Create Listing', href: '/seller-dashboard/listings/create', icon: PlusCircle },
-  { title: 'My Inquiries', href: '/seller-dashboard/inquiries', icon: MessageSquare },
-  { title: 'Verification', href: '/seller-dashboard/verification', icon: ShieldCheck },
-  { title: 'Notifications', href: '/seller-dashboard/notifications', icon: Bell },
-  { title: 'Settings', href: '/seller-dashboard/settings', icon: Settings },
+  { title: 'Overview', href: '/seller-dashboard', icon: LayoutDashboard, tooltip: "Dashboard Overview" },
+  { title: 'My Profile', href: '/seller-dashboard/profile', icon: UserCircle, tooltip: "Manage Profile" },
+  { title: 'My Listings', href: '/seller-dashboard/listings', icon: Briefcase, tooltip: "Manage Listings" },
+  { title: 'Create Listing', href: '/seller-dashboard/listings/create', icon: PlusCircle, tooltip: "Create New Listing" },
+  { title: 'My Inquiries', href: '/seller-dashboard/inquiries', icon: MessageSquare, tooltip: "View Inquiries" },
+  { title: 'Verification', href: '/seller-dashboard/verification', icon: ShieldCheck, tooltip: "Account/Listing Verification" },
+  { title: 'Notifications', href: '/seller-dashboard/notifications', icon: Bell, tooltip: "My Notifications" },
+  { title: 'Settings', href: '/seller-dashboard/settings', icon: Settings, tooltip: "Account Settings" },
 ];
 
 const utilityNavItems = [
-  { title: 'Help', href: '/help', icon: HelpCircle }, 
-  { title: 'Refer Docs', href: '/docs', icon: FileText }, 
-  { title: 'FAQ', href: '/faq', icon: MessageSquareQuote }, // Corrected icon
-  { title: 'Back to Homepage', href: '/', icon: Home },
+  { title: 'Help', href: '/help', icon: HelpCircle, tooltip: "Get Help" },
+  { title: 'Refer Docs', href: '/docs', icon: FileText, tooltip: "View Documentation" },
+  { title: 'FAQ', href: '/faq', icon: MessageSquareQuote, tooltip: "Frequently Asked Questions" },
+  { title: 'Back to Homepage', href: '/', icon: Home, tooltip: "Go to Homepage" },
 ];
 
 export default function SellerDashboardLayout({
@@ -74,9 +73,9 @@ export default function SellerDashboardLayout({
   }
 
   return (
-    <SidebarProvider defaultOpen className="flex min-h-screen flex-col">
-      <Sidebar variant="sidebar" collapsible="icon" className="border-r border-brand-light-gray/60">
-        <SidebarHeader className="p-4 border-b border-brand-light-gray/60">
+    <SidebarProvider defaultOpen className="flex min-h-screen flex-col bg-background">
+      <Sidebar variant="sidebar" collapsible="icon" className="border-r border-sidebar-border">
+        <SidebarHeader className="p-4 border-b border-sidebar-border">
           <div className="flex items-center justify-between">
             <Logo size="lg" />
             <SidebarTrigger className="md:hidden" />
@@ -96,34 +95,24 @@ export default function SellerDashboardLayout({
               } else if (item.href === createListingPath) {
                 itemIsActive = pathname === createListingPath;
               } else if (item.href === myListingsPath) {
-                itemIsActive = (pathname === myListingsPath) || 
-                               (pathname.startsWith(myListingsPath + '/') && !pathname.endsWith('/create') && !pathname.startsWith(createListingPath + '/'));
+                 // Active if it's the "My Listings" page itself, or any sub-page like /edit, but NOT /create
+                itemIsActive = pathname === myListingsPath || (pathname.startsWith(myListingsPath + '/') && !pathname.endsWith('/create'));
               } else {
+                // For other items, active if current path starts with item's href (e.g., /profile, /settings)
                 itemIsActive = pathname === item.href || pathname.startsWith(item.href + '/');
               }
               
-              if (item.href === myListingsPath && pathname === createListingPath) {
+              // Ensure "My Listings" is not active if "Create Listing" is active
+              if (item.href === myListingsPath && pathname.startsWith(createListingPath)) {
                 itemIsActive = false;
               }
-              if (item.href === myListingsPath && pathname.startsWith(createListingPath)) { // Ensure /create doesn't highlight /listings
-                itemIsActive = false;
-              }
-              if (item.href !== myListingsPath && item.href !== createListingPath && pathname.startsWith(myListingsPath) && !pathname.startsWith(item.href)){
-                 // Make sure other items are not active when on a listings sub-page unless it's their own sub-page
-                itemIsActive = false;
-              }
-               if (item.href === myListingsPath && pathname.startsWith(myListingsPath) && pathname.includes('/edit/')) {
-                // Specifically make "My Listings" active for edit pages
-                itemIsActive = true;
-              }
-
 
               return (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
                     isActive={itemIsActive}
-                    tooltip={{ children: item.title, className: "bg-primary text-primary-foreground" }}
+                    tooltip={{ children: item.tooltip, className: "bg-primary text-primary-foreground" }}
                   >
                     <Link href={item.href}>
                       <item.icon className="h-5 w-5" />
@@ -141,7 +130,7 @@ export default function SellerDashboardLayout({
                 <SidebarMenuButton
                   asChild
                   isActive={pathname === item.href}
-                  tooltip={{ children: item.title, className: "bg-primary text-primary-foreground" }}
+                  tooltip={{ children: item.tooltip, className: "bg-primary text-primary-foreground" }}
                 >
                   <Link href={item.href}>
                     <item.icon className="h-5 w-5" />
@@ -152,15 +141,15 @@ export default function SellerDashboardLayout({
             ))}
           </SidebarMenu>
         </SidebarContent>
-        <div className="p-4 border-t border-brand-light-gray/60 mt-auto">
+        <div className="p-4 border-t border-sidebar-border mt-auto">
           <Button variant="outline" className="w-full text-destructive-foreground bg-destructive hover:bg-destructive/90">
             <LogOut className="h-5 w-5" />
-            <span>Logout</span>
+            <span className="group-data-[collapsible=icon]:hidden">Logout</span>
           </Button>
         </div>
       </Sidebar>
-      <SidebarInset className="flex-grow flex flex-col">
-        <div className="p-4 md:p-6 lg:p-8 flex-grow flex flex-col">
+      <SidebarInset className="flex-grow flex flex-col overflow-hidden">
+         <div className="flex-grow flex flex-col p-4 md:p-6 lg:p-8 overflow-y-auto">
           <header className="md:hidden flex items-center justify-between mb-4 p-2 border rounded-md bg-card">
             <Logo size="lg" />
             <SidebarTrigger />

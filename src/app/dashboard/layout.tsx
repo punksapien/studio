@@ -29,28 +29,27 @@ import {
   ShoppingCart, 
   HelpCircle,   
   FileText,     
-  MessageSquareQuote, // Corrected: Was MessageSquareQuestion
+  MessageSquareQuote,
   Home,         
 } from 'lucide-react';
 import type { UserRole } from '@/lib/types';
 
-// Placeholder for current user role - in a real app, this would come from session
-const currentUserRole: UserRole | null = 'buyer'; // Explicitly buyer for this dashboard
+const currentUserRole: UserRole | null = 'buyer'; 
 
 const buyerSidebarNavItems = [
-  { title: 'Overview', href: '/dashboard', icon: LayoutDashboard },
-  { title: 'My Profile', href: '/dashboard/profile', icon: UserCircle },
-  { title: 'My Inquiries', href: '/dashboard/inquiries', icon: MessageSquare },
-  { title: 'Verification', href: '/dashboard/verification', icon: ShieldCheck },
-  { title: 'Notifications', href: '/dashboard/notifications', icon: Bell },
-  { title: 'Settings', href: '/dashboard/settings', icon: Settings },
+  { title: 'Overview', href: '/dashboard', icon: LayoutDashboard, tooltip: "Dashboard Overview" },
+  { title: 'My Profile', href: '/dashboard/profile', icon: UserCircle, tooltip: "Manage Profile" },
+  { title: 'My Inquiries', href: '/dashboard/inquiries', icon: MessageSquare, tooltip: "View Inquiries" },
+  { title: 'Verification', href: '/dashboard/verification', icon: ShieldCheck, tooltip: "Account Verification" },
+  { title: 'Notifications', href: '/dashboard/notifications', icon: Bell, tooltip: "My Notifications" },
+  { title: 'Settings', href: '/dashboard/settings', icon: Settings, tooltip: "Account Settings" },
 ];
 
 const utilityNavItems = [
   { title: 'Marketplace', href: '/marketplace', icon: ShoppingCart, tooltip: "Browse Marketplace" },
   { title: 'Help', href: '/help', icon: HelpCircle, tooltip: "Get Help" }, 
   { title: 'Refer Docs', href: '/docs', icon: FileText, tooltip: "View Documentation" }, 
-  { title: 'FAQ', href: '/faq', icon: MessageSquareQuote, tooltip: "Frequently Asked Questions" }, // Corrected
+  { title: 'FAQ', href: '/faq', icon: MessageSquareQuote, tooltip: "Frequently Asked Questions" },
   { title: 'Back to Homepage', href: '/', icon: Home, tooltip: "Go to Homepage" },
 ];
 
@@ -72,9 +71,9 @@ export default function DashboardLayout({
   }
 
   return (
-    <SidebarProvider defaultOpen className="flex min-h-screen flex-col">
-      <Sidebar variant="sidebar" collapsible="icon" className="border-r border-brand-light-gray/60">
-        <SidebarHeader className="p-4 border-b border-brand-light-gray/60">
+    <SidebarProvider defaultOpen className="flex min-h-screen flex-col bg-background">
+      <Sidebar variant="sidebar" collapsible="icon" className="border-r border-sidebar-border">
+        <SidebarHeader className="p-4 border-b border-sidebar-border">
           <div className="flex items-center justify-between">
             <Logo size="lg" />
             <SidebarTrigger className="md:hidden" />
@@ -87,7 +86,7 @@ export default function DashboardLayout({
                 <SidebarMenuButton
                   asChild
                   isActive={pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))}
-                  tooltip={{ children: item.title, className: "bg-primary text-primary-foreground" }}
+                  tooltip={{ children: item.tooltip, className: "bg-primary text-primary-foreground" }}
                 >
                   <Link href={item.href}>
                     <item.icon className="h-5 w-5" />
@@ -104,7 +103,7 @@ export default function DashboardLayout({
                 <SidebarMenuButton
                   asChild
                   isActive={pathname === item.href}
-                  tooltip={{ children: item.tooltip || item.title, className: "bg-primary text-primary-foreground" }}
+                  tooltip={{ children: item.tooltip, className: "bg-primary text-primary-foreground" }}
                 >
                   <Link href={item.href}>
                     <item.icon className="h-5 w-5" />
@@ -115,15 +114,15 @@ export default function DashboardLayout({
             ))}
           </SidebarMenu>
         </SidebarContent>
-        <div className="p-4 border-t border-brand-light-gray/60 mt-auto">
+        <div className="p-4 border-t border-sidebar-border mt-auto">
           <Button variant="outline" className="w-full text-destructive-foreground bg-destructive hover:bg-destructive/90">
             <LogOut className="h-5 w-5" />
-            <span>Logout</span>
+            <span className="group-data-[collapsible=icon]:hidden">Logout</span>
           </Button>
         </div>
       </Sidebar>
-      <SidebarInset className="flex-grow flex flex-col">
-        <div className="p-4 md:p-6 lg:p-8 flex-grow flex flex-col">
+      <SidebarInset className="flex-grow flex flex-col overflow-hidden">
+        <div className="flex-grow flex flex-col p-4 md:p-6 lg:p-8 overflow-y-auto">
           <header className="md:hidden flex items-center justify-between mb-4 p-2 border rounded-md bg-card">
             <Logo size="lg" />
             <SidebarTrigger />

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,10 +10,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { industries, asianCountries, revenueRanges, askingPriceRanges } from '@/lib/types';
+import { industries, asianCountries, revenueRanges } from '@/lib/types'; // Removed askingPriceRanges
 import { Filter } from 'lucide-react';
 
 export function Filters() {
@@ -78,25 +78,13 @@ export function Filters() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="price">Asking Price Range</Label>
-          <Select name="price">
-            <SelectTrigger id="price">
-              <SelectValue placeholder="Any Price" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="any">Any Price</SelectItem>
-              {askingPriceRanges.map((range) => (
-                <SelectItem key={range} value={range}>
-                  {range}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Label htmlFor="askingPrice">Asking Price (Max USD)</Label>
+          <Input type="number" name="askingPrice" id="askingPrice" placeholder="e.g., 500000" />
         </div>
         
         <div className="space-y-2">
-            <Label>Keywords</Label>
-            <Input placeholder="e.g., SaaS, Retail Tech" />
+            <Label htmlFor="keywords">Keywords</Label>
+            <Input id="keywords" name="keywords" placeholder="e.g., SaaS, Retail Tech" />
         </div>
 
         <Button className="w-full">Apply Filters</Button>

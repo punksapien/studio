@@ -3,15 +3,17 @@ export type UserRole = 'seller' | 'buyer' | 'admin';
 
 export type VerificationStatus = 'anonymous' | 'pending_verification' | 'verified' | 'rejected';
 
-export type BuyerType = 'Individual Investor' | 'Investment Firm' | 'Strategic Acquirer'; // Legacy, to be phased out or re-evaluated
+export type BuyerType = 'Individual Investor' | 'Investment Firm' | 'Strategic Acquirer'; // Legacy
 export const buyerTypes: BuyerType[] = ['Individual Investor', 'Investment Firm', 'Strategic Acquirer'];
 
 export const BuyerPersonaTypes = [
+  "Individual Investor / Entrepreneur",
   "Private Equity Firm",
   "Strategic Acquirer / Corporate Representative",
   "Family Office Representative",
   "Search Fund Principal",
   "Angel Investor",
+  "Company Executive (MBI/MBO)",
   "Other"
 ] as const;
 export type BuyerPersona = typeof BuyerPersonaTypes[number];
@@ -38,7 +40,7 @@ export const profitMarginRanges = [
   "< 0% (Loss-making)", "0% - 10%", "10% - 20%", 
   "20% - 30%", "30%+"
 ];
-export const askingPriceRanges = revenueRanges; 
+// askingPriceRanges was removed as askingPrice is now a number
 
 export const industries = ["Software", "Retail", "Manufacturing", "Services - Marketing", "E-commerce", "Healthcare", "Finance", "Education", "Real Estate", "Other"];
 export const asianCountries = ["Singapore", "Malaysia", "Indonesia", "Thailand", "Vietnam", "Philippines", "Hong Kong", "Japan", "South Korea", "India", "China", "Other"];
@@ -56,15 +58,14 @@ export interface User {
   isEmailVerified: boolean;
   verificationStatus: VerificationStatus;
   isPaid: boolean; 
-  initialCompanyName?: string; // For sellers
-  buyerType?: BuyerType; // Legacy, for buyers - can be deprecated if buyerPersonaType is sufficient
+  initialCompanyName?: string; 
+  buyerType?: BuyerType; // Legacy
   createdAt: Date;
   updatedAt: Date;
   lastLogin?: Date; 
   listingCount?: number; 
   inquiryCount?: number; 
 
-  // New Buyer Persona Fields
   buyerPersonaType?: BuyerPersona;
   buyerPersonaOther?: string;
   investmentFocusDescription?: string;
@@ -72,7 +73,7 @@ export interface User {
   keyIndustriesOfInterest?: string;
 }
 
-export type ListingStatus = 'active' | 'inactive' | 'pending_verification' | 'verified_anonymous' | 'verified_public';
+export type ListingStatus = 'active' | 'inactive' | 'pending_verification' | 'verified_anonymous' | 'verified_public' | 'rejected_by_admin';
 
 export interface Listing {
   id: string;
@@ -93,7 +94,7 @@ export interface Listing {
 
   annualRevenueRange: string; 
   netProfitMarginRange?: string;
-  askingPriceRange: string; 
+  askingPrice?: number; // Changed from askingPriceRange
   specificAnnualRevenueLastYear?: number;
   specificNetProfitLastYear?: number;
   financialsExplanation?: string;
@@ -216,7 +217,7 @@ export interface VerificationRequestItem {
 
 export interface ReadyToEngageItem {
   id: string;
-  timestamp: Date;
+  timestamp: Date; // When it became "ready to engage"
   buyerId: string;
   buyerName: string;
   buyerVerificationStatus: VerificationStatus; 
@@ -239,5 +240,3 @@ export interface NotificationItem {
   userId: string;
   type: NotificationType; 
 }
-
-    
