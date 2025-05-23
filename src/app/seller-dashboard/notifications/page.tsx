@@ -4,18 +4,23 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Bell, Check, Mail, ShieldCheck, MessageSquare, Edit3 } from "lucide-react";
+import { Bell, Check, Mail, ShieldCheck, MessageSquare, Edit3, CheckCircle2 } from "lucide-react"; // Added CheckCircle2
 import type { NotificationItem, User } from "@/lib/types";
 import { sampleSellerNotifications, sampleUsers } from "@/lib/placeholder-data";
 import { useState, useEffect } from "react";
 
 // Placeholder for current seller ID
-const currentSellerId = 'user1'; // Change to 'user3' to see different notifications
+const currentSellerId = 'user1'; // Or 'user3'
 const currentUser: User | undefined = sampleUsers.find(u => u.id === currentSellerId && u.role === 'seller');
 
-const sellerNotifications: NotificationItem[] = sampleSellerNotifications
-  .filter(notif => notif.userId === currentUser?.id)
-  .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()); 
+const getInitialNotifications = (): NotificationItem[] => {
+  if (typeof window === "undefined") { // Prevent running filter on server if sampleSellerNotifications might not be fully initialized
+    return [];
+  }
+  return sampleSellerNotifications
+    .filter(notif => notif.userId === currentUser?.id)
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()); 
+}
 
 
 function FormattedTimestamp({ timestamp }: { timestamp: Date | string }) {
@@ -34,14 +39,19 @@ function FormattedTimestamp({ timestamp }: { timestamp: Date | string }) {
 
 export default function SellerNotificationsPage() {
   
-  const [notifications, setNotifications] = useState<NotificationItem[]>(sellerNotifications);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+
+  useEffect(() => {
+    setNotifications(getInitialNotifications());
+  }, []);
+
 
   const handleMarkAsRead = (notificationId: string) => {
     console.log("Marking notification as read:", notificationId);
     setNotifications(prev => prev.map(n => n.id === notificationId ? {...n, isRead: true} : n));
   };
 
-  if (!currentUser) {
+  if (typeof window !== 'undefined' && !currentUser) { // Added typeof window check for currentUser access
      return (
       <div className="space-y-8 text-center">
         <h1 className="text-3xl font-bold tracking-tight">Access Denied</h1>
@@ -50,12 +60,18 @@ export default function SellerNotificationsPage() {
       </div>
     );
   }
+  
+  if (typeof window === 'undefined' && !currentUser) { // SSR fallback or initial loading
+    return <div className="space-y-8 text-center"><p>Loading notifications...</p></div>
+  }
+
 
   const getIconForNotificationType = (type: NotificationItem['type']) => {
     switch(type) {
       case 'inquiry': return <MessageSquare className="mr-2 h-4 w-4"/>;
       case 'verification': return <ShieldCheck className="mr-2 h-4 w-4"/>;
-      case 'engagement': return <CheckCircle2 className="mr-2 h-4 w-4"/>;
+      case 'engagement': return <CheckCircle2 className="mr-2 h-4 w-4"/>; // Correctly uses CheckCircle2
+      case 'listing_update': return <Edit3 className="mr-2 h-4 w-4"/>;
       case 'system': 
       default: return <Bell className="mr-2 h-4 w-4"/>;
     }
@@ -121,4 +137,3 @@ export default function SellerNotificationsPage() {
     </div>
   );
 }
-
