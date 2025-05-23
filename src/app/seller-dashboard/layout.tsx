@@ -3,6 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import * as React from 'react'; // Ensured React import for JSX
 import {
   SidebarProvider,
   Sidebar,
@@ -29,18 +30,17 @@ import {
 } from 'lucide-react';
 import type { UserRole } from '@/lib/types';
 
-// For Seller Dashboard, role is 'seller'
 const currentUserRole: UserRole = 'seller'; 
 
-const allSidebarNavItems = [
-  { title: 'Overview', href: '/seller-dashboard', icon: LayoutDashboard, roles: ['seller'] },
-  { title: 'My Profile', href: '/seller-dashboard/profile', icon: UserCircle, roles: ['seller'] },
-  { title: 'My Listings', href: '/seller-dashboard/listings', icon: Briefcase, roles: ['seller'] },
-  { title: 'Create Listing', href: '/seller-dashboard/listings/create', icon: PlusCircle, roles: ['seller'] },
-  { title: 'My Inquiries', href: '/seller-dashboard/inquiries', icon: MessageSquare, roles: ['seller'] },
-  { title: 'Verification', href: '/seller-dashboard/verification', icon: ShieldCheck, roles: ['seller'] },
-  { title: 'Notifications', href: '/seller-dashboard/notifications', icon: Bell, roles: ['seller']},
-  { title: 'Settings', href: '/seller-dashboard/settings', icon: Settings, roles: ['seller'] },
+const sellerSidebarNavItems = [
+  { title: 'Overview', href: '/seller-dashboard', icon: LayoutDashboard },
+  { title: 'My Profile', href: '/seller-dashboard/profile', icon: UserCircle },
+  { title: 'My Listings', href: '/seller-dashboard/listings', icon: Briefcase },
+  { title: 'Create Listing', href: '/seller-dashboard/listings/create', icon: PlusCircle },
+  { title: 'My Inquiries', href: '/seller-dashboard/inquiries', icon: MessageSquare },
+  { title: 'Verification', href: '/seller-dashboard/verification', icon: ShieldCheck },
+  { title: 'Notifications', href: '/seller-dashboard/notifications', icon: Bell},
+  { title: 'Settings', href: '/seller-dashboard/settings', icon: Settings },
 ];
 
 
@@ -50,10 +50,6 @@ export default function SellerDashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-
-  const sidebarNavItems = allSidebarNavItems.filter(item => 
-    item.roles.includes(currentUserRole)
-  );
 
   return (
     <SidebarProvider defaultOpen>
@@ -66,7 +62,7 @@ export default function SellerDashboardLayout({
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
-            {sidebarNavItems.map((item) => {
+            {sellerSidebarNavItems.map((item) => {
               const overviewPath = '/seller-dashboard';
               const myListingsPath = '/seller-dashboard/listings';
               const createListingPath = '/seller-dashboard/listings/create';
@@ -81,8 +77,6 @@ export default function SellerDashboardLayout({
                 itemIsActive = (pathname === myListingsPath) || 
                                (pathname.startsWith(myListingsPath + '/') && pathname !== createListingPath);
               } else { 
-                // Default for other items like Profile, Settings, Notifications, Verification
-                // Active if exact match or if current path is a sub-route (e.g. /profile/edit)
                 itemIsActive = pathname === item.href || pathname.startsWith(item.href + '/');
               }
 
@@ -110,13 +104,15 @@ export default function SellerDashboardLayout({
            </SidebarMenuButton>
         </div>
       </Sidebar>
-      <SidebarInset>
-        <div className="p-4 md:p-6 lg:p-8">
+      <SidebarInset className="flex-grow pt-20"> {/* Added pt-20 for sticky navbar offset and flex-grow */}
+        <div className="p-4 md:p-6 lg:p-8 flex-grow flex flex-col"> {/* flex-grow and flex-col here too */}
           <header className="md:hidden flex items-center justify-between mb-4 p-2 border rounded-md bg-card">
              <Logo size="lg" />
              <SidebarTrigger/>
           </header>
-          {children}
+          <div className="flex-grow"> {/* This div will take the remaining space */}
+            {children}
+          </div>
         </div>
       </SidebarInset>
     </SidebarProvider>

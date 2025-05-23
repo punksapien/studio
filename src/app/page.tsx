@@ -78,7 +78,7 @@ export default function HomePage() {
             <Button size="lg" asChild className="bg-brand-white text-brand-dark-blue hover:bg-brand-light-gray/90 font-semibold py-3 px-8 rounded-md text-base">
               <Link href="/auth/register/seller">List Your Business <ArrowRight className="ml-2 h-5 w-5" /></Link>
             </Button>
-            <Button size="lg" variant="outline" asChild className="border-brand-white text-brand-white hover:bg-brand-white/10 hover:text-brand-white font-semibold py-3 px-8 rounded-md text-base">
+            <Button size="lg" variant="outline" asChild className="border-brand-white text-brand-dark-blue hover:bg-brand-white/10 hover:text-brand-white font-semibold py-3 px-8 rounded-md text-base">
               <Link href="/marketplace">Browse Businesses</Link>
             </Button>
           </div>
@@ -250,14 +250,14 @@ export default function HomePage() {
       </section>
 
       {/* Our Mission Section */}
-      <section className="py-20 md:py-32 bg-brand-dark text-brand-white"> {/* Updated to bg-brand-dark */}
+      <section className="py-20 md:py-32 bg-brand-dark text-brand-dark-blue"> {/* Updated to bg-brand-dark */}
         <div className="container mx-auto px-4 text-center">
-          <p className="text-sm font-semibold uppercase tracking-wider text-brand-light-gray/70 mb-3">OUR COMMITMENT</p> {/* Adjusted text color for contrast */}
+          <p className="text-sm font-semibold uppercase tracking-wider text-brand-dark-blue/70 mb-3">OUR COMMITMENT</p> {/* Adjusted text color for contrast */}
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight mb-6">Empowering SME Growth and Transitions Across Asia</h2>
-          <p className="text-lg md:text-xl text-brand-light-gray/90 max-w-3xl mx-auto mb-10">
+          <p className="text-lg md:text-xl text-brand-dark-blue/90 max-w-3xl mx-auto mb-10">
             At Nobridge, we believe in the power of small and medium-sized enterprises. Our mission is to provide a transparent, efficient, and supportive platform that connects business owners with the right investors and buyers, fostering growth and successful transitions throughout the continent.
           </p>
-          <Button size="lg" variant="outline" className="border-brand-white text-brand-white hover:bg-brand-white/10 hover:text-brand-white font-semibold py-3 px-8 rounded-md text-base" asChild>
+          <Button size="lg" variant="outline" className="border-brand-white text-brand-dark-blue hover:bg-brand-white/10 hover:text-purple font-semibold py-3 px-8 rounded-md text-base" asChild>
             <Link href="/about">Learn More About Us</Link>
           </Button>
         </div>

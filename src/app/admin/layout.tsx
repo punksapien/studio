@@ -3,6 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import * as React from 'react'; // Ensured React import for JSX
 import {
   SidebarProvider,
   Sidebar,
@@ -26,7 +27,7 @@ import {
   LineChart,
   UserCheck,
   Building,
-  FileText // Added for document review icon
+  FileText
 } from 'lucide-react';
 
 const adminSidebarNavItems = [
@@ -34,13 +35,11 @@ const adminSidebarNavItems = [
   { title: 'User Management', href: '/admin/users', icon: Users },
   { title: 'Listing Management', href: '/admin/listings', icon: Briefcase },
   { title: 'Buyer Verification', href: '/admin/verification-queue/buyers', icon: UserCheck },
-  { title: 'Seller/Listing Verification', href: '/admin/verification-queue/sellers', icon: Building }, // Renamed for clarity
+  { title: 'Seller/Listing Verification', href: '/admin/verification-queue/sellers', icon: Building },
   { title: 'Engagement Queue', href: '/admin/engagement-queue', icon: BellRing },
   { title: 'Analytics', href: '/admin/analytics', icon: LineChart },
 ];
 
-// Placeholder for admin authentication check
-// In a real app, this layout would be protected, and non-admins redirected.
 const isAdminAuthenticated = true; 
 
 export default function AdminLayout({
@@ -51,21 +50,17 @@ export default function AdminLayout({
   const pathname = usePathname();
 
   if (!isAdminAuthenticated && pathname !== '/admin/login') {
-    // In a real app, use Next.js redirect() or router.push()
-    // For MVP structure, we'll assume access or show a message if not on login
     if (typeof window !== 'undefined') {
-      // window.location.href = '/admin/login'; // Basic redirect for now
+      // window.location.href = '/admin/login'; 
     }
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-background">
             <Logo size="2xl" />
             <p className="mt-4 text-lg text-muted-foreground">Access Denied. Redirecting to login...</p>
-            {/* Spinner or loading state */}
         </div>
     );
   }
   
-  // If on login page, don't render the sidebar layout
   if (pathname === '/admin/login') {
       return (
         <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-primary/5 via-background to-background py-12">
@@ -73,7 +68,6 @@ export default function AdminLayout({
         </div>
       );
   }
-
 
   return (
     <SidebarProvider defaultOpen>
@@ -109,13 +103,15 @@ export default function AdminLayout({
            </SidebarMenuButton>
         </div>
       </Sidebar>
-      <SidebarInset>
-        <div className="p-4 md:p-6 lg:p-8">
+      <SidebarInset className="flex-grow pt-20"> {/* Added pt-20 for sticky navbar offset and flex-grow */}
+        <div className="p-4 md:p-6 lg:p-8 flex-grow flex flex-col"> {/* flex-grow and flex-col here too */}
            <header className="md:hidden flex items-center justify-between mb-4 p-2 border rounded-md bg-card">
              <Logo size="lg" />
              <SidebarTrigger/>
           </header>
-          {children}
+          <div className="flex-grow"> {/* This div will take the remaining space */}
+            {children}
+          </div>
         </div>
       </SidebarInset>
     </SidebarProvider>

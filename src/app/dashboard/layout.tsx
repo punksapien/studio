@@ -3,6 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import * as React from 'react'; // Ensured React import for JSX
 import {
   SidebarProvider,
   Sidebar,
@@ -19,28 +20,29 @@ import { Button } from '@/components/ui/button';
 import {
   LayoutDashboard,
   UserCircle,
-  Briefcase,
+  Briefcase, // Kept for potential future use, but not in current buyer nav
   MessageSquare,
   Settings,
   LogOut,
   ShieldCheck,
-  Bell
+  Bell,
+  PlusCircle // Kept for potential future use
 } from 'lucide-react';
 import type { UserRole } from '@/lib/types';
 
-
 // Placeholder for current user role - in a real app, this would come from session
-const currentUserRole: UserRole | null = 'buyer'; // Set to 'buyer' for buyer dashboard development
+const currentUserRole: UserRole | null = 'buyer'; // Explicitly buyer for this dashboard
 
 const allSidebarNavItems = [
-  { title: 'Overview', href: '/dashboard', icon: LayoutDashboard, roles: ['seller', 'buyer'] },
-  { title: 'My Profile', href: '/dashboard/profile', icon: UserCircle, roles: ['seller', 'buyer'] },
-  { title: 'My Listings', href: '/dashboard/listings', icon: Briefcase, roles: ['seller'] },
-  { title: 'Create Listing', href: '/dashboard/listings/create', icon: Briefcase, roles: ['seller'] },
-  { title: 'My Inquiries', href: '/dashboard/inquiries', icon: MessageSquare, roles: ['seller', 'buyer'] },
-  { title: 'Verification', href: '/dashboard/verification', icon: ShieldCheck, roles: ['seller', 'buyer'] },
-  { title: 'Notifications', href: '/dashboard/notifications', icon: Bell, roles: ['seller', 'buyer']},
-  { title: 'Settings', href: '/dashboard/settings', icon: Settings, roles: ['seller', 'buyer'] },
+  { title: 'Overview', href: '/dashboard', icon: LayoutDashboard, roles: ['buyer', 'seller'] },
+  { title: 'My Profile', href: '/dashboard/profile', icon: UserCircle, roles: ['buyer', 'seller'] },
+  { title: 'My Inquiries', href: '/dashboard/inquiries', icon: MessageSquare, roles: ['buyer', 'seller'] },
+  { title: 'Verification', href: '/dashboard/verification', icon: ShieldCheck, roles: ['buyer', 'seller'] },
+  { title: 'Notifications', href: '/dashboard/notifications', icon: Bell, roles: ['buyer', 'seller']},
+  { title: 'Settings', href: '/dashboard/settings', icon: Settings, roles: ['buyer', 'seller'] },
+  // Seller specific (will be filtered out for buyer)
+  { title: 'My Listings', href: '/seller-dashboard/listings', icon: Briefcase, roles: ['seller'] },
+  { title: 'Create Listing', href: '/seller-dashboard/listings/create', icon: PlusCircle, roles: ['seller'] },
 ];
 
 
@@ -52,7 +54,7 @@ export default function DashboardLayout({
   const pathname = usePathname();
 
   const sidebarNavItems = allSidebarNavItems.filter(item => 
-    !item.roles || (currentUserRole && item.roles.includes(currentUserRole))
+    currentUserRole && item.roles.includes(currentUserRole)
   );
 
   return (
@@ -90,14 +92,15 @@ export default function DashboardLayout({
            </SidebarMenuButton>
         </div>
       </Sidebar>
-      <SidebarInset>
-        <div className="p-4 md:p-6 lg:p-8">
-          {/* Header within inset for mobile trigger and page title */}
+      <SidebarInset className="flex-grow pt-20"> {/* Added pt-20 for sticky navbar offset and flex-grow */}
+        <div className="p-4 md:p-6 lg:p-8 flex-grow flex flex-col"> {/* flex-grow and flex-col here too */}
           <header className="md:hidden flex items-center justify-between mb-4 p-2 border rounded-md bg-card">
              <Logo size="lg" />
              <SidebarTrigger/>
           </header>
-          {children}
+          <div className="flex-grow"> {/* This div will take the remaining space */}
+            {children}
+          </div>
         </div>
       </SidebarInset>
     </SidebarProvider>
