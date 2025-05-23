@@ -20,7 +20,7 @@ This section details the core authentication mechanisms. While a dedicated auth 
 ### A. User Registration (Seller)
 
 *   **Triggering UI:** Seller Registration Form submission (`src/app/auth/register/seller/page.tsx`).
-*   **Next.js API Route Stub (Conceptual):** `POST /api/auth/register/seller/route.ts`
+*   **Next.js API Route Stub (Conceptual):** `POST /api/auth/register/seller`
 *   **Detailed Backend Worker Logic (Step-by-Step):**
     1.  **Receive Request:** Worker receives a POST request containing seller data:
         *   `fullName`
@@ -68,7 +68,7 @@ This section details the core authentication mechanisms. While a dedicated auth 
 ### B. User Registration (Buyer)
 
 *   **Triggering UI:** Buyer Registration Form submission (`src/app/auth/register/buyer/page.tsx`).
-*   **Next.js API Route Stub (Conceptual):** `POST /api/auth/register/buyer/route.ts`
+*   **Next.js API Route Stub (Conceptual):** `POST /api/auth/register/buyer`
 *   **Detailed Backend Worker Logic (Step-by-Step):**
     1.  **Receive Request:** Worker receives a POST request containing buyer data:
         *   `fullName`
@@ -104,7 +104,7 @@ This section details the core authentication mechanisms. While a dedicated auth 
 ### C. User Login
 
 *   **Triggering UI:** Login Form submission (`src/app/auth/login/page.tsx`).
-*   **Next.js API Route Stub (Conceptual):** `POST /api/auth/login/route.ts`
+*   **Next.js API Route Stub (Conceptual):** `POST /api/auth/login`
 *   **Detailed Backend Worker Logic (Step-by-Step):**
     1.  **Receive Request:** Worker receives POST request with `email` and `password`.
     2.  **Validate Input:** Use Zod schema (`LoginSchema`). Return 400 if invalid.
@@ -134,7 +134,7 @@ This section details the core authentication mechanisms. While a dedicated auth 
 ### D. User Logout
 
 *   **Triggering UI:** Logout button (e.g., in User Dashboards, potentially main Navbar if user is logged in).
-*   **Next.js API Route Stub (Conceptual):** `POST /api/auth/logout/route.ts`
+*   **Next.js API Route Stub (Conceptual):** `POST /api/auth/logout`
 *   **Detailed Backend Worker Logic (Step-by-Step):**
     1.  **Receive Request:** No specific body needed, but should be an authenticated request.
     2.  **Clear Session Cookie:**
@@ -147,7 +147,7 @@ This section details the core authentication mechanisms. While a dedicated auth 
 ### E. Forgot Password - Request Reset
 
 *   **Triggering UI:** Forgot Password Form submission (`src/app/auth/forgot-password/page.tsx`).
-*   **Next.js API Route Stub (Conceptual):** `POST /api/auth/forgot-password/route.ts`
+*   **Next.js API Route Stub (Conceptual):** `POST /api/auth/forgot-password`
 *   **Detailed Backend Worker Logic (Step-by-Step):**
     1.  **Receive Request:** Worker receives POST request with `email`.
     2.  **Validate Input:** Use Zod schema (`ForgotPasswordSchema`). Return 400 if invalid.
@@ -166,7 +166,7 @@ This section details the core authentication mechanisms. While a dedicated auth 
 ### F. Reset Password - Handle Reset
 
 *   **Triggering UI:** Reset Password Form submission (from the link sent via email).
-*   **Next.js API Route Stub (Conceptual):** `POST /api/auth/reset-password/route.ts`
+*   **Next.js API Route Stub (Conceptual):** `POST /api/auth/reset-password`
 *   **Detailed Backend Worker Logic (Step-by-Step):**
     1.  **Receive Request:** Worker receives POST request with `token` (from URL query parameter), `newPassword`, `confirmNewPassword`.
     2.  **Validate Input:**
@@ -192,7 +192,7 @@ This section details the backend processes for sellers creating and managing the
 ### A. Create New Business Listing
 
 *   **Triggering UI:** Seller Dashboard -> "Create New Listing" form submission (`src/app/seller-dashboard/listings/create/page.tsx`).
-*   **Next.js API Route Stub (Conceptual):** `POST /api/listings/route.ts`
+*   **Next.js API Route Stub (Conceptual):** `POST /api/listings`
 *   **Detailed Backend Worker Logic (Step-by-Step):**
     1.  **Receive Request:** Worker receives a POST request with all listing data:
         *   `listingTitleAnonymous`, `industry`, `locationCountry`, `locationCityRegionGeneral`.
@@ -204,20 +204,20 @@ This section details the backend processes for sellers creating and managing the
         *   `sellerRoleAndTimeCommitment`, `postSaleTransitionSupport`.
         *   `growthPotentialNarrative`, `specificGrowthOpportunities`.
         *   Placeholders for document names/keys if a pre-signed URL upload flow is used for `financialDocumentsUrl`, `keyMetricsReportUrl`, `ownershipDocumentsUrl`.
-    2.  **Authenticate Seller:** Verify the request is from an authenticated seller and retrieve their `user_id` (this will be the `seller_id` for the listing).
+    2.  **Authenticate Seller:** Verify the request is from an authenticated seller and retrieve their `user_id` (this will be the `seller_id` for the listing). Check if user's role is 'SELLER'.
     3.  **Validate Input:**
         *   Use the Zod schema (`ListingSchema` from the create listing page) to validate the received data.
         *   If validation fails, return a 400 Bad Request error with details.
     4.  **Process Document Placeholders (Conceptual for R2):**
         *   If the request includes references to files already uploaded to R2 (e.g., via a pre-signed URL flow handled by the client prior to this API call), store these R2 object keys/paths.
-        *   If direct file upload to this worker is intended (less ideal for serverless, but possible for small files), handle `multipart/form-data`, upload to R2, and get the R2 object keys/paths.
+        *   If direct file upload to this worker is intended (less ideal for serverless, but possible for small files), handle `multipart/form-data`, upload to R2, and get the R2 object keys/paths. The file names/paths should be unique, perhaps prefixed with `listing_id/` or `user_id/listing_id/`.
     5.  **Create Listing Record in D1:**
         *   Generate a unique `listing_id` (e.g., UUID).
         *   Insert a new record into the `listings` table in D1 with:
             *   `listing_id`, `seller_id` (from authenticated user).
             *   All validated fields from the request.
             *   Document URLs/keys for `financialDocumentsUrl`, `keyMetricsReportUrl`, `ownershipDocumentsUrl` (pointing to R2 locations).
-            *   `status`: Set to `'PENDING_ADMIN_REVIEW'` or `'ACTIVE_ANONYMOUS'` (depending on platform policy).
+            *   `status`: Set to `'PENDING_ADMIN_REVIEW'` or `'ACTIVE_ANONYMOUS'` (depending on platform policy, default to `'PENDING_ADMIN_REVIEW'` if verification is standard).
             *   `is_seller_verified`: This should reflect the current verification status of the `seller_id` from the `user_profiles` table.
             *   `created_at`, `updated_at`: Current UTC timestamps.
     6.  **Return Success Response:**
@@ -226,7 +226,7 @@ This section details the backend processes for sellers creating and managing the
 ### B. Edit Existing Business Listing
 
 *   **Triggering UI:** Seller Dashboard -> "My Listings" -> "Edit Listing" button (`src/app/seller-dashboard/listings/[listingId]/edit/page.tsx`).
-*   **Next.js API Route Stub (Conceptual):** `PUT /api/listings/[listingId]/route.ts`
+*   **Next.js API Route Stub (Conceptual):** `PUT /api/listings/[listingId]`
 *   **Detailed Backend Worker Logic (Step-by-Step):**
     1.  **Receive Request:** Worker receives a PUT request with the `listingId` in the path and updated listing data in the body.
     2.  **Authenticate Seller:** Verify the request is from an authenticated seller and retrieve their `user_id`.
@@ -241,14 +241,14 @@ This section details the backend processes for sellers creating and managing the
     6.  **Update Listing Record in D1:**
         *   Update the specified fields for the given `listing_id` in the `listings` table.
         *   Update `updated_at` timestamp.
-        *   If significant content changes are made that require re-verification, potentially update `status` to `'PENDING_ADMIN_REVIEW'`.
+        *   If significant content changes are made that require re-verification (e.g., financials, core description), potentially update `status` to `'PENDING_ADMIN_REVIEW'`.
     7.  **Return Success Response:**
         *   Return a 200 OK status with a success message (e.g., "Listing updated successfully.") and the updated listing data.
 
 ### C. Deactivate/Reactivate Listing
 
 *   **Triggering UI:** Seller Dashboard -> "My Listings" -> "Deactivate/Reactivate" button.
-*   **Next.js API Route Stub (Conceptual):** `PUT /api/listings/[listingId]/status/route.ts` (or a more generic update endpoint).
+*   **Next.js API Route Stub (Conceptual):** `PUT /api/listings/[listingId]/status` (or a more generic update endpoint).
 *   **Detailed Backend Worker Logic (Step-by-Step):**
     1.  **Receive Request:** Worker receives PUT request with `listingId` and desired new status (e.g., `{ status: 'INACTIVE' }` or `{ status: 'ACTIVE_ANONYMOUS' }`).
     2.  **Authenticate Seller:** Verify authenticated seller and get `user_id`.
@@ -262,7 +262,7 @@ This section details the backend processes for sellers creating and managing the
 ### D. Seller Requests Listing Verification
 
 *   **Triggering UI:** Seller Dashboard -> "Verification" page, or "Request Verification Call for this Listing" button on "My Listings" page.
-*   **Next.js API Route Stub (Conceptual):** `POST /api/verification-requests/route.ts` (with type 'listing') or `POST /api/listings/[listingId]/request-verification/route.ts`.
+*   **Next.js API Route Stub (Conceptual):** `POST /api/verification-requests` (with type 'listing') or `POST /api/listings/[listingId]/request-verification`.
 *   **Detailed Backend Worker Logic (Step-by-Step):**
     1.  **Receive Request:** Worker receives request with `listingId` (if verifying specific listing), `bestTimeToCall` (optional), `notes` (optional). Requires authenticated seller `user_id`.
     2.  **Authenticate Seller:** Get `user_id`.
@@ -276,11 +276,119 @@ This section details the backend processes for sellers creating and managing the
             *   `request_id` (UUID).
             *   `user_id` (seller's ID).
             *   `listing_id` (if applicable).
-            *   `request_type`: 'LISTING_VERIFICATION' (or 'PROFILE_VERIFICATION' if general).
+            *   `request_type`: 'LISTING_VERIFICATION' (or 'PROFILE_VERIFICATION' if general seller profile).
             *   `best_time_to_call`, `notes`.
             *   `status`: 'NEW_REQUEST'.
             *   `created_at`, `updated_at`.
     6.  **Conceptual: Notify Admin Team:** Trigger an internal mechanism (e.g., add to an admin task queue, send an email to admin group) about the new verification request. This is managed by the Admin Panel.
     7.  **Return Success Response:** 201 Created with a success message (e.g., "Verification request submitted. Our team will contact you.").
+
+---
+
+## III. Marketplace & Buyer Actions
+
+This section outlines the backend processes involved when buyers interact with the marketplace and individual listings.
+
+### A. Fetch All Listings (for `/marketplace`)
+
+*   **Triggering UI:** `/marketplace` page load, filter changes, sorting, pagination.
+*   **Next.js API Route Stub (Conceptual):** `GET /api/listings`
+*   **Detailed Backend Worker Logic (Step-by-Step):**
+    1.  **Receive Request:** Worker receives GET request with optional query parameters: `page?`, `limit?`, `industry?`, `country?`, `revenueRange?`, `priceRange?`, `keywords?`, `sortBy?`, `sortOrder?`.
+    2.  **Validate Query Parameters:** Ensure parameters are of expected types and within reasonable limits (e.g., `page` and `limit` are numbers).
+    3.  **Determine Requesting Buyer's Status (Conceptual - Requires Session/Auth Info):**
+        *   Check if the request is from an authenticated buyer.
+        *   If authenticated, retrieve the buyer's `user_id`, `verification_status`, and `is_paid` status from their session or by querying the `user_profiles` table in D1.
+    4.  **Construct SQL Query for D1:**
+        *   Base query: `SELECT ... FROM listings`.
+        *   **Filtering:**
+            *   Always include listings with `status` IN `('ACTIVE_ANONYMOUS', 'VERIFIED_ANONYMOUS', 'VERIFIED_PUBLIC')`.
+            *   Apply `WHERE` clauses for `industry`, `locationCountry`, `annualRevenueRange`, `askingPriceRange` if provided. Range fields might require parsing and using `>=` and `<=` operators or specific range mapping logic.
+            *   For `keywords`, use `WHERE (listingTitleAnonymous LIKE '%keyword%' OR anonymousBusinessDescription LIKE '%keyword%')`. Consider D1's full-text search capabilities if available for better performance.
+        *   **Sorting:** Apply `ORDER BY` based on `sortBy` (e.g., `createdAt`, `askingPriceRange_min` - requires price ranges to be queryable) and `sortOrder` (`ASC`/`DESC`).
+        *   **Pagination:** Apply `LIMIT` and `OFFSET` based on `page` and `limit`.
+        *   **Field Selection:**
+            *   **For Anonymous Buyers OR Verified Buyers viewing Anonymous Seller listings:** Select only publicly anonymous fields (e.g., `listing_id`, `listingTitleAnonymous`, `industry`, `locationCountry`, `locationCityRegionGeneral`, `anonymousBusinessDescription` (snippet), `keyStrengthsAnonymous`, `annualRevenueRange`, `askingPriceRange`, `imageUrl`, `created_at`) AND `is_seller_verified` flag (from the listing or joined from the seller's profile).
+            *   **For Verified AND Paid Buyers viewing Verified Seller listings:** Select all fields, including detailed/verified ones (`actualCompanyName`, `specificAnnualRevenueLastYear`, document URLs, etc.).
+    5.  **Execute Query & Fetch Total Count:**
+        *   Execute the main query to get the current page of listings.
+        *   Execute a separate `SELECT COUNT(*)` query with the same `WHERE` clauses (but without `LIMIT`/`OFFSET`/`ORDER BY`) to get the `totalListings`.
+    6.  **Calculate Pagination Details:** `totalPages = Math.ceil(totalListings / limit)`.
+    7.  **Return Success Response:**
+        *   Return 200 OK with `{ listings: [...], currentPage, totalPages, totalListings }`.
+
+### B. Fetch Single Listing Details (`/listings/[listingId]`)
+
+*   **Triggering UI:** Navigating to a specific listing detail page.
+*   **Next.js API Route Stub (Conceptual):** `GET /api/listings/[listingId]`
+*   **Detailed Backend Worker Logic (Step-by-Step):**
+    1.  **Receive Request:** Worker receives GET request with `listingId` from the path.
+    2.  **Determine Requesting Buyer's Status (Conceptual):** As in "Fetch All Listings".
+    3.  **Fetch Listing and Seller Data from D1:**
+        *   Query `listings` table: `SELECT * FROM listings WHERE listing_id = ?`.
+        *   If listing not found, or its `status` is 'INACTIVE' or 'REJECTED' (unless admin is viewing), return 404 Not Found.
+        *   Query `user_profiles` table: `SELECT verification_status AS seller_verification_status, is_paid AS seller_is_paid FROM user_profiles WHERE user_id = ?` (using `listings.seller_id`).
+    4.  **Construct Response Object:**
+        *   Start with all anonymous fields of the listing.
+        *   **Conditional Inclusion of Verified Data:**
+            *   If `listing.is_seller_verified` is `true` AND the requesting buyer is authenticated, `buyer.verification_status` is `'VERIFIED'`, AND `buyer.is_paid` is `true`:
+                *   Include all detailed/verified fields from the listing (e.g., `actualCompanyName`, `specificAnnualRevenueLastYear`, `financialDocumentsUrl`, `growthPotentialNarrative`, etc.).
+            *   Otherwise, do not include these verified fields.
+    5.  **Return Success Response:**
+        *   Return 200 OK with the constructed listing object.
+
+### C. Buyer Inquires About Business
+
+*   **Triggering UI:** "Inquire about business" button on listing card/detail page.
+*   **Next.js API Route Stub (Conceptual):** `POST /api/inquiries`
+*   **Detailed Backend Worker Logic (Step-by-Step):**
+    1.  **Receive Request:** Worker receives POST request with `{ listingId: string, message?: string }`.
+    2.  **Authenticate Buyer:** Verify the request is from an authenticated buyer and retrieve their `user_id`, `verification_status`, and `is_paid` status.
+    3.  **Validate Input:** Use Zod schema. Ensure `listingId` is valid.
+    4.  **Fetch Listing and Seller Details from D1:**
+        *   `SELECT seller_id, status, is_seller_verified FROM listings WHERE listing_id = ?`.
+        *   If listing not found or not active/publicly viewable, return error.
+        *   `SELECT verification_status AS seller_verification_status FROM user_profiles WHERE user_id = listings.seller_id`.
+    5.  **Create Inquiry Record in D1:**
+        *   Insert into `inquiries` table:
+            *   `inquiry_id` (UUID).
+            *   `listing_id`.
+            *   `buyer_id` (from authenticated buyer).
+            *   `seller_id` (from fetched listing).
+            *   `message` (if provided).
+            *   `inquiry_timestamp` (current UTC timestamp).
+            *   `status`: `'NEW_INQUIRY'`.
+            *   `created_at`, `updated_at`.
+    6.  **Trigger Notifications (Conceptual):**
+        *   **To Seller:** In-app and email: "New inquiry for '[Listing Title]' from [Buyer's Name/Anonymous ID if buyer is anonymous, or 'Verified Buyer' if buyer is verified]." Link to Seller Dashboard Inquiries page.
+        *   **Follow Engagement Flow (if applicable for Phase 1, or if Seller auto-engages):** This step is more complex and depends on the exact engagement rules. If the system automatically determines next steps based on buyer/seller verification:
+            *   If buyer is anonymous and seller is verified, a task/notification might be created for buyer verification.
+            *   If seller is anonymous, a task/notification for seller/listing verification.
+            *   If both are verified, a "Ready for Admin Connection" task.
+    7.  **Return Success Response:** 201 Created with the new inquiry data.
+
+### D. Buyer Requests Profile Verification
+
+*   **Triggering UI:** Buyer Dashboard -> "Verification" page -> "Request Verification Call" button.
+*   **Next.js API Route Stub (Conceptual):** `POST /api/verification-requests` (with type 'profile_buyer')
+*   **Detailed Backend Worker Logic (Step-by-Step):**
+    1.  **Receive Request:** Worker receives POST request with `bestTimeToCall` (optional), `notes` (optional). Requires authenticated buyer `user_id`.
+    2.  **Authenticate Buyer:** Get `user_id`.
+    3.  **Validate Input:** Use Zod schema.
+    4.  **Check Current Verification Status:**
+        *   Query `user_profiles`: `SELECT verification_status FROM user_profiles WHERE user_id = ?`.
+        *   If already 'VERIFIED' or 'PENDING_VERIFICATION', return an appropriate message.
+    5.  **Update User Profile Status in D1:**
+        *   `UPDATE user_profiles SET verification_status = 'PENDING_VERIFICATION', updated_at = NOW() WHERE user_id = ?`.
+    6.  **Create Verification Request Record in D1:**
+        *   Insert into `verification_requests` table:
+            *   `request_id` (UUID).
+            *   `user_id` (buyer's ID).
+            *   `request_type`: `'PROFILE_BUYER_VERIFICATION'`.
+            *   `best_time_to_call`, `notes`.
+            *   `status`: `'NEW_REQUEST'`.
+            *   `created_at`, `updated_at`.
+    7.  **Conceptual: Notify Admin Team:** Add to Admin Panel's "Buyer Verification Queue."
+    8.  **Return Success Response:** 201 Created with a success message.
 
 ---
