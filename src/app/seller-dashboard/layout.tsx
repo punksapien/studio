@@ -14,6 +14,7 @@ import {
   SidebarMenuButton,
   SidebarInset,
   SidebarTrigger,
+  SidebarSeparator, // Added SidebarSeparator
 } from '@/components/ui/sidebar';
 import { Logo } from '@/components/shared/logo';
 import { Button } from '@/components/ui/button';
@@ -26,12 +27,16 @@ import {
   LogOut,
   ShieldCheck,
   Bell,
-  PlusCircle
+  PlusCircle,
+  HelpCircle,   // Added
+  FileText,     // Added
+  MessageSquareQuestion, // Added for FAQ
+  Home,         // Added for Back to Home
 } from 'lucide-react';
 import type { UserRole } from '@/lib/types';
 
 // Placeholder for current user role - in a real app, this would come from session
-const currentUserRole: UserRole = 'seller';
+const currentUserRole: UserRole | null = 'seller';
 
 const sellerSidebarNavItems = [
   { title: 'Overview', href: '/seller-dashboard', icon: LayoutDashboard },
@@ -41,7 +46,14 @@ const sellerSidebarNavItems = [
   { title: 'My Inquiries', href: '/seller-dashboard/inquiries', icon: MessageSquare },
   { title: 'Verification', href: '/seller-dashboard/verification', icon: ShieldCheck },
   { title: 'Notifications', href: '/seller-dashboard/notifications', icon: Bell },
-  { title: 'Settings', href: '/seller-dashboard/settings', icon: Settings }, // Corrected href here
+  { title: 'Settings', href: '/seller-dashboard/settings', icon: Settings },
+];
+
+const utilityNavItems = [
+  { title: 'Help', href: '#', icon: HelpCircle }, // Placeholder href
+  { title: 'Refer Docs', href: '#', icon: FileText }, // Placeholder href
+  { title: 'FAQ', href: '#', icon: MessageSquareQuestion }, // Placeholder href
+  { title: 'Back to Homepage', href: '/', icon: Home },
 ];
 
 export default function SellerDashboardLayout({
@@ -51,7 +63,6 @@ export default function SellerDashboardLayout({
 }) {
   const pathname = usePathname();
 
-  // In a real app, redirect if not authenticated or not a seller
   if (currentUserRole !== 'seller') {
      return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background">
@@ -63,7 +74,7 @@ export default function SellerDashboardLayout({
   }
 
   return (
-    <SidebarProvider defaultOpen>
+    <SidebarProvider defaultOpen className="flex min-h-screen flex-col">
       <Sidebar variant="sidebar" collapsible="icon" className="border-r border-brand-light-gray/60">
         <SidebarHeader className="p-4 border-b border-brand-light-gray/60">
           <div className="flex items-center justify-between">
@@ -85,19 +96,15 @@ export default function SellerDashboardLayout({
               } else if (item.href === createListingPath) {
                 itemIsActive = pathname === createListingPath;
               } else if (item.href === myListingsPath) {
-                 // Active if it's the main listings page or an edit page for a specific listing
                 itemIsActive = (pathname === myListingsPath) || 
-                               (pathname.startsWith(myListingsPath + '/') && pathname.includes('/edit'));
+                               (pathname.startsWith(myListingsPath + '/') && !pathname.endsWith('/create') && pathname.includes('/edit'));
               } else {
-                // For other items like profile, inquiries, verification, settings, notifications
                 itemIsActive = pathname === item.href || pathname.startsWith(item.href + '/');
               }
               
-              // Special case: "My Listings" should not be active if "Create Listing" is active
               if (item.href === myListingsPath && pathname === createListingPath) {
                 itemIsActive = false;
               }
-
 
               return (
                 <SidebarMenuItem key={item.title}>
@@ -115,9 +122,25 @@ export default function SellerDashboardLayout({
               );
             })}
           </SidebarMenu>
+          <SidebarSeparator className="my-4" />
+          <SidebarMenu>
+            {utilityNavItems.map((item) => (
+              <SidebarMenuItem key={item.title}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={pathname === item.href}
+                  tooltip={{ children: item.title, className: "bg-primary text-primary-foreground" }}
+                >
+                  <Link href={item.href}>
+                    <item.icon className="h-5 w-5" />
+                    <span>{item.title}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
         </SidebarContent>
         <div className="p-4 border-t border-brand-light-gray/60 mt-auto">
-          {/* Placeholder for actual logout functionality */}
           <Button variant="outline" className="w-full text-destructive-foreground bg-destructive hover:bg-destructive/90">
             <LogOut className="h-5 w-5" />
             <span>Logout</span>
