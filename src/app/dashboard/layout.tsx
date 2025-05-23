@@ -26,15 +26,16 @@ import {
   LogOut,
   ShieldCheck,
   Bell,
-  ShoppingCart,
-  HelpCircle,
-  FileText,
-  MessageSquareQuote,
-  Home,
+  ShoppingCart, 
+  HelpCircle,   
+  FileText,     
+  MessageSquareQuote, 
+  Home,         
 } from 'lucide-react';
 import type { UserRole } from '@/lib/types';
 
-const currentUserRole: UserRole | null = 'buyer';
+// Placeholder for current user role - in a real app, this would come from session
+const currentUserRole: UserRole | null = 'buyer'; 
 
 const buyerSidebarNavItems = [
   { title: 'Overview', href: '/dashboard', icon: LayoutDashboard, tooltip: "Dashboard Overview" },
@@ -49,7 +50,7 @@ const utilityNavItems = [
   { title: 'Marketplace', href: '/marketplace', icon: ShoppingCart, tooltip: "Browse Marketplace" },
   { title: 'Help', href: '/help', icon: HelpCircle, tooltip: "Get Help" },
   { title: 'Refer Docs', href: '/docs', icon: FileText, tooltip: "View Documentation" },
-  { title: 'FAQ', href: '/faq', icon: MessageSquareQuote, tooltip: "Frequently Asked Questions" },
+  { title: 'FAQ', href: '/faq', icon: MessageSquareQuote, tooltip: "Frequently Asked Questions" }, // Corrected Icon
   { title: 'Back to Homepage', href: '/', icon: Home, tooltip: "Go to Homepage" },
 ];
 
@@ -71,67 +72,71 @@ export default function DashboardLayout({
   }
 
   return (
-    <SidebarProvider defaultOpen className="flex min-h-screen">
-      <Sidebar variant="sidebar" collapsible="icon" className="border-r border-sidebar-border bg-brand-white">
-        <SidebarHeader className="p-4 border-b border-sidebar-border">
-          <div className="flex items-center justify-between">
-            <Logo size="lg" />
-            <SidebarTrigger className="md:hidden" />
-          </div>
-        </SidebarHeader>
-        <SidebarContent>
-          <SidebarMenu>
-            {buyerSidebarNavItems.map((item) => (
-              <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton
-                  asChild
-                  isActive={pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))}
-                  tooltip={{ children: item.tooltip, className: "bg-primary text-primary-foreground" }}
-                >
-                  <Link href={item.href}>
-                    <item.icon className="h-5 w-5" />
-                    <span>{item.title}</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-          <SidebarSeparator className="my-4" />
-          <SidebarMenu>
-            {utilityNavItems.map((item) => (
-              <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton
-                  asChild
-                  isActive={pathname === item.href}
-                  tooltip={{ children: item.tooltip, className: "bg-primary text-primary-foreground" }}
-                >
-                  <Link href={item.href}>
-                    <item.icon className="h-5 w-5" />
-                    <span>{item.title}</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-        </SidebarContent>
-        <div className="p-4 border-t border-sidebar-border mt-auto">
-          <Button variant="outline" className="w-full text-destructive-foreground bg-destructive hover:bg-destructive/90">
-            <LogOut className="h-5 w-5" />
-            <span className="group-data-[collapsible=icon]:hidden">Logout</span>
-          </Button>
-        </div>
-      </Sidebar>
-      <SidebarInset className="flex-grow flex flex-col overflow-hidden">
-        <div className="flex-grow flex flex-col p-4 md:p-6 lg:p-8 overflow-y-auto">
-          <header className="md:hidden flex items-center justify-between mb-4 p-2 border rounded-md bg-card">
+    <SidebarProvider defaultOpen> {/* Ensures sidebar is open by default */}
+      <div className="flex min-h-screen"> {/* Added flex container */}
+        <Sidebar variant="sidebar" className="border-r border-sidebar-border bg-brand-white"> {/* Removed collapsible="icon" */}
+          <SidebarHeader className="p-4 border-b border-sidebar-border">
+            <div className="flex items-center justify-between">
+              <Logo size="lg" />
+              <SidebarTrigger className="md:hidden" /> {/* This trigger is for mobile sheet */}
+            </div>
+          </SidebarHeader>
+          <SidebarContent>
+            <SidebarMenu>
+              {buyerSidebarNavItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))}
+                    tooltip={{ children: item.tooltip, className: "bg-primary text-primary-foreground" }}
+                  >
+                    <Link href={item.href}>
+                      <item.icon className="h-5 w-5" />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+            <SidebarSeparator className="my-4" />
+            <SidebarMenu>
+              {utilityNavItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={pathname === item.href}
+                    tooltip={{ children: item.tooltip, className: "bg-primary text-primary-foreground" }}
+                  >
+                    <Link href={item.href}>
+                      <item.icon className="h-5 w-5" />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarContent>
+          <SidebarFooter className="p-4 border-t border-sidebar-border">
+            <Button variant="outline" className="w-full text-destructive-foreground bg-destructive hover:bg-destructive/90">
+              <LogOut className="h-5 w-5" />
+              {/* Removed conditional class for text span */}
+              <span>Logout</span> 
+            </Button>
+          </SidebarFooter>
+        </Sidebar>
+        <SidebarInset className="flex-grow flex flex-col overflow-hidden">
+           {/* Mobile header - shown when sidebar is a sheet on small screens */}
+           <header className="md:hidden flex items-center justify-between p-4 border-b bg-brand-white">
             <Logo size="lg" />
             <SidebarTrigger />
           </header>
-          <div className="flex-grow">
-            {children}
+          <div className="flex-grow flex flex-col p-4 md:p-6 lg:p-8 overflow-y-auto">
+            <div className="flex-grow">
+             {children}
+            </div>
           </div>
-        </div>
-      </SidebarInset>
+        </SidebarInset>
+      </div>
     </SidebarProvider>
   );
 }
