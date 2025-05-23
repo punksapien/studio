@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
@@ -12,22 +11,19 @@ export default {
     container: {
       center: true,
       padding: {
-        DEFAULT: '1rem', // Default padding for container
-        sm: '1.5rem',    // Padding for sm screens and up
-        md: '2rem',     // Padding for md screens and up
-        lg: '2.5rem',    // Padding for lg screens and up
-        xl: '3rem',     // Padding for xl screens and up
+        DEFAULT: '1rem', 
+        sm: '1.5rem',    
+        md: '2rem',     
+        lg: '2.5rem',    
+        xl: '3rem',     
       },
     },
   	extend: {
       fontFamily: {
-        sans: ['var(--font-geist-sans)', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', '"Noto Sans"', 'sans-serif'],
-        mono: ['var(--font-geist-mono)', 'monospace'],
-        // heading: ['var(--font-montaser-arabic)', 'var(--font-geist-sans)', 'sans-serif'], // Example if using specific heading font
-        // body: ['var(--font-satoshi)', 'var(--font-geist-sans)', 'sans-serif'], // Example for body
+        sans: ['Satoshi', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', '"Noto Sans"', 'sans-serif'],
+        mono: ['var(--font-geist-mono)', 'monospace'], // Keeping Geist Mono for mono, can be changed if needed
       },
   		colors: {
-        // Nobridge Brand Colors (using HSL variables defined in globals.css)
         'brand-dark-blue': 'hsl(var(--brand-dark-blue-hsl))',
         'brand-sky-blue': 'hsl(var(--brand-sky-blue-hsl))',
         'brand-light-gray': 'hsl(var(--brand-light-gray-hsl))',
@@ -35,7 +31,6 @@ export default {
         'brand-text-dark': 'hsl(var(--brand-text-dark-hsl))',
         'brand-text-light': 'hsl(var(--brand-text-light-hsl))',
 
-        // ShadCN UI Theme Colors (mapped to Nobridge brand HSL variables)
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
   			card: {
@@ -118,5 +113,3 @@ export default {
   },
   plugins: [require("tailwindcss-animate")],
 } satisfies Config;
-
-    

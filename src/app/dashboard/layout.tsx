@@ -29,7 +29,7 @@ import {
   ShoppingCart, 
   HelpCircle,   
   FileText,     
-  MessageSquareQuote,
+  MessageSquareQuote, // Corrected from MessageSquareQuestion
   Home,         
 } from 'lucide-react';
 import type { UserRole } from '@/lib/types';
@@ -71,7 +71,7 @@ export default function DashboardLayout({
   }
 
   return (
-    <SidebarProvider defaultOpen className="flex min-h-screen flex-col bg-background">
+    <SidebarProvider defaultOpen className="flex min-h-screen"> {/* Ensure flex-row behavior */}
       <Sidebar variant="sidebar" collapsible="icon" className="border-r border-sidebar-border">
         <SidebarHeader className="p-4 border-b border-sidebar-border">
           <div className="flex items-center justify-between">
@@ -121,7 +121,7 @@ export default function DashboardLayout({
           </Button>
         </div>
       </Sidebar>
-      <SidebarInset className="flex-grow flex flex-col overflow-hidden">
+      <SidebarInset className="flex-grow flex flex-col overflow-hidden"> 
         <div className="flex-grow flex flex-col p-4 md:p-6 lg:p-8 overflow-y-auto">
           <header className="md:hidden flex items-center justify-between mb-4 p-2 border rounded-md bg-card">
             <Logo size="lg" />

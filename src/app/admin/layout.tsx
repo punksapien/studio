@@ -50,8 +50,7 @@ const utilityNavItems = [
   { title: 'Back to Homepage', href: '/', icon: Home, tooltip: "Go to Homepage" },
 ];
 
-// Placeholder for admin authentication - in a real app, this would come from session/auth
-const isAdminAuthenticated = true; // Assume admin is authenticated for layout display
+const isAdminAuthenticated = true; 
 
 export default function AdminLayout({
   children,
@@ -60,14 +59,9 @@ export default function AdminLayout({
 }) {
   const pathname = usePathname();
 
-  // If using Clerk or similar, this check would be handled by middleware or auth hooks
   if (!isAdminAuthenticated && pathname !== '/admin/login') {
-    // Client-side redirect for prototype if needed
     if (typeof window !== 'undefined') {
-      // import { useRouter } from 'next/navigation'; // (if you prefer programmatic redirect)
-      // const router = useRouter();
-      // router.replace('/admin/login');
-      window.location.href = '/admin/login'; // Simple redirect for now
+      window.location.href = '/admin/login'; 
     }
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background">
@@ -86,12 +80,12 @@ export default function AdminLayout({
   }
 
   return (
-    <SidebarProvider defaultOpen className="flex min-h-screen flex-col bg-background">
+    <SidebarProvider defaultOpen className="flex min-h-screen"> {/* Ensure flex-row behavior for sidebar and inset */}
       <Sidebar variant="sidebar" collapsible="icon" className="border-r border-sidebar-border">
         <SidebarHeader className="p-4 border-b border-sidebar-border">
           <div className="flex items-center justify-between">
             <Logo size="lg" />
-            <SidebarTrigger className="md:hidden" /> {/* Only show trigger on mobile for sheet */}
+            <SidebarTrigger className="md:hidden" /> 
           </div>
         </SidebarHeader>
         <SidebarContent>
@@ -129,14 +123,14 @@ export default function AdminLayout({
             ))}
           </SidebarMenu>
         </SidebarContent>
-        <div className="p-4 border-t border-sidebar-border mt-auto"> {/* Sidebar specific footer */}
+        <div className="p-4 border-t border-sidebar-border mt-auto"> 
           <Button variant="outline" className="w-full text-destructive-foreground bg-destructive hover:bg-destructive/90">
             <LogOut className="h-5 w-5" />
             <span className="group-data-[collapsible=icon]:hidden">Logout Admin</span>
           </Button>
         </div>
       </Sidebar>
-      <SidebarInset className="flex-grow flex flex-col overflow-hidden"> {/* Main content area */}
+      <SidebarInset className="flex-grow flex flex-col overflow-hidden"> 
          <div className="flex-grow flex flex-col p-4 md:p-6 lg:p-8 overflow-y-auto">
           <header className="md:hidden flex items-center justify-between mb-4 p-2 border rounded-md bg-card">
             <Logo size="lg" />

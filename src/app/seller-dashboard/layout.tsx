@@ -30,7 +30,7 @@ import {
   PlusCircle,
   HelpCircle,
   FileText,
-  MessageSquareQuote,
+  MessageSquareQuote, // Corrected from MessageSquareQuestion
   Home,
 } from 'lucide-react';
 import type { UserRole } from '@/lib/types';
@@ -73,7 +73,7 @@ export default function SellerDashboardLayout({
   }
 
   return (
-    <SidebarProvider defaultOpen className="flex min-h-screen flex-col bg-background">
+    <SidebarProvider defaultOpen className="flex min-h-screen"> {/* Ensure flex-row behavior */}
       <Sidebar variant="sidebar" collapsible="icon" className="border-r border-sidebar-border">
         <SidebarHeader className="p-4 border-b border-sidebar-border">
           <div className="flex items-center justify-between">
@@ -95,14 +95,11 @@ export default function SellerDashboardLayout({
               } else if (item.href === createListingPath) {
                 itemIsActive = pathname === createListingPath;
               } else if (item.href === myListingsPath) {
-                 // Active if it's the "My Listings" page itself, or any sub-page like /edit, but NOT /create
                 itemIsActive = pathname === myListingsPath || (pathname.startsWith(myListingsPath + '/') && !pathname.endsWith('/create'));
               } else {
-                // For other items, active if current path starts with item's href (e.g., /profile, /settings)
                 itemIsActive = pathname === item.href || pathname.startsWith(item.href + '/');
               }
               
-              // Ensure "My Listings" is not active if "Create Listing" is active
               if (item.href === myListingsPath && pathname.startsWith(createListingPath)) {
                 itemIsActive = false;
               }
@@ -148,8 +145,8 @@ export default function SellerDashboardLayout({
           </Button>
         </div>
       </Sidebar>
-      <SidebarInset className="flex-grow flex flex-col overflow-hidden">
-         <div className="flex-grow flex flex-col p-4 md:p-6 lg:p-8 overflow-y-auto">
+      <SidebarInset className="flex-grow flex flex-col overflow-hidden"> 
+        <div className="flex-grow flex flex-col p-4 md:p-6 lg:p-8 overflow-y-auto">
           <header className="md:hidden flex items-center justify-between mb-4 p-2 border rounded-md bg-card">
             <Logo size="lg" />
             <SidebarTrigger />
