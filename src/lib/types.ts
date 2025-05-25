@@ -65,12 +65,13 @@ export interface User {
   listingCount?: number;
   inquiryCount?: number;
 
+  // Buyer Persona Fields
   buyerPersonaType?: BuyerPersona;
   buyerPersonaOther?: string;
   investmentFocusDescription?: string;
   preferredInvestmentSize?: PreferredInvestmentSize;
   keyIndustriesOfInterest?: string;
-}
+} // Added missing closing brace
 
 export type ListingStatus = 'active' | 'inactive' | 'pending_verification' | 'verified_anonymous' | 'verified_public' | 'rejected_by_admin' | 'closed_deal';
 
@@ -93,9 +94,9 @@ export interface Listing {
 
   annualRevenueRange: string;
   netProfitMarginRange?: string;
-  askingPrice?: number; // Fixed number
-  adjustedCashFlow?: number; // New
-  adjustedCashFlowExplanation?: string; // New
+  askingPrice?: number; // Changed from askingPriceRange: string
+  adjustedCashFlow?: number;
+  adjustedCashFlowExplanation?: string;
 
   dealStructureLookingFor?: DealStructure[];
   reasonForSellingAnonymous?: string;
@@ -103,6 +104,7 @@ export interface Listing {
   sellerRoleAndTimeCommitment?: string;
   postSaleTransitionSupport?: string;
 
+  // growthPotentialNarrative?: string; // Removed as per later instruction
   specificGrowthOpportunities?: string; // For newline separated bullet points
 
   status: ListingStatus;
@@ -187,18 +189,18 @@ export interface AdminDashboardMetrics {
   totalFreeBuyers: number;
   totalActiveListingsAnonymous: number;
   totalActiveListingsVerified: number;
-  totalListingsAllStatuses: number; // New
-  closedOrDeactivatedListings: number; // New
+  totalListingsAllStatuses: number;
+  closedOrDeactivatedListings: number;
   buyerVerificationQueueCount: number;
   sellerVerificationQueueCount: number;
   readyToEngageQueueCount: number;
   successfulConnectionsMTD: number;
-  activeSuccessfulConnections: number;
-  closedSuccessfulConnections: number;
+  activeSuccessfulConnections: number; // New
+  closedSuccessfulConnections: number; // New (or dealsClosedMTD)
   dealsClosedMTD?: number;
   totalRevenueMTD?: number;
-  revenueFromBuyers: number;
-  revenueFromSellers: number;
+  revenueFromBuyers: number; // New
+  revenueFromSellers: number; // New
 }
 
 
@@ -220,7 +222,7 @@ export interface VerificationRequestItem {
 
 export interface ReadyToEngageItem {
   id: string;
-  timestamp: Date; // When it became "ready to engage"
+  timestamp: Date;
   buyerId: string;
   buyerName: string;
   buyerVerificationStatus: VerificationStatus;
@@ -241,4 +243,5 @@ export interface NotificationItem {
   link?: string;
   isRead: boolean;
   userId: string;
-  
+  type: NotificationType; // Added missing type property
+}

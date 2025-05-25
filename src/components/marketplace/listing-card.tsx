@@ -16,6 +16,9 @@ export function ListingCard({ listing }: ListingCardProps) {
     ? listing.anonymousBusinessDescription.substring(0, 100) + "..."
     : listing.anonymousBusinessDescription;
 
+  // Ensure askingPrice is treated as a number for display
+  const displayPrice = listing.askingPrice ? `$${listing.askingPrice.toLocaleString()} USD` : 'Contact for Price';
+
   return (
     <Card className="flex flex-col h-full overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 rounded-lg bg-brand-white">
       <CardHeader className="p-0 relative">
@@ -53,12 +56,11 @@ export function ListingCard({ listing }: ListingCardProps) {
             <DollarSign className="h-4 w-4 mr-2 text-brand-dark-blue/70" />
             <span>Revenue: {listing.annualRevenueRange}</span>
           </div>
-           {listing.askingPrice && (
+           {/* Display askingPrice as a fixed number */}
             <div className="flex items-center">
                 <DollarSign className="h-4 w-4 mr-2 text-brand-dark-blue/70" />
-                <span>Asking Price: ${listing.askingPrice.toLocaleString()} USD</span>
+                <span>Asking Price: {displayPrice}</span>
             </div>
-          )}
           <p className="text-sm text-brand-dark-blue/90 pt-1">{truncatedDescription}</p>
         </div>
       </CardContent>
@@ -76,4 +78,7 @@ export function ListingCard({ listing }: ListingCardProps) {
         </div>
       </CardFooter>
     </Card>
-  
+  ); // Ensure return statement is properly closed
+} // Ensure function component is properly closed
+
+    
