@@ -2,47 +2,71 @@
 'use client';
 
 import * as React from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { ArrowRight, MessageSquare, Mail, Eye, ShieldAlert, Info } from "lucide-react";
-import type { Inquiry, User } from "@/lib/types";
+import type { Inquiry, User, InquiryStatusBuyerPerspective } from "@/lib/types";
 import { sampleBuyerInquiries, sampleUsers } from "@/lib/placeholder-data";
 
 // Placeholder for current user role and ID
-const currentBuyerId = 'user6';
+const currentBuyerId = 'user6'; // Change to 'user2' to see verified state
 const currentUser: User | undefined = sampleUsers.find(u => u.id === currentBuyerId && u.role === 'buyer');
 
-// Filter inquiries for the current buyer
-const buyerInquiries: Inquiry[] = sampleBuyerInquiries.filter(inq => inq.buyerId === currentBuyerId);
+// Helper component for client-side date formatting
+function FormattedTimestamp({ timestamp }: { timestamp: Date | string }) {
+  const [formattedDate, setFormattedDate] = React.useState<string | null>(null);
 
+  React.useEffect(() => {
+    if (timestamp) {
+      const dateObj = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
+      if (!isNaN(dateObj.getTime())) {
+        setFormattedDate(dateObj.toLocaleString());
+      } else {
+        setFormattedDate('Invalid Date');
+      }
+    } else {
+      setFormattedDate('N/A');
+    }
+  }, [timestamp]);
+
+  if (timestamp && !formattedDate) {
+    return <span className="italic text-xs">Loading date...</span>;
+  }
+  return <>{formattedDate || 'N/A'}</>;
+}
 
 export default function InquiriesPage() {
-
-  const getStatusBadgeVariant = (status?: Inquiry["statusBuyerPerspective"]) => {
+  const getStatusBadgeVariant = (status?: InquiryStatusBuyerPerspective) => {
     if (!status) return "outline";
     if (status.includes("New") || status.includes("Sent")) return "default";
     if (status.includes("Pending") || status.includes("Required")) return "destructive";
     if (status.includes("Ready") || status.includes("Facilitated")) return "default";
     return "outline";
   };
-  const getStatusBadgeClass = (status?: Inquiry["statusBuyerPerspective"]) => {
+
+  const getStatusBadgeClass = (status?: InquiryStatusBuyerPerspective) => {
     if (!status) return "";
     if (status.includes("Ready") || status.includes("Facilitated")) return "bg-accent text-accent-foreground";
     if (status.includes("Required")) return "bg-amber-500 text-white";
     return "";
-  }
+  };
 
-  if (!currentUser) {
+  if (typeof window !== 'undefined' && !currentUser) {
+    // This check should ideally happen in a layout or middleware for route protection
     return (
-      <div className="space-y-8 text-center">
-        <h1 className="text-3xl font-bold tracking-tight">Access Denied</h1>
+      <div className="space-y-8 text-center p-8">
+        <h1 className="text-3xl font-bold tracking-tight text-destructive">Access Denied</h1>
         <p className="text-muted-foreground">You must be logged in as a buyer to view this page.</p>
         <Button asChild><Link href="/auth/login">Login</Link></Button>
       </div>
     );
   }
+
+  // Filter inquiries for the current buyer
+  const buyerInquiries: Inquiry[] = sampleBuyerInquiries.filter(inq => inq.buyerId === currentUser?.id);
 
   return (
     <div className="space-y-8">
@@ -81,7 +105,7 @@ export default function InquiriesPage() {
                   </Badge>
                 </div>
                 <CardDescription className="text-xs">
-                  Inquired on: {new Date(inquiry.inquiryTimestamp).toLocaleDateString()} at {new Date(inquiry.inquiryTimestamp).toLocaleTimeString()}
+                  Inquired on: <FormattedTimestamp timestamp={inquiry.inquiryTimestamp} />
                   <br/>
                   Seller Status: <span className="font-medium">{inquiry.sellerStatus}</span>
                 </CardDescription>
@@ -121,4 +145,9 @@ export default function InquiriesPage() {
                 )}
               </CardFooter>
             </Card>
-          
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

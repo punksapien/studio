@@ -1,7 +1,7 @@
 
 'use client';
 
-import * as React from "react";
+import * as React from "react"; // Ensure React is imported
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -36,6 +36,12 @@ export default function SettingsPage() {
   const { toast } = useToast();
   const [isPasswordPending, startPasswordTransition] = useTransition();
 
+  // Placeholder states for settings - these would come from user preferences
+  const [emailNotifications, setEmailNotifications] = React.useState(true);
+  const [newInquiryAlerts, setNewInquiryAlerts] = React.useState(true);
+  const [listingStatusAlerts, setListingStatusAlerts] = React.useState(true);
+
+
   const passwordForm = useForm<z.infer<typeof PasswordChangeSchema>>({
     resolver: zodResolver(PasswordChangeSchema),
     defaultValues: {
@@ -48,8 +54,9 @@ export default function SettingsPage() {
   const onPasswordSubmit = (values: z.infer<typeof PasswordChangeSchema>) => {
     startPasswordTransition(async () => {
       console.log("Password change values:", values);
+      // Placeholder: Actual API call to change password
       await new Promise(resolve => setTimeout(resolve, 1000));
-      if (values.currentPassword === "wrongpassword") { // Placeholder check
+      if (values.currentPassword === "wrongpassword") { // Simulate incorrect current password
         passwordForm.setError("currentPassword", { type: "manual", message: "Incorrect current password."});
         toast({ variant: "destructive", title: "Error", description: "Failed to change password. Incorrect current password." });
       } else {
@@ -58,6 +65,11 @@ export default function SettingsPage() {
       }
     });
   };
+
+  const handleNotificationPreferenceSave = () => {
+    console.log("Notification preferences saved:", { emailNotifications, newInquiryAlerts, listingStatusAlerts });
+    toast({ title: "Preferences Saved", description: "Your notification preferences have been updated."});
+  }
 
 
   return (
@@ -72,19 +84,41 @@ export default function SettingsPage() {
         <CardContent className="space-y-6">
           <div className="flex items-center justify-between p-4 border rounded-lg">
             <div>
-              <Label htmlFor="email-notifications" className="font-medium">Email Notifications</Label>
-              <p className="text-sm text-muted-foreground">Receive updates on new inquiries, verification status, etc., via email.</p>
+              <Label htmlFor="email-notifications-general" className="font-medium">General Email Notifications</Label>
+              <p className="text-sm text-muted-foreground">Receive important account updates, system announcements, and newsletters.</p>
             </div>
-            <Switch id="email-notifications" defaultChecked={true} aria-label="Toggle email notifications" />
+            <Switch 
+              id="email-notifications-general" 
+              checked={emailNotifications}
+              onCheckedChange={setEmailNotifications}
+              aria-label="Toggle general email notifications" 
+            />
           </div>
           <div className="flex items-center justify-between p-4 border rounded-lg">
             <div>
-              <Label htmlFor="sms-notifications" className="font-medium">SMS Notifications (Coming Soon)</Label>
-              <p className="text-sm text-muted-foreground">Get critical alerts via SMS. (Feature not yet available)</p>
+              <Label htmlFor="email-new-inquiry" className="font-medium">New Inquiry Emails</Label>
+              <p className="text-sm text-muted-foreground">Receive an email when a buyer makes an inquiry on one of your listings (for sellers) or when a seller engages (for buyers).</p>
             </div>
-            <Switch id="sms-notifications" disabled aria-label="Toggle SMS notifications" />
+            <Switch 
+              id="email-new-inquiry" 
+              checked={newInquiryAlerts}
+              onCheckedChange={setNewInquiryAlerts}
+              aria-label="Toggle new inquiry email notifications" 
+            />
           </div>
-           <Button>Save Notification Preferences</Button>
+          <div className="flex items-center justify-between p-4 border rounded-lg">
+            <div>
+              <Label htmlFor="email-listing-updates" className="font-medium">Listing & Verification Status Emails</Label>
+              <p className="text-sm text-muted-foreground">Get notified via email about changes to your listing status or verification progress.</p>
+            </div>
+            <Switch 
+              id="email-listing-updates" 
+              checked={listingStatusAlerts}
+              onCheckedChange={setListingStatusAlerts}
+              aria-label="Toggle listing status email notifications" 
+            />
+          </div>
+           <Button onClick={handleNotificationPreferenceSave}>Save Notification Preferences</Button>
         </CardContent>
       </Card>
 
@@ -170,4 +204,5 @@ export default function SettingsPage() {
           </CardContent>
       </Card>
     </div>
-  
+  );
+}
