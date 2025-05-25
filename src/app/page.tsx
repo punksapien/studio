@@ -1,15 +1,21 @@
 
+import * as React from "react"; // Ensure React is imported for JSX
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowRight, CheckCircle, Shield, Zap, Briefcase, Search, Star, Building, MessageSquare, MapPin, DollarSign, Users, ShoppingCart, FileText, Info, Phone, Newspaper, Home, UserCircle, LogIn, UserPlus } from 'lucide-react';
+import { ArrowRight, CheckCircle, Shield, Zap, Briefcase, Users, MapPin, DollarSign, ShoppingCart, FileText, Info, Phone, Newspaper, Home, UserCircle, LogIn, UserPlus, Search as SearchIcon, BarChart3, HandCoins, Star } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Badge } from '@/components/ui/badge'; // Ensured Badge is imported
 import { cn } from '@/lib/utils';
 
 // Placeholder for simple gray box image
 const PlaceholderImage = ({ className = "", text = "Placeholder Image", width = 600, height = 400, aiHint = "abstract business" }: { className?: string, text?: string, width?: number, height?: number, aiHint?: string }) => (
   <div
-    className={cn("bg-brand-light-gray/50 flex items-center justify-center rounded-lg overflow-hidden aspect-video", className)} // Added aspect-video for consistent ratio
+    className={cn("bg-brand-light-gray/50 flex items-center justify-center rounded-lg overflow-hidden aspect-video", className)}
+    style={{
+      width: width ? `${width}px` : '100%',
+      height: height ? `${height}px` : 'auto',
+      maxWidth: '100%'
+    }}
     data-ai-hint={aiHint}
   >
     <div className="w-full h-full bg-gray-300 dark:bg-gray-700 flex items-center justify-center">
@@ -27,35 +33,34 @@ const PlaceholderLogo = ({ text = "Logo" }: { text?: string }) => (
   </div>
 );
 
+const previewListings = [
+  { id: '1', title: 'High-Growth SaaS Platform in FinTech', industry: 'Technology', location: 'Singapore', price: 1750000, verified: true, imageUrls: ['https://placehold.co/400x250.png'], aiHint: 'software interface dashboard' },
+  { id: '2', title: 'Luxury Boutique Hotel Chain', industry: 'Hospitality', location: 'Bali, Indonesia', price: 7500000, verified: true, imageUrls: ['https://placehold.co/400x250.png'], aiHint: 'hotel resort luxury' },
+  { id: '3', title: 'Sustainable Agriculture Enterprise', industry: 'Agriculture', location: 'Vietnam', price: 750000, verified: false, imageUrls: ['https://placehold.co/400x250.png'], aiHint: 'farm agriculture sustainable' },
+  { id: '4', title: 'Established Marketing Agency (SG)', industry: 'Services - Marketing', location: 'Singapore', price: 450000, verified: true, imageUrls: ['https://placehold.co/400x250.png'], aiHint: 'office marketing team' },
+  { id: '5', title: 'Profitable E-commerce Brand (Regional)', industry: 'E-commerce', location: 'Southeast Asia', price: 1200000, verified: true, imageUrls: ['https://placehold.co/400x250.png'], aiHint: 'online store products' },
+  { id: '6', title: 'Niche B2B Software Solution', industry: 'Software', location: 'Malaysia', price: 300000, verified: false, imageUrls: ['https://placehold.co/400x250.png'], aiHint: 'code software development' },
+];
+
+const testimonials = [
+  { quote: "Nobridge made selling my e-commerce store incredibly smooth and connected me with serious, verified buyers from across the region.", name: "Aisha Khan", role: "Former E-commerce Owner, Singapore" },
+  { quote: "Finding the right mid-market investment in Southeast Asia was challenging until I found Nobridge. Their verified listings and clear process saved us significant time.", name: "Raj Patel", role: "Investment Director, Malaysia" },
+  { quote: "The platform is intuitive, and the support for getting my business listed and verified was top-notch. Highly recommended for any SME owner considering an exit.", name: "Nguyen Van Minh", role: "SME Owner, Vietnam" },
+];
+
+const featuredContent = [
+  { imageHint: "market analysis graph", category: "Market Trends", title: "Key Growth Sectors in Southeast Asia for 2025", excerpt: "Discover the industries poised for significant expansion and investment opportunities across the ASEAN region." },
+  { imageHint: "business negotiation handshake", category: "Seller Tips", title: "Preparing Your Business for a Successful Sale", excerpt: "Essential steps to maximize your business's value and attract the right buyers in the Asian market." },
+  { imageHint: "business team success", category: "Success Story", title: "How a Tech Startup Found its Strategic Acquirer via Nobridge", excerpt: "Read about the journey of 'Innovate Solutions' and their successful exit facilitated by our platform." },
+];
+
+
 export default function HomePage() {
-  const testimonials = [
-    { quote: "Nobridge made selling my e-commerce store incredibly smooth and connected me with serious, verified buyers from across the region.", name: "Aisha Khan", role: "Former E-commerce Owner, Singapore" },
-    { quote: "Finding the right mid-market investment in Southeast Asia was challenging until I found Nobridge. Their verified listings and clear process saved us significant time.", name: "Raj Patel", role: "Investment Director, Malaysia" },
-    { quote: "The platform is intuitive, and the support for getting my business listed and verified was top-notch. Highly recommended for any SME owner considering an exit.", name: "Nguyen Van Minh", role: "SME Owner, Vietnam" },
-  ];
-
-  const featuredContent = [
-    { imageHint: "market analysis graph", category: "Market Trends", title: "Key Growth Sectors in Southeast Asia for 2025", excerpt: "Discover the industries poised for significant expansion and investment opportunities across the ASEAN region." },
-    { imageHint: "business negotiation handshake", category: "Seller Tips", title: "Preparing Your Business for a Successful Sale", excerpt: "Essential steps to maximize your business's value and attract the right buyers in the Asian market." },
-    { imageHint: "business team success", category: "Success Story", title: "How a Tech Startup Found its Strategic Acquirer via Nobridge", excerpt: "Read about the journey of 'Innovate Solutions' and their successful exit facilitated by our platform." },
-  ];
-
-  const previewListings = [
-    { id: '1', title: 'High-Growth SaaS Platform in FinTech', industry: 'Technology', location: 'Singapore', price: 1750000, verified: true, imageUrl: 'https://placehold.co/400x250.png', aiHint: 'software interface dashboard' },
-    { id: '2', title: 'Luxury Boutique Hotel Chain', industry: 'Hospitality', location: 'Bali, Indonesia', price: 7500000, verified: true, imageUrl: 'https://placehold.co/400x250.png', aiHint: 'hotel resort luxury' },
-    { id: '3', title: 'Sustainable Agriculture Enterprise', industry: 'Agriculture', location: 'Vietnam', price: 750000, verified: false, imageUrl: 'https://placehold.co/400x250.png', aiHint: 'farm agriculture sustainable' },
-    { id: '4', title: 'Established Marketing Agency (SG)', industry: 'Services - Marketing', location: 'Singapore', price: 450000, verified: true, imageUrl: 'https://placehold.co/400x250.png', aiHint: 'office marketing team' },
-    { id: '5', title: 'Profitable E-commerce Brand (Regional)', industry: 'E-commerce', location: 'Southeast Asia', price: 1200000, verified: true, imageUrl: 'https://placehold.co/400x250.png', aiHint: 'online store products' },
-    { id: '6', title: 'Niche B2B Software Solution', industry: 'Software', location: 'Malaysia', price: 300000, verified: false, imageUrl: 'https://placehold.co/400x250.png', aiHint: 'code software development' },
-  ];
-
-
   return (
     <>
       {/* Hero Section */}
       <section className="w-full bg-brand-dark-blue text-brand-white">
-        <div className="container mx-auto flex flex-col items-center justify-center text-center min-h-[calc(100vh-5rem)] px-4 py-24 md:py-32 lg:py-40"> {/* Assuming navbar h-20 (5rem) */}
-          {/* TODO: Add entrance animation */}
+        <div className="container mx-auto flex flex-col items-center justify-center text-center min-h-[calc(100vh-5rem)] px-4 py-24 md:py-32 lg:py-40">
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight !leading-tight mb-6">
             Find Your Next Business Venture with Nobridge
           </h1>
@@ -94,19 +99,19 @@ export default function HomePage() {
             <p className="text-muted-foreground mt-3 text-lg">A Glimpse into Our Curated Marketplace</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {previewListings.slice(0, 6).map((listing, i) => ( // Display up to 6 preview listings
+            {previewListings.map((listing, i) => (
               <Card key={listing.id} className="bg-brand-white shadow-xl hover:shadow-2xl transition-shadow duration-300 rounded-lg flex flex-col overflow-hidden">
                 <CardHeader className="p-0 relative">
-                  <PlaceholderImage className="w-full" text={`Listing Image ${i+1}`} aiHint={listing.aiHint} />
+                  <PlaceholderImage className="w-full" width={400} height={250} text={`Listing Image ${i+1}`} aiHint={listing.aiHint || "business operations"} />
+                   {listing.verified && (
+                      <Badge variant="outline" className="absolute top-2 right-2 text-xs border-green-500 text-green-600 bg-green-100 dark:bg-green-700 dark:text-green-200 dark:border-green-500">
+                        <ShieldCheck className="h-3 w-3 mr-1" /> Verified
+                      </Badge>
+                    )}
                 </CardHeader>
                 <CardContent className="p-6 flex-grow">
                   <div className="flex justify-between items-start mb-2">
                     <Badge variant="secondary" className="bg-brand-dark-blue/10 text-brand-dark-blue text-xs">{listing.industry}</Badge>
-                    {listing.verified && (
-                      <Badge variant="outline" className="text-xs border-green-500 text-green-600 bg-green-50">
-                        <Shield className="h-3 w-3 mr-1" /> Verified
-                      </Badge>
-                    )}
                   </div>
                   <CardTitle className="text-xl font-semibold text-brand-dark-blue mb-2 leading-tight hover:text-brand-sky-blue transition-colors">
                     <Link href={`/listings/${listing.id}`}>{listing.title}</Link>
@@ -132,7 +137,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* How It Works Section */}
+      {/* How Nobridge Works Section */}
       <section className="py-16 md:py-24 bg-brand-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12 md:mb-16">
@@ -144,7 +149,7 @@ export default function HomePage() {
               <div className="p-3 bg-brand-dark-blue/10 rounded-full w-fit mb-4">
                 <Briefcase className="h-8 w-8 text-brand-dark-blue" />
               </div>
-              <h3 className="text-2xl font-semibold text-brand-dark-blue mb-3">For Business Sellers</h3>
+              <h3 className="text-2xl font-semibold text-brand-dark-blue mb-3">List Your Business with Confidence</h3>
               <p className="text-muted-foreground mb-4">
                 Nobridge provides a secure and efficient platform to connect with verified buyers, guiding you through every step.
               </p>
@@ -159,9 +164,9 @@ export default function HomePage() {
             </Card>
             <Card className="bg-brand-light-gray/50 p-8 rounded-lg shadow-lg">
                <div className="p-3 bg-brand-dark-blue/10 rounded-full w-fit mb-4">
-                <Search className="h-8 w-8 text-brand-dark-blue" />
+                <SearchIcon className="h-8 w-8 text-brand-dark-blue" />
               </div>
-              <h3 className="text-2xl font-semibold text-brand-dark-blue mb-3">For Business Buyers</h3>
+              <h3 className="text-2xl font-semibold text-brand-dark-blue mb-3">Discover Your Next Investment Opportunity</h3>
               <p className="text-muted-foreground mb-4">
                 Explore a curated marketplace of businesses for sale. Get access to detailed information on verified businesses and engage directly with sellers.
               </p>
@@ -199,7 +204,7 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-      
+
       {/* "As Mentioned In" / Credibility Logos */}
       <section className="py-12 md:py-16 bg-brand-white">
         <div className="container mx-auto px-4 text-center">
@@ -224,7 +229,7 @@ export default function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {featuredContent.map((item, index) => (
               <Card key={index} className="bg-brand-white shadow-xl hover:shadow-2xl transition-shadow overflow-hidden flex flex-col rounded-lg">
-                <PlaceholderImage className="w-full h-56" text={item.imageHint} aiHint={item.imageHint} />
+                <PlaceholderImage className="w-full" width={300} height={200} text={item.imageHint} aiHint={item.imageHint} />
                 <CardHeader className="p-6">
                   <Badge variant="outline" className="mb-2 w-fit border-brand-dark-blue/30 text-brand-dark-blue/80">{item.category}</Badge>
                   <CardTitle className="text-xl font-semibold leading-tight text-brand-dark-blue hover:text-brand-sky-blue transition-colors">
@@ -284,3 +289,5 @@ export default function HomePage() {
     </>
   );
 }
+
+    
