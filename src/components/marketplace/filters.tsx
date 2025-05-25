@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,11 +11,12 @@ import {
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { industries, asianCountries, revenueRanges } from '@/lib/types'; // Removed askingPriceRanges
+import { industries, asianCountries, revenueRanges } from '@/lib/types';
 import { Filter } from 'lucide-react';
+// Placeholder for a multi-select component or logic
+// For now, Keywords will remain a text input, but documented for future change.
 
 export function Filters() {
-  // In a real app, these would update query params or state
   return (
     <Card className="sticky top-20 shadow-md">
       <CardHeader>
@@ -59,7 +59,7 @@ export function Filters() {
             </SelectContent>
           </Select>
         </div>
-        
+
         <div className="space-y-2">
           <Label htmlFor="revenue">Annual Revenue Range</Label>
           <Select name="revenue">
@@ -78,13 +78,14 @@ export function Filters() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="askingPrice">Asking Price (Max USD)</Label>
-          <Input type="number" name="askingPrice" id="askingPrice" placeholder="e.g., 500000" />
+          <Label htmlFor="maxAskingPrice">Asking Price (Max USD)</Label>
+          <Input type="number" name="maxAskingPrice" id="maxAskingPrice" placeholder="e.g., 500000" />
         </div>
-        
+
         <div className="space-y-2">
             <Label htmlFor="keywords">Keywords</Label>
             <Input id="keywords" name="keywords" placeholder="e.g., SaaS, Retail Tech" />
+            {/* TODO: Change to multi-select dropdown in future iteration */}
         </div>
 
         <Button className="w-full">Apply Filters</Button>

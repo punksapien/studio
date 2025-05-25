@@ -33,16 +33,15 @@ export type DealStructure = 'Full Acquisition' | 'Partial Sale/Investment' | 'Op
 export const dealStructures: DealStructure[] = ['Full Acquisition', 'Partial Sale/Investment', 'Open to Offers'];
 
 export const revenueRanges = [
-  "< $50K USD", "$50K - $100K USD", "$100K - $250K USD", 
+  "< $50K USD", "$50K - $100K USD", "$100K - $250K USD",
   "$250K - $500K USD", "$500K - $1M USD", "$1M+ USD"
 ];
 export const profitMarginRanges = [
-  "< 0% (Loss-making)", "0% - 10%", "10% - 20%", 
+  "< 0% (Loss-making)", "0% - 10%", "10% - 20%",
   "20% - 30%", "30%+"
 ];
-// askingPriceRanges was removed as askingPrice is now a number
 
-export const industries = ["Software", "Retail", "Manufacturing", "Services - Marketing", "E-commerce", "Healthcare", "Finance", "Education", "Real Estate", "Other"];
+export const industries = ["Software", "Retail", "Manufacturing", "Services - Marketing", "E-commerce", "Healthcare", "Finance", "Education", "Real Estate", "Hospitality", "Agriculture", "Other"];
 export const asianCountries = ["Singapore", "Malaysia", "Indonesia", "Thailand", "Vietnam", "Philippines", "Hong Kong", "Japan", "South Korea", "India", "China", "Other"];
 
 export type EmployeeCountRange = "Sole Operator" | "1-5" | "6-10" | "11-25" | "26-50" | "50+";
@@ -57,14 +56,14 @@ export interface User {
   role: UserRole;
   isEmailVerified: boolean;
   verificationStatus: VerificationStatus;
-  isPaid: boolean; 
-  initialCompanyName?: string; 
+  isPaid: boolean;
+  initialCompanyName?: string;
   buyerType?: BuyerType; // Legacy
   createdAt: Date;
   updatedAt: Date;
-  lastLogin?: Date; 
-  listingCount?: number; 
-  inquiryCount?: number; 
+  lastLogin?: Date;
+  listingCount?: number;
+  inquiryCount?: number;
 
   buyerPersonaType?: BuyerPersona;
   buyerPersonaOther?: string;
@@ -73,13 +72,13 @@ export interface User {
   keyIndustriesOfInterest?: string;
 }
 
-export type ListingStatus = 'active' | 'inactive' | 'pending_verification' | 'verified_anonymous' | 'verified_public' | 'rejected_by_admin';
+export type ListingStatus = 'active' | 'inactive' | 'pending_verification' | 'verified_anonymous' | 'verified_public' | 'rejected_by_admin' | 'closed_deal';
 
 export interface Listing {
   id: string;
   sellerId: string;
   listingTitleAnonymous: string;
-  industry: string; 
+  industry: string;
   locationCountry: string;
   locationCityRegionGeneral: string;
   anonymousBusinessDescription: string;
@@ -88,52 +87,54 @@ export interface Listing {
   yearEstablished?: number;
   registeredBusinessName?: string;
   businessWebsiteUrl?: string;
-  socialMediaLinks?: string; 
+  socialMediaLinks?: string;
   numberOfEmployees?: EmployeeCountRange;
   technologyStack?: string;
 
-  annualRevenueRange: string; 
+  annualRevenueRange: string;
   netProfitMarginRange?: string;
-  askingPrice?: number; // Changed from askingPriceRange
-  specificAnnualRevenueLastYear?: number;
-  specificNetProfitLastYear?: number;
-  financialsExplanation?: string;
-  
+  askingPrice?: number; // Fixed number
+  adjustedCashFlow?: number; // New
+  adjustedCashFlowExplanation?: string; // New
+
   dealStructureLookingFor?: DealStructure[];
   reasonForSellingAnonymous?: string;
   detailedReasonForSelling?: string;
   sellerRoleAndTimeCommitment?: string;
   postSaleTransitionSupport?: string;
 
-  growthPotentialNarrative?: string; 
-  specificGrowthOpportunities?: string; 
+  specificGrowthOpportunities?: string; // For newline separated bullet points
 
-  status: ListingStatus; 
-  isSellerVerified: boolean; 
-  
+  status: ListingStatus;
+  isSellerVerified: boolean;
+
   actualCompanyName?: string;
   fullBusinessAddress?: string;
-  
-  financialDocumentsUrl?: string; 
+
+  specificAnnualRevenueLastYear?: number;
+  specificNetProfitLastYear?: number;
+  // financialsExplanation?: string; // Removed
+
+  imageUrls?: string[]; // Changed from imageUrl
+  financialDocumentsUrl?: string;
   keyMetricsReportUrl?: string;
   ownershipDocumentsUrl?: string;
-  
+
   secureDataRoomLink?: string;
   createdAt: Date;
   updatedAt: Date;
-  imageUrl?: string; 
-  financialSnapshotUrl?: string; 
+  financialSnapshotUrl?: string;
   ownershipDetailsUrl?: string;
   locationRealEstateInfoUrl?: string;
-  webPresenceInfoUrl?: string; 
-  inquiryCount?: number; 
+  webPresenceInfoUrl?: string;
+  inquiryCount?: number;
 }
 
 export type InquiryStatusBuyerPerspective =
   | 'Inquiry Sent'
-  | 'Seller Engaged - Your Verification Required' 
-  | 'Seller Engaged - Seller Verification Pending' 
-  | 'Ready for Admin Connection' 
+  | 'Seller Engaged - Your Verification Required'
+  | 'Seller Engaged - Seller Verification Pending'
+  | 'Ready for Admin Connection'
   | 'Connection Facilitated by Admin'
   | 'Archived';
 
@@ -156,17 +157,17 @@ export type InquiryStatusSystem =
 export interface Inquiry {
   id: string;
   listingId: string;
-  listingTitleAnonymous: string; 
-  sellerStatus?: 'Anonymous Seller' | 'Platform Verified Seller'; 
+  listingTitleAnonymous: string;
+  sellerStatus?: 'Anonymous Seller' | 'Platform Verified Seller';
   buyerId: string;
-  buyerName?: string; 
-  buyerVerificationStatus?: VerificationStatus; 
+  buyerName?: string;
+  buyerVerificationStatus?: VerificationStatus;
   sellerId: string;
   inquiryTimestamp: Date;
   engagementTimestamp?: Date;
-  status: InquiryStatusSystem; 
-  statusBuyerPerspective?: InquiryStatusBuyerPerspective; 
-  statusSellerPerspective?: InquiryStatusSellerPerspective; 
+  status: InquiryStatusSystem;
+  statusBuyerPerspective?: InquiryStatusBuyerPerspective;
+  statusSellerPerspective?: InquiryStatusSellerPerspective;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -179,23 +180,25 @@ export interface AdminDashboardMetrics {
   newListingsCreated24h: number;
   newListingsCreated7d: number;
   totalActiveSellers: number;
-  totalPaidSellers: number; 
-  totalFreeSellers: number; 
-  totalActiveBuyers: number;  
-  totalPaidBuyers: number;  
-  totalFreeBuyers: number;  
+  totalPaidSellers: number;
+  totalFreeSellers: number;
+  totalActiveBuyers: number;
+  totalPaidBuyers: number;
+  totalFreeBuyers: number;
   totalActiveListingsAnonymous: number;
-  totalActiveListingsVerified: number; 
+  totalActiveListingsVerified: number;
+  totalListingsAllStatuses: number; // New
+  closedOrDeactivatedListings: number; // New
   buyerVerificationQueueCount: number;
-  sellerVerificationQueueCount: number; 
+  sellerVerificationQueueCount: number;
   readyToEngageQueueCount: number;
-  successfulConnectionsMTD: number; 
-  activeSuccessfulConnections: number; 
-  closedSuccessfulConnections: number; 
-  dealsClosedMTD?: number; 
-  totalRevenueMTD?: number; 
-  revenueFromBuyers: number; 
-  revenueFromSellers: number; 
+  successfulConnectionsMTD: number;
+  activeSuccessfulConnections: number;
+  closedSuccessfulConnections: number;
+  dealsClosedMTD?: number;
+  totalRevenueMTD?: number;
+  revenueFromBuyers: number;
+  revenueFromSellers: number;
 }
 
 
@@ -206,13 +209,13 @@ export interface VerificationRequestItem {
   timestamp: Date;
   userId: string;
   userName: string;
-  userRole: UserRole; 
-  listingId?: string; 
-  listingTitle?: string; 
-  triggeringUserId?: string; 
-  reason: string; 
-  status: VerificationQueueStatus; 
-  documentsSubmitted?: { name: string, type: 'id_proof' | 'business_reg' | 'financials' }[]; 
+  userRole: UserRole;
+  listingId?: string;
+  listingTitle?: string;
+  triggeringUserId?: string;
+  reason: string;
+  status: VerificationQueueStatus;
+  documentsSubmitted?: { name: string, type: 'id_proof' | 'business_reg' | 'financials' }[];
 }
 
 export interface ReadyToEngageItem {
@@ -220,13 +223,13 @@ export interface ReadyToEngageItem {
   timestamp: Date; // When it became "ready to engage"
   buyerId: string;
   buyerName: string;
-  buyerVerificationStatus: VerificationStatus; 
+  buyerVerificationStatus: VerificationStatus;
   sellerId: string;
   sellerName: string;
-  sellerVerificationStatus: VerificationStatus; 
+  sellerVerificationStatus: VerificationStatus;
   listingId: string;
   listingTitle: string;
-  listingVerificationStatus: ListingStatus; 
+  listingVerificationStatus: ListingStatus;
 }
 
 export type NotificationType = 'inquiry' | 'verification' | 'system' | 'engagement' | 'listing_update';
@@ -238,5 +241,4 @@ export interface NotificationItem {
   link?: string;
   isRead: boolean;
   userId: string;
-  type: NotificationType; 
-}
+  

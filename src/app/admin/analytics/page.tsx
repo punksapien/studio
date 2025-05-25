@@ -1,13 +1,9 @@
 
+import * as React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, LineChart, PieChart, Users, Briefcase, DollarSign, CheckCircle, TrendingUp, UserMinus, UserPlus, Banknote, ShieldCheck, Handshake } from "lucide-react";
-import { sampleAdminDashboardMetrics, sampleUsers } from "@/lib/placeholder-data";
+import { BarChart, LineChart, PieChart, Users, Briefcase, DollarSign, CheckCircle, TrendingUp, UserMinus, UserPlus, Banknote, ShieldCheck, Handshake, ListX } from "lucide-react";
+import { sampleAdminDashboardMetrics, sampleUsers, sampleListings } from "@/lib/placeholder-data";
 import { Separator } from "@/components/ui/separator";
-
-const chartConfigPlaceholder = {
-  users: { label: "Users", color: "hsl(var(--chart-1))" },
-  listings: { label: "Listings", color: "hsl(var(--chart-2))" },
-};
 
 export default function AdminAnalyticsPage() {
   const metrics = sampleAdminDashboardMetrics;
@@ -16,7 +12,7 @@ export default function AdminAnalyticsPage() {
   return (
     <div className="space-y-8">
       <h1 className="text-3xl font-bold tracking-tight">Platform Analytics</h1>
-      
+
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <Card className="shadow-md">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -30,12 +26,22 @@ export default function AdminAnalyticsPage() {
         </Card>
          <Card className="shadow-md">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Listings (Verified)</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Listings (All Statuses)</CardTitle>
             <Briefcase className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{metrics.totalActiveListingsVerified}</div>
-            <p className="text-xs text-muted-foreground">{metrics.totalActiveListingsAnonymous} anonymous</p>
+            <div className="text-2xl font-bold">{metrics.totalListingsAllStatuses}</div>
+            <p className="text-xs text-muted-foreground">{metrics.totalActiveListingsVerified} verified, {metrics.totalActiveListingsAnonymous} anonymous</p>
+          </CardContent>
+        </Card>
+         <Card className="shadow-md">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Deactivated/Closed Listings</CardTitle>
+            <ListX className="h-5 w-5 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{metrics.closedOrDeactivatedListings}</div>
+            <p className="text-xs text-muted-foreground">Inactive or deal finalized</p>
           </CardContent>
         </Card>
          <Card className="shadow-md">
@@ -46,16 +52,6 @@ export default function AdminAnalyticsPage() {
           <CardContent>
             <div className="text-2xl font-bold">{metrics.successfulConnectionsMTD}</div>
             <p className="text-xs text-muted-foreground">{metrics.activeSuccessfulConnections} active, {metrics.closedSuccessfulConnections} closed</p>
-          </CardContent>
-        </Card>
-        <Card className="shadow-md">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Deals Closed (MTD)</CardTitle>
-            <DollarSign className="h-5 w-5 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{metrics.dealsClosedMTD || 0}</div>
-            <p className="text-xs text-muted-foreground">Reported or tracked</p>
           </CardContent>
         </Card>
       </div>
@@ -90,10 +86,10 @@ export default function AdminAnalyticsPage() {
           <CardContent><div className="text-2xl font-bold">{sampleUsers.filter(u => u.role === 'seller' && u.verificationStatus === 'verified').length}</div></CardContent>
         </Card>
       </div>
-      
+
       <Separator/>
-      <h2 className="text-2xl font-semibold tracking-tight pt-4">Financials</h2>
-       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3"> {/* Changed to lg:grid-cols-3 for better fit */}
+      <h2 className="text-2xl font-semibold tracking-tight pt-4">Revenue Breakdown (MTD)</h2>
+       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
          <Card className="shadow-md">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Revenue (MTD)</CardTitle>
@@ -132,7 +128,7 @@ export default function AdminAnalyticsPage() {
         <Card className="shadow-md">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Active Successful Connections</CardTitle>
-                <CheckCircle className="h-5 w-5 text-blue-500"/>
+                <Handshake className="h-5 w-5 text-blue-500"/>
             </CardHeader>
             <CardContent>
                 <div className="text-2xl font-bold">{metrics.activeSuccessfulConnections}</div>
@@ -141,12 +137,12 @@ export default function AdminAnalyticsPage() {
         </Card>
         <Card className="shadow-md">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Deals Closed (MTD)</CardTitle>
-                <DollarSign className="h-5 w-5 text-green-500"/>
+                <CardTitle className="text-sm font-medium">Closed Successful Connections (MTD)</CardTitle>
+                <CheckCircle className="h-5 w-5 text-green-500"/>
             </CardHeader>
             <CardContent>
-                <div className="text-2xl font-bold">{metrics.dealsClosedMTD || 0}</div>
-                <p className="text-xs text-muted-foreground">Reported or tracked</p>
+                <div className="text-2xl font-bold">{metrics.closedSuccessfulConnections}</div>
+                <p className="text-xs text-muted-foreground">Connections marked as deal closed/archived</p>
             </CardContent>
         </Card>
       </div>
@@ -197,5 +193,4 @@ export default function AdminAnalyticsPage() {
         </Card>
       </div>
     </div>
-  );
-}
+  

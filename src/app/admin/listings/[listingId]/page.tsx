@@ -1,4 +1,3 @@
-
 import { sampleListings, sampleUsers } from "@/lib/placeholder-data";
 import type { Listing, User } from "@/lib/types";
 import Image from 'next/image';
@@ -6,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { MapPin, DollarSign, Briefcase, ShieldCheck, ShieldAlert, CalendarDays, Users as UsersIcon, Info, TrendingUp, Tag, HandCoins, Edit, Trash2, MessageSquare, Building, Brain, FileText, Clock, AlertCircle, Globe, RadioTower, Link as LinkIconLucide } from 'lucide-react'; // Renamed Users to UsersIcon
+import { MapPin, DollarSign, Briefcase, ShieldCheck, ShieldAlert, CalendarDays, Users as UsersIcon, Info, TrendingUp, Tag, HandCoins, Edit, Trash2, FileText, Clock, Building, Brain, Globe, Link as LinkIconLucide, ImagePlus, Banknote } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -35,10 +34,11 @@ export default async function AdminListingDetailPage({ params }: { params: { lis
     if (status === 'active' && !isSellerVerified) return <Badge variant="outline">Active (Anonymous)</Badge>;
     if (status === 'active' && isSellerVerified) return <Badge className="bg-green-100 text-green-700 dark:bg-green-800 dark:text-green-200 border-green-300 dark:border-green-600"><ShieldCheck className="h-3 w-3 mr-1" /> Active (Verified Seller)</Badge>;
     if (status === 'inactive') return <Badge variant="destructive">Inactive</Badge>;
+    if (status === 'closed_deal') return <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-800 dark:text-purple-200 border-purple-300 dark:border-purple-600">Deal Closed</Badge>;
     if (status === 'rejected_by_admin') return <Badge variant="destructive" className="bg-red-700 text-white dark:bg-red-800 dark:text-red-200">Rejected</Badge>;
     return <Badge variant="outline" className="capitalize">{status.replace(/_/g, ' ')}</Badge>;
   };
-  
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
@@ -55,23 +55,23 @@ export default async function AdminListingDetailPage({ params }: { params: { lis
                 <Button variant="default" className="bg-green-600 hover:bg-green-700"><ShieldCheck className="h-4 w-4 mr-2"/> Approve & Mark Verified</Button>
              )}
              {listing.status === 'active' && (
-                 <Button variant="outline" className="bg-yellow-500 hover:bg-yellow-600 text-white"><AlertCircle className="h-4 w-4 mr-2"/> Request More Info</Button>
+                 <Button variant="outline" className="bg-yellow-500 hover:bg-yellow-600 text-white"><AlertTriangle className="h-4 w-4 mr-2"/> Request More Info</Button>
              )}
              {listing.status !== 'rejected_by_admin' && listing.status !== 'pending_verification' && (
                 <Button variant="destructive" className="bg-red-600 hover:bg-red-700"><AlertTriangle className="h-4 w-4 mr-2"/> Reject Listing</Button>
              )}
         </div>
       </div>
-      
+
       <Card className="shadow-xl overflow-hidden bg-brand-white">
         <CardHeader className="p-0 relative">
             <Image
-              src={listing.imageUrl || "https://placehold.co/1200x400.png"}
+              src={listing.imageUrls?.[0] || "https://placehold.co/1200x400.png"}
               alt={listing.listingTitleAnonymous}
               width={1200}
               height={400}
               className="w-full h-64 md:h-80 object-cover"
-              data-ai-hint={listing.imageUrl ? "business operations factory" : "generic office space"}
+              data-ai-hint={listing.imageUrls?.[0] ? "business operations factory" : "generic office space"}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
             <div className="absolute bottom-0 left-0 p-6 md:p-8">
@@ -88,23 +88,24 @@ export default async function AdminListingDetailPage({ params }: { params: { lis
         </CardHeader>
         <CardContent className="p-6 md:p-8">
             <Tabs defaultValue="overview" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 gap-2 mb-6"> {/* Updated to 5 cols for documents */}
+                <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 mb-6">
                     <TabsTrigger value="overview">Overview</TabsTrigger>
                     <TabsTrigger value="profileOps">Profile &amp; Ops</TabsTrigger>
                     <TabsTrigger value="financials">Financials</TabsTrigger>
                     <TabsTrigger value="dealSeller">Deal &amp; Seller</TabsTrigger>
-                    <TabsTrigger value="growthDocs">Growth &amp; Docs</TabsTrigger>
+                    <TabsTrigger value="growth">Growth</TabsTrigger>
+                    <TabsTrigger value="docsImages">Docs &amp; Images</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="overview" className="grid md:grid-cols-3 gap-8">
                     <div className="md:col-span-2 space-y-6">
                         <section>
-                            <h3 className="text-xl font-semibold text-brand-dark-blue mb-2 flex items-center"><Info className="h-5 w-5 mr-2 text-primary"/>Anonymous Business Overview</h3>
+                            <h3 className="text-xl font-semibold text-brand-dark-blue mb-2 flex items-center"><Info className="h-5 w-5 mr-2 text-primary"/>Business Overview</h3>
                             <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">{listing.anonymousBusinessDescription}</p>
                         </section>
                         <Separator />
                         <section>
-                            <h3 className="text-xl font-semibold text-brand-dark-blue mb-2 flex items-center"><TrendingUp className="h-5 w-5 mr-2 text-primary"/>Key Strengths (Anonymous)</h3>
+                            <h3 className="text-xl font-semibold text-brand-dark-blue mb-2 flex items-center"><TrendingUp className="h-5 w-5 mr-2 text-primary"/>Key Strengths</h3>
                             <ul className="list-disc list-inside space-y-1 text-muted-foreground pl-5">
                                 {listing.keyStrengthsAnonymous.map((strength, index) => (
                                 <li key={index}>{strength}</li>
@@ -113,7 +114,7 @@ export default async function AdminListingDetailPage({ params }: { params: { lis
                         </section>
                         {listing.reasonForSellingAnonymous && (
                             <><Separator /><section>
-                                <h3 className="text-xl font-semibold text-brand-dark-blue mb-2 flex items-center"><Tag className="h-5 w-5 mr-2 text-primary"/>Reason for Selling (Anonymous)</h3>
+                                <h3 className="text-xl font-semibold text-brand-dark-blue mb-2 flex items-center"><Tag className="h-5 w-5 mr-2 text-primary"/>Reason for Selling</h3>
                                 <p className="text-muted-foreground leading-relaxed">{listing.reasonForSellingAnonymous}</p>
                             </section></>
                         )}
@@ -126,7 +127,8 @@ export default async function AdminListingDetailPage({ params }: { params: { lis
                                 <p><span className="font-medium text-brand-dark-blue">Location:</span> {listing.locationCityRegionGeneral}, {listing.locationCountry}</p>
                                 <p><span className="font-medium text-brand-dark-blue">Annual Revenue:</span> {listing.annualRevenueRange}</p>
                                 {listing.netProfitMarginRange && <p><span className="font-medium text-brand-dark-blue">Net Profit Margin:</span> {listing.netProfitMarginRange}</p>}
-                                <p><span className="font-medium text-brand-dark-blue">Asking Price:</span> {listing.askingPrice ? `$${listing.askingPrice.toLocaleString()} USD` : 'N/A'}</p>
+                                <p><span className="font-medium text-brand-dark-blue">Asking Price (USD):</span> {listing.askingPrice ? `$${listing.askingPrice.toLocaleString()}` : 'N/A'}</p>
+                                {listing.adjustedCashFlow && <p><span className="font-medium text-brand-dark-blue">Adjusted Cash Flow (USD):</span> ${listing.adjustedCashFlow.toLocaleString()}</p>}
                                 {listing.dealStructureLookingFor && <p><span className="font-medium text-brand-dark-blue">Deal Structure:</span> {listing.dealStructureLookingFor.join(', ')}</p>}
                                 <p><span className="font-medium text-brand-dark-blue">Listed On:</span> {new Date(listing.createdAt).toLocaleDateString()}</p>
                                 {seller && (
@@ -161,10 +163,11 @@ export default async function AdminListingDetailPage({ params }: { params: { lis
                     <div className="grid md:grid-cols-2 gap-4 p-4 bg-brand-light-gray/30 rounded-lg border border-brand-light-gray text-sm">
                         <p><span className="font-medium text-brand-dark-blue">Specific Annual Revenue (TTM):</span> {listing.specificAnnualRevenueLastYear ? `$${listing.specificAnnualRevenueLastYear.toLocaleString()} USD` : 'N/A'}</p>
                         <p><span className="font-medium text-brand-dark-blue">Specific Net Profit (TTM):</span> {listing.specificNetProfitLastYear ? `$${listing.specificNetProfitLastYear.toLocaleString()} USD` : 'N/A'}</p>
-                        <p className="md:col-span-2"><span className="font-medium text-brand-dark-blue">Financials Explanation:</span> {listing.financialsExplanation || 'N/A'}</p>
+                        <p><span className="font-medium text-brand-dark-blue">Adjusted Cash Flow (TTM):</span> {listing.adjustedCashFlow ? `$${listing.adjustedCashFlow.toLocaleString()} USD` : 'N/A'}</p>
+                        {listing.adjustedCashFlowExplanation && <p className="md:col-span-2"><span className="font-medium text-brand-dark-blue">Adj. Cash Flow Explanation:</span> {listing.adjustedCashFlowExplanation}</p>}
                     </div>
                 </TabsContent>
-                
+
                 <TabsContent value="dealSeller" className="space-y-6">
                      <h3 className="text-xl font-semibold text-brand-dark-blue mb-2 flex items-center"><HandCoins className="h-5 w-5 mr-2 text-primary"/>Deal &amp; Seller Information</h3>
                      <div className="p-4 bg-brand-light-gray/30 rounded-lg border border-brand-light-gray space-y-3 text-sm">
@@ -174,12 +177,31 @@ export default async function AdminListingDetailPage({ params }: { params: { lis
                      </div>
                 </TabsContent>
 
-                <TabsContent value="growthDocs" className="space-y-6">
-                    <h3 className="text-xl font-semibold text-brand-dark-blue mb-2 flex items-center"><Brain className="h-5 w-5 mr-2 text-primary"/>Growth &amp; Future Potential</h3>
+                <TabsContent value="growth" className="space-y-6">
+                    <h3 className="text-xl font-semibold text-brand-dark-blue mb-2 flex items-center"><Brain className="h-5 w-5 mr-2 text-primary"/>Specific Growth Opportunities</h3>
                      <div className="p-4 bg-brand-light-gray/30 rounded-lg border border-brand-light-gray space-y-3 text-sm">
-                        <div><h4 className="font-semibold text-brand-dark-blue">Potential for Growth Narrative:</h4> <p className="text-muted-foreground whitespace-pre-wrap text-xs">{listing.growthPotentialNarrative || 'N/A'}</p></div>
-                        <div><h4 className="font-semibold text-brand-dark-blue">Specific Growth Opportunities:</h4> <p className="text-muted-foreground whitespace-pre-wrap text-xs">{listing.specificGrowthOpportunities || 'N/A'}</p></div>
+                        <div className="text-muted-foreground leading-relaxed whitespace-pre-wrap pl-1">
+                          {listing.specificGrowthOpportunities?.split('\n').map((line, index) => (
+                            line.trim() && <p key={index} className="ml-0 before:content-['•'] before:mr-2">{line.trim().replace(/^- /, '')}</p>
+                          ))}
+                          {!listing.specificGrowthOpportunities && <p>N/A</p>}
+                        </div>
                      </div>
+                </TabsContent>
+
+                <TabsContent value="docsImages" className="space-y-6">
+                    <h3 className="text-xl font-semibold text-brand-dark-blue mb-2 flex items-center"><ImagePlus className="h-5 w-5 mr-2 text-primary"/>Additional Images</h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-4 bg-brand-light-gray/30 rounded-lg border border-brand-light-gray">
+                        {listing.imageUrls && listing.imageUrls.length > 1 ? (
+                            listing.imageUrls.slice(1).map((url, index) => (
+                                <div key={index} className="aspect-square bg-muted rounded-md overflow-hidden">
+                                    <Image src={url} alt={`Listing image ${index + 2}`} width={200} height={200} className="w-full h-full object-cover" data-ai-hint="business product team" />
+                                </div>
+                            ))
+                        ) : (
+                            <p className="text-sm text-muted-foreground col-span-full text-center py-4">No additional images provided.</p>
+                        )}
+                    </div>
                     <Separator />
                     <h3 className="text-xl font-semibold text-brand-dark-blue mb-2 flex items-center"><FileText className="h-5 w-5 mr-2 text-primary"/>Uploaded Documents (Placeholders)</h3>
                     <div className="p-4 bg-brand-light-gray/30 rounded-lg border border-brand-light-gray space-y-3">

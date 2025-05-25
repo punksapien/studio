@@ -1,4 +1,3 @@
-
 import { sampleListings, sampleUsers } from '@/lib/placeholder-data';
 import type { Listing, User } from '@/lib/types';
 import Image from 'next/image';
@@ -6,49 +5,36 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { MapPin, DollarSign, Briefcase, ShieldCheck, MessageSquare, CalendarDays, Users, Info, TrendingUp, Tag, HandCoins, FileText, Link as LinkIcon, Building, Brain, BookOpen, ExternalLink, UserCircle, Globe, Users2, RadioTower } from 'lucide-react'; // Added LinkIcon
+import { MapPin, DollarSign, Briefcase, ShieldCheck, MessageSquare, CalendarDays, Users, Info, TrendingUp, Tag, HandCoins, FileText, Link as LinkIcon, Building, Brain, BookOpen, ExternalLink, UserCircle, Globe, Users2, RadioTower, ImagesIcon, Banknote } from 'lucide-react';
 import Link from 'next/link';
+import { notFound } from 'next/navigation';
 
 async function getListingDetails(id: string): Promise<Listing | undefined> {
-  // In a real app, fetch from Supabase/backend
   return sampleListings.find(listing => listing.id === id);
 }
 
 async function getSellerDetails(sellerId: string): Promise<User | undefined> {
-  // In a real app, fetch from Supabase/backend
   return sampleUsers.find(user => user.id === sellerId && user.role === 'seller');
 }
 
 // Placeholder for current user - replace with actual auth logic
 const currentUserId = 'user2'; // Example: Jane Smith (Verified & Paid Buyer)
-// const currentUserId = 'user5'; // Example: Michael Lee (Verified but Free Buyer)
-// const currentUserId = 'user6'; // Example: Anna Tay (Anonymous Buyer)
-// const currentUserId = null; // Example: Anonymous visitor
 const currentUser = sampleUsers.find(u => u.id === currentUserId);
 
 
-export default async function ListingDetailPage({ params }: { params: { listingId: string } }) {
+export default async function ListingDetailPage({ params }: { params: { listingId:string } }) {
   const listing = await getListingDetails(params.listingId);
 
   if (!listing) {
-    return (
-      <div className="container py-12 text-center">
-        <h1 className="text-2xl font-semibold">Listing not found</h1>
-        <p className="text-muted-foreground">The business listing you are looking for does not exist or has been removed.</p>
-        <Button asChild className="mt-4">
-          <Link href="/marketplace">Back to Marketplace</Link>
-        </Button>
-      </div>
-    );
+    notFound();
   }
 
   const seller = await getSellerDetails(listing.sellerId);
-  
-  // Determine if the current user can see verified details
-  const canViewVerifiedDetails = 
-    listing.isSellerVerified && 
-    currentUser && 
-    currentUser.verificationStatus === 'verified' && 
+
+  const canViewVerifiedDetails =
+    listing.isSellerVerified &&
+    currentUser &&
+    currentUser.verificationStatus === 'verified' &&
     currentUser.isPaid;
 
   const DocumentLink = ({ href, children, docType }: { href?: string; children: React.ReactNode, docType: string }) => {
@@ -65,18 +51,17 @@ export default async function ListingDetailPage({ params }: { params: { listingI
     );
   };
 
-
   return (
     <div className="container py-8 md:py-12 bg-brand-light-gray">
       <Card className="shadow-xl overflow-hidden bg-brand-white">
         <CardHeader className="p-0 relative">
             <Image
-              src={listing.imageUrl || "https://placehold.co/1200x400.png"}
+              src={listing.imageUrls?.[0] || "https://placehold.co/1200x400.png"}
               alt={listing.listingTitleAnonymous}
               width={1200}
               height={400}
               className="w-full h-64 md:h-96 object-cover"
-              data-ai-hint={listing.imageUrl ? "business team presentation" : "abstract business office"}
+              data-ai-hint={listing.imageUrls?.[0] ? "business team presentation" : "abstract business office"}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
             <div className="absolute bottom-0 left-0 p-6 md:p-8">
@@ -95,35 +80,22 @@ export default async function ListingDetailPage({ params }: { params: { listingI
             <div className="lg:col-span-8 space-y-8">
                 {listing.isSellerVerified && !canViewVerifiedDetails && currentUser && !currentUser.isPaid && (
                     <Card className="bg-amber-50 border-amber-300 dark:bg-amber-900/20 dark:border-amber-700">
-                        <CardHeader>
-                            <CardTitle className="text-amber-700 dark:text-amber-300 flex items-center"><Info className="h-5 w-5 mr-2"/>Unlock Full Details</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-sm text-amber-600 dark:text-amber-400">
-                                This listing is from a Platform Verified Seller. To view specific company details, financials, and documents, please <Link href="/dashboard/subscription" className="font-semibold underline hover:text-amber-700">upgrade to a paid buyer plan</Link>.
-                            </p>
-                        </CardContent>
+                        <CardHeader><CardTitle className="text-amber-700 dark:text-amber-300 flex items-center"><Info className="h-5 w-5 mr-2"/>Unlock Full Details</CardTitle></CardHeader>
+                        <CardContent><p className="text-sm text-amber-600 dark:text-amber-400">This listing is from a Platform Verified Seller. To view specific company details, financials, and documents, please <Link href="/dashboard/subscription" className="font-semibold underline hover:text-amber-700">upgrade to a paid buyer plan</Link>.</p></CardContent>
                     </Card>
                 )}
                  {listing.isSellerVerified && !currentUser && (
                     <Card className="bg-blue-50 border-blue-300 dark:bg-blue-900/20 dark:border-blue-700">
-                        <CardHeader>
-                             <CardTitle className="text-blue-700 dark:text-blue-300 flex items-center"><UserCircle className="h-5 w-5 mr-2"/>Access Verified Information</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-sm text-blue-600 dark:text-blue-400">
-                                This listing is from a Platform Verified Seller. <Link href={`/auth/login?redirect=/listings/${listing.id}`} className="font-semibold underline hover:text-blue-700">Login</Link> or <Link href={`/auth/register?redirect=/listings/${listing.id}`} className="font-semibold underline hover:text-blue-700">Register</Link> as a paid, verified buyer to view detailed company information and documents.
-                            </p>
-                        </CardContent>
+                        <CardHeader><CardTitle className="text-blue-700 dark:text-blue-300 flex items-center"><UserCircle className="h-5 w-5 mr-2"/>Access Verified Information</CardTitle></CardHeader>
+                        <CardContent><p className="text-sm text-blue-600 dark:text-blue-400">This listing is from a Platform Verified Seller. <Link href={`/auth/login?redirect=/listings/${listing.id}`} className="font-semibold underline hover:text-blue-700">Login</Link> or <Link href={`/auth/register?redirect=/listings/${listing.id}`} className="font-semibold underline hover:text-blue-700">Register</Link> as a paid, verified buyer to view detailed company information and documents.</p></CardContent>
                     </Card>
                 )}
 
-
                 <section id="business-overview">
-                    <h2 className="text-2xl font-semibold text-brand-dark-blue mb-3 flex items-center"><BookOpen className="h-6 w-6 mr-2 text-primary"/>Anonymous Business Overview</h2>
+                    <h2 className="text-2xl font-semibold text-brand-dark-blue mb-3 flex items-center"><BookOpen className="h-6 w-6 mr-2 text-primary"/>Business Overview</h2>
                     <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">{listing.anonymousBusinessDescription}</p>
                 </section>
-                
+
                 <Separator />
 
                 <section id="key-strengths">
@@ -139,41 +111,63 @@ export default async function ListingDetailPage({ params }: { params: { listingI
                     <>
                         <Separator />
                         <section id="reason-for-selling">
-                            <h2 className="text-2xl font-semibold text-brand-dark-blue mb-3 flex items-center"><Tag className="h-6 w-6 mr-2 text-primary"/>Reason for Selling (Anonymous)</h2>
+                            <h2 className="text-2xl font-semibold text-brand-dark-blue mb-3 flex items-center"><Tag className="h-6 w-6 mr-2 text-primary"/>Reason for Selling</h2>
                             <p className="text-muted-foreground leading-relaxed">{listing.reasonForSellingAnonymous}</p>
                         </section>
                     </>
                 )}
 
-                {(listing.growthPotentialNarrative || listing.specificGrowthOpportunities) && (
+                {listing.specificGrowthOpportunities && (
                   <>
                     <Separator />
                     <section id="growth-potential">
-                        <h2 className="text-2xl font-semibold text-brand-dark-blue mb-3 flex items-center"><Brain className="h-6 w-6 mr-2 text-primary"/>Potential for Growth</h2>
-                        {listing.growthPotentialNarrative && (
-                           <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap mb-4">{listing.growthPotentialNarrative}</p>
-                        )}
-                        {listing.specificGrowthOpportunities && (
-                          <>
-                            <h3 className="text-lg font-medium text-brand-dark-blue mb-2">Specific Opportunities:</h3>
-                            <div className="text-muted-foreground leading-relaxed whitespace-pre-wrap pl-5">
-                              {listing.specificGrowthOpportunities.split('\n').map((line, index) => (
-                                line.trim() && <p key={index} className="ml-0 before:content-['•'] before:mr-2">{line.trim().replace(/^- /, '')}</p>
-                              ))}
-                            </div>
-                          </>
-                        )}
+                        <h2 className="text-2xl font-semibold text-brand-dark-blue mb-3 flex items-center"><Brain className="h-6 w-6 mr-2 text-primary"/>Specific Growth Opportunities</h2>
+                        <div className="text-muted-foreground leading-relaxed whitespace-pre-wrap pl-5">
+                          {listing.specificGrowthOpportunities.split('\n').map((line, index) => (
+                            line.trim() && <p key={index} className="ml-0 before:content-['•'] before:mr-2">{line.trim().replace(/^- /, '')}</p>
+                          ))}
+                        </div>
                     </section>
                   </>
                 )}
-                
+
+                {(listing.adjustedCashFlow || listing.adjustedCashFlowExplanation) && (
+                  <>
+                    <Separator />
+                    <section id="adjusted-cash-flow">
+                      <h2 className="text-2xl font-semibold text-brand-dark-blue mb-3 flex items-center"><Banknote className="h-6 w-6 mr-2 text-primary" />Adjusted Cash Flow</h2>
+                      {listing.adjustedCashFlow && <p className="text-xl font-semibold text-primary mb-1">${listing.adjustedCashFlow.toLocaleString()} USD <span className="text-sm text-muted-foreground">(Annual)</span></p>}
+                      {listing.adjustedCashFlowExplanation && <p className="text-muted-foreground text-sm leading-relaxed">{listing.adjustedCashFlowExplanation}</p>}
+                    </section>
+                  </>
+                )}
+
+                 {listing.imageUrls && listing.imageUrls.length > 1 && (
+                    <>
+                        <Separator />
+                        <section id="additional-images">
+                            <h2 className="text-2xl font-semibold text-brand-dark-blue mb-3 flex items-center"><ImagesIcon className="h-6 w-6 mr-2 text-primary" />Additional Images</h2>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                                {listing.imageUrls.slice(1, 5).map((url, index) => (
+                                    <div key={index} className="aspect-video bg-muted rounded-lg overflow-hidden">
+                                        <Image src={url} alt={`Additional image ${index + 1}`} width={300} height={200} className="w-full h-full object-cover" data-ai-hint="business interior product" />
+                                    </div>
+                                ))}
+                            </div>
+                             {listing.imageUrls.length > 5 && <p className="text-sm text-muted-foreground mt-2">More images available in data room.</p>}
+                             {/* Slider component would replace this grid */}
+                        </section>
+                    </>
+                )}
+
+
                 <Separator />
                 <section id="verified-details" className={`p-6 rounded-lg ${canViewVerifiedDetails ? 'bg-primary/5 border-primary/20' : 'bg-muted/30 border-muted/50'}`}>
                     <h2 className="text-2xl font-semibold text-primary mb-4 flex items-center">
                       <ShieldCheck className="h-6 w-6 mr-2"/>
                       {canViewVerifiedDetails ? "Verified Seller Information & Documents" : "Verified Seller Information (Restricted Access)"}
                     </h2>
-                    
+
                     <div className="space-y-4">
                         <div>
                             <h3 className="font-semibold text-brand-dark-blue flex items-center gap-2 mb-1"><Building className="h-5 w-5"/>Company Details</h3>
@@ -184,6 +178,8 @@ export default async function ListingDetailPage({ params }: { params: { listingI
                                 <p className="text-sm"><span className="font-medium">Year Established:</span> {listing.yearEstablished || 'N/A'}</p>
                                 <p className="text-sm"><span className="font-medium">Full Business Address:</span> {listing.fullBusinessAddress || 'N/A'}</p>
                                 <p className="text-sm"><span className="font-medium">Number of Employees:</span> {listing.numberOfEmployees || 'N/A'}</p>
+                                <p className="text-sm"><span className="font-medium">Business Model:</span> {listing.businessModel || 'N/A'}</p>
+                                <p className="text-sm"><span className="font-medium">Technology Stack:</span> <span className="whitespace-pre-wrap">{listing.technologyStack || 'N/A'}</span></p>
                               </>
                             ) : (
                               <p className="text-sm text-muted-foreground italic">Visible to paid, verified buyers.</p>
@@ -207,7 +203,6 @@ export default async function ListingDetailPage({ params }: { params: { listingI
                               <>
                                 <p className="text-sm"><span className="font-medium">Specific Annual Revenue (TTM):</span> {listing.specificAnnualRevenueLastYear ? `$${listing.specificAnnualRevenueLastYear.toLocaleString()} USD` : 'N/A'}</p>
                                 <p className="text-sm"><span className="font-medium">Specific Net Profit (TTM):</span> {listing.specificNetProfitLastYear ? `$${listing.specificNetProfitLastYear.toLocaleString()} USD` : 'N/A'}</p>
-                                <p className="text-sm"><span className="font-medium">Financials Explanation:</span> {listing.financialsExplanation || 'N/A'}</p>
                               </>
                             ) : (
                               <p className="text-sm text-muted-foreground italic">Visible to paid, verified buyers.</p>
@@ -219,25 +214,19 @@ export default async function ListingDetailPage({ params }: { params: { listingI
                             <h3 className="font-semibold text-brand-dark-blue flex items-center gap-2 mb-1"><Users2 className="h-5 w-5"/>Seller & Deal Information</h3>
                              {canViewVerifiedDetails ? (
                               <>
-                                <p className="text-sm"><span className="font-medium">Detailed Reason for Selling:</span> {listing.detailedReasonForSelling || 'N/A'}</p>
-                                <p className="text-sm"><span className="font-medium">Seller Role & Time Commitment:</span> {listing.sellerRoleAndTimeCommitment || 'N/A'}</p>
-                                <p className="text-sm"><span className="font-medium">Post-Sale Transition Support:</span> {listing.postSaleTransitionSupport || 'N/A'}</p>
+                                <p className="text-sm"><span className="font-medium">Detailed Reason for Selling:</span> <span className="whitespace-pre-wrap">{listing.detailedReasonForSelling || 'N/A'}</span></p>
+                                <p className="text-sm"><span className="font-medium">Seller Role & Time Commitment:</span> <span className="whitespace-pre-wrap">{listing.sellerRoleAndTimeCommitment || 'N/A'}</span></p>
+                                <p className="text-sm"><span className="font-medium">Post-Sale Transition Support:</span> <span className="whitespace-pre-wrap">{listing.postSaleTransitionSupport || 'N/A'}</span></p>
                               </>
                             ) : (
                               <p className="text-sm text-muted-foreground italic">Visible to paid, verified buyers.</p>
                             )}
                         </div>
-                         <div><h3 className="font-semibold text-brand-dark-blue flex items-center gap-2 mb-1"><FileText className="h-5 w-5"/>Ownership & Legal</h3><DocumentLink href={listing.ownershipDetailsUrl || listing.ownershipDocumentsUrl} docType="ownership">Ownership Documents</DocumentLink></div>
-                         <div><h3 className="font-semibold text-brand-dark-blue flex items-center gap-2 mb-1"><RadioTower className="h-5 w-5"/>Operational Details</h3>
-                            {canViewVerifiedDetails ? (
-                                <>
-                                <p className="text-sm"><span className="font-medium">Business Model:</span> {listing.businessModel || 'N/A'}</p>
-                                <p className="text-sm"><span className="font-medium">Technology Stack:</span> {listing.technologyStack || 'N/A'}</p>
-                                </>
-                            ) : (
-                                <p className="text-sm text-muted-foreground italic">Visible to paid, verified buyers.</p>
-                            )}
-                         <DocumentLink href={listing.locationRealEstateInfoUrl} docType="location">Location/Real Estate Info</DocumentLink></div>
+                         <div>
+                            <h3 className="font-semibold text-brand-dark-blue flex items-center gap-2 mb-1"><FileText className="h-5 w-5"/>Other Documents</h3>
+                            <DocumentLink href={listing.ownershipDetailsUrl || listing.ownershipDocumentsUrl} docType="ownership">Ownership Documents</DocumentLink>
+                            <DocumentLink href={listing.locationRealEstateInfoUrl} docType="location">Location/Real Estate Info</DocumentLink>
+                         </div>
                          {canViewVerifiedDetails && listing.secureDataRoomLink && (
                             <div><h3 className="font-semibold text-brand-dark-blue flex items-center gap-2 mb-1"><LinkIcon className="h-5 w-5"/>Secure Data Room</h3><DocumentLink href={listing.secureDataRoomLink} docType="dataroom">Access Data Room</DocumentLink></div>
                         )}
@@ -281,7 +270,7 @@ export default async function ListingDetailPage({ params }: { params: { listingI
                         )}
                         <div className="flex items-center">
                             <CalendarDays className="h-5 w-5 mr-3 text-primary flex-shrink-0" />
-                            <div><p className="font-medium text-brand-dark-blue">Listed On</p><p className="text-muted-foreground">{new Date(listing.createdAt).toLocaleDateString()}</p></div>
+                            <div><p className="font-medium text-brand-dark-blue">First Listed</p><p className="text-muted-foreground">{new Date(listing.createdAt).toLocaleDateString()}</p></div>
                         </div>
                         {seller && (
                              <div className="flex items-center">
@@ -289,8 +278,8 @@ export default async function ListingDetailPage({ params }: { params: { listingI
                                 <div>
                                     <p className="font-medium text-brand-dark-blue">Seller Status</p>
                                     <p className="text-muted-foreground">
-                                      {listing.isSellerVerified ? 
-                                        (canViewVerifiedDetails ? 'Verified (Full Details Visible)' : 'Verified (Details Restricted)') 
+                                      {listing.isSellerVerified ?
+                                        (canViewVerifiedDetails ? 'Verified (Full Details Visible)' : 'Verified (Details Restricted)')
                                         : 'Anonymous'}
                                     </p>
                                 </div>

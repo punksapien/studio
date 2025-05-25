@@ -1,14 +1,64 @@
+
+'use client';
+
+import * as React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle } from "lucide-react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
+import { useTransition } from "react";
+
+const PasswordChangeSchema = z.object({
+  currentPassword: z.string().min(1, "Current password is required."),
+  newPassword: z.string().min(8, "New password must be at least 8 characters."),
+  confirmNewPassword: z.string(),
+}).refine(data => data.newPassword === data.confirmNewPassword, {
+  message: "New passwords do not match.",
+  path: ["confirmNewPassword"],
+});
+
 
 export default function SettingsPage() {
-  // Placeholder states for settings
-  // const [emailNotifications, setEmailNotifications] = useState(true);
-  // const [smsNotifications, setSmsNotifications] = useState(false);
+  const { toast } = useToast();
+  const [isPasswordPending, startPasswordTransition] = useTransition();
+
+  const passwordForm = useForm<z.infer<typeof PasswordChangeSchema>>({
+    resolver: zodResolver(PasswordChangeSchema),
+    defaultValues: {
+      currentPassword: "",
+      newPassword: "",
+      confirmNewPassword: "",
+    },
+  });
+
+  const onPasswordSubmit = (values: z.infer<typeof PasswordChangeSchema>) => {
+    startPasswordTransition(async () => {
+      console.log("Password change values:", values);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      if (values.currentPassword === "wrongpassword") { // Placeholder check
+        passwordForm.setError("currentPassword", { type: "manual", message: "Incorrect current password."});
+        toast({ variant: "destructive", title: "Error", description: "Failed to change password. Incorrect current password." });
+      } else {
+        toast({ title: "Password Changed", description: "Your password has been successfully updated." });
+        passwordForm.reset();
+      }
+    });
+  };
+
 
   return (
     <div className="space-y-8">
@@ -17,7 +67,7 @@ export default function SettingsPage() {
       <Card className="shadow-md">
         <CardHeader>
           <CardTitle>Notification Preferences</CardTitle>
-          <CardDescription>Manage how you receive notifications from BizMatch Asia.</CardDescription>
+          <CardDescription>Manage how you receive notifications from Nobridge.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex items-center justify-between p-4 border rounded-lg">
@@ -35,6 +85,57 @@ export default function SettingsPage() {
             <Switch id="sms-notifications" disabled aria-label="Toggle SMS notifications" />
           </div>
            <Button>Save Notification Preferences</Button>
+        </CardContent>
+      </Card>
+
+      <Separator/>
+
+      <Card className="shadow-md">
+        <CardHeader>
+          <CardTitle>Change Password</CardTitle>
+          <CardDescription>Update your account password.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Form {...passwordForm}>
+            <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-6">
+              <FormField
+                control={passwordForm.control}
+                name="currentPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <Label htmlFor="currentPassword">Current Password</Label>
+                    <FormControl><Input id="currentPassword" {...field} type="password" disabled={isPasswordPending} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={passwordForm.control}
+                name="newPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <Label htmlFor="newPassword">New Password</Label>
+                    <FormControl><Input id="newPassword" {...field} type="password" disabled={isPasswordPending} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={passwordForm.control}
+                name="confirmNewPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <Label htmlFor="confirmNewPassword">Confirm New Password</Label>
+                    <FormControl><Input id="confirmNewPassword" {...field} type="password" disabled={isPasswordPending} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Button type="submit" disabled={isPasswordPending}>
+                {isPasswordPending ? "Changing..." : "Change Password"}
+              </Button>
+            </form>
+          </Form>
         </CardContent>
       </Card>
 
@@ -69,5 +170,4 @@ export default function SettingsPage() {
           </CardContent>
       </Card>
     </div>
-  );
-}
+  

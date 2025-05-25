@@ -1,4 +1,3 @@
-
 'use client';
 import {
   Table,
@@ -22,19 +21,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { sampleListings, sampleUsers } from "@/lib/placeholder-data";
 import type { Listing, User } from "@/lib/types";
 import Link from "next/link";
-import { Eye, Edit3, Trash2, Filter, Search, ShieldCheck, AlertTriangle, DollarSign, CalendarDays } from "lucide-react"; // Added CalendarDays
-import { industries } from "@/lib/types";
-import { useEffect, useState } from "react"; // Added useEffect, useState
+import { Eye, Edit3, Trash2, Filter, Search, ShieldCheck, AlertTriangle, DollarSign, CalendarDays } from "lucide-react";
+import { industries } from "@/lib/types"; // Ensure industries is imported
+import React, { useEffect, useState } from "react";
 
 // Helper component for client-side date formatting
 function FormattedDate({ dateString }: { dateString: Date | string }) {
   const [formattedDate, setFormattedDate] = useState<string | null>(null);
 
   useEffect(() => {
-    setFormattedDate(new Date(dateString).toLocaleDateString());
+    if (dateString) {
+      setFormattedDate(new Date(dateString).toLocaleDateString());
+    } else {
+      setFormattedDate('N/A');
+    }
   }, [dateString]);
 
-  if (!formattedDate) {
+  if (dateString && !formattedDate) {
     return <span className="italic text-xs">Loading date...</span>;
   }
   return <>{formattedDate}</>;
@@ -42,7 +45,7 @@ function FormattedDate({ dateString }: { dateString: Date | string }) {
 
 
 export default function AdminListingsPage() {
-  const listings: Listing[] = sampleListings; // In a real app, this would be fetched
+  const listings: Listing[] = sampleListings;
 
   const getSellerDetails = (sellerId: string): User | undefined => {
     return sampleUsers.find(u => u.id === sellerId);
@@ -55,6 +58,7 @@ export default function AdminListingsPage() {
     if (status === 'active' && !isSellerVerified) return <Badge variant="outline">Active (Anonymous)</Badge>;
     if (status === 'active' && isSellerVerified) return <Badge className="bg-green-100 text-green-700 dark:bg-green-800 dark:text-green-200 border-green-300 dark:border-green-600"><ShieldCheck className="h-3 w-3 mr-1" /> Active (Verified Seller)</Badge>;
     if (status === 'inactive') return <Badge variant="destructive">Inactive</Badge>;
+    if (status === 'closed_deal') return <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-800 dark:text-purple-200 border-purple-300 dark:border-purple-600">Deal Closed</Badge>;
     if (status === 'rejected_by_admin') return <Badge variant="destructive" className="bg-red-700 text-white dark:bg-red-800 dark:text-red-200">Rejected</Badge>;
     return <Badge variant="outline" className="capitalize">{status.replace(/_/g, ' ')}</Badge>;
   };
@@ -106,6 +110,7 @@ export default function AdminListingsPage() {
                     <SelectItem value="verified_public">Verified (Public)</SelectItem>
                     <SelectItem value="verified_anonymous">Verified (Anonymous)</SelectItem>
                     <SelectItem value="rejected_by_admin">Rejected by Admin</SelectItem>
+                    <SelectItem value="closed_deal">Deal Closed</SelectItem>
                 </SelectContent>
                 </Select>
                 <Button variant="outline" className="w-full sm:w-auto"><Filter className="h-4 w-4 mr-2"/>Apply</Button>
@@ -120,8 +125,8 @@ export default function AdminListingsPage() {
                   <TableHead className="whitespace-nowrap">Seller Name</TableHead>
                   <TableHead className="whitespace-nowrap">Seller Paid</TableHead>
                   <TableHead>Industry</TableHead>
-                  <TableHead className="whitespace-nowrap">Asking Price</TableHead>
-                  <TableHead className="whitespace-nowrap">Listing Status Detail</TableHead>
+                  <TableHead className="whitespace-nowrap">Asking Price (USD)</TableHead>
+                  <TableHead className="whitespace-nowrap">Listing Status</TableHead>
                   <TableHead className="whitespace-nowrap flex items-center"><CalendarDays className="h-4 w-4 mr-1"/>Created On</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -141,7 +146,7 @@ export default function AdminListingsPage() {
                       {seller?.isPaid ? <Badge className="bg-green-500 text-white">Yes</Badge> : <Badge variant="secondary">No</Badge>}
                     </TableCell>
                     <TableCell>{listing.industry}</TableCell>
-                    <TableCell className="whitespace-nowrap">{listing.askingPrice ? `$${listing.askingPrice.toLocaleString()} USD` : 'N/A'}</TableCell>
+                    <TableCell className="whitespace-nowrap">{listing.askingPrice ? `$${listing.askingPrice.toLocaleString()}` : 'N/A'}</TableCell>
                     <TableCell>{getListingStatusBadge(listing.status, listing.isSellerVerified)}</TableCell>
                     <TableCell><FormattedDate dateString={listing.createdAt} /></TableCell>
                     <TableCell className="text-right whitespace-nowrap">
@@ -162,7 +167,6 @@ export default function AdminListingsPage() {
               </TableBody>
             </Table>
           </div>
-          {/* Placeholder for PaginationControls */}
           <div className="mt-6 text-center text-muted-foreground">
             Pagination (10 listings per page) - Total listings: {listings.length}
           </div>

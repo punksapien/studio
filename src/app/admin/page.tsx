@@ -1,7 +1,8 @@
 
+import * as React from "react";
 import { MetricCard } from "@/components/admin/metric-card";
 import { sampleAdminDashboardMetrics, sampleVerificationRequests, sampleReadyToEngageItems } from "@/lib/placeholder-data";
-import { Users, Briefcase, BellRing, LineChart, ListChecks, UserCheck, Building, DollarSign, CheckCircle, Banknote } from "lucide-react";
+import { Users, Briefcase, BellRing, LineChart, ListChecks, UserCheck, Building, DollarSign, CheckCircle, Banknote, ListX, Handshake } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -43,6 +44,18 @@ export default function AdminDashboardPage() {
           description={`${metrics.newListingsCreated24h} in last 24h`}
         />
          <MetricCard
+          title="Total Listings (All Statuses)"
+          value={metrics.totalListingsAllStatuses}
+          icon={Briefcase}
+          description={`${metrics.totalActiveListingsVerified} verified`}
+        />
+        <MetricCard
+          title="Deactivated/Closed Listings"
+          value={metrics.closedOrDeactivatedListings}
+          icon={ListX}
+          description="Inactive or deal finalized"
+        />
+         <MetricCard
           title="Total Platform Revenue (MTD)"
           value={`$${(metrics.totalRevenueMTD || 0).toLocaleString()}`}
           icon={Banknote}
@@ -81,23 +94,11 @@ export default function AdminDashboardPage() {
         <MetricCard
           title="Total Facilitated Connections (MTD)"
           value={metrics.successfulConnectionsMTD}
-          icon={CheckCircle}
+          icon={Handshake}
           description={`${metrics.activeSuccessfulConnections} active, ${metrics.closedSuccessfulConnections} closed`}
         />
-        <MetricCard
-          title="Active Successful Connections"
-          value={metrics.activeSuccessfulConnections}
-          icon={CheckCircle}
-          description="Connections facilitated, ongoing"
-        />
-        <MetricCard
-          title="Closed Successful Connections"
-          value={metrics.closedSuccessfulConnections}
-          icon={CheckCircle}
-          description="Connections marked as deal closed/archived"
-        />
       </div>
-      
+
       <div className="grid gap-6 lg:grid-cols-2">
          <Card className="shadow-md">
           <CardHeader>
@@ -131,7 +132,7 @@ export default function AdminDashboardPage() {
             </Table>
           </CardContent>
         </Card>
-        
+
         <Card className="shadow-md">
           <CardHeader>
             <div className="flex justify-between items-center">
@@ -208,9 +209,4 @@ export default function AdminDashboardPage() {
         <CardContent className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
             <Button variant="outline" asChild className="flex-col h-24"><Link href="/admin/users"><Users className="mb-1"/> User Management</Link></Button>
             <Button variant="outline" asChild className="flex-col h-24"><Link href="/admin/listings"><ListChecks className="mb-1"/> Listing Management</Link></Button>
-            <Button variant="outline" asChild className="flex-col h-24"><Link href="/admin/analytics"><LineChart className="mb-1"/> View Analytics</Link></Button>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
+            <Button variant="outline" asChild className="flex-col h-24"><Link href="/admin/analytics"><Line

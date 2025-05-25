@@ -1,52 +1,59 @@
 
 'use client';
 
+import * as React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Bell, Check, Mail, ShieldCheck } from "lucide-react";
+import { Bell, Check, Mail, ShieldCheck, Edit3, CheckCircle2, MessageSquare } from "lucide-react";
 import type { NotificationItem, User } from "@/lib/types";
 import { sampleBuyerNotifications, sampleUsers } from "@/lib/placeholder-data";
 import { Badge } from "@/components/ui/badge";
-import { useState, useEffect } from "react"; // Added useState and useEffect
+import { useState, useEffect } from "react";
 
 // Placeholder for current buyer ID
 const currentBuyerId = 'user6'; // Change to 'user2' to see different notifications
 const currentUser: User | undefined = sampleUsers.find(u => u.id === currentBuyerId && u.role === 'buyer');
 
-// Filter notifications for the current buyer
-const buyerNotifications: NotificationItem[] = sampleBuyerNotifications
-  .filter(notif => notif.userId === currentBuyerId)
-  .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()); // Newest first
 
-
-// New component to handle client-side date formatting
 function FormattedTimestamp({ timestamp }: { timestamp: Date | string }) {
   const [formattedDate, setFormattedDate] = useState<string | null>(null);
 
   useEffect(() => {
-    setFormattedDate(new Date(timestamp).toLocaleString());
+    if (timestamp) {
+      setFormattedDate(new Date(timestamp).toLocaleString());
+    } else {
+      setFormattedDate('N/A');
+    }
   }, [timestamp]);
 
-  if (!formattedDate) {
-    // You can return a placeholder or null during server render and initial client render
-    return <span className="italic">Loading date...</span>; 
+  if (timestamp && !formattedDate) {
+    return <span className="italic">Loading date...</span>;
   }
-
   return <>{formattedDate}</>;
 }
 
 
 export default function NotificationsPage() {
-  
-  // Placeholder for marking as read
+
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+
+  useEffect(() => {
+    if (currentUser) {
+      const buyerNots = sampleBuyerNotifications
+        .filter(notif => notif.userId === currentUser.id)
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      setNotifications(buyerNots);
+    }
+  }, []);
+
+
   const handleMarkAsRead = (notificationId: string) => {
     console.log("Marking notification as read:", notificationId);
-    // In a real app, update the notification's isRead status in backend/state
-    // For demo, we could update a local state if needed, but for now, it's just a console log.
+    setNotifications(prev => prev.map(n => n.id === notificationId ? {...n, isRead: true} : n));
   };
 
-  if (!currentUser) {
+  if (typeof window !== 'undefined' && !currentUser) {
      return (
       <div className="space-y-8 text-center">
         <h1 className="text-3xl font-bold tracking-tight">Access Denied</h1>
@@ -56,6 +63,21 @@ export default function NotificationsPage() {
     );
   }
 
+  if (typeof window === 'undefined' && !currentUser) {
+    return <div className="space-y-8 text-center"><p>Loading notifications...</p></div>
+  }
+
+  const getIconForNotificationType = (type: NotificationItem['type']) => {
+    switch(type) {
+      case 'inquiry': return <MessageSquare className="mr-2 h-4 w-4"/>;
+      case 'verification': return <ShieldCheck className="mr-2 h-4 w-4"/>;
+      case 'engagement': return <CheckCircle2 className="mr-2 h-4 w-4"/>;
+      case 'listing_update': return <Edit3 className="mr-2 h-4 w-4"/>;
+      case 'system':
+      default: return <Bell className="mr-2 h-4 w-4"/>;
+    }
+  }
+
   return (
     <div className="space-y-8">
       <h1 className="text-3xl font-bold tracking-tight">My Notifications</h1>
@@ -63,7 +85,7 @@ export default function NotificationsPage() {
         Stay updated with important alerts and messages related to your activity.
       </p>
 
-      {buyerNotifications.length === 0 ? (
+      {notifications.length === 0 ? (
         <Card className="shadow-md text-center py-12">
           <CardContent>
             <Bell className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
@@ -77,12 +99,12 @@ export default function NotificationsPage() {
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle>All Notifications</CardTitle>
-            <CardDescription>You have {buyerNotifications.filter(n => !n.isRead).length} unread notifications.</CardDescription>
+            <CardDescription>You have {notifications.filter(n => !n.isRead).length} unread notifications.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {buyerNotifications.map((notification) => (
-              <div 
-                key={notification.id} 
+            {notifications.map((notification) => (
+              <div
+                key={notification.id}
                 className={`p-4 border rounded-lg flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 ${notification.isRead ? 'bg-card hover:bg-muted/30' : 'bg-primary/10 hover:bg-primary/20 border-primary/50'}`}
               >
                 <div className="flex-grow">
@@ -97,9 +119,16 @@ export default function NotificationsPage() {
                   {notification.link && (
                     <Button variant="outline" size="sm" asChild>
                       <Link href={notification.link}>
-                        {notification.link.includes('verification') ? <ShieldCheck className="mr-2 h-4 w-4"/> : <Mail className="mr-2 h-4 w-4"/>}
+                        {getIconForNotificationType(notification.type)}
                         View Details
                       </Link>
+                    </Button>
+                  )}
+                   {notification.type === 'verification' && notification.message.includes("your profile needs to be verified") && (
+                    <Button variant="default" size="sm" asChild className="bg-amber-500 hover:bg-amber-600 text-white">
+                        <Link href="/dashboard/verification">
+                            <ShieldCheck className="mr-2 h-4 w-4"/> Verify Your Profile Now
+                        </Link>
                     </Button>
                   )}
                   {!notification.isRead && (

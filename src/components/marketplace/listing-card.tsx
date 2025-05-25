@@ -12,7 +12,7 @@ interface ListingCardProps {
 }
 
 export function ListingCard({ listing }: ListingCardProps) {
-  const truncatedDescription = listing.anonymousBusinessDescription.length > 100 
+  const truncatedDescription = listing.anonymousBusinessDescription.length > 100
     ? listing.anonymousBusinessDescription.substring(0, 100) + "..."
     : listing.anonymousBusinessDescription;
 
@@ -20,12 +20,12 @@ export function ListingCard({ listing }: ListingCardProps) {
     <Card className="flex flex-col h-full overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 rounded-lg bg-brand-white">
       <CardHeader className="p-0 relative">
         <Image
-          src={listing.imageUrl || "https://placehold.co/400x250.png"}
+          src={listing.imageUrls?.[0] || "https://placehold.co/400x250.png"}
           alt={listing.listingTitleAnonymous}
           width={400}
           height={250}
           className="w-full h-48 object-cover"
-          data-ai-hint={listing.imageUrl ? "business storefront building" : "generic business"}
+          data-ai-hint={listing.imageUrls?.[0] ? "business storefront building" : "generic business"}
         />
         {listing.isSellerVerified && (
           <Badge variant="outline" className="absolute top-2 right-2 bg-green-100 border-green-500 text-green-700 dark:bg-green-700 dark:text-green-200 dark:border-green-500">
@@ -64,8 +64,9 @@ export function ListingCard({ listing }: ListingCardProps) {
       </CardContent>
       <CardFooter className="p-4 border-t border-brand-light-gray/80">
         <div className="flex justify-between items-center w-full">
+          {/* "Listed Date" removed */}
           <span className="text-xs text-muted-foreground">
-            Listed: {new Date(listing.createdAt).toLocaleDateString()}
+            {listing.inquiryCount || 0} Inquiries
           </span>
           <Button asChild size="sm" className="bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90">
             <Link href={`/listings/${listing.id}`}>
@@ -75,5 +76,4 @@ export function ListingCard({ listing }: ListingCardProps) {
         </div>
       </CardFooter>
     </Card>
-  );
-}
+  
