@@ -1,5 +1,5 @@
 
-import * as React from "react"; // Ensure React is imported for JSX
+import * as React from "react";
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ArrowRight, CheckCircle, Shield, Zap, Briefcase, Users, MapPin, DollarSign, ShoppingCart, FileText, Info, Phone, Newspaper, Home, UserCircle, LogIn, UserPlus, Search as SearchIcon, BarChart3, HandCoins, Star } from 'lucide-react';
@@ -34,12 +34,12 @@ const PlaceholderLogo = ({ text = "Logo" }: { text?: string }) => (
 );
 
 const previewListings = [
-  { id: '1', title: 'High-Growth SaaS Platform in FinTech', industry: 'Technology', location: 'Singapore', price: 1750000, verified: true, imageUrls: ['https://placehold.co/400x250.png'], aiHint: 'software interface dashboard' },
-  { id: '2', title: 'Luxury Boutique Hotel Chain', industry: 'Hospitality', location: 'Bali, Indonesia', price: 7500000, verified: true, imageUrls: ['https://placehold.co/400x250.png'], aiHint: 'hotel resort luxury' },
-  { id: '3', title: 'Sustainable Agriculture Enterprise', industry: 'Agriculture', location: 'Vietnam', price: 750000, verified: false, imageUrls: ['https://placehold.co/400x250.png'], aiHint: 'farm agriculture sustainable' },
-  { id: '4', title: 'Established Marketing Agency (SG)', industry: 'Services - Marketing', location: 'Singapore', price: 450000, verified: true, imageUrls: ['https://placehold.co/400x250.png'], aiHint: 'office marketing team' },
-  { id: '5', title: 'Profitable E-commerce Brand (Regional)', industry: 'E-commerce', location: 'Southeast Asia', price: 1200000, verified: true, imageUrls: ['https://placehold.co/400x250.png'], aiHint: 'online store products' },
-  { id: '6', title: 'Niche B2B Software Solution', industry: 'Software', location: 'Malaysia', price: 300000, verified: false, imageUrls: ['https://placehold.co/400x250.png'], aiHint: 'code software development' },
+  { id: '1', title: 'High-Growth SaaS Platform in FinTech', industry: 'Technology', location: 'Singapore', price: 1750000, isSellerVerified: true, imageUrls: ['https://placehold.co/400x250.png'], aiHint: 'software interface dashboard' },
+  { id: '2', title: 'Luxury Boutique Hotel Chain', industry: 'Hospitality', location: 'Bali, Indonesia', price: 7500000, isSellerVerified: true, imageUrls: ['https://placehold.co/400x250.png'], aiHint: 'hotel resort luxury' },
+  { id: '3', title: 'Sustainable Agriculture Enterprise', industry: 'Agriculture', location: 'Vietnam', price: 750000, isSellerVerified: false, imageUrls: ['https://placehold.co/400x250.png'], aiHint: 'farm agriculture sustainable' },
+  { id: '4', title: 'Established Marketing Agency (SG)', industry: 'Services - Marketing', location: 'Singapore', price: 450000, isSellerVerified: true, imageUrls: ['https://placehold.co/400x250.png'], aiHint: 'office marketing team' },
+  { id: '5', title: 'Profitable E-commerce Brand (Regional)', industry: 'E-commerce', location: 'Southeast Asia', price: 1200000, isSellerVerified: true, imageUrls: ['https://placehold.co/400x250.png'], aiHint: 'online store products' },
+  { id: '6', title: 'Niche B2B Software Solution', industry: 'Software', location: 'Malaysia', price: 300000, isSellerVerified: false, imageUrls: ['https://placehold.co/400x250.png'], aiHint: 'code software development' },
 ];
 
 const testimonials = [
@@ -60,14 +60,14 @@ export default function HomePage() {
     <>
       {/* Hero Section */}
       <section className="w-full bg-brand-dark-blue text-brand-white">
-        <div className="container mx-auto flex flex-col items-center justify-center text-center min-h-[calc(100vh-5rem)] px-4 py-24 md:py-32 lg:py-40">
+        <div className="container mx-auto flex flex-col items-center justify-center text-center min-h-[calc(80vh-5rem)] px-4 py-20 md:py-24 lg:py-32">
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight !leading-tight mb-6">
             Find Your Next Business Venture with Nobridge
           </h1>
-          <p className="mt-4 text-lg md:text-xl lg:text-2xl text-brand-light-gray max-w-3xl mx-auto mb-8">
+          <p className="text-lg md:text-xl lg:text-2xl text-brand-light-gray max-w-3xl mx-auto mb-10">
             Nobridge is the premier marketplace connecting SME owners with motivated investors and buyers. Discover, inquire, and engage with verified opportunities.
           </p>
-          <div className="mt-4 mb-10 flex flex-col sm:flex-row items-center justify-center space-y-3 sm:space-y-0 sm:space-x-6 text-sm text-brand-light-gray">
+          <div className="mb-10 flex flex-col sm:flex-row items-center justify-center space-y-3 sm:space-y-0 sm:space-x-6 text-sm text-brand-light-gray">
             <div className="flex items-center">
               <Shield className="h-5 w-5 mr-2 text-brand-light-gray" /> Verified Network: Connect with trusted parties.
             </div>
@@ -82,7 +82,7 @@ export default function HomePage() {
           </div>
           <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
             <Button size="lg" asChild className="bg-brand-white text-brand-dark-blue hover:bg-brand-light-gray/90 font-semibold py-3 px-8 rounded-md text-base">
-              <Link href="/auth/register/seller">List Your Business <ArrowRight className="ml-2 h-5 w-5" /></Link>
+              <Link href="/seller-dashboard/listings/create">List Your Business <ArrowRight className="ml-2 h-5 w-5" /></Link>
             </Button>
             <Button size="lg" variant="outline" asChild className="border-brand-white text-brand-white hover:bg-brand-white/10 hover:text-brand-white font-semibold py-3 px-8 rounded-md text-base">
               <Link href="/marketplace">Browse Businesses</Link>
@@ -99,19 +99,19 @@ export default function HomePage() {
             <p className="text-muted-foreground mt-3 text-lg">A Glimpse into Our Curated Marketplace</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {previewListings.map((listing, i) => (
+            {previewListings.slice(0, 3).map((listing, i) => (
               <Card key={listing.id} className="bg-brand-white shadow-xl hover:shadow-2xl transition-shadow duration-300 rounded-lg flex flex-col overflow-hidden">
                 <CardHeader className="p-0 relative">
-                  <PlaceholderImage className="w-full" width={400} height={250} text={`Listing Image ${i+1}`} aiHint={listing.aiHint || "business operations"} />
-                   {listing.verified && (
-                      <Badge variant="outline" className="absolute top-2 right-2 text-xs border-green-500 text-green-600 bg-green-100 dark:bg-green-700 dark:text-green-200 dark:border-green-500">
+                  <PlaceholderImage className="w-full" width={400} height={220} text={`Listing Image ${i+1}`} aiHint={listing.aiHint || "business operations"} />
+                   {listing.isSellerVerified && (
+                      <Badge variant="outline" className="absolute top-3 right-3 text-xs border-green-600 text-green-700 bg-green-100 dark:bg-green-700/20 dark:text-green-300 dark:border-green-500/50">
                         <ShieldCheck className="h-3 w-3 mr-1" /> Verified
                       </Badge>
                     )}
                 </CardHeader>
                 <CardContent className="p-6 flex-grow">
                   <div className="flex justify-between items-start mb-2">
-                    <Badge variant="secondary" className="bg-brand-dark-blue/10 text-brand-dark-blue text-xs">{listing.industry}</Badge>
+                    <Badge variant="secondary" className="bg-brand-dark-blue/5 text-brand-dark-blue text-xs">{listing.industry}</Badge>
                   </div>
                   <CardTitle className="text-xl font-semibold text-brand-dark-blue mb-2 leading-tight hover:text-brand-sky-blue transition-colors">
                     <Link href={`/listings/${listing.id}`}>{listing.title}</Link>
@@ -150,13 +150,13 @@ export default function HomePage() {
                 <Briefcase className="h-8 w-8 text-brand-dark-blue" />
               </div>
               <h3 className="text-2xl font-semibold text-brand-dark-blue mb-3">List Your Business with Confidence</h3>
-              <p className="text-muted-foreground mb-4">
-                Nobridge provides a secure and efficient platform to connect with verified buyers, guiding you through every step.
+              <p className="text-muted-foreground mb-4 leading-relaxed">
+                Nobridge provides a secure and efficient platform to connect with verified buyers across Asia, guiding you through every step.
               </p>
               <ul className="space-y-2 text-muted-foreground mb-6">
-                <li className="flex items-center"><CheckCircle className="h-5 w-5 mr-2 text-brand-dark-blue" /> Access to Verified Buyers</li>
-                <li className="flex items-center"><CheckCircle className="h-5 w-5 mr-2 text-brand-dark-blue" /> Step-by-Step Listing Guidance</li>
-                <li className="flex items-center"><CheckCircle className="h-5 w-5 mr-2 text-brand-dark-blue" /> Secure Inquiry Management</li>
+                <li className="flex items-center"><CheckCircle className="h-5 w-5 mr-2 text-brand-sky-blue" /> Access to Verified Buyers</li>
+                <li className="flex items-center"><CheckCircle className="h-5 w-5 mr-2 text-brand-sky-blue" /> Step-by-Step Listing Guidance</li>
+                <li className="flex items-center"><CheckCircle className="h-5 w-5 mr-2 text-brand-sky-blue" /> Secure Inquiry Management</li>
               </ul>
               <Button asChild className="bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90">
                 <Link href="/how-selling-works">Learn More About Selling</Link>
@@ -167,13 +167,13 @@ export default function HomePage() {
                 <SearchIcon className="h-8 w-8 text-brand-dark-blue" />
               </div>
               <h3 className="text-2xl font-semibold text-brand-dark-blue mb-3">Discover Your Next Investment Opportunity</h3>
-              <p className="text-muted-foreground mb-4">
+              <p className="text-muted-foreground mb-4 leading-relaxed">
                 Explore a curated marketplace of businesses for sale. Get access to detailed information on verified businesses and engage directly with sellers.
               </p>
               <ul className="space-y-2 text-muted-foreground mb-6">
-                <li className="flex items-center"><CheckCircle className="h-5 w-5 mr-2 text-brand-dark-blue" /> Vetted Business Listings</li>
-                <li className="flex items-center"><CheckCircle className="h-5 w-5 mr-2 text-brand-dark-blue" /> Advanced Search & Filters</li>
-                <li className="flex items-center"><CheckCircle className="h-5 w-5 mr-2 text-brand-dark-blue" /> Direct Seller Engagement (Post-Verification)</li>
+                <li className="flex items-center"><CheckCircle className="h-5 w-5 mr-2 text-brand-sky-blue" /> Vetted Business Listings</li>
+                <li className="flex items-center"><CheckCircle className="h-5 w-5 mr-2 text-brand-sky-blue" /> Advanced Search & Filters</li>
+                <li className="flex items-center"><CheckCircle className="h-5 w-5 mr-2 text-brand-sky-blue" /> Direct Seller Engagement (Post-Verification)</li>
               </ul>
               <Button asChild className="bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90">
                 <Link href="/how-buying-works">Learn More About Buying</Link>
@@ -289,5 +289,6 @@ export default function HomePage() {
     </>
   );
 }
+
 
     
