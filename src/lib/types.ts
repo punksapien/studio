@@ -47,6 +47,9 @@ export const asianCountries = ["Singapore", "Malaysia", "Indonesia", "Thailand",
 export type EmployeeCountRange = "Sole Operator" | "1-5" | "6-10" | "11-25" | "26-50" | "50+";
 export const employeeCountRanges: EmployeeCountRange[] = ["Sole Operator", "1-5", "6-10", "11-25", "26-50", "50+"];
 
+export const placeholderKeywords: string[] = ["SaaS", "E-commerce", "Retail", "Service Business", "High Growth", "Profitable", "Fintech", "Logistics", "Healthcare Tech"];
+
+
 export interface User {
   id: string;
   fullName: string;
@@ -71,7 +74,7 @@ export interface User {
   investmentFocusDescription?: string;
   preferredInvestmentSize?: PreferredInvestmentSize;
   keyIndustriesOfInterest?: string;
-} // Added missing closing brace
+}
 
 export type ListingStatus = 'active' | 'inactive' | 'pending_verification' | 'verified_anonymous' | 'verified_public' | 'rejected_by_admin' | 'closed_deal';
 
@@ -84,53 +87,57 @@ export interface Listing {
   locationCityRegionGeneral: string;
   anonymousBusinessDescription: string;
   keyStrengthsAnonymous: string[];
+  
+  // Detailed Info (for verified view / admin)
   businessModel?: string;
   yearEstablished?: number;
   registeredBusinessName?: string;
+  actualCompanyName?: string;
+  fullBusinessAddress?: string;
   businessWebsiteUrl?: string;
-  socialMediaLinks?: string;
+  socialMediaLinks?: string; // Could be newline separated string
   numberOfEmployees?: EmployeeCountRange;
   technologyStack?: string;
 
-  annualRevenueRange: string;
-  netProfitMarginRange?: string;
-  askingPrice?: number; // Changed from askingPriceRange: string
-  adjustedCashFlow?: number;
-  adjustedCashFlowExplanation?: string;
+  // Financials
+  annualRevenueRange: string; // Anonymous range
+  netProfitMarginRange?: string; // Anonymous range
+  askingPrice?: number; // Fixed asking price
+  specificAnnualRevenueLastYear?: number; // TTM Specific
+  specificNetProfitLastYear?: number; // TTM Specific
+  adjustedCashFlow?: number; // New field
+  adjustedCashFlowExplanation?: string; // New field
 
+  // Deal & Seller Info
   dealStructureLookingFor?: DealStructure[];
   reasonForSellingAnonymous?: string;
   detailedReasonForSelling?: string;
   sellerRoleAndTimeCommitment?: string;
   postSaleTransitionSupport?: string;
 
-  // growthPotentialNarrative?: string; // Removed as per later instruction
-  specificGrowthOpportunities?: string; // For newline separated bullet points
+  // Growth
+  specificGrowthOpportunities?: string; // Newline separated bullet points
 
+  // Status & Timestamps
   status: ListingStatus;
-  isSellerVerified: boolean;
+  isSellerVerified: boolean; // Reflects if the seller (and by extension, this listing if verified) is trustworthy
 
-  actualCompanyName?: string;
-  fullBusinessAddress?: string;
+  // Media & Documents
+  imageUrls?: string[]; // Array of image URLs
+  financialDocumentsUrl?: string; // Placeholder for URL from Supabase Storage
+  keyMetricsReportUrl?: string; // Placeholder for URL
+  ownershipDocumentsUrl?: string; // Placeholder for URL
+  financialSnapshotUrl?: string; // New placeholder
+  ownershipDetailsUrl?: string; // New placeholder
+  locationRealEstateInfoUrl?: string; // New placeholder
+  webPresenceInfoUrl?: string; // New placeholder
+  secureDataRoomLink?: string; // Optional link to external data room
 
-  specificAnnualRevenueLastYear?: number;
-  specificNetProfitLastYear?: number;
-  // financialsExplanation?: string; // Removed
-
-  imageUrls?: string[]; // Changed from imageUrl
-  financialDocumentsUrl?: string;
-  keyMetricsReportUrl?: string;
-  ownershipDocumentsUrl?: string;
-
-  secureDataRoomLink?: string;
   createdAt: Date;
   updatedAt: Date;
-  financialSnapshotUrl?: string;
-  ownershipDetailsUrl?: string;
-  locationRealEstateInfoUrl?: string;
-  webPresenceInfoUrl?: string;
   inquiryCount?: number;
 }
+
 
 export type InquiryStatusBuyerPerspective =
   | 'Inquiry Sent'
@@ -189,18 +196,18 @@ export interface AdminDashboardMetrics {
   totalFreeBuyers: number;
   totalActiveListingsAnonymous: number;
   totalActiveListingsVerified: number;
-  totalListingsAllStatuses: number;
-  closedOrDeactivatedListings: number;
+  totalListingsAllStatuses: number; // New
+  closedOrDeactivatedListings: number; // New
   buyerVerificationQueueCount: number;
   sellerVerificationQueueCount: number;
   readyToEngageQueueCount: number;
   successfulConnectionsMTD: number;
-  activeSuccessfulConnections: number; // New
-  closedSuccessfulConnections: number; // New (or dealsClosedMTD)
+  activeSuccessfulConnections: number;
+  closedSuccessfulConnections: number;
   dealsClosedMTD?: number;
   totalRevenueMTD?: number;
-  revenueFromBuyers: number; // New
-  revenueFromSellers: number; // New
+  revenueFromBuyers: number;
+  revenueFromSellers: number;
 }
 
 
@@ -243,5 +250,7 @@ export interface NotificationItem {
   link?: string;
   isRead: boolean;
   userId: string;
-  type: NotificationType; // Added missing type property
+  type: NotificationType;
 }
+
+    

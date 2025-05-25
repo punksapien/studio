@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from "react";
@@ -53,11 +54,10 @@ const ListingSchema = z.object({
   annualRevenueRange: z.string().min(1, "Annual revenue range is required."),
   netProfitMarginRange: z.string().optional(),
   askingPrice: z.coerce.number({invalid_type_error: "Asking price must be a number."}).positive({message: "Asking price must be positive."}).optional(),
-  adjustedCashFlow: z.coerce.number().optional(),
+  adjustedCashFlow: z.coerce.number({invalid_type_error: "Adjusted cash flow must be a number."}).optional(),
   adjustedCashFlowExplanation: z.string().optional(),
-  specificAnnualRevenueLastYear: z.coerce.number().optional(),
-  specificNetProfitLastYear: z.coerce.number().optional(),
-  // financialsExplanation: z.string().optional(), // Removed
+  specificAnnualRevenueLastYear: z.coerce.number({invalid_type_error: "Specific annual revenue must be a number."}).optional(),
+  specificNetProfitLastYear: z.coerce.number({invalid_type_error: "Specific net profit must be a number."}).optional(),
 
   dealStructureLookingFor: z.array(z.string()).optional(),
   reasonForSellingAnonymous: z.string().max(500, "Reason too long (max 500 chars).").optional(),
@@ -65,10 +65,8 @@ const ListingSchema = z.object({
   sellerRoleAndTimeCommitment: z.string().optional(),
   postSaleTransitionSupport: z.string().optional(),
 
-  // growthPotentialNarrative: z.string().optional(), // Removed
-  specificGrowthOpportunities: z.string().optional(),
+  specificGrowthOpportunities: z.string().optional(), // Textarea for bullet points
 
-  // Placeholder for image URLs - Zod schema for an array of optional URLs
   imageUrl1: z.string().url({ message: "Invalid URL" }).optional().or(z.literal('')),
   imageUrl2: z.string().url({ message: "Invalid URL" }).optional().or(z.literal('')),
   imageUrl3: z.string().url({ message: "Invalid URL" }).optional().or(z.literal('')),
@@ -106,13 +104,11 @@ export default function CreateSellerListingPage() {
       adjustedCashFlowExplanation: "",
       specificAnnualRevenueLastYear: undefined,
       specificNetProfitLastYear: undefined,
-      // financialsExplanation: "", // Removed
       dealStructureLookingFor: [],
       reasonForSellingAnonymous: "",
       detailedReasonForSelling: "",
       sellerRoleAndTimeCommitment: "",
       postSaleTransitionSupport: "",
-      // growthPotentialNarrative: "", // Removed
       specificGrowthOpportunities: "",
       imageUrl1: "",
       imageUrl2: "",
@@ -137,7 +133,7 @@ export default function CreateSellerListingPage() {
       form.setValue("keyStrengthsAnonymous", newFields);
     }
   };
-
+  
   const handleStrengthChange = (index: number, value: string) => {
     const newFields = [...keyStrengthsFields];
     newFields[index] = value;
@@ -151,9 +147,9 @@ export default function CreateSellerListingPage() {
     const cleanedValues = {
       ...values,
       keyStrengthsAnonymous: values.keyStrengthsAnonymous.filter(strength => strength && strength.trim() !== ""),
-      imageUrls: imageUrls, // Add the collected URLs
+      imageUrls: imageUrls,
     };
-    // Remove individual imageUrl fields from submission object if not needed separately
+    // Remove individual imageUrl fields from submission object
     delete (cleanedValues as any).imageUrl1;
     delete (cleanedValues as any).imageUrl2;
     delete (cleanedValues as any).imageUrl3;
@@ -205,7 +201,7 @@ export default function CreateSellerListingPage() {
                 />
                 <FormField control={form.control} name="locationCountry" render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Location (Country)</FormLabel>
+                      <FormLabel>Location (Country)</Label>
                       <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isPending}>
                         <FormControl><SelectTrigger><SelectValue placeholder="Select country" /></SelectTrigger></FormControl>
                         <SelectContent>{asianCountries.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
@@ -235,9 +231,9 @@ export default function CreateSellerListingPage() {
             <CardContent className="space-y-6">
               <FormField control={form.control} name="anonymousBusinessDescription" render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Anonymous Business Description</FormLabel>
+                    <FormLabel>Business Description</FormLabel>
                     <FormControl><Textarea {...field} rows={6} placeholder="Describe your business, products/services, market position, and growth potential without revealing identifying details." disabled={isPending} /></FormControl>
-                    <FormDescription>Max 2000 characters. Be descriptive but maintain anonymity.</FormDescription>
+                    <FormDescription>Max 2000 characters.</FormMessage>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -247,7 +243,7 @@ export default function CreateSellerListingPage() {
                 name="keyStrengthsAnonymous"
                 render={() => (
                   <FormItem>
-                    <FormLabel>Key Strengths (Anonymous)</FormLabel>
+                    <FormLabel>Key Strengths</FormLabel>
                     <FormDescription>List 1-5 key strengths of your business.</FormDescription>
                     {keyStrengthsFields.map((strength, index) => (
                        <div key={index} className="flex items-center gap-2">
@@ -331,25 +327,9 @@ export default function CreateSellerListingPage() {
 
           {/* Section: Business Images */}
           <Card className="shadow-md bg-brand-white">
-            <CardHeader>
-              <CardTitle className="text-brand-dark-blue flex items-center gap-2"><ImagePlus className="h-5 w-5"/>Business Images</CardTitle>
-              <CardDescription>Provide up to 5 image URLs for your listing (e.g., logo, storefront, product shots). These will be shown to buyers.</CardDescription>
-            </CardHeader>
+            <CardHeader><CardTitle className="text-brand-dark-blue flex items-center gap-2"><ImagePlus className="h-5 w-5"/>Business Images</CardTitle><CardDescription>Provide up to 5 image URLs for your listing (e.g., logo, storefront, product shots). These will be shown to buyers.</CardDescription></CardHeader>
             <CardContent className="space-y-4">
-              {[1, 2, 3, 4, 5].map(i => (
-                <FormField
-                  key={`imageUrl${i}`}
-                  control={form.control}
-                  name={`imageUrl${i}` as `imageUrl1`} // Type assertion
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Image URL {i}</FormLabel>
-                      <FormControl><Input {...field} placeholder="https://example.com/image.jpg" disabled={isPending} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              ))}
+              {[1, 2, 3, 4, 5].map(i => (<FormField key={`imageUrl${i}`} control={form.control} name={`imageUrl${i}` as `imageUrl1`} render={({ field }) => (<FormItem><FormLabel>Image URL {i}</FormLabel><FormControl><Input {...field} value={field.value || ""} placeholder="https://example.com/image.jpg" disabled={isPending} /></FormControl><FormMessage /></FormItem>)}/>))}
             </CardContent>
           </Card>
 
@@ -383,9 +363,9 @@ export default function CreateSellerListingPage() {
                 </div>
                  <FormField control={form.control} name="askingPrice" render={({ field }) => (
                     <FormItem>
-                        <FormLabel className="flex items-center"><DollarSign className="h-4 w-4 mr-1 text-muted-foreground"/>Asking Price (USD - Fixed Amount)</FormLabel>
-                        <FormControl><Input type="number" {...field} value={field.value === undefined ? '' : field.value} onChange={e => field.onChange(e.target.value === '' ? undefined : parseInt(e.target.value, 10))} placeholder="e.g., 750000" disabled={isPending} /></FormControl>
-                        <FormDescription>Enter a specific asking price. This will be shown to verified/paid buyers.</FormDescription>
+                        <FormLabel className="flex items-center"><DollarSign className="h-4 w-4 mr-1 text-muted-foreground"/>Asking Price (USD)</FormLabel>
+                        <FormControl><Input type="number" {...field} value={field.value === undefined ? '' : field.value} onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} placeholder="e.g., 750000" disabled={isPending} /></FormControl>
+                        <FormDescription>Enter the specific asking price for your business.</FormDescription>
                         <FormMessage />
                     </FormItem>
                 )}/>
@@ -394,21 +374,21 @@ export default function CreateSellerListingPage() {
                  <FormField control={form.control} name="specificAnnualRevenueLastYear" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Actual Annual Revenue (TTM, in USD)</FormLabel>
-                      <FormControl><Input type="number" {...field} value={field.value === undefined ? '' : field.value} onChange={e => field.onChange(e.target.value === '' ? undefined : parseInt(e.target.value, 10))} placeholder="e.g., 750000" disabled={isPending} /></FormControl>
+                      <FormControl><Input type="number" {...field} value={field.value === undefined ? '' : field.value} onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} placeholder="e.g., 750000" disabled={isPending} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
                   <FormField control={form.control} name="specificNetProfitLastYear" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Actual Net Profit (TTM, in USD)</FormLabel>
-                      <FormControl><Input type="number" {...field} value={field.value === undefined ? '' : field.value} onChange={e => field.onChange(e.target.value === '' ? undefined : parseInt(e.target.value, 10))} placeholder="e.g., 180000" disabled={isPending} /></FormControl>
+                      <FormControl><Input type="number" {...field} value={field.value === undefined ? '' : field.value} onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} placeholder="e.g., 180000" disabled={isPending} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
                   <FormField control={form.control} name="adjustedCashFlow" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Adjusted Cash Flow / SDE (TTM, in USD)</FormLabel>
-                      <FormControl><Input type="number" {...field} value={field.value === undefined ? '' : field.value} onChange={e => field.onChange(e.target.value === '' ? undefined : parseInt(e.target.value, 10))} placeholder="e.g., 220000" disabled={isPending} /></FormControl>
+                      <FormControl><Input type="number" {...field} value={field.value === undefined ? '' : field.value} onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} placeholder="e.g., 220000" disabled={isPending} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
@@ -446,7 +426,7 @@ export default function CreateSellerListingPage() {
                     name="dealStructureLookingFor"
                     render={() => (
                         <FormItem>
-                        <FormLabel>Looking for (Deal Structure - Anonymous):</FormLabel>
+                        <FormLabel>Looking for (Deal Structure):</FormLabel>
                         <FormDescription>Select all that apply.</FormDescription>
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 pt-2">
                         {dealStructures.map((item) => (
@@ -485,9 +465,9 @@ export default function CreateSellerListingPage() {
                 />
                 <FormField control={form.control} name="reasonForSellingAnonymous" render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Reason for Selling (Anonymous Summary, Optional)</FormLabel>
+                    <FormLabel>Reason for Selling (Public Summary, Optional)</FormLabel>
                     <FormControl><Textarea {...field} value={field.value || ""} rows={3} placeholder="Briefly state your reason for selling (e.g., Retirement, Other ventures)." disabled={isPending} /></FormControl>
-                    <FormDescription>Max 500 characters.</FormDescription>
+                    <FormDescription>Max 500 characters. This may be shown publicly.</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -528,14 +508,13 @@ export default function CreateSellerListingPage() {
 
           {/* Section 5: Growth & Future Potential */}
           <Card className="shadow-md bg-brand-white">
-            <CardHeader>
-                <CardTitle className="text-brand-dark-blue">Section 5: Growth &amp; Future Potential</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle className="text-brand-dark-blue">Section 5: Growth &amp; Future Potential</CardTitle></CardHeader>
             <CardContent className="space-y-6">
                 <FormField control={form.control} name="specificGrowthOpportunities" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Specific Growth Opportunities (Use bullet points)</FormLabel>
                     <FormControl><Textarea {...field} value={field.value || ""} rows={5} placeholder="- Expand to new markets (e.g., Region X)\n- Launch new product line (e.g., Product Y)\n- Optimize marketing spend by Z%" disabled={isPending} /></FormControl>
+                    <FormDescription>List 3-5 specific, actionable growth opportunities.</FormMessage>
                     <FormMessage />
                   </FormItem>
                 )} />
@@ -557,3 +536,5 @@ export default function CreateSellerListingPage() {
     </div>
   );
 }
+
+    

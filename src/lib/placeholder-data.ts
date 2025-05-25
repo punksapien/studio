@@ -19,10 +19,6 @@ export const sampleUsers: User[] = [
     updatedAt: new Date('2023-01-15T14:30:00Z'),
     lastLogin: new Date('2024-05-20T10:00:00Z'),
     listingCount: 2,
-    buyerPersonaType: undefined,
-    investmentFocusDescription: undefined,
-    preferredInvestmentSize: undefined,
-    keyIndustriesOfInterest: undefined,
   },
   {
     id: 'user2',
@@ -58,21 +54,20 @@ export const sampleUsers: User[] = [
     updatedAt: new Date('2023-03-20T16:00:00Z'),
     lastLogin: new Date('2024-05-19T09:00:00Z'),
     listingCount: 1,
-    buyerPersonaType: undefined,
   },
    {
     id: 'user4',
     fullName: 'Sarah Chen (Buyer - Pending)',
     email: 'sarah.buyer.pending@example.com',
-    phoneNumber: '+1234567890', // Placeholder, not an Asian format
+    phoneNumber: '+1234567890', 
     country: 'Thailand',
     role: 'buyer',
     isEmailVerified: true,
     verificationStatus: 'pending_verification',
     isPaid: false,
-    buyerPersonaType: BuyerPersonaTypes[1], // "Private Equity Firm"
+    buyerPersonaType: BuyerPersonaTypes[1], 
     investmentFocusDescription: "Mid-market companies in consumer goods and services with established revenue streams. Looking for majority stakes.",
-    preferredInvestmentSize: PreferredInvestmentSizes[3], // "$2,000,000 - $10,000,000 USD"
+    preferredInvestmentSize: PreferredInvestmentSizes[3], 
     keyIndustriesOfInterest: "Retail, Consumer Goods, Hospitality",
     createdAt: new Date('2023-04-10T10:00:00Z'),
     updatedAt: new Date('2023-04-10T10:00:00Z'),
@@ -89,9 +84,9 @@ export const sampleUsers: User[] = [
     isEmailVerified: true,
     verificationStatus: 'verified',
     isPaid: false,
-    buyerPersonaType: BuyerPersonaTypes[2], // "Strategic Acquirer / Corporate Representative"
+    buyerPersonaType: BuyerPersonaTypes[2], 
     investmentFocusDescription: "Acquiring businesses to integrate into our existing portfolio, primarily in logistics and supply chain.",
-    preferredInvestmentSize: PreferredInvestmentSizes[2], // "$500,000 - $2,000,000 USD"
+    preferredInvestmentSize: PreferredInvestmentSizes[2],
     keyIndustriesOfInterest: "Logistics, Supply Chain, Software",
     createdAt: new Date('2023-05-01T11:00:00Z'),
     updatedAt: new Date('2023-05-01T11:00:00Z'),
@@ -108,9 +103,9 @@ export const sampleUsers: User[] = [
     isEmailVerified: true,
     verificationStatus: 'anonymous',
     isPaid: false,
-    buyerPersonaType: BuyerPersonaTypes[0], // "Individual Investor / Entrepreneur"
+    buyerPersonaType: BuyerPersonaTypes[0],
     investmentFocusDescription: "Looking for small, profitable online businesses to operate and grow.",
-    preferredInvestmentSize: PreferredInvestmentSizes[0], // "Up to $100,000 USD"
+    preferredInvestmentSize: PreferredInvestmentSizes[0],
     keyIndustriesOfInterest: "E-commerce, Content Websites",
     createdAt: new Date('2023-06-15T09:00:00Z'),
     updatedAt: new Date('2023-06-15T09:00:00Z'),
@@ -155,15 +150,21 @@ export const sampleListings: Listing[] = [
     specificGrowthOpportunities: "- Expand to Malaysia and Indonesia markets.\n- Launch a subscription box service for core products.\n- Invest in paid social media advertising campaigns.",
     createdAt: new Date('2023-10-15T10:00:00Z'),
     updatedAt: new Date('2023-10-15T10:00:00Z'),
-    imageUrls: ['https://placehold.co/600x400.png?text=Main+Image+1', 'https://placehold.co/600x400.png?text=Product+Shot+A', 'https://placehold.co/600x400.png?text=Team+Photo+Main'],
+    imageUrls: [
+        'https://placehold.co/800x600.png?text=Main+Storefront', 
+        'https://placehold.co/400x300.png?text=Product+Shot+A', 
+        'https://placehold.co/400x300.png?text=Team+Photo',
+        'https://placehold.co/400x300.png?text=Warehouse+Interior',
+        'https://placehold.co/400x300.png?text=Customer+Review+Graphic'
+    ],
     financialDocumentsUrl: '/documents/placeholder-financials.pdf',
     keyMetricsReportUrl: '/documents/placeholder-metrics.pdf',
     ownershipDocumentsUrl: '/documents/placeholder-ownership.pdf',
     secureDataRoomLink: 'https://example-dataroom.com/listing1',
-    financialSnapshotUrl: '/documents/placeholder-financials.pdf', // Duplicating for now, can be distinct
-    ownershipDetailsUrl: '/documents/placeholder-ownership.pdf', // Duplicating for now
-    locationRealEstateInfoUrl: '/documents/placeholder-lease.pdf',
-    webPresenceInfoUrl: '/documents/placeholder-web-analytics.pdf',
+    financialSnapshotUrl: '/documents/placeholder-financials-snapshot.pdf', 
+    ownershipDetailsUrl: '/documents/placeholder-ownership-details.pdf', 
+    locationRealEstateInfoUrl: '/documents/placeholder-lease-agreement.pdf',
+    webPresenceInfoUrl: '/documents/placeholder-web-analytics-report.pdf',
     inquiryCount: 5,
   },
   {
@@ -187,7 +188,7 @@ export const sampleListings: Listing[] = [
     registeredBusinessName: "VN Tech Solutions Co. Ltd.",
     createdAt: new Date('2023-11-01T14:30:00Z'),
     updatedAt: new Date('2023-11-01T14:30:00Z'),
-    imageUrls: ['https://placehold.co/600x400.png?text=SaaS+Dashboard+Preview'],
+    imageUrls: ['https://placehold.co/800x600.png?text=SaaS+Dashboard'],
     specificGrowthOpportunities: "- Develop enterprise-tier features.\n- Expand sales team for direct outreach in APAC.\n- Integrate with complementary services X and Y.",
     inquiryCount: 2,
   },
@@ -212,7 +213,7 @@ export const sampleListings: Listing[] = [
     numberOfEmployees: "1-5",
     createdAt: new Date('2023-09-20T08:00:00Z'),
     updatedAt: new Date('2023-09-20T08:00:00Z'),
-    imageUrls: ['https://placehold.co/600x400.png?text=Agency+Office+View', 'https://placehold.co/600x400.png?text=Team+Collaboration'],
+    imageUrls: ['https://placehold.co/800x600.png?text=Agency+Office', 'https://placehold.co/400x300.png?text=Team+Meeting'],
     specificGrowthOpportunities: "- Target larger corporate clients.\n- Develop proprietary marketing software/tools.\n- Expand service offerings to include PR and event management.",
     financialSnapshotUrl: '/documents/placeholder-agency-financials.pdf',
     webPresenceInfoUrl: 'https://example-agency.com',
@@ -220,7 +221,7 @@ export const sampleListings: Listing[] = [
   },
    {
     id: '4',
-    sellerId: 'user3', // Changed to user3 for variety, was user1
+    sellerId: 'user3', 
     listingTitleAnonymous: 'Modern Cafe in Tourist Hotspot',
     industry: 'Retail',
     locationCountry: 'Thailand',
@@ -230,13 +231,14 @@ export const sampleListings: Listing[] = [
     annualRevenueRange: '$100K - $250K USD',
     netProfitMarginRange: '15% - 25%',
     askingPrice: 220000,
+    adjustedCashFlow: 65000,
     status: 'pending_verification',
-    isSellerVerified: false, // Seller 'user3' is not verified
+    isSellerVerified: false, 
     businessModel: "Brick-and-mortar retail cafe",
     yearEstablished: 2021,
     createdAt: new Date('2023-12-01T09:00:00Z'),
     updatedAt: new Date('2023-12-01T09:00:00Z'),
-    imageUrls: ['https://placehold.co/600x400.png?text=Cafe+Interior+Main'],
+    imageUrls: ['https://placehold.co/800x600.png?text=Cafe+Interior'],
     inquiryCount: 0,
   },
 ];
@@ -247,7 +249,7 @@ export const sampleBuyerInquiries: Inquiry[] = [
     listingId: '1',
     listingTitleAnonymous: 'Profitable E-commerce Store in SEA',
     sellerId: 'user1',
-    buyerId: 'user2',
+    buyerId: 'user2', // Jane Smith (Verified Buyer)
     inquiryTimestamp: new Date('2023-11-10T10:00:00Z'),
     sellerStatus: 'Platform Verified Seller',
     status: 'ready_for_admin_connection',
@@ -260,11 +262,11 @@ export const sampleBuyerInquiries: Inquiry[] = [
     listingId: '2',
     listingTitleAnonymous: 'Established SaaS Platform - B2B Niche',
     sellerId: 'user3',
-    buyerId: 'user2',
+    buyerId: 'user2', // Jane Smith (Verified Buyer)
     inquiryTimestamp: new Date('2023-11-08T15:30:00Z'),
     sellerStatus: 'Anonymous Seller',
-    status: 'new_inquiry',
-    statusBuyerPerspective: 'Inquiry Sent',
+    status: 'seller_engaged_seller_pending_verification', // Seller needs to verify
+    statusBuyerPerspective: 'Seller Engaged - Seller Verification Pending',
     createdAt: new Date('2023-11-08T15:30:00Z'),
     updatedAt: new Date('2023-11-08T15:30:00Z'),
   },
@@ -273,10 +275,10 @@ export const sampleBuyerInquiries: Inquiry[] = [
     listingId: '1',
     listingTitleAnonymous: 'Profitable E-commerce Store in SEA',
     sellerId: 'user1',
-    buyerId: 'user6',
+    buyerId: 'user6', // Anna Tay (Anonymous Buyer)
     inquiryTimestamp: new Date('2023-11-12T09:00:00Z'),
     sellerStatus: 'Platform Verified Seller',
-    status: 'seller_engaged_buyer_pending_verification',
+    status: 'seller_engaged_buyer_pending_verification', // Buyer needs to verify
     statusBuyerPerspective: 'Seller Engaged - Your Verification Required',
     createdAt: new Date('2023-11-12T09:00:00Z'),
     updatedAt: new Date('2023-11-12T10:00:00Z'),
@@ -304,10 +306,10 @@ export const sampleSellerInquiries: Inquiry[] = [
     listingTitleAnonymous: 'Profitable E-commerce Store in SEA',
     sellerId: 'user1',
     buyerId: 'user6',
-    buyerName: 'Anna Tay (Buyer - Anonymous)',
+    buyerName: 'Anna Tay (Buyer)',
     buyerVerificationStatus: 'anonymous',
     inquiryTimestamp: new Date('2023-11-12T09:00:00Z'),
-    status: 'new_inquiry',
+    status: 'new_inquiry', // Seller has not engaged yet
     statusSellerPerspective: 'New Inquiry',
     createdAt: new Date('2023-11-12T09:00:00Z'),
     updatedAt: new Date('2023-11-12T09:00:00Z'),
@@ -316,12 +318,12 @@ export const sampleSellerInquiries: Inquiry[] = [
     id: 'inq_s3',
     listingId: '2',
     listingTitleAnonymous: 'Established SaaS Platform - B2B Niche',
-    sellerId: 'user3',
-    buyerId: 'user2',
+    sellerId: 'user3', // Seller is anonymous
+    buyerId: 'user2', // Buyer is verified
     buyerName: 'Jane Smith (Buyer)',
     buyerVerificationStatus: 'verified',
     inquiryTimestamp: new Date('2023-11-08T15:30:00Z'),
-    status: 'seller_engaged_seller_pending_verification',
+    status: 'seller_engaged_seller_pending_verification', // Seller clicked engage, now seller needs verification
     statusSellerPerspective: 'You Engaged - Your Listing Verification Pending',
     createdAt: new Date('2023-11-08T15:30:00Z'),
     updatedAt: new Date('2023-11-09T15:30:00Z'),
@@ -348,17 +350,17 @@ export const sampleAdminDashboardMetrics: AdminDashboardMetrics = {
   totalActiveBuyers: sampleUsers.filter(u => u.role === 'buyer').length,
   totalPaidBuyers: sampleUsers.filter(u => u.role === 'buyer' && u.isPaid).length,
   totalFreeBuyers: sampleUsers.filter(u => u.role === 'buyer' && !u.isPaid).length,
-  totalActiveListingsAnonymous: sampleListings.filter(l => (l.status === 'active' || l.status === 'verified_anonymous') && !l.isSellerVerified).length, // Simplified for now
-  totalActiveListingsVerified: sampleListings.filter(l => (l.status === 'verified_public' || l.status === 'verified_anonymous') && l.isSellerVerified).length,
-  totalListingsAllStatuses: sampleListings.length,
-  closedOrDeactivatedListings: sampleListings.filter(l => l.status === 'inactive' || l.status === 'closed_deal').length,
+  totalActiveListingsAnonymous: sampleListings.filter(l => (l.status === 'active' || l.status === 'verified_anonymous')).length,
+  totalActiveListingsVerified: sampleListings.filter(l => l.status === 'verified_public').length,
+  totalListingsAllStatuses: sampleListings.length, // New Metric
+  closedOrDeactivatedListings: sampleListings.filter(l => l.status === 'inactive' || l.status === 'closed_deal').length, // New Metric
   buyerVerificationQueueCount: sampleUsers.filter(u => u.role === 'buyer' && u.verificationStatus === 'pending_verification').length,
   sellerVerificationQueueCount: sampleUsers.filter(u => u.role === 'seller' && u.verificationStatus === 'pending_verification').length + sampleListings.filter(l => l.status === 'pending_verification').length,
   readyToEngageQueueCount: sampleSellerInquiries.filter(i => i.status === 'ready_for_admin_connection').length,
   successfulConnectionsMTD: activeSuccessfulConnectionsPlaceholder + closedSuccessfulConnectionsPlaceholder,
   activeSuccessfulConnections: activeSuccessfulConnectionsPlaceholder,
   closedSuccessfulConnections: closedSuccessfulConnectionsPlaceholder,
-  dealsClosedMTD: closedSuccessfulConnectionsPlaceholder, // Can be same as closedSuccessfulConnections or a distinct metric
+  dealsClosedMTD: closedSuccessfulConnectionsPlaceholder,
   revenueFromBuyers: revenueFromBuyersPlaceholder,
   revenueFromSellers: revenueFromSellersPlaceholder,
   totalRevenueMTD: revenueFromBuyersPlaceholder + revenueFromSellersPlaceholder,
@@ -399,20 +401,20 @@ export const sampleVerificationRequests: VerificationRequestItem[] = [
    {
     id: 'vr4',
     timestamp: new Date('2023-11-12T09:00:00Z'),
-    userId: 'sellerNew', // Assumed new seller not in sampleUsers yet for this queue item
-    userName: 'Pending Seller Alpha',
+    userId: 'user1', 
+    userName: 'John Doe (Seller)',
     userRole: 'seller',
-    reason: 'New seller account created.',
-    listingId: '4',
-    listingTitle: 'Modern Cafe in Tourist Hotspot',
+    reason: 'Seller requested profile re-verification after significant update.',
+    listingId: undefined,
+    listingTitle: undefined,
     status: 'New Request',
   },
 ];
 
 export const sampleReadyToEngageItems: ReadyToEngageItem[] = [
   {
-    id: 'rte1', // Corresponds to inq_s1 / inq_b1
-    timestamp: new Date('2023-11-11T10:00:00Z'), // When it became ready for connection
+    id: 'rte1', 
+    timestamp: new Date('2023-11-11T10:00:00Z'), 
     buyerId: 'user2',
     buyerName: 'Jane Smith (Buyer)',
     buyerVerificationStatus: 'verified',
@@ -428,7 +430,7 @@ export const sampleReadyToEngageItems: ReadyToEngageItem[] = [
 export const sampleBuyerNotifications: NotificationItem[] = [
   {
     id: 'notif1_buyer2',
-    userId: 'user2', // Jane Smith (Verified Buyer)
+    userId: 'user2', 
     timestamp: new Date('2023-11-11T10:05:00Z'),
     message: "Great news! Both you and the Seller for listing 'Profitable E-commerce Store in SEA' are verified and have agreed to engage. Our team will be in touch shortly.",
     link: '/dashboard/inquiries#inq_b1',
@@ -437,10 +439,10 @@ export const sampleBuyerNotifications: NotificationItem[] = [
   },
   {
     id: 'notif2_buyer6',
-    userId: 'user6', // Anna Tay (Anonymous Buyer)
+    userId: 'user6', 
     timestamp: new Date('2023-11-12T10:05:00Z'),
     message: "The seller of 'Profitable E-commerce Store in SEA' is ready to engage! To proceed, your profile needs to be verified.",
-    link: '/dashboard/verification',
+    link: '/dashboard/verification', // Link to buyer's verification page
     isRead: false,
     type: 'verification'
   },
@@ -457,7 +459,7 @@ export const sampleBuyerNotifications: NotificationItem[] = [
 export const sampleSellerNotifications: NotificationItem[] = [
   {
     id: 'notif1_seller1',
-    userId: 'user1', // John Doe (Seller)
+    userId: 'user1', 
     timestamp: new Date('2023-11-12T09:05:00Z'),
     message: "You have a new inquiry for your listing 'Profitable E-commerce Store in SEA' from Anna Tay (Buyer - Anonymous).",
     link: '/seller-dashboard/inquiries#inq_s2',
@@ -466,7 +468,7 @@ export const sampleSellerNotifications: NotificationItem[] = [
   },
   {
     id: 'notif2_seller3',
-    userId: 'user3', // Alex Tan (Seller - Anonymous)
+    userId: 'user3', 
     timestamp: new Date('2023-11-13T11:00:00Z'),
     message: "You've chosen to engage with Jane Smith regarding 'Established SaaS Platform - B2B Niche'. To proceed, your listing needs to be verified.",
     link: '/seller-dashboard/verification?listingId=2',
@@ -483,3 +485,5 @@ export const sampleSellerNotifications: NotificationItem[] = [
     type: 'engagement'
   }
 ];
+
+    

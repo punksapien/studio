@@ -1,4 +1,5 @@
 
+import * as React from "react";
 import type { Listing } from '@/lib/types';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -16,7 +17,6 @@ export function ListingCard({ listing }: ListingCardProps) {
     ? listing.anonymousBusinessDescription.substring(0, 100) + "..."
     : listing.anonymousBusinessDescription;
 
-  // Ensure askingPrice is treated as a number for display
   const displayPrice = listing.askingPrice ? `$${listing.askingPrice.toLocaleString()} USD` : 'Contact for Price';
 
   return (
@@ -56,7 +56,6 @@ export function ListingCard({ listing }: ListingCardProps) {
             <DollarSign className="h-4 w-4 mr-2 text-brand-dark-blue/70" />
             <span>Revenue: {listing.annualRevenueRange}</span>
           </div>
-           {/* Display askingPrice as a fixed number */}
             <div className="flex items-center">
                 <DollarSign className="h-4 w-4 mr-2 text-brand-dark-blue/70" />
                 <span>Asking Price: {displayPrice}</span>
@@ -66,7 +65,6 @@ export function ListingCard({ listing }: ListingCardProps) {
       </CardContent>
       <CardFooter className="p-4 border-t border-brand-light-gray/80">
         <div className="flex justify-between items-center w-full">
-          {/* "Listed Date" removed */}
           <span className="text-xs text-muted-foreground">
             {listing.inquiryCount || 0} Inquiries
           </span>
@@ -78,7 +76,7 @@ export function ListingCard({ listing }: ListingCardProps) {
         </div>
       </CardFooter>
     </Card>
-  ); // Ensure return statement is properly closed
-} // Ensure function component is properly closed
+  );
+}
 
     

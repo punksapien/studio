@@ -1,7 +1,7 @@
 
 # Data Structures, Types, and Schemas
 
-This document outlines the core TypeScript types and Zod validation schemas used in the BizMatch Asia project.
+This document outlines the core TypeScript types and Zod validation schemas used in the Nobridge project.
 
 ## 1. Core TypeScript Types
 
@@ -80,9 +80,9 @@ Represents a user in the system, accommodating both buyers and sellers with role
 
 ### `ListingStatus`
 ```typescript
-export type ListingStatus = 'active' | 'inactive' | 'pending_verification' | 'verified_anonymous' | 'verified_public';
+export type ListingStatus = 'active' | 'inactive' | 'pending_verification' | 'verified_anonymous' | 'verified_public' | 'rejected_by_admin' | 'closed_deal';
 ```
-Defines the status of a business listing (e.g., is it live on the marketplace, undergoing verification).
+Defines the status of a business listing (e.g., is it live on the marketplace, undergoing verification, deal closed).
 
 ### `EmployeeCountRange` & `employeeCountRanges`
 ```typescript
@@ -96,7 +96,7 @@ Defines ranges for the number of employees in a business, used in listing forms.
 export interface Listing {
   id: string;
   sellerId: string;
-  // Anonymous Info
+  // Core Anonymous Info
   listingTitleAnonymous: string;
   industry: string;
   locationCountry: string;
@@ -105,9 +105,10 @@ export interface Listing {
   keyStrengthsAnonymous: string[];
   annualRevenueRange: string;
   netProfitMarginRange?: string;
-  askingPriceRange: string;
-  dealStructureLookingFor?: DealStructure[]; // DealStructure is an array of strings
+  askingPrice?: number; // Fixed asking price (USD)
+  dealStructureLookingFor?: DealStructure[];
   reasonForSellingAnonymous?: string;
+  
   // Detailed Info (for verified view / admin)
   businessModel?: string;
   yearEstablished?: number;
@@ -115,39 +116,48 @@ export interface Listing {
   actualCompanyName?: string;
   fullBusinessAddress?: string;
   businessWebsiteUrl?: string;
-  socialMediaLinks?: string;
+  socialMediaLinks?: string; // Could be newline separated string
   numberOfEmployees?: EmployeeCountRange;
   technologyStack?: string;
-  specificAnnualRevenueLastYear?: number;
-  specificNetProfitLastYear?: number;
-  financialsExplanation?: string;
+  
+  // Specific Financials (for verified view / admin)
+  specificAnnualRevenueLastYear?: number; // TTM Specific
+  specificNetProfitLastYear?: number; // TTM Specific
+  adjustedCashFlow?: number; 
+  adjustedCashFlowExplanation?: string;
+
+  // Detailed Seller & Deal Info (for verified view / admin)
   detailedReasonForSelling?: string;
   sellerRoleAndTimeCommitment?: string;
   postSaleTransitionSupport?: string;
-  growthPotentialNarrative?: string;
-  specificGrowthOpportunities?: string; // Could be string[] or formatted string
-  // Document Links (placeholders for URLs from Supabase Storage)
-  financialDocumentsUrl?: string;
-  keyMetricsReportUrl?: string;
-  ownershipDocumentsUrl?: string;
+
+  // Growth
+  specificGrowthOpportunities?: string; // Newline separated bullet points
+
   // Status & Timestamps
   status: ListingStatus;
-  isSellerVerified: boolean; // Reflects if the seller (and by extension, this listing if verified) is trustworthy
+  isSellerVerified: boolean; 
+
+  // Media & Documents
+  imageUrls?: string[]; // Array of up to 5 image URLs
+  financialDocumentsUrl?: string; 
+  keyMetricsReportUrl?: string; 
+  ownershipDocumentsUrl?: string; 
+  financialSnapshotUrl?: string; 
+  ownershipDetailsUrl?: string; 
+  locationRealEstateInfoUrl?: string; 
+  webPresenceInfoUrl?: string; 
+  secureDataRoomLink?: string; 
+
   createdAt: Date;
   updatedAt: Date;
-  imageUrl?: string;
   inquiryCount?: number;
-  // Other document link fields (may consolidate or keep as needed)
-  financialSnapshotUrl?: string;
-  ownershipDetailsUrl?: string;
-  locationRealEstateInfoUrl?: string;
-  webPresenceInfoUrl?: string;
-  secureDataRoomLink?: string;
 }
 ```
-Represents a business listing with both anonymous and detailed (potentially verified) information.
+Represents a business listing with both anonymous and detailed (potentially verified) information. Asking price is now a fixed number. `growthPotentialNarrative` and `financialsExplanation` have been removed. `imageUrls` is an array.
 
 ### `Inquiry` System Types
+(No changes to Inquiry types in this update)
 ```typescript
 export type InquiryStatusBuyerPerspective =
   | 'Inquiry Sent'
@@ -177,21 +187,20 @@ export interface Inquiry {
   id: string;
   listingId: string;
   listingTitleAnonymous: string;
-  sellerStatus?: 'Anonymous Seller' | 'Platform Verified Seller'; // Seller's status at time of inquiry
+  sellerStatus?: 'Anonymous Seller' | 'Platform Verified Seller';
   buyerId: string;
-  buyerName?: string; // Buyer's name (visible to seller)
-  buyerVerificationStatus?: VerificationStatus; // Buyer's verification status (visible to seller)
+  buyerName?: string; 
+  buyerVerificationStatus?: VerificationStatus; 
   sellerId: string;
   inquiryTimestamp: Date;
-  engagementTimestamp?: Date; // When seller clicks "Engage"
-  status: InquiryStatusSystem; // Internal system status
-  statusBuyerPerspective?: InquiryStatusBuyerPerspective; // Status shown to buyer
-  statusSellerPerspective?: InquiryStatusSellerPerspective; // Status shown to seller
+  engagementTimestamp?: Date;
+  status: InquiryStatusSystem; 
+  statusBuyerPerspective?: InquiryStatusBuyerPerspective; 
+  statusSellerPerspective?: InquiryStatusSellerPerspective; 
   createdAt: Date;
   updatedAt: Date;
 }
 ```
-Represents an inquiry made by a buyer on a listing, including various status perspectives.
 
 ### `AdminDashboardMetrics` Interface
 ```typescript
@@ -210,59 +219,29 @@ export interface AdminDashboardMetrics {
   totalFreeBuyers: number;
   totalActiveListingsAnonymous: number;
   totalActiveListingsVerified: number;
+  totalListingsAllStatuses: number; // New
+  closedOrDeactivatedListings: number; // New
   buyerVerificationQueueCount: number;
   sellerVerificationQueueCount: number;
   readyToEngageQueueCount: number;
-  successfulConnectionsMTD: number; // Total: active + closed
-  activeSuccessfulConnections: number;
-  closedSuccessfulConnections: number; // Or "Deals Closed MTD"
-  dealsClosedMTD?: number; // Potentially same as closedSuccessfulConnections
-  totalRevenueMTD?: number; // Sum of buyer and seller revenue
-  revenueFromBuyers: number;
-  revenueFromSellers: number;
+  successfulConnectionsMTD: number; 
+  activeSuccessfulConnections: number; 
+  closedSuccessfulConnections: number; 
+  dealsClosedMTD?: number; 
+  totalRevenueMTD?: number; 
+  revenueFromBuyers: number; 
+  revenueFromSellers: number; 
 }
 ```
-Structure for data displayed on the Admin Dashboard overview and Analytics page.
+Structure for data displayed on the Admin Dashboard overview and Analytics page, including new metrics.
 
 ### `VerificationRequestItem` Interface
-```typescript
-export type VerificationQueueStatus = "New Request" | "Contacted" | "Docs Under Review" | "More Info Requested" | "Approved" | "Rejected";
-
-export interface VerificationRequestItem {
-  id: string;
-  timestamp: Date;
-  userId: string;
-  userName: string;
-  userRole: UserRole;
-  listingId?: string; // If it's a listing verification request
-  listingTitle?: string; // Title of the listing being verified
-  triggeringUserId?: string; // e.g., if an engagement triggered a verification prompt
-  reason: string; // e.g., "New buyer registration", "Seller submitted new listing"
-  status: VerificationQueueStatus;
-  documentsSubmitted?: { name: string, type: 'id_proof' | 'business_reg' | 'financials' }[]; // Placeholder
-}
-```
-Represents an item in the admin verification queues (for buyers or sellers/listings).
+(No changes in this update)
 
 ### `ReadyToEngageItem` Interface
-```typescript
-export interface ReadyToEngageItem {
-  id: string; // Typically corresponds to an Inquiry ID
-  timestamp: Date; // When it became "ready to engage"
-  buyerId: string;
-  buyerName: string;
-  buyerVerificationStatus: VerificationStatus;
-  sellerId: string;
-  sellerName: string;
-  sellerVerificationStatus: VerificationStatus;
-  listingId: string;
-  listingTitle: string;
-  listingVerificationStatus: ListingStatus; // Or specifically seller's verification status for the listing
-}
-```
-Represents an engagement where both buyer and seller are verified and have agreed to connect, now awaiting admin facilitation.
+(No changes in this update)
 
-### `NotificationType` and `NotificationItem` Interface
+### `NotificationItem` Interface
 ```typescript
 export type NotificationType = 'inquiry' | 'verification' | 'system' | 'engagement' | 'listing_update';
 
@@ -270,58 +249,73 @@ export interface NotificationItem {
   id: string;
   timestamp: Date;
   message: string;
-  link?: string; // Optional link to relevant page
+  link?: string; 
   isRead: boolean;
-  userId: string; // The user to whom this notification belongs
+  userId: string; 
   type: NotificationType;
 }
 ```
-Represents a notification for a user (buyer or seller).
+
+### `PlaceholderKeywords`
+```typescript
+export const placeholderKeywords: string[] = ["SaaS", "E-commerce", "Retail", "Service Business", "High Growth", "Profitable", "Fintech", "Logistics", "Healthcare Tech"];
+```
+Used for the multi-select keywords filter in the marketplace.
 
 ## 2. Zod Validation Schemas
 
-Zod schemas are primarily defined inline within their respective form page components (e.g., in `src/app/auth/...`, `src/app/dashboard/...`, `src/app/seller-dashboard/...`).
+Zod schemas are primarily defined inline within their respective form page components.
 
 ### Buyer Registration Schema
 *   **Location:** `/app/auth/register/buyer/page.tsx` (`BuyerRegisterSchema`)
-*   **Fields:** `fullName`, `email`, `password`, `confirmPassword`, `phoneNumber`, `country`, `buyerPersonaType`, `buyerPersonaOther` (conditional), `investmentFocusDescription`, `preferredInvestmentSize`, `keyIndustriesOfInterest`.
-*   **Rules:** Includes email format, password minimum length (8 chars), password confirmation match. `buyerPersonaOther` is required if `buyerPersonaType` is "Other". Other persona fields are optional strings.
+*   **Fields (Updated):** `fullName`, `email`, `password`, `confirmPassword`, `phoneNumber`, `country`, `buyerPersonaType` (enum `BuyerPersonaTypes`), `buyerPersonaOther` (conditional), `investmentFocusDescription` (optional), `preferredInvestmentSize` (optional enum `PreferredInvestmentSizes`), `keyIndustriesOfInterest` (optional).
+*   **Rules:** Includes `superRefine` for conditional `buyerPersonaOther`.
 
 ### Seller Registration Schema
 *   **Location:** `/app/auth/register/seller/page.tsx` (`SellerRegisterSchema`)
 *   **Fields:** `fullName`, `email`, `password`, `confirmPassword`, `phoneNumber`, `country`, `initialCompanyName` (optional).
-*   **Rules:** Email format, password minimum length (8 chars), password confirmation match.
 
 ### Login Schema
 *   **Location:** `/app/auth/login/page.tsx` (`LoginSchema`)
 *   **Fields:** `email`, `password`.
-*   **Rules:** Email format, password required (min 1 char).
+
+### OTP Schema
+*   **Location:** `/app/(auth)/verify-otp/page.tsx` (`OTPSchema`)
+*   **Fields:** `otp` (6 digits).
 
 ### Forgot Password Schema
 *   **Location:** `/app/auth/forgot-password/page.tsx` (`ForgotPasswordSchema`)
 *   **Fields:** `email`.
-*   **Rules:** Email format.
 
-### Profile Update Schema
-*   **Location:** `/app/dashboard/profile/page.tsx` (Buyer context) and `/app/seller-dashboard/profile/page.tsx` (Seller context). The schema `ProfileSchema` is defined in `/app/dashboard/profile/page.tsx` and is structured to handle both, but the seller profile page would implicitly have `role: 'seller'`.
-*   **Fields:** `fullName`, `phoneNumber`, `country`, `role` (used by `superRefine`), `initialCompanyName` (optional, but required for sellers by `superRefine`), `buyerPersonaType`, `buyerPersonaOther`, `investmentFocusDescription`, `preferredInvestmentSize`, `keyIndustriesOfInterest`.
-*   **Rules:** `superRefine` enforces `initialCompanyName` for sellers and `buyerPersonaType` for buyers (with conditional `buyerPersonaOther`).
+### Profile Update Schema (Buyer Context - conceptual, might be shared)
+*   **Location:** `/app/dashboard/profile/page.tsx` (`ProfileSchema`)
+*   **Fields (Updated for Buyer):** `fullName`, `phoneNumber`, `country`, `role` (fixed to 'buyer' conceptually for this page), `buyerPersonaType`, `buyerPersonaOther`, `investmentFocusDescription`, `preferredInvestmentSize`, `keyIndustriesOfInterest`.
+*   **Rules:** `superRefine` for buyer-specific conditional fields.
+
+### Profile Update Schema (Seller Context - conceptual, might be shared or separate)
+*   **Location:** `/app/seller-dashboard/profile/page.tsx` (`ProfileSchema` if shared, or `SellerProfileSchema`)
+*   **Fields:** `fullName`, `phoneNumber`, `country`, `role` (fixed to 'seller'), `initialCompanyName`.
+*   **Rules:** `superRefine` ensures `initialCompanyName` is required for sellers.
 
 ### Password Change Schema
-*   **Location:** `/app/dashboard/profile/page.tsx` and `/app/seller-dashboard/profile/page.tsx` (`PasswordChangeSchema`)
+*   **Location:** `/app/dashboard/settings/page.tsx` and `/app/seller-dashboard/settings/page.tsx` (`PasswordChangeSchema`)
 *   **Fields:** `currentPassword`, `newPassword`, `confirmNewPassword`.
-*   **Rules:** `newPassword` min 8 chars, `newPassword` must match `confirmNewPassword`.
 
 ### Listing Creation/Edit Schema
 *   **Location:** `/app/seller-dashboard/listings/create/page.tsx` and `/app/seller-dashboard/listings/[listingId]/edit/page.tsx` (`ListingSchema`)
-*   **Fields:**
-    *   Anonymous: `listingTitleAnonymous`, `industry`, `locationCountry`, `locationCityRegionGeneral`, `anonymousBusinessDescription`, `keyStrengthsAnonymous` (array of strings, min 1, max 5), `annualRevenueRange`, `netProfitMarginRange` (optional), `askingPriceRange`, `dealStructureLookingFor` (optional array), `reasonForSellingAnonymous` (optional).
-    *   Detailed/Verified: `businessModel` (optional), `yearEstablished` (optional number, constrained), `registeredBusinessName` (optional), `businessWebsiteUrl` (optional URL), `socialMediaLinks` (optional), `numberOfEmployees` (optional enum), `technologyStack` (optional), `specificAnnualRevenueLastYear` (optional number), `specificNetProfitLastYear` (optional number), `financialsExplanation` (optional), `detailedReasonForSelling` (optional), `sellerRoleAndTimeCommitment` (optional), `postSaleTransitionSupport` (optional), `growthPotentialNarrative` (optional), `specificGrowthOpportunities` (optional).
-*   **Rules:** Min/max lengths, array validation, URL validation, number constraints.
+*   **Fields (Updated):**
+    *   Anonymous: `listingTitleAnonymous`, `industry`, `locationCountry`, `locationCityRegionGeneral`, `anonymousBusinessDescription`, `keyStrengthsAnonymous` (array of strings), `annualRevenueRange`, `netProfitMarginRange` (optional), `reasonForSellingAnonymous` (optional).
+    *   Detailed/Verified: `businessModel` (optional), `yearEstablished` (optional number), `registeredBusinessName` (optional), `businessWebsiteUrl` (optional URL), `socialMediaLinks` (optional), `numberOfEmployees` (optional enum), `technologyStack` (optional).
+    *   Financials: `askingPrice` (optional number), `adjustedCashFlow` (optional number), `adjustedCashFlowExplanation` (optional), `specificAnnualRevenueLastYear` (optional number), `specificNetProfitLastYear` (optional number).
+    *   Deal & Seller: `dealStructureLookingFor` (optional array of strings), `detailedReasonForSelling` (optional), `sellerRoleAndTimeCommitment` (optional), `postSaleTransitionSupport` (optional).
+    *   Growth: `specificGrowthOpportunities` (optional string for bullet points).
+    *   Image URLs: `imageUrl1` through `imageUrl5` (optional URLs).
+*   **Rules:** Includes min/max lengths, array validation, URL validation, number constraints. `askingPriceRange` removed.
 
 ### Admin Login Schema
 *   **Location:** `/app/admin/login/page.tsx` (`AdminLoginSchema`)
 *   **Fields:** `email`, `password`.
-*   **Rules:** Email format, password required (min 1 char).
 
-These types and schemas are fundamental to maintaining data integrity and consistency throughout the application, both on the frontend for forms and for intended backend API validation.
+These types and schemas are fundamental to maintaining data integrity and consistency throughout the application.
+
+    

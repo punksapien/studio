@@ -29,7 +29,8 @@ import {
   asianCountries,
   User,
   BuyerPersonaTypes,
-  PreferredInvestmentSizes
+  PreferredInvestmentSizes,
+  UserRole // Ensure UserRole is imported
 } from "@/lib/types";
 import { useState, useTransition, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -37,16 +38,15 @@ import { Separator } from "@/components/ui/separator";
 import { sampleUsers } from "@/lib/placeholder-data";
 import Link from "next/link";
 
-const currentBuyerId = 'user2'; // Example: Jane Smith (Verified Buyer)
+const currentBuyerId = 'user2'; 
 const currentUserServerData: User | undefined = sampleUsers.find(u => u.id === currentBuyerId && u.role === 'buyer');
 
 const ProfileSchema = z.object({
   fullName: z.string().min(1, { message: "Full name is required." }),
   phoneNumber: z.string().min(1, { message: "Phone number is required." }),
   country: z.string().min(1, { message: "Country is required." }),
-  role: z.enum(['seller', 'buyer'], { required_error: "Role is required." }),
+  role: z.enum(['seller', 'buyer'] as [UserRole, ...UserRole[]], { required_error: "Role is required." }), // Cast to satisfy enum
   initialCompanyName: z.string().optional(),
-  // Buyer Persona Fields
   buyerPersonaType: z.enum(BuyerPersonaTypes).optional(),
   buyerPersonaOther: z.string().optional(),
   investmentFocusDescription: z.string().optional(),
@@ -83,7 +83,7 @@ const defaultProfileValues: Partial<z.infer<typeof ProfileSchema>> = {
   fullName: "",
   phoneNumber: "",
   country: "",
-  role: "buyer",
+  role: "buyer", // Default for this buyer dashboard context
   initialCompanyName: "",
   buyerPersonaType: undefined,
   buyerPersonaOther: "",
@@ -131,9 +131,12 @@ export default function ProfilePage() {
   const watchedBuyerPersonaType = profileForm.watch("buyerPersonaType");
 
   useEffect(() => {
+    // This logic might be redundant if the dashboard is strictly for buyers
+    // but kept for robustness if this component were to be shared.
     if (watchedRole === 'buyer') {
-      profileForm.setValue('initialCompanyName', '');
+      profileForm.setValue('initialCompanyName', ''); // Clear seller-specific field
     } else if (watchedRole === 'seller') {
+      // Clear buyer-specific fields
       profileForm.setValue('buyerPersonaType', undefined);
       profileForm.setValue('buyerPersonaOther', '');
       profileForm.setValue('investmentFocusDescription', '');
@@ -142,18 +145,18 @@ export default function ProfilePage() {
     }
   }, [watchedRole, profileForm]);
 
-  if (!currentUserServerData) {
-    return <div className="container py-8 text-center">Loading profile or user not found...</div>;
+  if (!currentUserServerData || currentUserServerData.role !== 'buyer') {
+    return <div className="container py-8 text-center">Loading profile or user not found/not a buyer...</div>;
   }
 
   return (
     <div className="space-y-8">
-      <h1 className="text-3xl font-bold tracking-tight">My Profile</h1>
+      <h1 className="text-3xl font-bold tracking-tight text-brand-dark-blue">My Buyer Profile</h1>
 
-      <Card className="shadow-md">
+      <Card className="shadow-md bg-brand-white">
         <CardHeader>
-          <CardTitle>Personal Information & Role</CardTitle>
-          <CardDescription>Update your personal details. Your email ({currentUserServerData.email}) cannot be changed here.</CardDescription>
+          <CardTitle className="text-brand-dark-blue">Personal &amp; Investment Information</CardTitle>
+          <CardDescription>Update your details. Your email ({currentUserServerData.email}) cannot be changed here.</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...profileForm}>
@@ -175,72 +178,63 @@ export default function ProfilePage() {
                   </FormItem>
                 )}
               />
-               <FormField control={profileForm.control} name="role" render={({ field }) => (
-                  <FormItem><FormLabel>Your Role on Nobridge</FormLabel>
-                     <Select onValueChange={field.onChange} value={field.value} disabled={isProfilePending || true }>
-                      <FormControl><SelectTrigger><SelectValue placeholder="Select your role" /></SelectTrigger></FormControl>
-                      <SelectContent><SelectItem value="buyer">Buyer / Investor</SelectItem><SelectItem value="seller">Business Seller</SelectItem></SelectContent>
-                    </Select>
-                    <FormDescription>Changing your role might impact your access to certain features. Contact support for assistance.</FormDescription><FormMessage />
+              
+              {/* Hidden role field as this page is for buyers */}
+              <FormField control={profileForm.control} name="role" render={({ field }) => (<FormItem className="hidden"><FormControl><Input {...field} /></FormControl></FormItem>)} />
+
+              {/* Buyer Specific Fields */}
+              <Separator />
+              <h3 className="text-lg font-medium text-brand-dark-blue pt-2">Buyer Persona &amp; Focus</h3>
+              <FormField control={profileForm.control} name="buyerPersonaType" render={({ field }) => (
+                  <FormItem><FormLabel>I am a/an: (Primary Role / Buyer Type)</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || undefined} disabled={isProfilePending}>
+                      <FormControl><SelectTrigger><SelectValue placeholder="Select your primary role" /></SelectTrigger></FormControl>
+                      <SelectContent>{BuyerPersonaTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}</SelectContent>
+                    </Select><FormMessage />
                   </FormItem>
                 )}
               />
-
-              {/* Buyer Specific Fields */}
-              {watchedRole === 'buyer' && (
-                <>
-                  <FormField control={profileForm.control} name="buyerPersonaType" render={({ field }) => (
-                      <FormItem><FormLabel>I am a/an: (Primary Role / Buyer Type)</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value || undefined} disabled={isProfilePending}>
-                          <FormControl><SelectTrigger><SelectValue placeholder="Select your primary role" /></SelectTrigger></FormControl>
-                          <SelectContent>{BuyerPersonaTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}</SelectContent>
-                        </Select><FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  {watchedBuyerPersonaType === "Other" && (
-                    <FormField control={profileForm.control} name="buyerPersonaOther" render={({ field }) => (
-                        <FormItem><FormLabel>Please Specify Role</FormLabel><FormControl><Input {...field} value={field.value || ""} placeholder="Your specific role" disabled={isProfilePending} /></FormControl><FormMessage /></FormItem>
-                      )}
-                    />
+              {watchedBuyerPersonaType === "Other" && (
+                <FormField control={profileForm.control} name="buyerPersonaOther" render={({ field }) => (
+                    <FormItem><FormLabel>Please Specify Role</FormLabel><FormControl><Input {...field} value={field.value || ""} placeholder="Your specific role" disabled={isProfilePending} /></FormControl><FormMessage /></FormItem>
                   )}
-                  <FormField control={profileForm.control} name="investmentFocusDescription" render={({ field }) => (
-                      <FormItem><FormLabel>Investment Focus or What You&apos;re Looking For</FormLabel>
-                        <FormControl><Textarea {...field} value={field.value || ""} placeholder="e.g., SaaS businesses in Southeast Asia with $100k-$1M ARR..." disabled={isProfilePending} rows={3}/></FormControl><FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField control={profileForm.control} name="preferredInvestmentSize" render={({ field }) => (
-                      <FormItem><FormLabel>Preferred Investment Size (Approximate)</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value || undefined} disabled={isProfilePending}>
-                          <FormControl><SelectTrigger><SelectValue placeholder="Select preferred investment size" /></SelectTrigger></FormControl>
-                          <SelectContent>{PreferredInvestmentSizes.map(size => <SelectItem key={size} value={size}>{size}</SelectItem>)}</SelectContent>
-                        </Select><FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField control={profileForm.control} name="keyIndustriesOfInterest" render={({ field }) => (
-                      <FormItem><FormLabel>Key Industries of Interest</FormLabel>
-                        <FormControl><Textarea {...field} value={field.value || ""} placeholder="e.g., Technology, E-commerce, Healthcare..." disabled={isProfilePending} rows={3}/></FormControl><FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </>
+                />
               )}
-              <Button type="submit" disabled={isProfilePending}>{isProfilePending ? "Saving..." : "Save Profile Changes"}</Button>
+              <FormField control={profileForm.control} name="investmentFocusDescription" render={({ field }) => (
+                  <FormItem><FormLabel>Investment Focus or What You&apos;re Looking For</FormLabel>
+                    <FormControl><Textarea {...field} value={field.value || ""} placeholder="e.g., SaaS businesses in Southeast Asia with $100k-$1M ARR..." disabled={isProfilePending} rows={3}/></FormControl><FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField control={profileForm.control} name="preferredInvestmentSize" render={({ field }) => (
+                  <FormItem><FormLabel>Preferred Investment Size (Approximate)</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || undefined} disabled={isProfilePending}>
+                      <FormControl><SelectTrigger><SelectValue placeholder="Select preferred investment size" /></SelectTrigger></FormControl>
+                      <SelectContent>{PreferredInvestmentSizes.map(size => <SelectItem key={size} value={size}>{size}</SelectItem>)}</SelectContent>
+                    </Select><FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField control={profileForm.control} name="keyIndustriesOfInterest" render={({ field }) => (
+                  <FormItem><FormLabel>Key Industries of Interest</FormLabel>
+                    <FormControl><Textarea {...field} value={field.value || ""} placeholder="e.g., Technology, E-commerce, Healthcare..." disabled={isProfilePending} rows={3}/></FormControl><FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Button type="submit" disabled={isProfilePending} className="bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90">{isProfilePending ? "Saving..." : "Save Profile Changes"}</Button>
             </form>
           </Form>
         </CardContent>
       </Card>
 
       <Separator />
-      <Card className="shadow-md">
+      <Card className="shadow-md bg-brand-white">
         <CardHeader>
-          <CardTitle>Security Settings</CardTitle>
+          <CardTitle className="text-brand-dark-blue">Security Settings</CardTitle>
           <CardDescription>Manage your account security.</CardDescription>
         </CardHeader>
         <CardContent>
-            <Button variant="outline" asChild>
+            <Button variant="outline" asChild className="border-brand-dark-blue/50 text-brand-dark-blue hover:bg-brand-light-gray/70">
                 <Link href="/dashboard/settings">Go to Security Settings (Change Password)</Link>
             </Button>
         </CardContent>
@@ -249,3 +243,5 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+    

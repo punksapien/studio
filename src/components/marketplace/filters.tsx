@@ -1,5 +1,7 @@
+
 'use client';
 
+import * as React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import {
@@ -11,25 +13,38 @@ import {
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { industries, asianCountries, revenueRanges } from '@/lib/types';
-import { Filter } from 'lucide-react';
-// Placeholder for a multi-select component or logic
-// For now, Keywords will remain a text input, but documented for future change.
+import { Checkbox } from "@/components/ui/checkbox";
+import { industries, asianCountries, revenueRanges, placeholderKeywords } from '@/lib/types';
+import { Filter, Search } from 'lucide-react';
+
+// Placeholder for actual filter state management and application logic
+// This component currently just renders the UI for filters.
 
 export function Filters() {
+  // In a real app, you'd use useState or a form library to manage selected keywords
+  const [selectedKeywords, setSelectedKeywords] = React.useState<string[]>([]);
+
+  const handleKeywordChange = (keyword: string, checked: boolean | 'indeterminate') => {
+    setSelectedKeywords(prev =>
+      checked === true ? [...prev, keyword] : prev.filter(k => k !== keyword)
+    );
+    // TODO: Trigger actual filtering based on selectedKeywords
+    console.log("Selected keywords:", checked === true ? [...selectedKeywords, keyword] : selectedKeywords.filter(k => k !== keyword));
+  };
+
   return (
-    <Card className="sticky top-20 shadow-md">
+    <Card className="sticky top-20 shadow-md bg-brand-white">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Filter className="h-5 w-5 text-primary" />
+        <CardTitle className="flex items-center gap-2 text-brand-dark-blue">
+          <Filter className="h-5 w-5 text-brand-dark-blue" />
           Filter Listings
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-2">
-          <Label htmlFor="industry">Industry</Label>
+          <Label htmlFor="industry" className="text-brand-dark-blue">Industry</Label>
           <Select name="industry">
-            <SelectTrigger id="industry">
+            <SelectTrigger id="industry" className="bg-brand-light-gray/30 border-brand-light-gray focus:ring-brand-sky-blue">
               <SelectValue placeholder="All Industries" />
             </SelectTrigger>
             <SelectContent>
@@ -44,9 +59,9 @@ export function Filters() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="country">Country</Label>
+          <Label htmlFor="country" className="text-brand-dark-blue">Country</Label>
           <Select name="country">
-            <SelectTrigger id="country">
+            <SelectTrigger id="country" className="bg-brand-light-gray/30 border-brand-light-gray focus:ring-brand-sky-blue">
               <SelectValue placeholder="All Countries" />
             </SelectTrigger>
             <SelectContent>
@@ -61,9 +76,9 @@ export function Filters() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="revenue">Annual Revenue Range</Label>
+          <Label htmlFor="revenue" className="text-brand-dark-blue">Annual Revenue Range</Label>
           <Select name="revenue">
-            <SelectTrigger id="revenue">
+            <SelectTrigger id="revenue" className="bg-brand-light-gray/30 border-brand-light-gray focus:ring-brand-sky-blue">
               <SelectValue placeholder="Any Revenue" />
             </SelectTrigger>
             <SelectContent>
@@ -78,19 +93,33 @@ export function Filters() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="maxAskingPrice">Asking Price (Max USD)</Label>
-          <Input type="number" name="maxAskingPrice" id="maxAskingPrice" placeholder="e.g., 500000" />
+          <Label htmlFor="maxAskingPrice" className="text-brand-dark-blue">Asking Price (Max USD)</Label>
+          <Input type="number" name="maxAskingPrice" id="maxAskingPrice" placeholder="e.g., 500000" className="bg-brand-light-gray/30 border-brand-light-gray focus:ring-brand-sky-blue placeholder:text-brand-dark-blue/50" />
         </div>
 
         <div className="space-y-2">
-            <Label htmlFor="keywords">Keywords</Label>
-            <Input id="keywords" name="keywords" placeholder="e.g., SaaS, Retail Tech" />
-            {/* TODO: Change to multi-select dropdown in future iteration */}
+            <Label className="text-brand-dark-blue">Keywords</Label>
+            <div className="space-y-2 max-h-40 overflow-y-auto p-2 border border-brand-light-gray rounded-md bg-brand-light-gray/20">
+                {placeholderKeywords.map((keyword) => (
+                    <div key={keyword} className="flex items-center space-x-2">
+                        <Checkbox
+                            id={`keyword-${keyword.toLowerCase().replace(/\s+/g, '-')}`}
+                            onCheckedChange={(checked) => handleKeywordChange(keyword, checked)}
+                            checked={selectedKeywords.includes(keyword)}
+                        />
+                        <Label htmlFor={`keyword-${keyword.toLowerCase().replace(/\s+/g, '-')}`} className="text-sm font-normal text-brand-dark-blue/90">
+                            {keyword}
+                        </Label>
+                    </div>
+                ))}
+            </div>
         </div>
 
-        <Button className="w-full">Apply Filters</Button>
-        <Button variant="outline" className="w-full">Reset Filters</Button>
+        <Button className="w-full bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90">Apply Filters</Button>
+        <Button variant="outline" className="w-full border-brand-dark-blue/50 text-brand-dark-blue hover:bg-brand-light-gray">Reset Filters</Button>
       </CardContent>
     </Card>
   );
 }
+
+    

@@ -1,7 +1,7 @@
 
 import * as React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, LineChart, PieChart, Users, Briefcase, DollarSign, CheckCircle, TrendingUp, UserMinus, UserPlus, Banknote, ShieldCheck, Handshake, ListX } from "lucide-react";
+import { BarChart, LineChart, PieChart, Users, Briefcase, DollarSign, CheckCircle, TrendingUp, UserMinus, UserPlus, Banknote, ShieldCheck, Handshake, ListX, ListChecks } from "lucide-react"; // Added ListChecks
 import { sampleAdminDashboardMetrics, sampleUsers, sampleListings } from "@/lib/placeholder-data";
 import { Separator } from "@/components/ui/separator";
 
@@ -27,11 +27,11 @@ export default function AdminAnalyticsPage() {
          <Card className="shadow-md bg-brand-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-brand-dark-blue">Total Listings (All Statuses)</CardTitle>
-            <Briefcase className="h-5 w-5 text-brand-dark-blue/70" />
+            <ListChecks className="h-5 w-5 text-brand-dark-blue/70" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-brand-dark-blue">{metrics.totalListingsAllStatuses}</div>
-            <p className="text-xs text-brand-dark-blue/70">{metrics.totalActiveListingsVerified} verified, {metrics.totalActiveListingsAnonymous} anonymous</p>
+            <p className="text-xs text-brand-dark-blue/70">{metrics.totalActiveListingsVerified} verified active, {metrics.totalActiveListingsAnonymous} anonymous active</p>
           </CardContent>
         </Card>
          <Card className="shadow-md bg-brand-white">
