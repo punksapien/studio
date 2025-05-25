@@ -1,5 +1,5 @@
 
-import * as React from "react";
+import * as React from "react"; // Ensure React is imported
 import { MetricCard } from "@/components/admin/metric-card";
 import { sampleAdminDashboardMetrics, sampleVerificationRequests, sampleReadyToEngageItems } from "@/lib/placeholder-data";
 import { Users, Briefcase, BellRing, LineChart, ListChecks, UserCheck, Building, DollarSign, CheckCircle, Banknote, ListX, Handshake } from "lucide-react";
@@ -209,4 +209,9 @@ export default function AdminDashboardPage() {
         <CardContent className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
             <Button variant="outline" asChild className="flex-col h-24"><Link href="/admin/users"><Users className="mb-1"/> User Management</Link></Button>
             <Button variant="outline" asChild className="flex-col h-24"><Link href="/admin/listings"><ListChecks className="mb-1"/> Listing Management</Link></Button>
-            <Button variant="outline" asChild className="flex-col h-24"><Link href="/admin/analytics"><Line
+            <Button variant="outline" asChild className="flex-col h-24"><Link href="/admin/analytics"><LineChart className="mb-1"/> View Full Analytics</Link></Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

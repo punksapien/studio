@@ -1,6 +1,6 @@
 
 import type { Listing, User, AdminDashboardMetrics, VerificationRequestItem, ReadyToEngageItem, Inquiry, NotificationItem, ListingStatus } from './types';
-import { BuyerPersonaTypes, PreferredInvestmentSizes } from './types';
+import { BuyerPersonaTypes, PreferredInvestmentSizes, industries, asianCountries, revenueRanges, profitMarginRanges, dealStructures, employeeCountRanges } from './types';
 
 
 export const sampleUsers: User[] = [
@@ -19,6 +19,10 @@ export const sampleUsers: User[] = [
     updatedAt: new Date('2023-01-15T14:30:00Z'),
     lastLogin: new Date('2024-05-20T10:00:00Z'),
     listingCount: 2,
+    buyerPersonaType: undefined,
+    investmentFocusDescription: undefined,
+    preferredInvestmentSize: undefined,
+    keyIndustriesOfInterest: undefined,
   },
   {
     id: 'user2',
@@ -30,9 +34,9 @@ export const sampleUsers: User[] = [
     isEmailVerified: true,
     verificationStatus: 'verified',
     isPaid: true,
-    buyerPersonaType: BuyerPersonaTypes[0],
+    buyerPersonaType: BuyerPersonaTypes[0], // "Individual Investor / Entrepreneur"
     investmentFocusDescription: "Early-stage SaaS and e-commerce businesses in Southeast Asia with strong growth potential.",
-    preferredInvestmentSize: PreferredInvestmentSizes[1],
+    preferredInvestmentSize: PreferredInvestmentSizes[1], // "$100,000 - $500,000 USD"
     keyIndustriesOfInterest: "Technology, E-commerce, Fintech",
     createdAt: new Date('2023-02-05T11:00:00Z'),
     updatedAt: new Date('2023-02-05T11:00:00Z'),
@@ -54,20 +58,21 @@ export const sampleUsers: User[] = [
     updatedAt: new Date('2023-03-20T16:00:00Z'),
     lastLogin: new Date('2024-05-19T09:00:00Z'),
     listingCount: 1,
+    buyerPersonaType: undefined,
   },
    {
     id: 'user4',
     fullName: 'Sarah Chen (Buyer - Pending)',
     email: 'sarah.buyer.pending@example.com',
-    phoneNumber: '+1234567890',
+    phoneNumber: '+1234567890', // Placeholder, not an Asian format
     country: 'Thailand',
     role: 'buyer',
     isEmailVerified: true,
     verificationStatus: 'pending_verification',
     isPaid: false,
-    buyerPersonaType: BuyerPersonaTypes[1],
+    buyerPersonaType: BuyerPersonaTypes[1], // "Private Equity Firm"
     investmentFocusDescription: "Mid-market companies in consumer goods and services with established revenue streams. Looking for majority stakes.",
-    preferredInvestmentSize: PreferredInvestmentSizes[3],
+    preferredInvestmentSize: PreferredInvestmentSizes[3], // "$2,000,000 - $10,000,000 USD"
     keyIndustriesOfInterest: "Retail, Consumer Goods, Hospitality",
     createdAt: new Date('2023-04-10T10:00:00Z'),
     updatedAt: new Date('2023-04-10T10:00:00Z'),
@@ -84,9 +89,9 @@ export const sampleUsers: User[] = [
     isEmailVerified: true,
     verificationStatus: 'verified',
     isPaid: false,
-    buyerPersonaType: BuyerPersonaTypes[2],
+    buyerPersonaType: BuyerPersonaTypes[2], // "Strategic Acquirer / Corporate Representative"
     investmentFocusDescription: "Acquiring businesses to integrate into our existing portfolio, primarily in logistics and supply chain.",
-    preferredInvestmentSize: PreferredInvestmentSizes[2],
+    preferredInvestmentSize: PreferredInvestmentSizes[2], // "$500,000 - $2,000,000 USD"
     keyIndustriesOfInterest: "Logistics, Supply Chain, Software",
     createdAt: new Date('2023-05-01T11:00:00Z'),
     updatedAt: new Date('2023-05-01T11:00:00Z'),
@@ -103,9 +108,9 @@ export const sampleUsers: User[] = [
     isEmailVerified: true,
     verificationStatus: 'anonymous',
     isPaid: false,
-    buyerPersonaType: BuyerPersonaTypes[0],
+    buyerPersonaType: BuyerPersonaTypes[0], // "Individual Investor / Entrepreneur"
     investmentFocusDescription: "Looking for small, profitable online businesses to operate and grow.",
-    preferredInvestmentSize: PreferredInvestmentSizes[0],
+    preferredInvestmentSize: PreferredInvestmentSizes[0], // "Up to $100,000 USD"
     keyIndustriesOfInterest: "E-commerce, Content Websites",
     createdAt: new Date('2023-06-15T09:00:00Z'),
     updatedAt: new Date('2023-06-15T09:00:00Z'),
@@ -131,7 +136,7 @@ export const sampleListings: Listing[] = [
     adjustedCashFlowExplanation: "Adjusted for owner's discretionary expenses and one-time setup costs from last year.",
     dealStructureLookingFor: ['Full Acquisition'],
     reasonForSellingAnonymous: 'Owner retiring.',
-    status: 'verified_public' as ListingStatus,
+    status: 'verified_public',
     isSellerVerified: true,
     actualCompanyName: 'GreenEarth Goods Pte. Ltd.',
     registeredBusinessName: 'GreenEarth Goods Pte. Ltd.',
@@ -144,16 +149,19 @@ export const sampleListings: Listing[] = [
     fullBusinessAddress: '123 Orchard Road, Singapore',
     specificAnnualRevenueLastYear: 750000,
     specificNetProfitLastYear: 180000,
-    // financialsExplanation: "Consistent YOY growth of 25%. Net profit includes all operational costs and salaries. Minimal ad spend, mostly organic traffic.", // Removed
     detailedReasonForSelling: "Owner wishes to retire after successfully building and scaling the business over the past 5 years. Looking for a passionate successor.",
     sellerRoleAndTimeCommitment: "Owner currently spends ~20 hours/week on strategic oversight, supplier relations, and new product development. Day-to-day operations managed by a small team.",
     postSaleTransitionSupport: "Willing to offer 3-6 months of transition support and training to ensure a smooth handover.",
     specificGrowthOpportunities: "- Expand to Malaysia and Indonesia markets.\n- Launch a subscription box service for core products.\n- Invest in paid social media advertising campaigns.",
     createdAt: new Date('2023-10-15T10:00:00Z'),
     updatedAt: new Date('2023-10-15T10:00:00Z'),
-    imageUrls: ['https://placehold.co/600x400.png?text=Main+Image', 'https://placehold.co/600x400.png?text=Product+Shot+1', 'https://placehold.co/600x400.png?text=Team+Photo'],
-    financialSnapshotUrl: '/documents/placeholder-financials.pdf',
-    ownershipDetailsUrl: '/documents/placeholder-ownership.pdf',
+    imageUrls: ['https://placehold.co/600x400.png?text=Main+Image+1', 'https://placehold.co/600x400.png?text=Product+Shot+A', 'https://placehold.co/600x400.png?text=Team+Photo+Main'],
+    financialDocumentsUrl: '/documents/placeholder-financials.pdf',
+    keyMetricsReportUrl: '/documents/placeholder-metrics.pdf',
+    ownershipDocumentsUrl: '/documents/placeholder-ownership.pdf',
+    secureDataRoomLink: 'https://example-dataroom.com/listing1',
+    financialSnapshotUrl: '/documents/placeholder-financials.pdf', // Duplicating for now, can be distinct
+    ownershipDetailsUrl: '/documents/placeholder-ownership.pdf', // Duplicating for now
     locationRealEstateInfoUrl: '/documents/placeholder-lease.pdf',
     webPresenceInfoUrl: '/documents/placeholder-web-analytics.pdf',
     inquiryCount: 5,
@@ -172,14 +180,14 @@ export const sampleListings: Listing[] = [
     adjustedCashFlow: 90000,
     adjustedCashFlowExplanation: "SDE (Seller's Discretionary Earnings) after normalizing owner's salary.",
     dealStructureLookingFor: ['Full Acquisition', 'Partial Sale/Investment'],
-    status: 'active' as ListingStatus,
+    status: 'active',
     isSellerVerified: false,
     businessModel: "Subscription-based SaaS",
     yearEstablished: 2020,
     registeredBusinessName: "VN Tech Solutions Co. Ltd.",
     createdAt: new Date('2023-11-01T14:30:00Z'),
     updatedAt: new Date('2023-11-01T14:30:00Z'),
-    imageUrls: ['https://placehold.co/600x400.png?text=SaaS+Dashboard'],
+    imageUrls: ['https://placehold.co/600x400.png?text=SaaS+Dashboard+Preview'],
     specificGrowthOpportunities: "- Develop enterprise-tier features.\n- Expand sales team for direct outreach in APAC.\n- Integrate with complementary services X and Y.",
     inquiryCount: 2,
   },
@@ -195,7 +203,7 @@ export const sampleListings: Listing[] = [
     annualRevenueRange: '$250K - $500K USD',
     netProfitMarginRange: '10% - 20%',
     askingPrice: 700000,
-    status: 'verified_public' as ListingStatus,
+    status: 'verified_public',
     isSellerVerified: true,
     actualCompanyName: 'Creative Spark Solutions Sdn. Bhd.',
     registeredBusinessName: 'Creative Spark Solutions Sdn. Bhd.',
@@ -204,7 +212,7 @@ export const sampleListings: Listing[] = [
     numberOfEmployees: "1-5",
     createdAt: new Date('2023-09-20T08:00:00Z'),
     updatedAt: new Date('2023-09-20T08:00:00Z'),
-    imageUrls: ['https://placehold.co/600x400.png?text=Agency+Office'],
+    imageUrls: ['https://placehold.co/600x400.png?text=Agency+Office+View', 'https://placehold.co/600x400.png?text=Team+Collaboration'],
     specificGrowthOpportunities: "- Target larger corporate clients.\n- Develop proprietary marketing software/tools.\n- Expand service offerings to include PR and event management.",
     financialSnapshotUrl: '/documents/placeholder-agency-financials.pdf',
     webPresenceInfoUrl: 'https://example-agency.com',
@@ -212,7 +220,7 @@ export const sampleListings: Listing[] = [
   },
    {
     id: '4',
-    sellerId: 'user3',
+    sellerId: 'user3', // Changed to user3 for variety, was user1
     listingTitleAnonymous: 'Modern Cafe in Tourist Hotspot',
     industry: 'Retail',
     locationCountry: 'Thailand',
@@ -222,13 +230,13 @@ export const sampleListings: Listing[] = [
     annualRevenueRange: '$100K - $250K USD',
     netProfitMarginRange: '15% - 25%',
     askingPrice: 220000,
-    status: 'pending_verification' as ListingStatus,
-    isSellerVerified: false,
+    status: 'pending_verification',
+    isSellerVerified: false, // Seller 'user3' is not verified
     businessModel: "Brick-and-mortar retail cafe",
     yearEstablished: 2021,
     createdAt: new Date('2023-12-01T09:00:00Z'),
     updatedAt: new Date('2023-12-01T09:00:00Z'),
-    imageUrls: ['https://placehold.co/600x400.png?text=Cafe+Interior'],
+    imageUrls: ['https://placehold.co/600x400.png?text=Cafe+Interior+Main'],
     inquiryCount: 0,
   },
 ];
@@ -321,6 +329,7 @@ export const sampleSellerInquiries: Inquiry[] = [
   },
 ];
 
+
 const revenueFromBuyersPlaceholder = 5600;
 const revenueFromSellersPlaceholder = 7850;
 const activeSuccessfulConnectionsPlaceholder = 8;
@@ -339,8 +348,8 @@ export const sampleAdminDashboardMetrics: AdminDashboardMetrics = {
   totalActiveBuyers: sampleUsers.filter(u => u.role === 'buyer').length,
   totalPaidBuyers: sampleUsers.filter(u => u.role === 'buyer' && u.isPaid).length,
   totalFreeBuyers: sampleUsers.filter(u => u.role === 'buyer' && !u.isPaid).length,
-  totalActiveListingsAnonymous: sampleListings.filter(l => l.status === 'active' && !l.isSellerVerified).length,
-  totalActiveListingsVerified: sampleListings.filter(l => l.status === 'verified_public' || l.status === 'verified_anonymous').length,
+  totalActiveListingsAnonymous: sampleListings.filter(l => (l.status === 'active' || l.status === 'verified_anonymous') && !l.isSellerVerified).length, // Simplified for now
+  totalActiveListingsVerified: sampleListings.filter(l => (l.status === 'verified_public' || l.status === 'verified_anonymous') && l.isSellerVerified).length,
   totalListingsAllStatuses: sampleListings.length,
   closedOrDeactivatedListings: sampleListings.filter(l => l.status === 'inactive' || l.status === 'closed_deal').length,
   buyerVerificationQueueCount: sampleUsers.filter(u => u.role === 'buyer' && u.verificationStatus === 'pending_verification').length,
@@ -349,7 +358,7 @@ export const sampleAdminDashboardMetrics: AdminDashboardMetrics = {
   successfulConnectionsMTD: activeSuccessfulConnectionsPlaceholder + closedSuccessfulConnectionsPlaceholder,
   activeSuccessfulConnections: activeSuccessfulConnectionsPlaceholder,
   closedSuccessfulConnections: closedSuccessfulConnectionsPlaceholder,
-  dealsClosedMTD: closedSuccessfulConnectionsPlaceholder,
+  dealsClosedMTD: closedSuccessfulConnectionsPlaceholder, // Can be same as closedSuccessfulConnections or a distinct metric
   revenueFromBuyers: revenueFromBuyersPlaceholder,
   revenueFromSellers: revenueFromSellersPlaceholder,
   totalRevenueMTD: revenueFromBuyersPlaceholder + revenueFromSellersPlaceholder,
@@ -390,7 +399,7 @@ export const sampleVerificationRequests: VerificationRequestItem[] = [
    {
     id: 'vr4',
     timestamp: new Date('2023-11-12T09:00:00Z'),
-    userId: 'sellerNew',
+    userId: 'sellerNew', // Assumed new seller not in sampleUsers yet for this queue item
     userName: 'Pending Seller Alpha',
     userRole: 'seller',
     reason: 'New seller account created.',
@@ -471,3 +480,6 @@ export const sampleSellerNotifications: NotificationItem[] = [
     message: "Great news! Both you and Jane Smith (Buyer) for listing 'Profitable E-commerce Store in SEA' are verified and have agreed to engage. Our team will be in touch shortly.",
     link: '/seller-dashboard/inquiries#inq_s1',
     isRead: true,
+    type: 'engagement'
+  }
+];
