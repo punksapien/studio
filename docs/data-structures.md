@@ -82,7 +82,7 @@ Represents a user in the system, accommodating both buyers and sellers with role
 ```typescript
 export type ListingStatus = 'active' | 'inactive' | 'pending_verification' | 'verified_anonymous' | 'verified_public' | 'rejected_by_admin' | 'closed_deal';
 ```
-Defines the status of a business listing.
+Defines the status of a business listing. Note: 'SOLD' can be considered synonymous with 'closed_deal'.
 
 ### `EmployeeCountRange` & `employeeCountRanges`
 ```typescript
@@ -102,11 +102,11 @@ export interface Listing {
   locationCountry: string;
   locationCityRegionGeneral: string;
   anonymousBusinessDescription: string;
-  keyStrengthsAnonymous: string[];
+  keyStrengthsAnonymous: string[]; // Array of strings for bullet points
   annualRevenueRange: string;
   netProfitMarginRange?: string;
-  askingPrice?: number; // Changed from askingPriceRange
-  dealStructureLookingFor?: DealStructure[];
+  askingPrice?: number; // Changed from range to fixed number
+  dealStructureLookingFor?: DealStructure[]; // Array for multi-select
   reasonForSellingAnonymous?: string;
   
   // Detailed Info (for verified view / admin)
@@ -116,7 +116,7 @@ export interface Listing {
   actualCompanyName?: string;
   fullBusinessAddress?: string;
   businessWebsiteUrl?: string;
-  socialMediaLinks?: string;
+  socialMediaLinks?: string; // Could be newline separated string
   numberOfEmployees?: EmployeeCountRange;
   technologyStack?: string;
   
@@ -139,7 +139,7 @@ export interface Listing {
   isSellerVerified: boolean; 
 
   // Media & Documents
-  imageUrls?: string[]; // Changed from single imageUrl
+  imageUrls?: string[]; // Array of image URLs (up to 5)
   financialDocumentsUrl?: string; 
   keyMetricsReportUrl?: string; 
   ownershipDocumentsUrl?: string; 
@@ -156,7 +156,6 @@ export interface Listing {
 ```
 
 ### `Inquiry` System Types
-(No changes to Inquiry types in this update from the user request, but ensuring they are listed)
 ```typescript
 export type InquiryStatusBuyerPerspective =
   | 'Inquiry Sent'
@@ -245,10 +244,10 @@ export interface VerificationRequestItem {
   userRole: UserRole;
   listingId?: string;
   listingTitle?: string;
-  triggeringUserId?: string; // ID of the user whose action triggered this request (e.g. buyer inquiring)
-  reason: string; // e.g., "Buyer profile verification", "Seller listing verification for [Listing XYZ]"
-  status: VerificationQueueStatus; // Status of this request in the admin queue
-  documentsSubmitted?: { name: string, type: 'id_proof' | 'business_reg' | 'financials' }[]; // Placeholder for document tracking
+  triggeringUserId?: string; 
+  reason: string; 
+  status: VerificationQueueStatus; 
+  documentsSubmitted?: { name: string, type: 'id_proof' | 'business_reg' | 'financials' }[]; 
 }
 ```
 
@@ -269,7 +268,7 @@ export interface ReadyToEngageItem {
 }
 ```
 
-### `NotificationItem` Interface
+### `NotificationItem` Interface (Updated)
 ```typescript
 export type NotificationType = 'inquiry' | 'verification' | 'system' | 'engagement' | 'listing_update';
 
@@ -280,12 +279,22 @@ export interface NotificationItem {
   link?: string; 
   isRead: boolean;
   userId: string; 
-  type: NotificationType;
+  type: NotificationType; // Ensured type is present
 }
 ```
 
-### `placeholderKeywords`
+### Constants for Filters/Dropdowns (Updated)
 ```typescript
+export const revenueRanges = [
+  "< $50K USD", "$50K - $100K USD", "$100K - $250K USD",
+  "$250K - $500K USD", "$500K - $1M USD", "$1M+ USD"
+];
+export const profitMarginRanges = [
+  "< 0% (Loss-making)", "0% - 10%", "10% - 20%",
+  "20% - 30%", "30%+"
+];
+// askingPriceRanges is removed as askingPrice is now a fixed number
+
 export const placeholderKeywords: string[] = ["SaaS", "E-commerce", "Retail", "Service Business", "High Growth", "Profitable", "Fintech", "Logistics", "Healthcare Tech"];
 ```
 
@@ -302,7 +311,7 @@ Zod schemas are primarily defined inline within their respective form page compo
 *   Fields: `fullName`, `email`, `password`, `confirmPassword`, `phoneNumber`, `country`, `initialCompanyName` (optional).
 
 ### Login Schema (`/app/auth/login/page.tsx`)
-*   Fields: `email`, `password`.
+*   Fields: `email`, `password`. (OTP flow is handled post this initial check)
 
 ### OTP Schema (`/app/(auth)/verify-otp/page.tsx`)
 *   Fields: `otp` (6 digits).
@@ -321,14 +330,20 @@ Zod schemas are primarily defined inline within their respective form page compo
 ### Password Change Schema (`/app/dashboard/settings/page.tsx` and `/app/seller-dashboard/settings/page.tsx`)
 *   Fields: `currentPassword`, `newPassword`, `confirmNewPassword`.
 
-### Listing Creation/Edit Schema (`/app/seller-dashboard/listings/create/page.tsx` and `/app/seller-dashboard/listings/[listingId]/edit/page.tsx`)
-*   **Updated Fields:**
-    *   Anonymous: `listingTitleAnonymous`, `industry`, `locationCountry`, `locationCityRegionGeneral`, `anonymousBusinessDescription`, `keyStrengthsAnonymous` (array of strings), `annualRevenueRange`, `netProfitMarginRange` (optional), `reasonForSellingAnonymous` (optional).
-    *   Detailed/Verified: `businessModel` (optional), `yearEstablished` (optional number), `registeredBusinessName` (optional), `businessWebsiteUrl` (optional URL), `socialMediaLinks` (optional), `numberOfEmployees` (optional enum), `technologyStack` (optional).
-    *   Financials: `askingPrice` (optional number - **changed from range**), `adjustedCashFlow` (optional number - **added**), `adjustedCashFlowExplanation` (optional - **added**), `specificAnnualRevenueLastYear` (optional number), `specificNetProfitLastYear` (optional number).
-    *   Deal & Seller: `dealStructureLookingFor` (optional array of strings - **now multi-select**), `detailedReasonForSelling` (optional), `sellerRoleAndTimeCommitment` (optional), `postSaleTransitionSupport` (optional).
-    *   Growth: `specificGrowthOpportunities` (optional string for bullet points - **narrative removed**).
-    *   Image URLs: `imageUrl1` through `imageUrl5` (optional URLs, combined into `imageUrls` array).
+### Listing Creation/Edit Schema (`/app/seller-dashboard/listings/create/page.tsx` and `/app/seller-dashboard/listings/[listingId]/edit/page.tsx`) - Updated
+*   **Anonymous Info:** `listingTitleAnonymous`, `industry`, `locationCountry`, `locationCityRegionGeneral`, `anonymousBusinessDescription`, `keyStrengthsAnonymous` (array of strings), `annualRevenueRange`, `netProfitMarginRange` (optional), `reasonForSellingAnonymous` (optional).
+*   **Detailed/Verified Business Info:** `businessModel` (optional), `yearEstablished` (optional number), `registeredBusinessName` (optional), `businessWebsiteUrl` (optional URL), `socialMediaLinks` (optional), `numberOfEmployees` (optional enum `employeeCountRanges`), `technologyStack` (optional).
+*   **Financials:**
+    *   `askingPrice` (optional number - **changed from range to fixed number**).
+    *   `specificAnnualRevenueLastYear` (optional number).
+    *   `specificNetProfitLastYear` (optional number).
+    *   `adjustedCashFlow` (optional number - **added**).
+    *   `adjustedCashFlowExplanation` (optional string for adjusted cash flow - **added**).
+*   **Deal & Seller Info:** `dealStructureLookingFor` (optional array of strings from multi-select checkboxes), `detailedReasonForSelling` (optional), `sellerRoleAndTimeCommitment` (optional), `postSaleTransitionSupport` (optional).
+*   **Growth:** `specificGrowthOpportunities` (optional string for newline-separated bullet points - narrative removed).
+*   **Image URLs:** `imageUrl1` through `imageUrl5` (optional URLs, combined into `imageUrls` array upon form submission).
 *   Rules: Includes min/max lengths, array validation, URL validation, number constraints.
 
-These types and schemas are fundamental to maintaining data
+These types and schemas are fundamental to maintaining data integrity.
+
+    

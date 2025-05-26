@@ -175,14 +175,14 @@ All actions require an authenticated 'SELLER' role. The `seller_id` (which is th
         *   Query `user_profiles` (D1) to confirm `role` is 'SELLER'. If not, return 403 Forbidden.
     2.  **Receive Request:** Worker receives POST with all listing data as per `ListingSchema`. This includes anonymous fields, detailed/verified fields, financial ranges and specifics (including new `askingPrice` (number) and `adjustedCashFlow`), deal info, growth opportunities, and `imageUrls` array.
     3.  **Validate Input:** Use Zod `ListingSchema` (or an equivalent API schema) for comprehensive validation. If fails, return 400.
-    4.  **Conceptual File Handling (R2 - see Section VI for full flow):** For fields like `financialDocumentsUrl`, `keyMetricsReportUrl`, etc., and image URLs if direct upload is supported beyond just string URLs. For `imageUrls` provided as strings, simply store them.
+    4.  **Conceptual File Handling (R2 - see Section VI for full flow):** For fields like `financialDocumentsUrl`, `keyMetricsReportUrl`, etc., and image URLs if direct upload is supported beyond just string URLs. For `imageUrls` provided as strings from the form (e.g. `imageUrl1`, `imageUrl2`), simply store them as an array in the D1 record. The actual file upload process would be separate (see Section VI).
     5.  **Create Listing Record (D1 Insert):**
         *   Generate a unique `listing_id` (e.g., UUID).
         *   Fetch seller's current `verification_status` from their `user_profiles` (D1).
         *   Insert into `listings` table (D1) with:
             *   `listing_id`, `seller_id`.
-            *   All validated fields from the request (e.g., `listingTitleAnonymous`, `industry`, `askingPrice` (number), `adjustedCashFlow` (number), `adjustedCashFlowExplanation`, `specificGrowthOpportunities` (as newline string for bullets), etc.). Store `imageUrls` as a JSON string or in a related table if preferred.
-            *   Placeholders for document URLs (e.g., `financial_documents_url`) set to `NULL` initially if not provided/handled yet.
+            *   All validated fields from the request (e.g., `listingTitleAnonymous`, `industry`, `askingPrice` (number), `adjustedCashFlow` (number), `adjustedCashFlowExplanation`, `specificGrowthOpportunities` (as newline string for bullets), etc.). Store `imageUrls` as a JSON string array.
+            *   Placeholders for document URLs (e.g., `financial_documents_url`) set to `NULL` initially if not provided/handled yet via the R2 flow.
             *   `status`: Default to `'ACTIVE_ANONYMOUS'`.
             *   `is_seller_verified`: Set to `true` if seller profile `verification_status = 'VERIFIED'`, else `false`.
             *   Timestamps: `created_at`, `updated_at`.
@@ -243,7 +243,7 @@ All actions require an authenticated 'SELLER' role. The `seller_id` (which is th
 *   **Triggering UI:** `/marketplace` page load, filter changes, sorting, pagination.
 *   **Conceptual Next.js API Route:** `GET /api/listings`.
 *   **Detailed Backend Worker Logic:**
-    1.  **Receive Request:** GET with optional query parameters: `page`, `limit`, `industry`, `country`, `revenueRange`, `maxAskingPrice` (for fixed price filtering), `keywords` (can be an array if multi-select implemented), `sortBy`, `sortOrder`.
+    1.  **Receive Request:** GET with optional query parameters: `page`, `limit`, `industry`, `country`, `revenueRange`, `maxAskingPrice` (for fixed price filtering), `keywords` (array of strings from checkboxes), `sortBy`, `sortOrder`.
     2.  **Validate Query Parameters.**
     3.  **Determine Requesting Buyer's Status (Conceptual):** Check auth. If authenticated, get `user_id`, query D1 `user_profiles` for `verification_status` and `is_paid`.
     4.  **Construct SQL Query for D1 (`listings` table):**
@@ -252,13 +252,13 @@ All actions require an authenticated 'SELLER' role. The `seller_id` (which is th
             *   Always: `listings.status IN ('ACTIVE_ANONYMOUS', 'VERIFIED_ANONYMOUS', 'VERIFIED_PUBLIC')`.
             *   Apply filters for `industry`, `country`, `revenueRange`.
             *   For `maxAskingPrice`: `AND askingPrice <= ?`.
-            *   For `keywords` (if array): Build dynamic `OR` conditions (e.g., `(listingTitleAnonymous LIKE '%key1%' OR anonymousBusinessDescription LIKE '%key1%') OR (listingTitleAnonymous LIKE '%key2%' OR anonymousBusinessDescription LIKE '%key2%')`). Consider D1's full-text search capabilities if available for better performance.
+            *   For `keywords` (array): Build dynamic `OR` conditions for each keyword against `listingTitleAnonymous` and `anonymousBusinessDescription` (e.g., `(listingTitleAnonymous LIKE '%key1%' OR anonymousBusinessDescription LIKE '%key1%') OR (listingTitleAnonymous LIKE '%key2%' OR anonymousBusinessDescription LIKE '%key2%')`). Consider D1's full-text search capabilities if available for better performance.
         *   **Sorting (`ORDER BY`):** Based on `sortBy` and `sortOrder` (e.g., `listings.created_at DESC`, `listings.askingPrice ASC`).
         *   **Pagination:** `LIMIT ? OFFSET ?`.
     5.  **Execute Query & Fetch Total Count:** Main query and a `SELECT COUNT(*)` with same filters.
     6.  **Return Success Response:** 200 OK with `{ listings: [...], currentPage, totalPages, totalListings }`.
 
-### B. Fetch Single Listing Details (`/listings/[listingId]`)
+### B. Fetch Single Listing Details (`/app/listings/[listingId]`)
 
 *   **Triggering UI:** Navigating to a specific listing detail page.
 *   **Conceptual Next.js API Route:** `GET /api/listings/[listingId]`.
@@ -267,12 +267,12 @@ All actions require an authenticated 'SELLER' role. The `seller_id` (which is th
     2.  **Determine Requesting Buyer's Status:** (As in "Fetch All Listings").
     3.  **Fetch Listing and Seller Data (D1 Queries):**
         *   `SELECT * FROM listings WHERE listing_id = ?`. If not found or not publicly visible (e.g., status is INACTIVE or REJECTED_BY_ADMIN), return 404.
-        *   If listing found, `SELECT user_id AS seller_user_id, verification_status AS seller_platform_verification_status FROM user_profiles WHERE user_id = fetched_listing.seller_id`.
+        *   If listing found, `SELECT user_id AS seller_user_id, verification_status AS seller_platform_verification_status, is_paid as seller_is_paid FROM user_profiles WHERE user_id = fetched_listing.seller_id`.
     4.  **Construct Response Object (Conditional Data Exposure):**
-        *   **Always include:** All public/anonymous fields (`listingTitleAnonymous`, `industry`, `locationCountry`, `locationCityRegionGeneral`, `anonymousBusinessDescription`, `keyStrengthsAnonymous`, `annualRevenueRange`, `netProfitMarginRange`, `askingPrice`, `dealStructureLookingFor`, `reasonForSellingAnonymous`, `imageUrls` (first URL or primary for anonymous view), `is_seller_verified`, `created_at`).
+        *   **Always include:** All public/anonymous fields (`listingTitleAnonymous`, `industry`, `locationCountry`, `locationCityRegionGeneral`, `anonymousBusinessDescription`, `keyStrengthsAnonymous`, `annualRevenueRange`, `netProfitMarginRange`, `askingPrice` (number), `dealStructureLookingFor`, `reasonForSellingAnonymous`, `imageUrls` (first URL or primary for anonymous view), `is_seller_verified`, `created_at`, `specificGrowthOpportunities` (newline separated bullet points for all to see).
         *   **Conditionally Include Verified/Detailed Information:**
             *   Condition: `listing.is_seller_verified === true` AND authenticated buyer has `verification_status === 'VERIFIED'` AND `is_paid === true`.
-            *   If met, additionally include: `actualCompanyName`, `registeredBusinessName`, `yearEstablished`, `fullBusinessAddress`, `businessWebsiteUrl`, `socialMediaLinks`, `numberOfEmployees`, `technologyStack`, `specificAnnualRevenueLastYear`, `specificNetProfitLastYear`, `adjustedCashFlow`, `adjustedCashFlowExplanation`, `detailedReasonForSelling`, `sellerRoleAndTimeCommitment`, `postSaleTransitionSupport`, `specificGrowthOpportunities` (full text), all `imageUrls`, and URLs/keys for uploaded documents (`financialDocumentsUrl`, `keyMetricsReportUrl`, `ownershipDocumentsUrl`, `financialSnapshotUrl`, `ownershipDetailsUrl`, `locationRealEstateInfoUrl`, `webPresenceInfoUrl`, `secureDataRoomLink`).
+            *   If met, additionally include: `actualCompanyName`, `registeredBusinessName`, `yearEstablished`, `fullBusinessAddress`, `businessWebsiteUrl`, `socialMediaLinks`, `numberOfEmployees`, `technologyStack`, `specificAnnualRevenueLastYear`, `specificNetProfitLastYear`, `adjustedCashFlow`, `adjustedCashFlowExplanation`, `detailedReasonForSelling`, `sellerRoleAndTimeCommitment`, `postSaleTransitionSupport`, all `imageUrls`, and URLs/keys for uploaded documents (`financialDocumentsUrl`, `keyMetricsReportUrl`, `ownershipDocumentsUrl`, `financialSnapshotUrl`, `ownershipDetailsUrl`, `locationRealEstateInfoUrl`, `webPresenceInfoUrl`, `secureDataRoomLink`).
             *   If not met, these fields are omitted or set to placeholder like "Access Restricted".
     5.  **Return Success Response:** 200 OK with the constructed listing object.
 
@@ -339,7 +339,7 @@ All API endpoints require user authentication. `user_id` from session is key.
     *   **Conceptual API (GET):** `/api/inquiries?role=buyer` (or derive role from session).
     *   **Backend Logic (D1 Query):** `SELECT i.id, i.listing_id, i.inquiry_timestamp, i.status AS system_status, l.listingTitleAnonymous, l.is_seller_verified AS listing_seller_is_verified, seller_profile.verification_status AS seller_platform_verification_status FROM inquiries i JOIN listings l ON i.listing_id = l.listing_id JOIN user_profiles seller_profile ON l.seller_id = seller_profile.user_id WHERE i.buyer_id = ? ORDER BY i.inquiry_timestamp DESC`.
     *   Map to `statusBuyerPerspective`. Return list.
-    *   **Action: "Proceed to Verification" Button:** UI navigation to `/dashboard/verification`.
+    *   **Action: "Proceed to Verification" Button:** UI navigation to `/dashboard/verification`. Backend interaction handled by verification request API.
 
 4.  **Verification (`/dashboard/verification/page.tsx`)**
     *   **Data Needed:** Buyer's `verification_status` (via profile API).
@@ -352,7 +352,7 @@ All API endpoints require user authentication. `user_id` from session is key.
         *   **Backend Logic:** Authenticate. `UPDATE notifications SET is_read = true WHERE notification_id = ? AND user_id = ?`. Return 200 OK.
 
 6.  **Settings (`/dashboard/settings/page.tsx`)**
-    *   **Password Change API (PUT):** `/api/auth/change-password` (shared endpoint, moved UI trigger here).
+    *   **Password Change API (PUT):** `/api/auth/change-password` (shared endpoint, UI trigger moved here).
         *   **Backend Logic:**
             1.  Authenticate user, get `user_id`.
             2.  Receive `currentPassword`, `newPassword`. Validate.
@@ -360,6 +360,8 @@ All API endpoints require user authentication. `user_id` from session is key.
             4.  Verify `currentPassword`.
             5.  If valid, hash `newPassword` with new salt, `UPDATE user_profiles SET hashed_password = ?, password_salt = ? WHERE user_id = ?`.
             6.  Return 200 OK or error.
+    *   **Notification Preferences (Conceptual API):** `PUT /api/profile/notification-preferences`
+        *   **Backend Logic:** Authenticate user. Receive preference flags (e.g., `email_new_inquiry: boolean`, `email_listing_updates: boolean`). Update corresponding fields in `user_profiles` table. Return success.
 
 ### B. Seller Dashboard
 
@@ -403,15 +405,16 @@ All API endpoints require user authentication. `user_id` from session is key.
             2.  Fetch inquiry from D1. Verify ownership (`inquiry.seller_id === user_id`).
             3.  If `inquiry.status` not 'NEW_INQUIRY', return error.
             4.  Fetch buyer's profile (D1): `SELECT verification_status AS buyer_verification_status, is_paid AS buyer_is_paid FROM user_profiles WHERE user_id = inquiry.buyer_id`.
-            5.  Fetch seller's listing (D1): `SELECT is_seller_verified FROM listings WHERE listing_id = inquiry.listing_id`.
+            5.  Fetch seller's listing (D1): `SELECT is_seller_verified, status as listing_status FROM listings WHERE listing_id = inquiry.listing_id`. (Need listing_status for seller verification path).
             6.  Fetch seller's profile (D1): `SELECT verification_status AS seller_verification_status FROM user_profiles WHERE user_id = inquiry.seller_id`.
             7.  **Implement Engagement Flow Logic (from MVP document):**
-                *   Set `next_inquiry_status`.
-                *   If buyer is 'ANONYMOUS'/'PENDING_VERIFICATION': `status = 'SELLER_ENGAGED_BUYER_PENDING_VERIFICATION'`. Notify Buyer to verify. Add to Admin Verification Queue.
-                *   Else if seller's profile/listing is not verified: `status = 'SELLER_ENGAGED_SELLER_PENDING_VERIFICATION'`. Notify Seller to verify. Add to Admin Verification Queue.
-                *   Else (Both Buyer and Seller/Listing are verified): `status = 'READY_FOR_ADMIN_CONNECTION'`. Notify Admin. Notify Buyer & Seller.
+                *   Determine `next_inquiry_status`.
+                *   If buyer `verification_status` is 'ANONYMOUS' or 'PENDING_VERIFICATION': `next_inquiry_status = 'SELLER_ENGAGED_BUYER_PENDING_VERIFICATION'`. Notify Buyer to verify. Add to Admin Verification Queue (conceptual - or Buyer triggers it themselves).
+                *   Else if seller's profile `verification_status` is NOT 'VERIFIED' OR listing `is_seller_verified` is false (and listing `status` isn't already `VERIFIED_ANONYMOUS` or `VERIFIED_PUBLIC`): `next_inquiry_status = 'SELLER_ENGAGED_SELLER_PENDING_VERIFICATION'`. Notify Seller to verify profile/listing. Add to Admin Verification Queue (conceptual - or Seller triggers it themselves).
+                *   Else (Both Buyer and Seller/Listing are effectively verified for this interaction): `next_inquiry_status = 'READY_FOR_ADMIN_CONNECTION'`. Notify Admin. Notify Buyer & Seller.
             8.  Update `inquiries` table (D1): `SET status = ?, engagement_timestamp = DATETIME('now') WHERE inquiry_id = ?`.
-            9.  Return 200 OK.
+            9.  Trigger appropriate notifications.
+            10. Return 200 OK.
 
 6.  **Verification (`/seller-dashboard/verification/page.tsx`)**
     *   **Data Fetching API (GET):** `/api/seller-dashboard/verification-data`.
@@ -425,6 +428,8 @@ All API endpoints require user authentication. `user_id` from session is key.
 8.  **Settings (`/seller-dashboard/settings/page.tsx`)**
     *   **Password Change API (PUT):** `/api/auth/change-password` (shared endpoint).
         *   (Same logic as Buyer's password change in Section IV.A.6).
+    *   **Notification Preferences (Conceptual API):** `PUT /api/profile/notification-preferences`
+        *   (Same logic as Buyer's notification preferences in Section IV.A.6).
 
 ---
 
@@ -456,25 +461,31 @@ All Admin APIs require ADMIN role authentication (e.g., check role in `user_prof
     *   **Backend Logic:** Receive `userId`. Fetch user's email from D1. Call shared OTP logic (type 'PASSWORD_RESET'). Log. Return 200 OK.
 
 6.  **Delete User (`DELETE /api/admin/users/[userId]`)**
-    *   **Backend Logic:** Receive `userId`.
-        *   Soft delete: `UPDATE user_profiles SET is_deleted = true, deleted_at = DATETIME('now'), email = original_email || '_deleted_' || uuid() WHERE user_id = ?`.
-        *   Deactivate/anonymize associated listings/inquiries.
-        *   Log action. Return 200 OK/204.
+    *   **Request Body:** `{ confirmation_phrase: string }` (e.g., "DELETE USER PERMANENTLY")
+    *   **Backend Logic:**
+        1.  Receive `userId` and `confirmation_phrase`. Validate confirmation.
+        2.  (Soft Delete Recommended) Update `user_profiles`: `SET is_deleted = true, deleted_at = DATETIME('now'), email = original_email || '_deleted_' || uuid() WHERE user_id = ?`.
+        3.  (Consider implications): Deactivate/anonymize associated listings. Mark associated inquiries as archived/system_closed.
+        4.  Log action. Return 200 OK/204.
 
 ### B. Listing Management
 
 1.  **List All Listings (`GET /api/admin/listings`)**
-    *   **Backend Logic (D1 Query):** `SELECT l.*, u.full_name as seller_name, u.is_paid as seller_is_paid, u.verification_status as seller_verification_status FROM listings l JOIN user_profiles u ON l.seller_id = u.user_id`. Apply filters and pagination. Return list.
+    *   **Backend Logic (D1 Query):** `SELECT l.*, u.full_name as seller_name, u.is_paid as seller_is_paid, u.verification_status as seller_verification_status FROM listings l JOIN user_profiles u ON l.seller_id = u.user_id`. Apply filters (status, seller verification, industry, search) and pagination. Return list.
 
 2.  **View Full Listing Details (Admin) (`GET /api/admin/listings/[listingId]`)**
-    *   **Backend Logic (D1 Query):** `SELECT * FROM listings WHERE listing_id = ?`. Join with `user_profiles` for seller details. Return ALL fields.
+    *   **Backend Logic (D1 Query):** `SELECT * FROM listings WHERE listing_id = ?`. Join with `user_profiles` for seller details. Return ALL fields including document placeholders.
 
 3.  **Update Listing Status (Admin) (`PUT /api/admin/listings/[listingId]/status`)**
     *   **Request Body:** `{ new_status: ListingStatus, admin_notes?: string }`.
     *   **Backend Logic:** Receive `listingId`, `new_status`, `admin_notes`. Validate. Fetch listing.
         *   D1 Transaction: `UPDATE listings SET status = ?, admin_notes = COALESCE(?, admin_notes), updated_at = DATETIME('now') WHERE listing_id = ?`.
-        *   Conditional: If `new_status` is 'VERIFIED_PUBLIC' or 'VERIFIED_ANONYMOUS', `UPDATE listings SET is_seller_verified = true`. Potentially update seller's profile to 'VERIFIED'.
+        *   Conditional: If `new_status` is 'VERIFIED_PUBLIC' or 'VERIFIED_ANONYMOUS', also `SET is_seller_verified = true`. If approving from `PENDING_VERIFICATION`, potentially update associated `verification_requests` status.
         *   Log action. Notify seller. Commit. Return 200 OK.
+
+4.  **Admin Edit Listing Details (`PUT /api/admin/listings/[listingId]/details`)**
+    *   **Request Body:** Partial `ListingSchema` (subset of fields admin can edit, e.g., correct typos).
+    *   **Backend Logic:** Receive `listingId`, fields to update. Authenticate admin. Validate. Update `listings` table in D1. Log. Return updated listing.
 
 ### C. Verification Queues
 
@@ -487,15 +498,18 @@ All Admin APIs require ADMIN role authentication (e.g., check role in `user_prof
 3.  **Update Verification Request Status (`PUT /api/admin/verification-requests/[requestId]/status`)**
     *   **Request Body:** `{ new_queue_status: VerificationQueueStatus, admin_notes?: string }`.
     *   **Backend Logic:** Receive `requestId`, `new_queue_status`, `admin_notes`. Validate. Fetch request.
-        *   D1 Transaction: Update `verification_requests.status`.
-        *   If 'Approved': Update `user_profiles.verification_status` or `listings.status` and `listings.is_seller_verified`. Potentially mark seller profile as 'VERIFIED'.
-        *   If 'Rejected': Update `user_profiles.verification_status` to 'REJECTED' or `listings.status` to 'REJECTED_BY_ADMIN'.
+        *   D1 Transaction: Update `verification_requests.status = new_queue_status`, `verification_requests.admin_notes = admin_notes`.
+        *   If `new_queue_status` is 'Approved':
+            *   Fetch associated `user_id` and `listing_id` (if any) from the `verification_requests` record.
+            *   If request was for 'PROFILE_BUYER' or 'PROFILE_SELLER', update `user_profiles.verification_status = 'VERIFIED'`.
+            *   If request was for 'LISTING', update `listings.status = 'VERIFIED_ANONYMOUS'` (or 'VERIFIED_PUBLIC' based on admin choice/listing content) and `listings.is_seller_verified = true`. Also, ensure associated seller's `user_profiles.verification_status` is 'VERIFIED'.
+        *   If `new_queue_status` is 'Rejected': Update `user_profiles.verification_status = 'REJECTED'` or `listings.status = 'REJECTED_BY_ADMIN'`.
         *   Log. Notify user. Commit. Return 200 OK.
 
 ### D. Engagement Queue
 
 1.  **Fetch Engagements Ready for Connection (`GET /api/admin/engagements` or `/api/admin/inquiries?status=READY_FOR_ADMIN_CONNECTION`)**
-    *   **Backend Logic (D1 Query):** `SELECT i.id AS inquiry_id, ..., buyer.*, seller.*, l.* FROM inquiries i JOIN user_profiles buyer ON i.buyer_id = buyer.user_id JOIN user_profiles seller ON i.seller_id = seller.user_id JOIN listings l ON i.listing_id = l.listing_id WHERE i.status = 'READY_FOR_ADMIN_CONNECTION' ORDER BY i.engagement_timestamp ASC`. Paginate. Return list.
+    *   **Backend Logic (D1 Query):** `SELECT i.id AS inquiry_id, i.listing_id, i.buyer_id, i.seller_id, i.engagement_timestamp, buyer.full_name AS buyer_name, buyer.email AS buyer_email, buyer.phone_number AS buyer_phone, seller.full_name AS seller_name, seller.email AS seller_email, seller.phone_number AS seller_phone, l.listingTitleAnonymous FROM inquiries i JOIN user_profiles buyer ON i.buyer_id = buyer.user_id JOIN user_profiles seller ON i.seller_id = seller.user_id JOIN listings l ON i.listing_id = l.listing_id WHERE i.status = 'READY_FOR_ADMIN_CONNECTION' ORDER BY i.engagement_timestamp ASC`. Paginate. Return list.
 
 2.  **Update Engagement Status (`PUT /api/admin/engagements/[inquiryId]/status`)**
     *   **Request Body:** `{ new_status: 'CONNECTION_FACILITATED', admin_notes?: string }`.
@@ -507,20 +521,22 @@ All Admin APIs require ADMIN role authentication (e.g., check role in `user_prof
     *   Total Users (Sellers vs Buyers): `SELECT role, COUNT(*) FROM user_profiles GROUP BY role`.
     *   Paid/Free Breakdown: `SELECT role, is_paid, COUNT(*) FROM user_profiles GROUP BY role, is_paid`.
     *   Verification Status Breakdown: `SELECT role, verification_status, COUNT(*) FROM user_profiles GROUP BY role, verification_status`.
-    *   New User Registrations (24h/7d): `SELECT COUNT(*) FROM user_profiles WHERE created_at >= DATETIME('now', '-X days')`.
+    *   New User Registrations (24h/7d): `SELECT COUNT(*) FROM user_profiles WHERE created_at >= DATETIME('now', '-X days')`. Split by role if needed.
 *   **Listing Metrics:**
     *   Total Listings (All Statuses): `SELECT COUNT(*) FROM listings`.
-    *   Active Listings (Verified vs Anonymous): `SELECT is_seller_verified, COUNT(*) FROM listings WHERE status IN ('ACTIVE_ANONYMOUS', 'VERIFIED_ANONYMOUS', 'VERIFIED_PUBLIC') GROUP BY is_seller_verified`.
-    *   Deactivated/Closed Listings: `SELECT COUNT(*) FROM listings WHERE status IN ('INACTIVE', 'CLOSED_DEAL')`.
+    *   Active Listings (Verified vs Anonymous): `SELECT status, COUNT(*) FROM listings WHERE status IN ('ACTIVE_ANONYMOUS', 'VERIFIED_ANONYMOUS', 'VERIFIED_PUBLIC') GROUP BY status`.
+    *   Closed/Deactivated Listings: `SELECT COUNT(*) FROM listings WHERE status IN ('INACTIVE', 'CLOSED_DEAL')`.
     *   New Listings Created (24h/7d): `SELECT COUNT(*) FROM listings WHERE created_at >= DATETIME('now', '-X days')`.
     *   Listings by Industry: `SELECT industry, COUNT(*) FROM listings WHERE status IN ('ACTIVE_ANONYMOUS', 'VERIFIED_ANONYMOUS', 'VERIFIED_PUBLIC') GROUP BY industry`.
-    *   Listings by Asking Price (Ranges): Requires bucketing `listings.askingPrice` using CASE statements (if D1 supports this well, or multiple queries).
+    *   Listings by Asking Price (Ranges): Requires bucketing `listings.askingPrice` (numeric) using CASE statements (if D1 supports this well, or multiple queries).
 *   **Engagement/Deal Flow Metrics:**
     *   Total Inquiries by Status: `SELECT status, COUNT(*) FROM inquiries GROUP BY status`.
     *   Successful Connections Facilitated MTD: `SELECT COUNT(*) FROM inquiries WHERE status = 'CONNECTION_FACILITATED' AND engagement_timestamp >= [start_of_month]`.
+    *   Active Successful Connections: `SELECT COUNT(*) FROM inquiries WHERE status = 'CONNECTION_FACILITATED' AND (deal_closed_timestamp IS NULL OR deal_status != 'CLOSED')` (assuming future deal tracking fields).
+    *   Closed Successful Connections/Deals Closed MTD: `SELECT COUNT(*) FROM inquiries WHERE status = 'CONNECTION_FACILITATED' AND deal_closed_timestamp >= [start_of_month] AND deal_status = 'CLOSED'` (assuming future deal tracking fields).
 *   **Revenue Metrics (Conceptual - assuming a `subscriptions` table):**
     *   Total Revenue MTD: `SELECT SUM(amount) FROM subscriptions WHERE status = 'ACTIVE' AND transaction_date >= [start_of_month]`.
-    *   Revenue from Buyers/Sellers: Filter `subscriptions` by `user_profiles.role`.
+    *   Revenue from Buyers/Sellers: Filter `subscriptions` by joining with `user_profiles.role`.
 
 ---
 
@@ -529,33 +545,37 @@ All Admin APIs require ADMIN role authentication (e.g., check role in `user_prof
 This outlines the intended multi-step process for handling file uploads (e.g., listing images, verification documents) from the frontend to Cloudflare R2, and linking them to Cloudflare D1 records.
 
 1.  **Step 1: Frontend Requests Pre-signed URL for Upload**
-    *   **Triggering UI:** User selects a file in an `<Input type="file">` (e.g., Create/Edit Listing form).
+    *   **Triggering UI:** User selects a file in an `<Input type="file">` (e.g., Create/Edit Listing form, Profile Verification form).
     *   **Frontend Action:** Makes API request to (e.g., `POST /api/upload/generate-signed-url`).
-    *   **Request Body:** `{ filename: string, contentType: string, context: 'listing_image' | 'verification_document', entityId?: string (e.g., listingId), documentType?: string }`.
+    *   **Request Body:** `{ filename: string, contentType: string, context: 'listing_image' | 'verification_document_buyer' | 'verification_document_seller_profile' | 'verification_document_listing', entityId?: string (e.g., listingId, userId), documentType?: string (e.g., 'financial_statement', 'id_proof') }`.
 2.  **Step 2: Backend Worker Generates Pre-signed R2 URL**
     *   **Conceptual Next.js API Route:** `POST /api/upload/generate-signed-url`.
     *   **Cloudflare Worker Logic:**
-        1.  **Authenticate User & Authorize:** Based on `context` and `entityId`.
+        1.  **Authenticate User & Authorize:** Based on `context` and `entityId` (e.g., ensure seller owns listing if `context='listing_image'`).
         2.  **Validate Request Body.**
-        3.  **Construct R2 Object Key:** Generate unique, secure key (e.g., `listings/${listingId}/images/${uuidv4()}-${sanitized_filename}`).
+        3.  **Construct R2 Object Key:** Generate unique, secure key (e.g., `listings/${listingId}/images/${uuidv4()}-${sanitized_filename}` or `verification_docs/${userId}/${documentType}/${uuidv4()}-${sanitized_filename}`).
         4.  **Use Cloudflare R2 SDK/API:** Call R2 method to generate a pre-signed URL for a `PUT` operation (specify bucket, key, expiry, contentType).
         5.  **Return Success Response:** 200 OK with `{ signedUrl: string, objectKey: string }`.
 3.  **Step 3: Frontend Uploads File Directly to R2**
     *   **Frontend Action:** Uses `fetch` API (`PUT`) to `signedUrl` with the file as body. `Content-Type` header must match.
-4.  **Step 4: Frontend Notifies Backend of Successful Upload**
+4.  **Step 4: Frontend Notifies Backend of Successful Upload & Links File to Entity**
     *   **Triggering UI:** After successful R2 upload.
-    *   **Frontend Action:** Makes API request (e.g., `POST /api/listings/[listingId]/documents`).
-    *   **Request Body:** `{ documentType: string, fileKey: string (R2 objectKey), originalFilename: string, ... }`.
+    *   **Frontend Action:** Makes API request (e.g., `POST /api/upload/confirm-and-link`).
+    *   **Request Body:** `{ objectKey: string (R2 objectKey), originalFilename: string, context: 'listing_image' | ..., entityId: string (listingId or userId), documentType?: string, imageUrlIndex?: number (if for listing images array) }`.
+    *   **(Alternative for listing images from text inputs):** If image URLs are just text inputs in the form, the main "Create/Edit Listing" API (Section II.A/B) handles saving these string URLs. The pre-signed URL flow would be for direct file uploads for *documents*.
 5.  **Step 5: Backend Worker Updates D1 Database with File Reference**
-    *   **Conceptual Next.js API Route:** e.g., `POST /api/listings/[listingId]/documents`.
+    *   **Conceptual Next.js API Route:** e.g., `POST /api/upload/confirm-and-link`.
     *   **Cloudflare Worker Logic:**
         1.  **Authenticate User & Authorize.**
         2.  **Validate Request Body.**
         3.  **Update D1 Database:**
-            *   **For listings:** If `documentType` is image, update `listings.imageUrls` array (JSON in D1 or related table). If specific document field (e.g., `financial_documents_url`), update that field with `fileKey` or public R2 URL.
-            *   **For profile verification:** Update `user_profiles` (e.g., `id_proof_document_key = ?`) or insert into `user_verification_documents` table.
+            *   **For listings (if `context='listing_document'`):** Update specific document URL field in `listings` table (e.g., `financial_documents_url = objectKey`).
+            *   **For profile verification (if `context='verification_document_...'`):** Update `user_profiles` (e.g., `id_proof_document_key = objectKey`) or insert into a separate `user_verification_documents` table linked to `user_id` and `verification_request_id`.
+            *   **Note on `imageUrls` for Listings:** If using direct file uploads for listing images, the array of `objectKey`s would be stored in `listings.imageUrls`. If sellers provide external URLs via text inputs, those strings are stored directly.
         4.  **Return Success Response:** 200 OK.
 
 ---
 
-This updated document provides a comprehensive plan for the backend implementation.
+This document provides a comprehensive plan for the backend implementation.
+
+    
