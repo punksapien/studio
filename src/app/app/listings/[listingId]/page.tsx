@@ -9,10 +9,11 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { 
-  MapPin, DollarSign, Briefcase, ShieldCheck, MessageSquare, CalendarDays, Users as UsersIcon, 
-  Info, TrendingUp, Tag, HandCoins, FileText, Link as LinkIcon, Building, Brain, 
-  BookOpen, ExternalLink, UserCircle, Globe, Users2, Images as ImagesIcon, Banknote, Eye
+import {
+  MapPin, DollarSign, Briefcase, ShieldCheck, MessageSquare, CalendarDays, UserCircle,
+  Info, TrendingUp, Tag, HandCoins, FileText, Link as LinkIconLucide, Building, Brain,
+  BookOpen, ExternalLink, Users2 as UsersIcon, Images as ImagesIcon, Banknote, Eye,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { sampleListings, sampleUsers } from '@/lib/placeholder-data';
@@ -26,69 +27,97 @@ const formatCurrency = (amount?: number) => {
 
 // Client component for Image Gallery
 function ImageGallery({ imageUrls, listingTitle }: { imageUrls?: string[]; listingTitle: string }) {
-  const [mainImage, setMainImage] = React.useState(
-    imageUrls && imageUrls.length > 0 && imageUrls[0] ? imageUrls[0] : "https://placehold.co/1200x675.png"
-  );
+  const [currentIndex, setCurrentIndex] = React.useState(0);
 
-  React.useEffect(() => {
-    if (imageUrls && imageUrls.length > 0 && imageUrls[0]) {
-      setMainImage(imageUrls[0]);
-    } else {
-      setMainImage("https://placehold.co/1200x675.png");
-    }
+  const validImageUrls = React.useMemo(() => {
+    return (imageUrls || []).filter(url => url && url.trim() !== "");
   }, [imageUrls]);
 
-  if (!imageUrls || imageUrls.filter(url => url && url.trim() !== "").length === 0) {
-    return (
-      <Image 
-        src="https://placehold.co/1200x400.png" 
-        alt={`${listingTitle} Placeholder`} 
-        width={1200} 
-        height={400} 
-        className="w-full h-64 md:h-96 object-cover rounded-t-lg" 
-        data-ai-hint="generic business office" 
-        priority 
-      />
-    );
-  }
+  React.useEffect(() => {
+    if (currentIndex >= validImageUrls.length && validImageUrls.length > 0) {
+      setCurrentIndex(0);
+    } else if (validImageUrls.length === 0) {
+      setCurrentIndex(0); 
+    }
+  }, [validImageUrls, currentIndex]);
 
-  const validImageUrls = imageUrls.filter(url => url && url.trim() !== "");
-  const displayMainImage = validImageUrls.length > 0 ? mainImage : "https://placehold.co/1200x675.png";
+  const mainImage = validImageUrls.length > 0 ? validImageUrls[currentIndex] : "https://placehold.co/1200x675.png?text=No+Image+Available";
 
+  const handleThumbnailClick = (index: number) => {
+    setCurrentIndex(index);
+  };
+
+  const handleNextImage = () => {
+    if (validImageUrls.length > 0) {
+      setCurrentIndex((prevIndex) => (prevIndex + 1) % validImageUrls.length);
+    }
+  };
+
+  const handlePrevImage = () => {
+    if (validImageUrls.length > 0) {
+      setCurrentIndex((prevIndex) => (prevIndex - 1 + validImageUrls.length) % validImageUrls.length);
+    }
+  };
 
   return (
-    <div>
-      <div className="mb-4 rounded-lg overflow-hidden shadow-lg bg-muted aspect-[16/9] flex items-center justify-center">
+    <div className="w-full"> {/* Outer gallery div */}
+      <div className={cn(
+        "rounded-lg overflow-hidden shadow-lg bg-muted aspect-[16/9] flex items-center justify-center relative",
+        validImageUrls.length > 1 ? "mb-2" : "mb-0" // Reduce margin if thumbnails are present
+      )}>
         <Image
-          src={displayMainImage}
-          alt={`Main image for ${listingTitle}`}
+          src={mainImage}
+          alt={`Main image for ${listingTitle} (${currentIndex + 1} of ${validImageUrls.length})`}
           width={1200}
           height={675}
-          className="w-full h-full object-contain max-h-[500px] md:max-h-[600px]"
+          className="w-full h-full object-contain max-h-[40vh] sm:max-h-[50vh] md:max-h-[450px] lg:max-h-[500px]"
           data-ai-hint="business operations product"
           priority
-          onError={() => setMainImage("https://placehold.co/1200x675.png")} // Fallback if image fails to load
+          key={mainImage}
+          onError={(e) => (e.currentTarget.src = "https://placehold.co/1200x675.png?text=Image+Error")}
         />
+        {validImageUrls.length > 1 && (
+          <>
+            <Button
+              variant="outline"
+              size="icon"
+              className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white border-none rounded-full h-8 w-8 sm:h-10 sm:w-10"
+              onClick={handlePrevImage}
+              aria-label="Previous image"
+            >
+              <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white border-none rounded-full h-8 w-8 sm:h-10 sm:w-10"
+              onClick={handleNextImage}
+              aria-label="Next image"
+            >
+              <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
+            </Button>
+          </>
+        )}
       </div>
       {validImageUrls.length > 1 && (
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+        <div className="flex overflow-x-auto space-x-2 py-2 scrollbar-thin scrollbar-thumb-muted-foreground/30 scrollbar-track-transparent scrollbar-thumb-rounded-full">
           {validImageUrls.map((url, index) => (
             <button
               key={index}
-              onClick={() => setMainImage(url)}
+              onClick={() => handleThumbnailClick(index)}
               className={cn(
-                "aspect-square rounded-md overflow-hidden focus:outline-none focus:ring-2 focus:ring-offset-2 ring-brand-sky-blue transition-opacity",
-                url === mainImage ? "ring-2 opacity-100" : "opacity-70 hover:opacity-100"
+                "flex-shrink-0 w-20 h-20 sm:w-24 sm:h-24 rounded-md overflow-hidden focus:outline-none transition-opacity cursor-pointer",
+                index === currentIndex ? "ring-2 ring-primary ring-offset-2 opacity-100" : "opacity-70 hover:opacity-100"
               )}
               aria-label={`View image ${index + 1} for ${listingTitle}`}
             >
-              <Image 
-                src={url} 
-                alt={`Thumbnail ${index + 1} for ${listingTitle}`} 
-                width={150} height={150} 
-                className="w-full h-full object-cover" 
-                data-ai-hint="business detail product" 
-                onError={(e) => (e.currentTarget.src = "https://placehold.co/150x150.png")} // Fallback for thumbnails
+              <Image
+                src={url}
+                alt={`Thumbnail ${index + 1} for ${listingTitle}`}
+                width={100} height={100} 
+                className="w-full h-full object-cover"
+                data-ai-hint="business detail product"
+                onError={(e) => (e.currentTarget.src = "https://placehold.co/100x100.png?text=Error")}
               />
             </button>
           ))}
@@ -101,20 +130,17 @@ function ImageGallery({ imageUrls, listingTitle }: { imageUrls?: string[]; listi
 export default function ListingDetailPage() {
   const params = useParams();
   const listingId = typeof params.listingId === 'string' ? params.listingId : '';
-  
+
   const [listing, setListing] = React.useState<Listing | null | undefined>(undefined);
   const [seller, setSeller] = React.useState<User | null | undefined>(undefined);
-  
-  // Placeholder for current user - replace with actual auth logic
+
   const [currentUser, setCurrentUser] = React.useState<User | null | undefined>(undefined);
 
   React.useEffect(() => {
-    // Simulate fetching current user
-    const storedUserId = 'user2'; // Example: Jane Smith (Verified & Paid Buyer)
+    const storedUserId = 'user2';
     const user = sampleUsers.find(u => u.id === storedUserId);
     setCurrentUser(user || null);
 
-    // Simulate fetching listing data
     const fetchedListing = sampleListings.find(l => l.id === listingId);
     setListing(fetchedListing || null);
 
@@ -126,13 +152,13 @@ export default function ListingDetailPage() {
     }
   }, [listingId]);
 
-  if (listing === undefined || currentUser === undefined) { // Seller can be undefined if listing not found yet
+  if (listing === undefined || currentUser === undefined) {
     return <div className="container py-8 text-center min-h-screen flex items-center justify-center"><p>Loading listing details...</p></div>;
   }
 
   if (!listing) {
     notFound();
-    return null; // Keep TypeScript happy, notFound() will throw
+    return null;
   }
 
   const canViewVerifiedDetails =
@@ -141,7 +167,7 @@ export default function ListingDetailPage() {
     currentUser.verificationStatus === 'verified' &&
     currentUser.isPaid;
 
-  const DocumentLink = ({ href, children }: { href?: string; children: React.ReactNode}) => {
+  const DocumentLink = ({ href, children, docType }: { href?: string; children: React.ReactNode, docType?: string }) => {
     if (!canViewVerifiedDetails) {
         return <p className="text-sm text-muted-foreground italic">Details available to paid, verified buyers.</p>;
     }
@@ -158,21 +184,21 @@ export default function ListingDetailPage() {
   return (
     <div className="container py-8 md:py-12 bg-brand-light-gray">
       <Card className="shadow-xl overflow-hidden bg-brand-white">
-        <CardHeader className="p-0 relative">
+        <CardHeader className="p-4 md:p-6"> {/* Added padding to CardHeader for gallery spacing */}
             <ImageGallery imageUrls={listing.imageUrls} listingTitle={listing.listingTitleAnonymous}/>
-            <div className="absolute bottom-0 left-0 p-6 md:p-8 bg-gradient-to-t from-black/70 via-black/40 to-transparent w-full">
-                <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-brand-white tracking-tight">{listing.listingTitleAnonymous}</h1>
-                <div className="mt-2 flex items-center gap-2">
-                  <Badge variant="secondary" className="bg-brand-white/20 text-brand-white backdrop-blur-sm">{listing.industry}</Badge>
+            <div className="mt-4"> {/* Spacing between gallery and title block */}
+                <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-brand-dark-blue tracking-tight">{listing.listingTitleAnonymous}</h1>
+                <div className="mt-2 flex items-center gap-2 flex-wrap">
+                  <Badge variant="secondary" className="bg-brand-dark-blue/10 text-brand-dark-blue">{listing.industry}</Badge>
                   {listing.isSellerVerified && (
-                    <Badge variant="secondary" className="bg-green-500/80 text-brand-white backdrop-blur-sm border-green-300">
+                    <Badge variant="secondary" className="bg-green-500/10 text-green-700 border border-green-500/30">
                       <ShieldCheck className="h-4 w-4 mr-1.5" /> Platform Verified Seller
                     </Badge>
                   )}
                 </div>
             </div>
         </CardHeader>
-        <CardContent className="p-6 md:p-8 grid lg:grid-cols-12 gap-8">
+        <CardContent className="p-6 md:p-8 pt-0 grid lg:grid-cols-12 gap-8"> {/* Removed CardHeader's bottom title block bg gradient */}
             <div className="lg:col-span-8 space-y-8">
                 {listing.isSellerVerified && !currentUser && (
                     <Card className="bg-blue-50 border-blue-300 dark:bg-blue-900/20 dark:border-blue-700">
@@ -186,7 +212,6 @@ export default function ListingDetailPage() {
                         <CardContent><p className="text-sm text-amber-600 dark:text-amber-400">This listing is from a Platform Verified Seller. To view specific company details, financials, and documents, please <Link href="/dashboard/subscription" className="font-semibold underline hover:text-amber-700">upgrade to a paid buyer plan</Link>.</p></CardContent>
                     </Card>
                 )}
-                 
 
                 <section id="business-overview">
                     <h2 className="text-2xl font-semibold text-brand-dark-blue mb-3 flex items-center"><BookOpen className="h-6 w-6 mr-2 text-primary"/>Business Overview</h2>
@@ -198,7 +223,7 @@ export default function ListingDetailPage() {
                 <section id="key-strengths">
                     <h2 className="text-2xl font-semibold text-brand-dark-blue mb-3 flex items-center"><TrendingUp className="h-6 w-6 mr-2 text-primary"/>Key Strengths</h2>
                     <ul className="list-disc list-inside space-y-1 text-muted-foreground pl-5">
-                        {listing.keyStrengthsAnonymous.map((strength, index) => (
+                        {(listing.keyStrengthsAnonymous || []).map((strength, index) => (
                         <li key={index}>{strength}</li>
                         ))}
                     </ul>
@@ -213,7 +238,7 @@ export default function ListingDetailPage() {
                         </section>
                     </>
                 )}
-                
+
                 {(listing.adjustedCashFlow || listing.adjustedCashFlowExplanation) && (
                   <>
                     <Separator />
@@ -231,8 +256,8 @@ export default function ListingDetailPage() {
                     <section id="growth-potential">
                         <h2 className="text-2xl font-semibold text-brand-dark-blue mb-3 flex items-center"><Brain className="h-6 w-6 mr-2 text-primary"/>Specific Growth Opportunities</h2>
                         <ul className="list-disc list-inside space-y-1 text-muted-foreground pl-5">
-                          {listing.specificGrowthOpportunities.split('\n').map((line, index) => (
-                            line.trim() && <li key={index}>{line.trim().replace(/^- /, '')}</li>
+                          {(listing.specificGrowthOpportunities || "").split('\n').filter(line => line.trim() !== "").map((line, index) => (
+                            <li key={index}>{line.trim().replace(/^- /, '')}</li>
                           ))}
                         </ul>
                     </section>
@@ -265,13 +290,13 @@ export default function ListingDetailPage() {
                             <h3 className="font-semibold text-brand-dark-blue flex items-center gap-2 mb-1"><Globe className="h-5 w-5"/>Web Presence</h3>
                              {canViewVerifiedDetails ? (
                               <>
-                                <p className="text-sm"><span className="font-medium">Business Website:</span> {listing.businessWebsiteUrl ? <Link href={listing.businessWebsiteUrl} target="_blank" className="text-primary hover:underline">{listing.businessWebsiteUrl}</Link> : 'N/A'}</p>
+                                <p className="text-sm"><span className="font-medium">Business Website:</span> {listing.businessWebsiteUrl ? <Link href={listing.businessWebsiteUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{listing.businessWebsiteUrl}</Link> : 'N/A'}</p>
                                 {listing.socialMediaLinks && <p className="text-sm"><span className="font-medium">Social Media:</span> <span className="whitespace-pre-wrap">{listing.socialMediaLinks}</span></p>}
                               </>
                             ) : (
                               <p className="text-sm text-muted-foreground italic">Visible to paid, verified buyers.</p>
                             )}
-                            <DocumentLink href={listing.webPresenceInfoUrl}>Web & Analytics Report</DocumentLink>
+                            <DocumentLink href={listing.webPresenceInfoUrl} docType="web">Web & Analytics Report</DocumentLink>
                         </div>
                          <div>
                             <h3 className="font-semibold text-brand-dark-blue flex items-center gap-2 mb-1"><DollarSign className="h-5 w-5"/>Specific Financials</h3>
@@ -283,12 +308,11 @@ export default function ListingDetailPage() {
                             ) : (
                               <p className="text-sm text-muted-foreground italic">Visible to paid, verified buyers.</p>
                             )}
-                            <DocumentLink href={listing.financialSnapshotUrl}>Financial Snapshot</DocumentLink>
-                            <DocumentLink href={listing.financialDocumentsUrl}>Full Financial Statements</DocumentLink>
-                            <DocumentLink href={listing.keyMetricsReportUrl}>Key Metrics Report</DocumentLink>
+                            <DocumentLink href={listing.financialSnapshotUrl || listing.financialDocumentsUrl} docType="financials">Financial Snapshot / Statements</DocumentLink>
+                            <DocumentLink href={listing.keyMetricsReportUrl} docType="metrics">Key Metrics Report</DocumentLink>
                         </div>
                         <div>
-                            <h3 className="font-semibold text-brand-dark-blue flex items-center gap-2 mb-1"><Users2 className="h-5 w-5"/>Seller & Deal Information</h3>
+                            <h3 className="font-semibold text-brand-dark-blue flex items-center gap-2 mb-1"><UsersIcon className="h-5 w-5"/>Seller & Deal Information</h3>
                              {canViewVerifiedDetails ? (
                               <>
                                 <p className="text-sm"><span className="font-medium">Detailed Reason for Selling:</span> <span className="whitespace-pre-wrap">{listing.detailedReasonForSelling || 'N/A'}</span></p>
@@ -301,11 +325,11 @@ export default function ListingDetailPage() {
                         </div>
                          <div>
                             <h3 className="font-semibold text-brand-dark-blue flex items-center gap-2 mb-1"><FileText className="h-5 w-5"/>Other Documents</h3>
-                            <DocumentLink href={listing.ownershipDetailsUrl || listing.ownershipDocumentsUrl}>Ownership Documents</DocumentLink>
-                            <DocumentLink href={listing.locationRealEstateInfoUrl}>Location/Real Estate Info</DocumentLink>
+                            <DocumentLink href={listing.ownershipDetailsUrl || listing.ownershipDocumentsUrl} docType="ownership">Ownership Documents</DocumentLink>
+                            <DocumentLink href={listing.locationRealEstateInfoUrl} docType="location">Location/Real Estate Info</DocumentLink>
                          </div>
                          {canViewVerifiedDetails && listing.secureDataRoomLink && (
-                            <div><h3 className="font-semibold text-brand-dark-blue flex items-center gap-2 mb-1"><LinkIcon className="h-5 w-5"/>Secure Data Room</h3><DocumentLink href={listing.secureDataRoomLink}>Access Data Room</DocumentLink></div>
+                            <div><h3 className="font-semibold text-brand-dark-blue flex items-center gap-2 mb-1"><LinkIconLucide className="h-5 w-5"/>Secure Data Room</h3><DocumentLink href={listing.secureDataRoomLink} docType="dataroom">Access Data Room</DocumentLink></div>
                         )}
                     </div>
                 </section>
@@ -342,7 +366,7 @@ export default function ListingDetailPage() {
                         {listing.dealStructureLookingFor && listing.dealStructureLookingFor.length > 0 && (
                              <div className="flex items-start">
                                 <HandCoins className="h-5 w-5 mr-3 text-primary flex-shrink-0 mt-0.5" />
-                                <div><p className="font-medium text-brand-dark-blue">Deal Structure</p><p className="text-muted-foreground">{listing.dealStructureLookingFor.join(', ')}</p></div>
+                                <div><p className="font-medium text-brand-dark-blue">Deal Structure</p><p className="text-muted-foreground">{(listing.dealStructureLookingFor || []).join(', ')}</p></div>
                             </div>
                         )}
                         <div className="flex items-center">
@@ -364,17 +388,17 @@ export default function ListingDetailPage() {
                         )}
                     </CardContent>
                     <CardFooter className="flex flex-col gap-2">
-                        <Button 
-                            className="w-full bg-primary text-primary-foreground hover:bg-primary/90" 
+                        <Button
+                            className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
                             disabled={!currentUser || currentUser.role !== 'buyer'}
                             onClick={() => console.log("Inquire about business clicked for listing:", listing.id)}
                         >
                             <MessageSquare className="h-4 w-4 mr-2"/>
                             Inquire About Business
                         </Button>
-                        {canViewVerifiedDetails && (listing.status === 'verified_public' || listing.status === 'verified_anonymous') && ( 
-                           <Button 
-                             variant="outline" 
+                        {canViewVerifiedDetails && (listing.status === 'verified_public' || listing.status === 'verified_anonymous') && (
+                           <Button
+                             variant="outline"
                              className="w-full border-primary text-primary hover:bg-primary/10"
                              onClick={() => console.log("Open conversation clicked for listing:", listing.id)}
                             >

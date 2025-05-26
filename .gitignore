@@ -45,3 +45,5 @@ firebase-debug.log
 firestore-debug.log
 # clerk configuration (can include secrets)
 /.clerk/
+# prototyper
+/context_backup

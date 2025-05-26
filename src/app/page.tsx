@@ -1,68 +1,52 @@
 
 import * as React from "react";
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowRight, CheckCircle, Shield, Zap, Briefcase, Users, MapPin, DollarSign, ShoppingCart, FileText, Info, Phone, Newspaper, Home, UserCircle, LogIn, UserPlus, Search as SearchIcon, BarChart3, HandCoins, Star, ShieldCheck, ListChecks, CircleDollarSign } from 'lucide-react';
+import { ArrowRight, Star, CheckCircle, Shield, Zap, Briefcase, Users, MapPin, DollarSign, Search as SearchIcon, HandCoins, Brain, ListChecks, CircleDollarSign, ShieldCheck, Users2, Newspaper, Info, Phone, Home } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { sampleListings, Listing } from '@/lib/placeholder-data'; // Assuming Listing type is exported from placeholder-data or types
 
-// Placeholder for simple gray box image
-const PlaceholderImage = ({ className = "", text = "Placeholder Image", width = 600, height = 400, aiHint = "abstract business" }: { className?: string, text?: string, width?: number, height?: number, aiHint?: string }) => (
+// Placeholder components (can be moved to a separate file later)
+const PlaceholderImage = ({ className = "", text = "Placeholder Image", aiHint = "abstract business", width = 400, height = 250 }: { className?: string, text?: string, aiHint?: string, width?: number, height?: number }) => (
   <div
-    className={cn("bg-brand-light-gray/50 flex items-center justify-center rounded-lg overflow-hidden aspect-video", className)}
+    className={cn("bg-brand-light-gray/30 flex items-center justify-center rounded-lg overflow-hidden aspect-video w-full", className)}
     style={{
-      width: width ? `${width}px` : '100%',
-      height: height ? `${height}px` : 'auto',
-      maxWidth: '100%'
+      // Aspect ratio maintained by Tailwind's aspect-video, or by width/height if explicitly set
     }}
     data-ai-hint={aiHint}
   >
-    <div className="w-full h-full bg-gray-300 dark:bg-gray-700 flex items-center justify-center">
-      <span className="text-gray-500 dark:text-gray-400 text-xs">{text}</span>
-    </div>
+    <Image
+      src={`https://placehold.co/${width}x${height}.png`}
+      alt={text}
+      width={width}
+      height={height}
+      className="w-full h-full object-cover"
+    />
+    {/* Fallback text if image fails to load, though placehold.co usually works */}
+    {/* <span className="text-brand-dark-blue/50 text-xs p-2 text-center">{text}</span> */}
   </div>
 );
 
-// Placeholder for logo
-const PlaceholderLogo = ({ text = "Logo" }: { text?: string }) => (
+const PlaceholderLogo = ({ text = "Logo", className = "" }: { text?: string, className?: string }) => (
   <div
-    className="bg-brand-light-gray/30 flex items-center justify-center rounded-md p-4 h-16 w-32"
+    className={cn("bg-brand-light-gray/30 flex items-center justify-center rounded-md p-4 h-12 md:h-16 w-auto min-w-[120px] md:min-w-[150px]", className)}
     data-ai-hint="company logo"
   >
-    <span className="text-brand-dark-blue/70 text-xs font-medium">{text}</span>
+    <span className="text-brand-dark-blue/70 text-xs md:text-sm font-medium text-center">{text}</span>
   </div>
 );
 
-const previewListings = [
-  { id: '1', title: 'High-Growth SaaS Platform in FinTech', industry: 'Technology', location: 'Singapore', price: 1750000, isSellerVerified: true, imageUrls: ['https://placehold.co/400x250.png?text=SaaS+Platform'], aiHint: 'software interface dashboard' },
-  { id: '2', title: 'Luxury Boutique Hotel Chain', industry: 'Hospitality', location: 'Bali, Indonesia', price: 7500000, isSellerVerified: true, imageUrls: ['https://placehold.co/400x250.png?text=Hotel+Chain'], aiHint: 'hotel resort luxury' },
-  { id: '3', title: 'Sustainable Agriculture Enterprise', industry: 'Agriculture', location: 'Vietnam', price: 750000, isSellerVerified: false, imageUrls: ['https://placehold.co/400x250.png?text=Agri+Enterprise'], aiHint: 'farm agriculture sustainable' },
-  { id: '4', title: 'Established B2B Service Provider', industry: 'Services - Marketing', location: 'Malaysia', price: 1200000, isSellerVerified: true, imageUrls: ['https://placehold.co/400x250.png?text=B2B+Services'], aiHint: 'office team meeting' },
-  { id: '5', title: 'Profitable Niche E-commerce Brand', industry: 'E-commerce', location: 'Thailand', price: 950000, isSellerVerified: true, imageUrls: ['https://placehold.co/400x250.png?text=Ecomm+Brand'], aiHint: 'online store product' },
-  { id: '6', title: 'Modern Manufacturing Unit', industry: 'Manufacturing', location: 'Philippines', price: 2200000, isSellerVerified: false, imageUrls: ['https://placehold.co/400x250.png?text=Factory+Unit'], aiHint: 'factory interior machinery' },
-];
-
-
-const testimonials = [
-  { quote: "Nobridge made selling my e-commerce store incredibly smooth and connected me with serious, verified buyers from across the region.", name: "Aisha Khan", role: "Former E-commerce Owner, Singapore" },
-  { quote: "Finding the right mid-market investment in Southeast Asia was challenging until I found Nobridge. Their verified listings and clear process saved us significant time.", name: "Raj Patel", role: "Investment Director, Malaysia" },
-  { quote: "The platform is intuitive, and the support for getting my business listed and verified was top-notch. Highly recommended for any SME owner considering an exit.", name: "Nguyen Van Minh", role: "SME Owner, Vietnam" },
-];
-
-const featuredContent = [
-  { imageHint: "market analysis graph", category: "Market Trends", title: "Key Growth Sectors in Southeast Asia for 2025", excerpt: "Discover the industries poised for significant expansion and investment opportunities across the ASEAN region." },
-  { imageHint: "business negotiation handshake", category: "Seller Tips", title: "Preparing Your Business for a Successful Sale", excerpt: "Essential steps to maximize your business's value and attract the right buyers in the Asian market." },
-  { imageHint: "business team success", category: "Success Story", title: "How a Tech Startup Found its Strategic Acquirer via Nobridge", excerpt: "Read about the journey of 'Innovate Solutions' and their successful exit facilitated by our platform." },
-];
-
+const previewListings = sampleListings.slice(0, 3);
 
 export default function HomePage() {
   return (
     <>
       {/* Hero Section */}
       <section className="w-full bg-brand-dark-blue text-brand-white">
-        <div className="container mx-auto flex flex-col items-center justify-center text-center min-h-[calc(80vh-theme(spacing.20))] px-4 py-24 md:py-32 lg:py-40"> {/* h-20 for navbar */}
+        <div className="container mx-auto flex flex-col items-center justify-center text-center min-h-[calc(80vh-theme(spacing.20))] px-4 py-24 md:py-32 lg:py-40">
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight !leading-tight mb-6">
             Find Your Next Business Venture with Nobridge
           </h1>
@@ -71,22 +55,22 @@ export default function HomePage() {
           </p>
           <div className="mb-10 flex flex-col sm:flex-row items-center justify-center space-y-3 sm:space-y-0 sm:space-x-6 text-sm text-brand-light-gray">
             <div className="flex items-center">
-              <Shield className="h-5 w-5 mr-2 text-brand-light-gray" /> Verified Network: Connect with trusted parties.
+              <ShieldCheck className="h-5 w-5 mr-2 text-brand-light-gray" /> Verified Network
             </div>
             <span className="hidden sm:inline text-brand-light-gray/50">|</span>
             <div className="flex items-center">
-              <Zap className="h-5 w-5 mr-2 text-brand-light-gray" /> Efficient Process: Streamlined steps.
+              <Zap className="h-5 w-5 mr-2 text-brand-light-gray" /> Efficient Process
             </div>
             <span className="hidden sm:inline text-brand-light-gray/50">|</span>
             <div className="flex items-center">
-              <CheckCircle className="h-5 w-5 mr-2 text-brand-light-gray" /> Expert Support: Guidance throughout.
+              <Users2 className="h-5 w-5 mr-2 text-brand-light-gray" /> Expert Support
             </div>
           </div>
           <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
             <Button size="lg" asChild className="bg-brand-white text-brand-dark-blue hover:bg-brand-light-gray/90 font-semibold py-3 px-8 rounded-md text-base">
-              <Link href="/auth/register/seller">List Your Business <ArrowRight className="ml-2 h-5 w-5" /></Link>
+              <Link href="/seller-dashboard/listings/create">List Your Business <ArrowRight className="ml-2 h-5 w-5" /></Link>
             </Button>
-            <Button size="lg" variant="outline" asChild className="border-brand-white text-brand-white hover:bg-brand-white/10 hover:text-brand-white font-semibold py-3 px-8 rounded-md text-base">
+            <Button size="lg" variant="outline" asChild className="border-brand-white text-brand-dark-blue hover:bg-brand-white/10 hover:text-brand-white font-semibold py-3 px-8 rounded-md text-base">
               <Link href="/marketplace">Browse Businesses</Link>
             </Button>
           </div>
@@ -104,7 +88,14 @@ export default function HomePage() {
             {previewListings.map((listing) => (
               <Card key={listing.id} className="bg-brand-white shadow-xl hover:shadow-2xl transition-shadow duration-300 rounded-lg flex flex-col overflow-hidden">
                 <CardHeader className="p-0 relative">
-                  <PlaceholderImage className="w-full" width={400} height={220} text={`Image for ${listing.title}`} aiHint={listing.aiHint || "business operations"} />
+                  <Image
+                    src={listing.imageUrls?.[0] || "https://placehold.co/400x250.png"}
+                    alt={listing.listingTitleAnonymous}
+                    width={400}
+                    height={250}
+                    className="w-full h-48 object-cover"
+                    data-ai-hint={listing.industry ? listing.industry.toLowerCase().replace(/\s+/g, '-') : "business"}
+                  />
                    {listing.isSellerVerified && (
                       <Badge variant="outline" className="absolute top-3 right-3 text-xs border-green-600 text-green-700 bg-green-100 dark:bg-green-700/20 dark:text-green-300 dark:border-green-500/50">
                         <ShieldCheck className="h-3 w-3 mr-1" /> Verified
@@ -116,11 +107,11 @@ export default function HomePage() {
                     <Badge variant="secondary" className="bg-brand-dark-blue/5 text-brand-dark-blue text-xs">{listing.industry}</Badge>
                   </div>
                   <CardTitle className="text-xl font-semibold text-brand-dark-blue mb-2 leading-tight hover:text-brand-sky-blue transition-colors">
-                    <Link href={`/app/listings/${listing.id}`}>{listing.title}</Link>
+                    <Link href={`/app/listings/${listing.id}`}>{listing.listingTitleAnonymous}</Link>
                   </CardTitle>
                   <div className="space-y-1 text-sm text-muted-foreground">
-                    <p className="flex items-center"><MapPin className="h-4 w-4 mr-2 text-brand-dark-blue/70" /> {listing.location}</p>
-                    <p className="flex items-center"><DollarSign className="h-4 w-4 mr-2 text-brand-dark-blue/70" /> Asking: ${listing.price.toLocaleString()} USD</p>
+                    <p className="flex items-center"><MapPin className="h-4 w-4 mr-2 text-brand-dark-blue/70" /> {listing.locationCityRegionGeneral}, {listing.locationCountry}</p>
+                    <p className="flex items-center"><DollarSign className="h-4 w-4 mr-2 text-brand-dark-blue/70" /> Asking: {listing.askingPrice ? `$${listing.askingPrice.toLocaleString()} USD` : 'Contact for Price'}</p>
                   </div>
                 </CardContent>
                 <CardFooter className="p-6 border-t border-brand-light-gray/80 mt-auto">
@@ -147,9 +138,9 @@ export default function HomePage() {
             <p className="text-muted-foreground mt-3 text-lg max-w-2xl mx-auto">Whether you're selling your life's work or seeking your next strategic investment, Nobridge provides the tools and network you need.</p>
           </div>
           <div className="grid md:grid-cols-2 gap-8 lg:gap-12 items-start">
-            <Card className="bg-brand-light-gray/50 p-8 rounded-lg shadow-lg">
+            <Card className="bg-brand-light-gray/50 p-6 md:p-8 rounded-lg shadow-lg">
               <div className="p-3 bg-brand-dark-blue/10 rounded-full w-fit mb-4">
-                <Briefcase className="h-8 w-8 text-brand-dark-blue" />
+                <HandCoins className="h-8 w-8 text-brand-dark-blue" />
               </div>
               <h3 className="text-2xl font-semibold text-brand-dark-blue mb-3">List Your Business with Confidence</h3>
               <p className="text-muted-foreground mb-4 leading-relaxed">
@@ -161,10 +152,10 @@ export default function HomePage() {
                 <li className="flex items-center"><CheckCircle className="h-5 w-5 mr-2 text-brand-sky-blue" /> Secure Inquiry Management</li>
               </ul>
               <Button asChild className="bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90">
-                <Link href="/how-selling-works">Learn More About Selling</Link>
+                <Link href="/seller-dashboard/listings/create">Learn More About Selling</Link>
               </Button>
             </Card>
-            <Card className="bg-brand-light-gray/50 p-8 rounded-lg shadow-lg">
+            <Card className="bg-brand-light-gray/50 p-6 md:p-8 rounded-lg shadow-lg">
                <div className="p-3 bg-brand-dark-blue/10 rounded-full w-fit mb-4">
                 <SearchIcon className="h-8 w-8 text-brand-dark-blue" />
               </div>
@@ -178,7 +169,7 @@ export default function HomePage() {
                 <li className="flex items-center"><CheckCircle className="h-5 w-5 mr-2 text-brand-sky-blue" /> Direct Seller Engagement (Post-Verification)</li>
               </ul>
               <Button asChild className="bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90">
-                <Link href="/how-buying-works">Learn More About Buying</Link>
+                <Link href="/marketplace">Learn More About Buying</Link>
               </Button>
             </Card>
           </div>
@@ -191,11 +182,15 @@ export default function HomePage() {
           <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-brand-dark-blue text-center mb-4">Trusted by the Business Community</h2>
           <p className="text-center text-muted-foreground text-lg mb-12 md:mb-16">Hear from entrepreneurs and investors who have found success with Nobridge.</p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {testimonials.map((testimonial, index) => (
+            {[
+              { quote: "Nobridge made selling my e-commerce store incredibly smooth and connected me with serious, verified buyers from across the region.", name: "Aisha Khan", role: "Former E-commerce Owner, Singapore" },
+              { quote: "Finding the right mid-market investment in Southeast Asia was challenging until I found Nobridge. Their verified listings and clear process saved us significant time.", name: "Raj Patel", role: "Investment Director, Malaysia" },
+              { quote: "The platform is intuitive, and the support for getting my business listed and verified was top-notch. Highly recommended for any SME owner considering an exit.", name: "Nguyen Van Minh", role: "SME Owner, Vietnam" },
+            ].map((testimonial, index) => (
               <Card key={index} className="bg-brand-white shadow-xl hover:shadow-2xl transition-shadow rounded-lg">
                 <CardContent className="p-8">
                   <div className="flex mb-3">
-                    {[...Array(5)].map((_, i) => <Star key={i} className="h-5 w-5 text-yellow-400 fill-current" />)} {/* Changed fill to fill-current */}
+                    {[...Array(5)].map((_, i) => <Star key={i} className="h-5 w-5 text-yellow-400 fill-yellow-400" />)}
                   </div>
                   <p className="text-muted-foreground mb-4 italic text-base leading-relaxed">&quot;{testimonial.quote}&quot;</p>
                   <p className="font-semibold text-brand-dark-blue">{testimonial.name}</p>
@@ -229,9 +224,13 @@ export default function HomePage() {
             <p className="text-muted-foreground mt-3 text-lg">From Our Knowledge Hub</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {featuredContent.map((item, index) => (
+            {[
+              { imageHint: "market analysis graph", category: "Market Trends", title: "Key Growth Sectors in Southeast Asia for 2025", excerpt: "Discover the industries poised for significant expansion and investment opportunities across the ASEAN region." },
+              { imageHint: "business negotiation handshake", category: "Seller Tips", title: "Preparing Your Business for a Successful Sale", excerpt: "Essential steps to maximize your business's value and attract the right buyers in the Asian market." },
+              { imageHint: "business team success", category: "Success Story", title: "How a Tech Startup Found its Strategic Acquirer via Nobridge", excerpt: "Read about the journey of 'Innovate Solutions' and their successful exit facilitated by our platform." },
+            ].map((item, index) => (
               <Card key={index} className="bg-brand-white shadow-xl hover:shadow-2xl transition-shadow overflow-hidden flex flex-col rounded-lg">
-                <PlaceholderImage className="w-full" width={300} height={200} text={item.imageHint} aiHint={item.imageHint} />
+                <PlaceholderImage width={400} height={225} text={item.imageHint} aiHint={item.imageHint} />
                 <CardHeader className="p-6">
                   <Badge variant="outline" className="mb-2 w-fit border-brand-dark-blue/30 text-brand-dark-blue/80">{item.category}</Badge>
                   <CardTitle className="text-xl font-semibold leading-tight text-brand-dark-blue hover:text-brand-sky-blue transition-colors">

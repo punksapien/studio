@@ -18,6 +18,7 @@ import {
   FormItem,
   FormMessage,
   FormLabel,
+  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -201,4 +202,8 @@ export default function SettingsPage() {
                     Delete My Account
                 </Button>
             </div>
-          </
+            </CardContent>
+        </Card>
+      </div>
+    );
+  }

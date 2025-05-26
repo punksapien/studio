@@ -1,7 +1,8 @@
+
 import * as React from "react";
 import { MetricCard } from "@/components/admin/metric-card";
 import { sampleAdminDashboardMetrics, sampleVerificationRequests, sampleReadyToEngageItems } from "@/lib/placeholder-data";
-import { Users, Briefcase, BellRing, LineChart, ListChecks, UserCheck, Building, DollarSign, CheckCircle, Banknote, ListX, Handshake } from "lucide-react";
+import { Users, Briefcase, BellRing, LineChart, ListChecks, UserCheck, Building, DollarSign, Banknote, ListX, Handshake } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -45,7 +46,7 @@ export default function AdminDashboardPage() {
         <MetricCard
           title="Total Listings (All Statuses)"
           value={metrics.totalListingsAllStatuses}
-          icon={ListChecks}
+          icon={ListChecks} 
           description={`${metrics.totalActiveListingsVerified + metrics.totalActiveListingsAnonymous} active`}
         />
         <MetricCard
@@ -91,10 +92,10 @@ export default function AdminDashboardPage() {
           description="Pairs ready for admin connection"
         />
         <MetricCard
-          title="Total Facilitated Connections (MTD)"
+          title="Total Facilitated Connections"
           value={metrics.successfulConnectionsMTD}
           icon={Handshake}
-          description={`${metrics.activeSuccessfulConnections} active, ${metrics.closedSuccessfulConnections} closed`}
+          description={`${metrics.activeSuccessfulConnections} active, ${metrics.closedSuccessfulConnections} closed (MTD)`}
         />
       </div>
 
@@ -104,7 +105,7 @@ export default function AdminDashboardPage() {
             <div className="flex justify-between items-center">
                 <CardTitle>Pending Buyer Verifications</CardTitle>
                 <Button variant="outline" size="sm" asChild>
-                    <Link href="/admin/verification-queue/buyers">View All</Link>
+                    <Link href="/app/admin/verification-queue/buyers">View All</Link>
                 </Button>
             </div>
             <CardDescription>Top {buyerVerificationRequests.slice(0,3).length} buyers needing admin review.</CardDescription>
@@ -137,7 +138,7 @@ export default function AdminDashboardPage() {
             <div className="flex justify-between items-center">
                 <CardTitle>Pending Seller/Listing Verifications</CardTitle>
                 <Button variant="outline" size="sm" asChild>
-                    <Link href="/admin/verification-queue/sellers">View All</Link>
+                    <Link href="/app/admin/verification-queue/sellers">View All</Link>
                 </Button>
             </div>
             <CardDescription>Top {sellerVerificationRequests.slice(0,3).length} sellers/listings needing admin review.</CardDescription>
@@ -170,7 +171,7 @@ export default function AdminDashboardPage() {
              <div className="flex justify-between items-center">
                 <CardTitle>Ready for Connection</CardTitle>
                 <Button variant="outline" size="sm" asChild>
-                    <Link href="/admin/engagement-queue">View All</Link>
+                    <Link href="/app/admin/engagement-queue">View All</Link>
                 </Button>
             </div>
             <CardDescription>Top {sampleReadyToEngageItems.slice(0,3).length} engagements ready for admin facilitation.</CardDescription>
@@ -206,9 +207,9 @@ export default function AdminDashboardPage() {
           <CardTitle>Quick Links</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            <Button variant="outline" asChild className="flex-col h-24"><Link href="/admin/users"><Users className="mb-1"/> User Management</Link></Button>
-            <Button variant="outline" asChild className="flex-col h-24"><Link href="/admin/listings"><ListChecks className="mb-1"/> Listing Management</Link></Button>
-            <Button variant="outline" asChild className="flex-col h-24"><Link href="/admin/analytics"><LineChart className="mb-1"/> View Full Analytics</Link></Button>
+            <Button variant="outline" asChild className="flex-col h-24"><Link href="/app/admin/users"><Users className="mb-1"/> User Management</Link></Button>
+            <Button variant="outline" asChild className="flex-col h-24"><Link href="/app/admin/listings"><ListChecks className="mb-1"/> Listing Management</Link></Button>
+            <Button variant="outline" asChild className="flex-col h-24"><Link href="/app/admin/analytics"><LineChart className="mb-1"/> View Full Analytics</Link></Button>
         </CardContent>
       </Card>
     </div>
