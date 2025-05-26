@@ -2,12 +2,12 @@
 import * as React from "react";
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowRight, CheckCircle, Shield, Zap, Briefcase, Users, MapPin, DollarSign, ShoppingCart, FileText, Info, Phone, Newspaper, Home, UserCircle, LogIn, UserPlus, Search as SearchIcon, BarChart3, HandCoins, Star, ShieldCheck } from 'lucide-react';
+import { ArrowRight, CheckCircle, Shield, Zap, Briefcase, Users, MapPin, DollarSign, ShoppingCart, FileText, Info, Phone, Newspaper, Home, UserCircle, LogIn, UserPlus, Search as SearchIcon, BarChart3, HandCoins, Star, ShieldCheck, ListChecks, CircleDollarSign } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
-// Placeholder for simple gray box image - defined locally for this page
+// Placeholder for simple gray box image
 const PlaceholderImage = ({ className = "", text = "Placeholder Image", width = 600, height = 400, aiHint = "abstract business" }: { className?: string, text?: string, width?: number, height?: number, aiHint?: string }) => (
   <div
     className={cn("bg-brand-light-gray/50 flex items-center justify-center rounded-lg overflow-hidden aspect-video", className)}
@@ -24,7 +24,7 @@ const PlaceholderImage = ({ className = "", text = "Placeholder Image", width = 
   </div>
 );
 
-// Placeholder for logo - defined locally
+// Placeholder for logo
 const PlaceholderLogo = ({ text = "Logo" }: { text?: string }) => (
   <div
     className="bg-brand-light-gray/30 flex items-center justify-center rounded-md p-4 h-16 w-32"
@@ -62,7 +62,7 @@ export default function HomePage() {
     <>
       {/* Hero Section */}
       <section className="w-full bg-brand-dark-blue text-brand-white">
-        <div className="container mx-auto flex flex-col items-center justify-center text-center min-h-[calc(80vh-theme(spacing.20))] px-4 py-24 md:py-32 lg:py-40">
+        <div className="container mx-auto flex flex-col items-center justify-center text-center min-h-[calc(80vh-theme(spacing.20))] px-4 py-24 md:py-32 lg:py-40"> {/* h-20 for navbar */}
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight !leading-tight mb-6">
             Find Your Next Business Venture with Nobridge
           </h1>
@@ -86,7 +86,7 @@ export default function HomePage() {
             <Button size="lg" asChild className="bg-brand-white text-brand-dark-blue hover:bg-brand-light-gray/90 font-semibold py-3 px-8 rounded-md text-base">
               <Link href="/auth/register/seller">List Your Business <ArrowRight className="ml-2 h-5 w-5" /></Link>
             </Button>
-            <Button size="lg" variant="outline" asChild className="border-brand-white text-brand-dark-blue hover:bg-brand-white/10 hover:text-brand-white font-semibold py-3 px-8 rounded-md text-base">
+            <Button size="lg" variant="outline" asChild className="border-brand-white text-brand-white hover:bg-brand-white/10 hover:text-brand-white font-semibold py-3 px-8 rounded-md text-base">
               <Link href="/marketplace">Browse Businesses</Link>
             </Button>
           </div>
@@ -101,7 +101,7 @@ export default function HomePage() {
             <p className="text-muted-foreground mt-3 text-lg">A Glimpse into Our Curated Marketplace</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {previewListings.slice(0, 6).map((listing) => (
+            {previewListings.map((listing) => (
               <Card key={listing.id} className="bg-brand-white shadow-xl hover:shadow-2xl transition-shadow duration-300 rounded-lg flex flex-col overflow-hidden">
                 <CardHeader className="p-0 relative">
                   <PlaceholderImage className="w-full" width={400} height={220} text={`Image for ${listing.title}`} aiHint={listing.aiHint || "business operations"} />
@@ -195,7 +195,7 @@ export default function HomePage() {
               <Card key={index} className="bg-brand-white shadow-xl hover:shadow-2xl transition-shadow rounded-lg">
                 <CardContent className="p-8">
                   <div className="flex mb-3">
-                    {[...Array(5)].map((_, i) => <Star key={i} className="h-5 w-5 text-yellow-400 fill-yellow-400" />)}
+                    {[...Array(5)].map((_, i) => <Star key={i} className="h-5 w-5 text-yellow-400 fill-current" />)} {/* Changed fill to fill-current */}
                   </div>
                   <p className="text-muted-foreground mb-4 italic text-base leading-relaxed">&quot;{testimonial.quote}&quot;</p>
                   <p className="font-semibold text-brand-dark-blue">{testimonial.name}</p>
@@ -265,7 +265,7 @@ export default function HomePage() {
           <p className="text-lg md:text-xl text-brand-light-gray/90 max-w-3xl mx-auto mb-10">
             At Nobridge, we believe in the power of small and medium-sized enterprises. Our mission is to provide a transparent, efficient, and supportive platform that connects business owners with the right investors and buyers, fostering growth and successful transitions throughout the continent.
           </p>
-          <Button size="lg" variant="outline" className="border-brand-white text-brand-dark-blue hover:bg-brand-white/10 hover:text-brand-white font-semibold py-3 px-8 rounded-md text-base" asChild>
+          <Button size="lg" variant="outline" className="border-brand-white text-brand-dark-blue bg-brand-white hover:bg-brand-light-gray font-semibold py-3 px-8 rounded-md text-base" asChild>
             <Link href="/about">Learn More About Us</Link>
           </Button>
         </div>
