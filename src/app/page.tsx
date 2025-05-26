@@ -7,12 +7,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
-// Placeholder for simple gray box image - defined locally for this page to ensure it works
+// Placeholder for simple gray box image - defined locally for this page
 const PlaceholderImage = ({ className = "", text = "Placeholder Image", width = 600, height = 400, aiHint = "abstract business" }: { className?: string, text?: string, width?: number, height?: number, aiHint?: string }) => (
   <div
     className={cn("bg-brand-light-gray/50 flex items-center justify-center rounded-lg overflow-hidden aspect-video", className)}
     style={{
-      // Using inline styles for width/height to ensure they apply if Tailwind JIT doesn't pick up dynamic class names
       width: width ? `${width}px` : '100%',
       height: height ? `${height}px` : 'auto',
       maxWidth: '100%'
@@ -36,10 +35,14 @@ const PlaceholderLogo = ({ text = "Logo" }: { text?: string }) => (
 );
 
 const previewListings = [
-  { id: '1', title: 'High-Growth SaaS Platform in FinTech', industry: 'Technology', location: 'Singapore', price: 1750000, isSellerVerified: true, imageUrls: ['https://placehold.co/400x250.png'], aiHint: 'software interface dashboard' },
-  { id: '2', title: 'Luxury Boutique Hotel Chain', industry: 'Hospitality', location: 'Bali, Indonesia', price: 7500000, isSellerVerified: true, imageUrls: ['https://placehold.co/400x250.png'], aiHint: 'hotel resort luxury' },
-  { id: '3', title: 'Sustainable Agriculture Enterprise', industry: 'Agriculture', location: 'Vietnam', price: 750000, isSellerVerified: false, imageUrls: ['https://placehold.co/400x250.png'], aiHint: 'farm agriculture sustainable' },
+  { id: '1', title: 'High-Growth SaaS Platform in FinTech', industry: 'Technology', location: 'Singapore', price: 1750000, isSellerVerified: true, imageUrls: ['https://placehold.co/400x250.png?text=SaaS+Platform'], aiHint: 'software interface dashboard' },
+  { id: '2', title: 'Luxury Boutique Hotel Chain', industry: 'Hospitality', location: 'Bali, Indonesia', price: 7500000, isSellerVerified: true, imageUrls: ['https://placehold.co/400x250.png?text=Hotel+Chain'], aiHint: 'hotel resort luxury' },
+  { id: '3', title: 'Sustainable Agriculture Enterprise', industry: 'Agriculture', location: 'Vietnam', price: 750000, isSellerVerified: false, imageUrls: ['https://placehold.co/400x250.png?text=Agri+Enterprise'], aiHint: 'farm agriculture sustainable' },
+  { id: '4', title: 'Established B2B Service Provider', industry: 'Services - Marketing', location: 'Malaysia', price: 1200000, isSellerVerified: true, imageUrls: ['https://placehold.co/400x250.png?text=B2B+Services'], aiHint: 'office team meeting' },
+  { id: '5', title: 'Profitable Niche E-commerce Brand', industry: 'E-commerce', location: 'Thailand', price: 950000, isSellerVerified: true, imageUrls: ['https://placehold.co/400x250.png?text=Ecomm+Brand'], aiHint: 'online store product' },
+  { id: '6', title: 'Modern Manufacturing Unit', industry: 'Manufacturing', location: 'Philippines', price: 2200000, isSellerVerified: false, imageUrls: ['https://placehold.co/400x250.png?text=Factory+Unit'], aiHint: 'factory interior machinery' },
 ];
+
 
 const testimonials = [
   { quote: "Nobridge made selling my e-commerce store incredibly smooth and connected me with serious, verified buyers from across the region.", name: "Aisha Khan", role: "Former E-commerce Owner, Singapore" },
@@ -59,7 +62,7 @@ export default function HomePage() {
     <>
       {/* Hero Section */}
       <section className="w-full bg-brand-dark-blue text-brand-white">
-        <div className="container mx-auto flex flex-col items-center justify-center text-center min-h-[calc(80vh-theme(spacing.20))] px-4 py-24 md:py-32 lg:py-40"> {/* Increased padding */}
+        <div className="container mx-auto flex flex-col items-center justify-center text-center min-h-[calc(80vh-theme(spacing.20))] px-4 py-24 md:py-32 lg:py-40">
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight !leading-tight mb-6">
             Find Your Next Business Venture with Nobridge
           </h1>
@@ -98,7 +101,7 @@ export default function HomePage() {
             <p className="text-muted-foreground mt-3 text-lg">A Glimpse into Our Curated Marketplace</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {previewListings.map((listing) => (
+            {previewListings.slice(0, 6).map((listing) => (
               <Card key={listing.id} className="bg-brand-white shadow-xl hover:shadow-2xl transition-shadow duration-300 rounded-lg flex flex-col overflow-hidden">
                 <CardHeader className="p-0 relative">
                   <PlaceholderImage className="w-full" width={400} height={220} text={`Image for ${listing.title}`} aiHint={listing.aiHint || "business operations"} />
@@ -113,7 +116,7 @@ export default function HomePage() {
                     <Badge variant="secondary" className="bg-brand-dark-blue/5 text-brand-dark-blue text-xs">{listing.industry}</Badge>
                   </div>
                   <CardTitle className="text-xl font-semibold text-brand-dark-blue mb-2 leading-tight hover:text-brand-sky-blue transition-colors">
-                    <Link href={`/listings/${listing.id}`}>{listing.title}</Link>
+                    <Link href={`/app/listings/${listing.id}`}>{listing.title}</Link>
                   </CardTitle>
                   <div className="space-y-1 text-sm text-muted-foreground">
                     <p className="flex items-center"><MapPin className="h-4 w-4 mr-2 text-brand-dark-blue/70" /> {listing.location}</p>
@@ -122,7 +125,7 @@ export default function HomePage() {
                 </CardContent>
                 <CardFooter className="p-6 border-t border-brand-light-gray/80 mt-auto">
                   <Button asChild className="w-full bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90">
-                    <Link href={`/listings/${listing.id}`}>View Details <ArrowRight className="ml-2 h-4 w-4" /></Link>
+                    <Link href={`/app/listings/${listing.id}`}>View Details <ArrowRight className="ml-2 h-4 w-4" /></Link>
                   </Button>
                 </CardFooter>
               </Card>
@@ -255,7 +258,7 @@ export default function HomePage() {
       </section>
 
       {/* Our Mission Section */}
-      <section className="py-20 md:py-32 bg-brand-dark-blue text-brand-white"> {/* Used direct color class for simplicity */}
+      <section className="py-20 md:py-32 bg-brand-dark-blue text-brand-white">
         <div className="container mx-auto px-4 text-center">
           <p className="text-sm font-semibold uppercase tracking-wider text-brand-light-gray/70 mb-3">OUR COMMITMENT</p>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight mb-6">Empowering SME Growth and Transitions Across Asia</h2>
@@ -288,6 +291,5 @@ export default function HomePage() {
     </>
   );
 }
-
 
     

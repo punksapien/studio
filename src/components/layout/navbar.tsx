@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
-import { Menu, ChevronDown, Briefcase, Building, FileText, Phone, Users, UserCircle, LogIn, UserPlus, ArrowRight, Home, Info, MessageCircle, DollarSign, ShoppingCart, Newspaper, HandCoins, BarChart3, Search as SearchIcon } from 'lucide-react';
+import { Menu, ChevronDown, Briefcase, Building, FileText, Phone, Users, UserCircle, LogIn, UserPlus, ArrowRight, Home, Info, MessageCircle, DollarSign, ShoppingCart, Newspaper, HandCoins, BarChart3, Search as SearchIcon, ListChecks, CircleDollarSign } from 'lucide-react'; // Added ListChecks, CircleDollarSign
 import { cn } from '@/lib/utils';
 import { usePathname } from 'next/navigation';
 
@@ -39,7 +39,7 @@ const navLinks: (NavLinkItem | NavLinkGroup)[] = [
     label: "Sell Your Business",
     triggerIcon: Briefcase,
     items: [
-      { href: "/seller-dashboard/listings/create", label: "List Your Business", icon: FileText },
+      { href: "/seller-dashboard/listings/create", label: "List Your Business", icon: FileText }, // Using FileText or PlusCircle
       { href: "/how-selling-works", label: "How Selling Works", icon: Info },
       // { href: "/valuation-services", label: "Valuation Services [Future]", icon: DollarSign },
     ],
@@ -53,7 +53,7 @@ const navLinks: (NavLinkItem | NavLinkGroup)[] = [
       // { href: "/buyer-resources", label: "Buyer Resources [Future]", icon: BookOpen }, 
     ],
   },
-  { href: "/pricing", label: "Pricing", icon: DollarSign },
+  { href: "/pricing", label: "Pricing", icon: CircleDollarSign }, // Changed to CircleDollarSign
   {
     label: "Company",
     triggerIcon: Users,
@@ -115,9 +115,8 @@ export function Navbar() {
           {isAuthenticated ? (
             <>
               <Button variant="outline" asChild className="border-brand-dark-blue/30 text-brand-dark-blue hover:bg-brand-light-gray/50 hover:border-brand-dark-blue/50 py-2 px-4 font-medium text-sm">
-                <Link href="/dashboard">Dashboard</Link> {/* Generic dashboard link */}
+                <Link href="/dashboard">Dashboard</Link>
               </Button>
-              {/* Placeholder for UserButton or profile icon */}
               <div className="h-9 w-9 bg-brand-dark-blue rounded-full flex items-center justify-center text-brand-white text-sm font-semibold">
                 U
               </div>
@@ -212,3 +211,5 @@ export function Navbar() {
     </header>
   );
 }
+
+    

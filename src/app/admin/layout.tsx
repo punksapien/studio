@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import * as React from 'react'; // Ensure React is imported
+import * as React from 'react';
 import {
   SidebarProvider,
   Sidebar,
@@ -30,19 +30,18 @@ import {
   Building,
   HelpCircle,
   FileText,
-  MessageSquareQuote, // Corrected from MessageSquareQuestion
+  MessageSquareQuote,
   Home,
 } from 'lucide-react';
-// Removed UserRole import as it's not directly used here
 
 const adminSidebarNavItems = [
-  { title: 'Dashboard', href: '/admin', icon: LayoutDashboard, tooltip: "Admin Overview" },
-  { title: 'User Management', href: '/admin/users', icon: Users, tooltip: "Manage Users" },
-  { title: 'Listing Management', href: '/admin/listings', icon: Briefcase, tooltip: "Manage Listings" },
-  { title: 'Buyer Verification', href: '/admin/verification-queue/buyers', icon: UserCheck, tooltip: "Buyer Verifications" },
-  { title: 'Seller/Listing Verification', href: '/admin/verification-queue/sellers', icon: Building, tooltip: "Seller/Listing Verifications" },
-  { title: 'Engagement Queue', href: '/admin/engagement-queue', icon: BellRing, tooltip: "Engagement Queue" },
-  { title: 'Analytics', href: '/admin/analytics', icon: LineChart, tooltip: "Platform Analytics" },
+  { title: 'Dashboard', href: '/app/admin', icon: LayoutDashboard, tooltip: "Admin Overview" },
+  { title: 'User Management', href: '/app/admin/users', icon: Users, tooltip: "Manage Users" },
+  { title: 'Listing Management', href: '/app/admin/listings', icon: Briefcase, tooltip: "Manage Listings" },
+  { title: 'Buyer Verification', href: '/app/admin/verification-queue/buyers', icon: UserCheck, tooltip: "Buyer Verifications" },
+  { title: 'Seller/Listing Verification', href: '/app/admin/verification-queue/sellers', icon: Building, tooltip: "Seller/Listing Verifications" },
+  { title: 'Engagement Queue', href: '/app/admin/engagement-queue', icon: BellRing, tooltip: "Engagement Queue" },
+  { title: 'Analytics', href: '/app/admin/analytics', icon: LineChart, tooltip: "Platform Analytics" },
 ];
 
 const utilityNavItems = [
@@ -61,10 +60,10 @@ export default function AdminLayout({
 }) {
   const pathname = usePathname();
 
-  if (!isAdminAuthenticated && pathname !== '/admin/login') {
+  if (!isAdminAuthenticated && pathname !== '/app/admin/login') {
     if (typeof window !== 'undefined') {
-      console.warn("Admin not authenticated, redirect to /admin/login would happen here via router.");
-      // import { useRouter } from 'next/navigation'; const router = useRouter(); router.push('/admin/login');
+      console.warn("Admin not authenticated, redirect to /app/admin/login would happen here via router.");
+      // import { useRouter } from 'next/navigation'; const router = useRouter(); router.push('/app/admin/login');
     }
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background">
@@ -74,7 +73,7 @@ export default function AdminLayout({
     );
   }
 
-  if (pathname === '/admin/login') {
+  if (pathname === '/app/admin/login') { // Adjusted for new path
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-primary/5 via-background to-background py-12">
         {children}
@@ -83,9 +82,9 @@ export default function AdminLayout({
   }
 
   return (
-    <SidebarProvider defaultOpen> {/* Ensures sidebar is open by default on desktop */}
-      <div className="flex min-h-screen"> {/* Ensures the layout takes full screen height */}
-        <Sidebar variant="sidebar" className="border-r border-sidebar-border bg-sidebar text-sidebar-foreground"> {/* Removed collapsible="icon" */}
+    <SidebarProvider defaultOpen>
+      <div className="flex min-h-screen">
+        <Sidebar variant="sidebar" className="border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
           <SidebarHeader className="p-4 border-b border-sidebar-border">
             <div className="flex items-center justify-between">
               <Logo size="lg" />
@@ -98,11 +97,11 @@ export default function AdminLayout({
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
-                    isActive={pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href))}
+                    isActive={pathname === item.href || (item.href !== '/app/admin' && pathname.startsWith(item.href))}
                     tooltip={{ children: item.tooltip, className: "bg-primary text-primary-foreground" }}
                   >
-                    <Link href={item.href} className="flex items-center"> {/* Ensure flex and items-center for alignment */}
-                      <item.icon className="h-5 w-5 mr-3" /> {/* Added mr-3 for spacing */}
+                    <Link href={item.href} className="flex items-center">
+                      <item.icon className="h-5 w-5 mr-3" />
                       <span>{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
@@ -128,9 +127,9 @@ export default function AdminLayout({
             </SidebarMenu>
           </SidebarContent>
           <SidebarFooter className="p-4 border-t border-sidebar-border">
-            <Button variant="outline" className="w-full text-destructive-foreground bg-destructive hover:bg-destructive/90 flex items-center justify-center"> {/* Added flex items-center justify-center */}
-              <LogOut className="h-5 w-5 mr-2" /> {/* Added mr-2 for spacing */}
-              <span>Logout Admin</span>
+            <Button variant="outline" className="w-full text-destructive-foreground bg-destructive hover:bg-destructive/90 flex items-center justify-center">
+              <LogOut className="h-5 w-5 mr-2" />
+              <span className="group-data-[state=collapsed]:hidden">Logout Admin</span>
             </Button>
           </SidebarFooter>
         </Sidebar>
@@ -140,7 +139,7 @@ export default function AdminLayout({
                 <Logo size="lg" />
                 <SidebarTrigger/>
             </header>
-            <div className="flex-grow"> {/* This div will allow children to take full height */}
+            <div className="flex-grow">
               {children}
             </div>
           </div>

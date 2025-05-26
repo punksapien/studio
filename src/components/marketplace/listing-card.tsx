@@ -39,7 +39,7 @@ export function ListingCard({ listing }: ListingCardProps) {
       </CardHeader>
       <CardContent className="p-4 flex-grow">
         <CardTitle className="text-lg text-brand-dark-blue mb-2 leading-tight">
-          <Link href={`/listings/${listing.id}`} className="hover:text-brand-sky-blue transition-colors">
+          <Link href={`/app/listings/${listing.id}`} className="hover:text-brand-sky-blue transition-colors">
             {listing.listingTitleAnonymous}
           </Link>
         </CardTitle>
@@ -69,11 +69,14 @@ export function ListingCard({ listing }: ListingCardProps) {
             {listing.inquiryCount || 0} Inquiries
           </span>
           <Button asChild size="sm" className="bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90">
-            <Link href={`/listings/${listing.id}`}>
+            <Link href={`/app/listings/${listing.id}`}>
               View Details <ExternalLink className="ml-2 h-4 w-4" />
             </Link>
           </Button>
         </div>
       </CardFooter>
     </Card>
-  
+  );
+}
+
+    
