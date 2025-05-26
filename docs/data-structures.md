@@ -82,16 +82,16 @@ Represents a user in the system, accommodating both buyers and sellers with role
 ```typescript
 export type ListingStatus = 'active' | 'inactive' | 'pending_verification' | 'verified_anonymous' | 'verified_public' | 'rejected_by_admin' | 'closed_deal';
 ```
-Defines the status of a business listing (e.g., is it live on the marketplace, undergoing verification, deal closed).
+Defines the status of a business listing.
 
 ### `EmployeeCountRange` & `employeeCountRanges`
 ```typescript
 export type EmployeeCountRange = "Sole Operator" | "1-5" | "6-10" | "11-25" | "26-50" | "50+";
 export const employeeCountRanges: EmployeeCountRange[] = ["Sole Operator", "1-5", "6-10", "11-25", "26-50", "50+"];
 ```
-Defines ranges for the number of employees in a business, used in listing forms.
+Defines ranges for the number of employees in a business.
 
-### `Listing` Interface
+### `Listing` Interface (Updated)
 ```typescript
 export interface Listing {
   id: string;
@@ -105,7 +105,7 @@ export interface Listing {
   keyStrengthsAnonymous: string[];
   annualRevenueRange: string;
   netProfitMarginRange?: string;
-  askingPrice?: number; // Fixed asking price (USD)
+  askingPrice?: number; // Changed from askingPriceRange
   dealStructureLookingFor?: DealStructure[];
   reasonForSellingAnonymous?: string;
   
@@ -116,15 +116,15 @@ export interface Listing {
   actualCompanyName?: string;
   fullBusinessAddress?: string;
   businessWebsiteUrl?: string;
-  socialMediaLinks?: string; // Could be newline separated string
+  socialMediaLinks?: string;
   numberOfEmployees?: EmployeeCountRange;
   technologyStack?: string;
   
   // Specific Financials (for verified view / admin)
-  specificAnnualRevenueLastYear?: number; // TTM Specific
-  specificNetProfitLastYear?: number; // TTM Specific
-  adjustedCashFlow?: number; 
-  adjustedCashFlowExplanation?: string;
+  specificAnnualRevenueLastYear?: number;
+  specificNetProfitLastYear?: number;
+  adjustedCashFlow?: number; // Added
+  adjustedCashFlowExplanation?: string; // Added
 
   // Detailed Seller & Deal Info (for verified view / admin)
   detailedReasonForSelling?: string;
@@ -132,14 +132,14 @@ export interface Listing {
   postSaleTransitionSupport?: string;
 
   // Growth
-  specificGrowthOpportunities?: string; // Newline separated bullet points
+  specificGrowthOpportunities?: string; // For bullet points (string with newlines)
 
   // Status & Timestamps
   status: ListingStatus;
   isSellerVerified: boolean; 
 
   // Media & Documents
-  imageUrls?: string[]; // Array of up to 5 image URLs
+  imageUrls?: string[]; // Changed from single imageUrl
   financialDocumentsUrl?: string; 
   keyMetricsReportUrl?: string; 
   ownershipDocumentsUrl?: string; 
@@ -154,10 +154,9 @@ export interface Listing {
   inquiryCount?: number;
 }
 ```
-Represents a business listing with both anonymous and detailed (potentially verified) information. Asking price is now a fixed number. `growthPotentialNarrative` and `financialsExplanation` have been removed. `imageUrls` is an array.
 
 ### `Inquiry` System Types
-(No changes to Inquiry types in this update)
+(No changes to Inquiry types in this update from the user request, but ensuring they are listed)
 ```typescript
 export type InquiryStatusBuyerPerspective =
   | 'Inquiry Sent'
@@ -202,7 +201,7 @@ export interface Inquiry {
 }
 ```
 
-### `AdminDashboardMetrics` Interface
+### `AdminDashboardMetrics` Interface (Updated)
 ```typescript
 export interface AdminDashboardMetrics {
   newUserRegistrations24hSellers: number;
@@ -219,8 +218,8 @@ export interface AdminDashboardMetrics {
   totalFreeBuyers: number;
   totalActiveListingsAnonymous: number;
   totalActiveListingsVerified: number;
-  totalListingsAllStatuses: number; // New
-  closedOrDeactivatedListings: number; // New
+  totalListingsAllStatuses: number; // Added
+  closedOrDeactivatedListings: number; // Added
   buyerVerificationQueueCount: number;
   sellerVerificationQueueCount: number;
   readyToEngageQueueCount: number;
@@ -233,13 +232,42 @@ export interface AdminDashboardMetrics {
   revenueFromSellers: number; 
 }
 ```
-Structure for data displayed on the Admin Dashboard overview and Analytics page, including new metrics.
 
 ### `VerificationRequestItem` Interface
-(No changes in this update)
+```typescript
+export type VerificationQueueStatus = "New Request" | "Contacted" | "Docs Under Review" | "More Info Requested" | "Approved" | "Rejected";
+
+export interface VerificationRequestItem {
+  id: string;
+  timestamp: Date;
+  userId: string;
+  userName: string;
+  userRole: UserRole;
+  listingId?: string;
+  listingTitle?: string;
+  triggeringUserId?: string; // ID of the user whose action triggered this request (e.g. buyer inquiring)
+  reason: string; // e.g., "Buyer profile verification", "Seller listing verification for [Listing XYZ]"
+  status: VerificationQueueStatus; // Status of this request in the admin queue
+  documentsSubmitted?: { name: string, type: 'id_proof' | 'business_reg' | 'financials' }[]; // Placeholder for document tracking
+}
+```
 
 ### `ReadyToEngageItem` Interface
-(No changes in this update)
+```typescript
+export interface ReadyToEngageItem {
+  id: string; // Inquiry ID
+  timestamp: Date; // When it became ready
+  buyerId: string;
+  buyerName: string;
+  buyerVerificationStatus: VerificationStatus;
+  sellerId: string;
+  sellerName: string;
+  sellerVerificationStatus: VerificationStatus;
+  listingId: string;
+  listingTitle: string;
+  listingVerificationStatus: ListingStatus; // The verification status OF THE LISTING itself
+}
+```
 
 ### `NotificationItem` Interface
 ```typescript
@@ -256,66 +284,51 @@ export interface NotificationItem {
 }
 ```
 
-### `PlaceholderKeywords`
+### `placeholderKeywords`
 ```typescript
 export const placeholderKeywords: string[] = ["SaaS", "E-commerce", "Retail", "Service Business", "High Growth", "Profitable", "Fintech", "Logistics", "Healthcare Tech"];
 ```
-Used for the multi-select keywords filter in the marketplace.
 
 ## 2. Zod Validation Schemas
 
 Zod schemas are primarily defined inline within their respective form page components.
 
-### Buyer Registration Schema
-*   **Location:** `/app/auth/register/buyer/page.tsx` (`BuyerRegisterSchema`)
-*   **Fields (Updated):** `fullName`, `email`, `password`, `confirmPassword`, `phoneNumber`, `country`, `buyerPersonaType` (enum `BuyerPersonaTypes`), `buyerPersonaOther` (conditional), `investmentFocusDescription` (optional), `preferredInvestmentSize` (optional enum `PreferredInvestmentSizes`), `keyIndustriesOfInterest` (optional).
-*   **Rules:** Includes `superRefine` for conditional `buyerPersonaOther`.
+### Buyer Registration Schema (`/app/auth/register/buyer/page.tsx`)
+*   Includes `fullName`, `email`, `password`, `confirmPassword`, `phoneNumber`, `country`.
+*   **Updated Fields:** `buyerPersonaType` (enum `BuyerPersonaTypes`), `buyerPersonaOther` (conditional), `investmentFocusDescription` (optional), `preferredInvestmentSize` (optional enum `PreferredInvestmentSizes`), `keyIndustriesOfInterest` (optional).
+*   Rules: Includes `superRefine` for conditional `buyerPersonaOther`.
 
-### Seller Registration Schema
-*   **Location:** `/app/auth/register/seller/page.tsx` (`SellerRegisterSchema`)
-*   **Fields:** `fullName`, `email`, `password`, `confirmPassword`, `phoneNumber`, `country`, `initialCompanyName` (optional).
+### Seller Registration Schema (`/app/auth/register/seller/page.tsx`)
+*   Fields: `fullName`, `email`, `password`, `confirmPassword`, `phoneNumber`, `country`, `initialCompanyName` (optional).
 
-### Login Schema
-*   **Location:** `/app/auth/login/page.tsx` (`LoginSchema`)
-*   **Fields:** `email`, `password`.
+### Login Schema (`/app/auth/login/page.tsx`)
+*   Fields: `email`, `password`.
 
-### OTP Schema
-*   **Location:** `/app/(auth)/verify-otp/page.tsx` (`OTPSchema`)
-*   **Fields:** `otp` (6 digits).
+### OTP Schema (`/app/(auth)/verify-otp/page.tsx`)
+*   Fields: `otp` (6 digits).
 
-### Forgot Password Schema
-*   **Location:** `/app/auth/forgot-password/page.tsx` (`ForgotPasswordSchema`)
-*   **Fields:** `email`.
+### Forgot Password Schema (`/app/auth/forgot-password/page.tsx`)
+*   Fields: `email`.
 
-### Profile Update Schema (Buyer Context - conceptual, might be shared)
-*   **Location:** `/app/dashboard/profile/page.tsx` (`ProfileSchema`)
-*   **Fields (Updated for Buyer):** `fullName`, `phoneNumber`, `country`, `role` (fixed to 'buyer' conceptually for this page), `buyerPersonaType`, `buyerPersonaOther`, `investmentFocusDescription`, `preferredInvestmentSize`, `keyIndustriesOfInterest`.
-*   **Rules:** `superRefine` for buyer-specific conditional fields.
+### Profile Update Schema (Buyer - `/app/dashboard/profile/page.tsx`)
+*   Includes `fullName`, `phoneNumber`, `country`, `role` (fixed to 'buyer').
+*   **Updated Fields:** `buyerPersonaType`, `buyerPersonaOther`, `investmentFocusDescription`, `preferredInvestmentSize`, `keyIndustriesOfInterest`.
+*   Rules: `superRefine` for buyer-specific conditional fields.
 
-### Profile Update Schema (Seller Context - conceptual, might be shared or separate)
-*   **Location:** `/app/seller-dashboard/profile/page.tsx` (`ProfileSchema` if shared, or `SellerProfileSchema`)
-*   **Fields:** `fullName`, `phoneNumber`, `country`, `role` (fixed to 'seller'), `initialCompanyName`.
-*   **Rules:** `superRefine` ensures `initialCompanyName` is required for sellers.
+### Profile Update Schema (Seller - `/app/seller-dashboard/profile/page.tsx`)
+*   Fields: `fullName`, `phoneNumber`, `country`, `role` (fixed to 'seller'), `initialCompanyName` (conditionally required).
 
-### Password Change Schema
-*   **Location:** `/app/dashboard/settings/page.tsx` and `/app/seller-dashboard/settings/page.tsx` (`PasswordChangeSchema`)
-*   **Fields:** `currentPassword`, `newPassword`, `confirmNewPassword`.
+### Password Change Schema (`/app/dashboard/settings/page.tsx` and `/app/seller-dashboard/settings/page.tsx`)
+*   Fields: `currentPassword`, `newPassword`, `confirmNewPassword`.
 
-### Listing Creation/Edit Schema
-*   **Location:** `/app/seller-dashboard/listings/create/page.tsx` and `/app/seller-dashboard/listings/[listingId]/edit/page.tsx` (`ListingSchema`)
-*   **Fields (Updated):**
+### Listing Creation/Edit Schema (`/app/seller-dashboard/listings/create/page.tsx` and `/app/seller-dashboard/listings/[listingId]/edit/page.tsx`)
+*   **Updated Fields:**
     *   Anonymous: `listingTitleAnonymous`, `industry`, `locationCountry`, `locationCityRegionGeneral`, `anonymousBusinessDescription`, `keyStrengthsAnonymous` (array of strings), `annualRevenueRange`, `netProfitMarginRange` (optional), `reasonForSellingAnonymous` (optional).
     *   Detailed/Verified: `businessModel` (optional), `yearEstablished` (optional number), `registeredBusinessName` (optional), `businessWebsiteUrl` (optional URL), `socialMediaLinks` (optional), `numberOfEmployees` (optional enum), `technologyStack` (optional).
-    *   Financials: `askingPrice` (optional number), `adjustedCashFlow` (optional number), `adjustedCashFlowExplanation` (optional), `specificAnnualRevenueLastYear` (optional number), `specificNetProfitLastYear` (optional number).
-    *   Deal & Seller: `dealStructureLookingFor` (optional array of strings), `detailedReasonForSelling` (optional), `sellerRoleAndTimeCommitment` (optional), `postSaleTransitionSupport` (optional).
-    *   Growth: `specificGrowthOpportunities` (optional string for bullet points).
-    *   Image URLs: `imageUrl1` through `imageUrl5` (optional URLs).
-*   **Rules:** Includes min/max lengths, array validation, URL validation, number constraints. `askingPriceRange` removed.
+    *   Financials: `askingPrice` (optional number - **changed from range**), `adjustedCashFlow` (optional number - **added**), `adjustedCashFlowExplanation` (optional - **added**), `specificAnnualRevenueLastYear` (optional number), `specificNetProfitLastYear` (optional number).
+    *   Deal & Seller: `dealStructureLookingFor` (optional array of strings - **now multi-select**), `detailedReasonForSelling` (optional), `sellerRoleAndTimeCommitment` (optional), `postSaleTransitionSupport` (optional).
+    *   Growth: `specificGrowthOpportunities` (optional string for bullet points - **narrative removed**).
+    *   Image URLs: `imageUrl1` through `imageUrl5` (optional URLs, combined into `imageUrls` array).
+*   Rules: Includes min/max lengths, array validation, URL validation, number constraints.
 
-### Admin Login Schema
-*   **Location:** `/app/admin/login/page.tsx` (`AdminLoginSchema`)
-*   **Fields:** `email`, `password`.
-
-These types and schemas are fundamental to maintaining data integrity and consistency throughout the application.
-
-    
+These types and schemas are fundamental to maintaining data

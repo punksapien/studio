@@ -32,10 +32,10 @@ import { useTransition, useState, useEffect } from "react";
 import { Separator } from "@/components/ui/separator";
 import { sampleListings, sampleUsers } from "@/lib/placeholder-data";
 import { PlusCircle, Trash2, DollarSign, ImagePlus } from "lucide-react";
-import { notFound, useRouter } from 'next/navigation';
+import { notFound, useRouter, useParams } from 'next/navigation'; // Added useParams
 import { Label } from "@/components/ui/label";
 
-// Zod Schema for Listing Form (Create and Edit)
+
 const ListingSchema = z.object({
   listingTitleAnonymous: z.string().min(5, "Title must be at least 5 characters.").max(100, "Title too long."),
   industry: z.string().min(1, "Industry is required."),
@@ -51,16 +51,17 @@ const ListingSchema = z.object({
   registeredBusinessName: z.string().optional(),
   businessWebsiteUrl: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
   socialMediaLinks: z.string().optional(),
-  numberOfEmployees: z.string().optional(), // Stays string as it maps to EmployeeCountRange
+  numberOfEmployees: z.string().optional(), 
   technologyStack: z.string().optional(),
 
   annualRevenueRange: z.string().min(1, "Annual revenue range is required."),
   netProfitMarginRange: z.string().optional(),
   askingPrice: z.coerce.number({invalid_type_error: "Asking price must be a number."}).positive({message: "Asking price must be positive."}).optional(),
-  adjustedCashFlow: z.coerce.number({invalid_type_error: "Adjusted cash flow must be a number."}).optional(),
-  adjustedCashFlowExplanation: z.string().optional(),
+  
   specificAnnualRevenueLastYear: z.coerce.number({invalid_type_error: "Specific annual revenue must be a number."}).optional(),
   specificNetProfitLastYear: z.coerce.number({invalid_type_error: "Specific net profit must be a number."}).optional(),
+  adjustedCashFlow: z.coerce.number({invalid_type_error: "Adjusted cash flow must be a number."}).optional(),
+  adjustedCashFlowExplanation: z.string().optional(),
   
   dealStructureLookingFor: z.array(z.string()).optional(),
   reasonForSellingAnonymous: z.string().max(500, "Reason too long (max 500 chars).").optional(),
@@ -79,14 +80,17 @@ const ListingSchema = z.object({
 
 type ListingFormValues = z.infer<typeof ListingSchema>;
 
-interface EditSellerListingPageProps {
-  params: { listingId: string };
-}
+// interface EditSellerListingPageProps { // Not needed if using useParams
+//   params: { listingId: string };
+// }
 
 const currentSellerId = 'user1'; // Placeholder for actual authenticated seller ID
 const currentUser: User | undefined = sampleUsers.find(u => u.id === currentSellerId && u.role === 'seller');
 
-export default function EditSellerListingPage({ params }: EditSellerListingPageProps) {
+export default function EditSellerListingPage() {
+  const params = useParams();
+  const listingId = typeof params.listingId === 'string' ? params.listingId : '';
+
   const { toast } = useToast();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -112,10 +116,10 @@ export default function EditSellerListingPage({ params }: EditSellerListingPageP
       annualRevenueRange: "",
       netProfitMarginRange: "",
       askingPrice: undefined,
-      adjustedCashFlow: undefined,
-      adjustedCashFlowExplanation: "",
       specificAnnualRevenueLastYear: undefined,
       specificNetProfitLastYear: undefined,
+      adjustedCashFlow: undefined,
+      adjustedCashFlowExplanation: "",
       dealStructureLookingFor: [],
       reasonForSellingAnonymous: "",
       detailedReasonForSelling: "",
@@ -127,7 +131,7 @@ export default function EditSellerListingPage({ params }: EditSellerListingPageP
   });
   
   useEffect(() => {
-    const fetchedListing = sampleListings.find(l => l.id === params.listingId && l.sellerId === currentUser?.id);
+    const fetchedListing = sampleListings.find(l => l.id === listingId && l.sellerId === currentUser?.id);
     if (fetchedListing) {
       setListing(fetchedListing);
       const initialImageUrls = fetchedListing.imageUrls || [];
@@ -148,10 +152,10 @@ export default function EditSellerListingPage({ params }: EditSellerListingPageP
         annualRevenueRange: fetchedListing.annualRevenueRange || "",
         netProfitMarginRange: fetchedListing.netProfitMarginRange || "",
         askingPrice: fetchedListing.askingPrice === undefined ? undefined : Number(fetchedListing.askingPrice),
-        adjustedCashFlow: fetchedListing.adjustedCashFlow === undefined ? undefined : Number(fetchedListing.adjustedCashFlow),
-        adjustedCashFlowExplanation: fetchedListing.adjustedCashFlowExplanation || "",
         specificAnnualRevenueLastYear: fetchedListing.specificAnnualRevenueLastYear === undefined ? undefined : Number(fetchedListing.specificAnnualRevenueLastYear),
         specificNetProfitLastYear: fetchedListing.specificNetProfitLastYear === undefined ? undefined : Number(fetchedListing.specificNetProfitLastYear),
+        adjustedCashFlow: fetchedListing.adjustedCashFlow === undefined ? undefined : Number(fetchedListing.adjustedCashFlow),
+        adjustedCashFlowExplanation: fetchedListing.adjustedCashFlowExplanation || "",
         dealStructureLookingFor: fetchedListing.dealStructureLookingFor || [],
         reasonForSellingAnonymous: fetchedListing.reasonForSellingAnonymous || "",
         detailedReasonForSelling: fetchedListing.detailedReasonForSelling || "",
@@ -168,7 +172,7 @@ export default function EditSellerListingPage({ params }: EditSellerListingPageP
     } else {
       notFound();
     }
-  }, [params.listingId, form, currentUser?.id]);
+  }, [listingId, form, currentUser?.id]);
 
 
   const handleAddStrength = () => {
@@ -299,13 +303,13 @@ export default function EditSellerListingPage({ params }: EditSellerListingPageP
                 <FormField control={form.control} name="annualRevenueRange" render={({ field }) => (<FormItem><FormLabel>Annual Revenue Range (Anonymous)</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={isPending}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent>{revenueRanges.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)}/>
                 <FormField control={form.control} name="netProfitMarginRange" render={({ field }) => (<FormItem><FormLabel>Net Profit Margin Range (Anonymous, Optional)</FormLabel><Select onValueChange={field.onChange} value={field.value || ""} disabled={isPending}><FormControl><SelectTrigger><SelectValue placeholder="Select profit margin"/></SelectTrigger></FormControl><SelectContent>{profitMarginRanges.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)}/>
               </div>
-              <FormField control={form.control} name="askingPrice" render={({ field }) => (<FormItem><FormLabel className="flex items-center"><DollarSign className="h-4 w-4 mr-1 text-muted-foreground"/>Asking Price (USD)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} disabled={isPending} /></FormControl><FormMessage /></FormItem>)}/>
+              <FormField control={form.control} name="askingPrice" render={({ field }) => (<FormItem><FormLabel className="flex items-center"><DollarSign className="h-4 w-4 mr-1 text-muted-foreground"/>Asking Price (USD)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} placeholder="e.g., 750000" disabled={isPending} /></FormControl><FormMessage /></FormItem>)}/>
               <Separator/>
               <h3 className="text-md font-medium text-muted-foreground">Specific Financials (For Verified View)</h3>
               <FormField control={form.control} name="specificAnnualRevenueLastYear" render={({ field }) => (<FormItem><FormLabel>Actual Annual Revenue (TTM, USD)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
               <FormField control={form.control} name="specificNetProfitLastYear" render={({ field }) => (<FormItem><FormLabel>Actual Net Profit (TTM, USD)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
               <FormField control={form.control} name="adjustedCashFlow" render={({ field }) => (<FormItem><FormLabel>Adjusted Cash Flow / SDE (TTM, USD)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
-              <FormField control={form.control} name="adjustedCashFlowExplanation" render={({ field }) => (<FormItem><FormLabel>Adj. Cash Flow Explanation (Optional)</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={3} disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
+              <FormField control={form.control} name="adjustedCashFlowExplanation" render={({ field }) => (<FormItem><FormLabel>Adj. Cash Flow Explanation (Optional)</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={3} placeholder="Explain any adjustments made (e.g., owner's salary, non-recurring expenses)." disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
               <div className="space-y-2"><Label className="text-md font-medium text-muted-foreground">Supporting Financial Documents</Label><FormItem><Label htmlFor="financialStatements">Financial Statements</Label><Input id="financialStatements" type="file" disabled={isPending} /><FormDescription>PDF, XLSX accepted.</FormDescription></FormItem><FormItem><Label htmlFor="keyMetricsReport">Key Metrics Report</Label><Input id="keyMetricsReport" type="file" disabled={isPending} /><FormDescription>PDF, XLSX accepted.</FormDescription></FormItem></div>
             </CardContent>
           </Card>
@@ -329,7 +333,7 @@ export default function EditSellerListingPage({ params }: EditSellerListingPageP
           <Card className="shadow-md bg-brand-white">
             <CardHeader><CardTitle className="text-brand-dark-blue">Section 5: Growth &amp; Future Potential</CardTitle></CardHeader>
             <CardContent className="space-y-6">
-              <FormField control={form.control} name="specificGrowthOpportunities" render={({ field }) => (<FormItem><FormLabel>Specific Growth Opportunities (Use bullet points)</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={5} placeholder="- Expand to new markets (e.g., Region X)\n- Launch new product line (e.g., Product Y)\n- Optimize marketing spend by Z%" disabled={isPending} /></FormControl><FormDescription>List 3-5 specific, actionable growth opportunities.</FormDescription><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="specificGrowthOpportunities" render={({ field }) => (<FormItem><FormLabel>Specific Growth Opportunities (Use bullet points)</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={5} placeholder="- Expand to new markets (e.g., Region X)\n- Launch new product line (e.g., Product Y)\n- Optimize marketing spend by Z%" disabled={isPending} /></FormControl><FormDescription>List 3-5 specific, actionable growth opportunities.</FormDescription><FormMessage /></FormItem>)} />
             </CardContent>
           </Card>
           
@@ -342,10 +346,4 @@ export default function EditSellerListingPage({ params }: EditSellerListingPageP
                 {isPending ? "Saving..." : "Save Changes"}
             </Button>
           </div>
-        </form>
-      </Form>
-    </div>
-  );
-}
-
-    
+        

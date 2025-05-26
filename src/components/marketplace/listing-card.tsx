@@ -76,7 +76,4 @@ export function ListingCard({ listing }: ListingCardProps) {
         </div>
       </CardFooter>
     </Card>
-  );
-}
-
-    
+  

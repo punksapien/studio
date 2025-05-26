@@ -2,16 +2,17 @@
 import * as React from "react";
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowRight, CheckCircle, Shield, Zap, Briefcase, Users, MapPin, DollarSign, ShoppingCart, FileText, Info, Phone, Newspaper, Home, UserCircle, LogIn, UserPlus, Search as SearchIcon, BarChart3, HandCoins, Star, ShieldCheck } from 'lucide-react'; // Added ShieldCheck
+import { ArrowRight, CheckCircle, Shield, Zap, Briefcase, Users, MapPin, DollarSign, ShoppingCart, FileText, Info, Phone, Newspaper, Home, UserCircle, LogIn, UserPlus, Search as SearchIcon, BarChart3, HandCoins, Star, ShieldCheck } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
-// Placeholder for simple gray box image
+// Placeholder for simple gray box image - defined locally for this page to ensure it works
 const PlaceholderImage = ({ className = "", text = "Placeholder Image", width = 600, height = 400, aiHint = "abstract business" }: { className?: string, text?: string, width?: number, height?: number, aiHint?: string }) => (
   <div
     className={cn("bg-brand-light-gray/50 flex items-center justify-center rounded-lg overflow-hidden aspect-video", className)}
     style={{
+      // Using inline styles for width/height to ensure they apply if Tailwind JIT doesn't pick up dynamic class names
       width: width ? `${width}px` : '100%',
       height: height ? `${height}px` : 'auto',
       maxWidth: '100%'
@@ -24,6 +25,7 @@ const PlaceholderImage = ({ className = "", text = "Placeholder Image", width = 
   </div>
 );
 
+// Placeholder for logo - defined locally
 const PlaceholderLogo = ({ text = "Logo" }: { text?: string }) => (
   <div
     className="bg-brand-light-gray/30 flex items-center justify-center rounded-md p-4 h-16 w-32"
@@ -37,9 +39,6 @@ const previewListings = [
   { id: '1', title: 'High-Growth SaaS Platform in FinTech', industry: 'Technology', location: 'Singapore', price: 1750000, isSellerVerified: true, imageUrls: ['https://placehold.co/400x250.png'], aiHint: 'software interface dashboard' },
   { id: '2', title: 'Luxury Boutique Hotel Chain', industry: 'Hospitality', location: 'Bali, Indonesia', price: 7500000, isSellerVerified: true, imageUrls: ['https://placehold.co/400x250.png'], aiHint: 'hotel resort luxury' },
   { id: '3', title: 'Sustainable Agriculture Enterprise', industry: 'Agriculture', location: 'Vietnam', price: 750000, isSellerVerified: false, imageUrls: ['https://placehold.co/400x250.png'], aiHint: 'farm agriculture sustainable' },
-  { id: '4', title: 'Established Marketing Agency (SG)', industry: 'Services - Marketing', location: 'Singapore', price: 450000, isSellerVerified: true, imageUrls: ['https://placehold.co/400x250.png'], aiHint: 'office marketing team' },
-  { id: '5', title: 'Profitable E-commerce Brand (Regional)', industry: 'E-commerce', location: 'Southeast Asia', price: 1200000, isSellerVerified: true, imageUrls: ['https://placehold.co/400x250.png'], aiHint: 'online store products' },
-  { id: '6', title: 'Niche B2B Software Solution', industry: 'Software', location: 'Malaysia', price: 300000, isSellerVerified: false, imageUrls: ['https://placehold.co/400x250.png'], aiHint: 'code software development' },
 ];
 
 const testimonials = [
@@ -60,7 +59,7 @@ export default function HomePage() {
     <>
       {/* Hero Section */}
       <section className="w-full bg-brand-dark-blue text-brand-white">
-        <div className="container mx-auto flex flex-col items-center justify-center text-center min-h-[calc(80vh-theme(spacing.20))] px-4 py-20 md:py-24 lg:py-32"> {/* Adjusted min-h for h-20 navbar */}
+        <div className="container mx-auto flex flex-col items-center justify-center text-center min-h-[calc(80vh-theme(spacing.20))] px-4 py-24 md:py-32 lg:py-40"> {/* Increased padding */}
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight !leading-tight mb-6">
             Find Your Next Business Venture with Nobridge
           </h1>
@@ -82,7 +81,7 @@ export default function HomePage() {
           </div>
           <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
             <Button size="lg" asChild className="bg-brand-white text-brand-dark-blue hover:bg-brand-light-gray/90 font-semibold py-3 px-8 rounded-md text-base">
-              <Link href="/seller-dashboard/listings/create">List Your Business <ArrowRight className="ml-2 h-5 w-5" /></Link>
+              <Link href="/auth/register/seller">List Your Business <ArrowRight className="ml-2 h-5 w-5" /></Link>
             </Button>
             <Button size="lg" variant="outline" asChild className="border-brand-white text-brand-white hover:bg-brand-white/10 hover:text-brand-white font-semibold py-3 px-8 rounded-md text-base">
               <Link href="/marketplace">Browse Businesses</Link>
@@ -99,10 +98,10 @@ export default function HomePage() {
             <p className="text-muted-foreground mt-3 text-lg">A Glimpse into Our Curated Marketplace</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {previewListings.slice(0, 3).map((listing, i) => (
+            {previewListings.map((listing) => (
               <Card key={listing.id} className="bg-brand-white shadow-xl hover:shadow-2xl transition-shadow duration-300 rounded-lg flex flex-col overflow-hidden">
                 <CardHeader className="p-0 relative">
-                  <PlaceholderImage className="w-full" width={400} height={220} text={`Listing Image ${i+1}`} aiHint={listing.aiHint || "business operations"} />
+                  <PlaceholderImage className="w-full" width={400} height={220} text={`Image for ${listing.title}`} aiHint={listing.aiHint || "business operations"} />
                    {listing.isSellerVerified && (
                       <Badge variant="outline" className="absolute top-3 right-3 text-xs border-green-600 text-green-700 bg-green-100 dark:bg-green-700/20 dark:text-green-300 dark:border-green-500/50">
                         <ShieldCheck className="h-3 w-3 mr-1" /> Verified
@@ -256,7 +255,7 @@ export default function HomePage() {
       </section>
 
       {/* Our Mission Section */}
-      <section className="py-20 md:py-32 bg-brand-dark text-primary-foreground"> {/* Used .bg-brand-dark for specific dark background */}
+      <section className="py-20 md:py-32 bg-brand-dark-blue text-brand-white"> {/* Used direct color class for simplicity */}
         <div className="container mx-auto px-4 text-center">
           <p className="text-sm font-semibold uppercase tracking-wider text-brand-light-gray/70 mb-3">OUR COMMITMENT</p>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight mb-6">Empowering SME Growth and Transitions Across Asia</h2>
@@ -289,3 +288,6 @@ export default function HomePage() {
     </>
   );
 }
+
+
+    

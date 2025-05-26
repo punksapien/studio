@@ -40,15 +40,15 @@ export default function InquiriesPage() {
   const getStatusBadgeVariant = (status?: InquiryStatusBuyerPerspective) => {
     if (!status) return "outline";
     if (status.includes("New") || status.includes("Sent")) return "default";
-    if (status.includes("Pending") || status.includes("Required")) return "destructive"; // Changed to destructive for pending/required
-    if (status.includes("Ready") || status.includes("Facilitated")) return "default"; // Can be 'success' or similar if you have one
+    if (status.includes("Pending") || status.includes("Required")) return "destructive"; 
+    if (status.includes("Ready") || status.includes("Facilitated")) return "default"; 
     return "outline";
   };
 
   const getStatusBadgeClass = (status?: InquiryStatusBuyerPerspective) => {
     if (!status) return "";
-    if (status.includes("Ready") || status.includes("Facilitated")) return "bg-green-500 text-white"; // Using a green for success
-    if (status.includes("Required") || status.includes("Pending")) return "bg-amber-500 text-white"; // Using amber for pending/required
+    if (status.includes("Ready") || status.includes("Facilitated")) return "bg-green-500 text-white"; 
+    if (status.includes("Required") || status.includes("Pending")) return "bg-amber-500 text-white"; 
     if (status === 'Inquiry Sent') return "bg-blue-500 text-white";
     return "";
   };
@@ -109,12 +109,14 @@ export default function InquiriesPage() {
               </CardHeader>
               {inquiry.statusBuyerPerspective === "Seller Engaged - Your Verification Required" && (
                 <CardContent className="pt-0 pb-4 border-t mt-2">
-                  <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-md text-sm text-amber-700 flex flex-col sm:flex-row items-start gap-2">
-                    <Info className="h-5 w-5 flex-shrink-0 mt-0.5 text-amber-600"/>
-                    <div className="flex-grow">
-                      <p className="font-medium">Action Required: Verify Your Profile</p>
-                      <p className="mt-1">You have requested to open a conversation with a seller for this listing. To access their private data and for our team to facilitate the connection, you need to become a Verified Buyer. Please verify your profile so our team can proceed.</p>
-                       <Button size="sm" asChild className="mt-3 bg-amber-500 hover:bg-amber-600 text-white">
+                  <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-md text-sm text-amber-700 flex flex-col sm:flex-row items-start gap-3">
+                    <Info className="h-6 w-6 flex-shrink-0 mt-0.5 text-amber-600"/>
+                    <div className="flex-grow space-y-2">
+                      <p className="font-semibold">Action Required: Verify Your Profile</p>
+                      <p>
+                        You have requested to open a conversation with a seller for this listing. To access their private data and for our team to facilitate the connection, you need to become a Verified Buyer. Please verify your profile so our team can proceed.
+                      </p>
+                       <Button size="sm" asChild className="bg-amber-500 hover:bg-amber-600 text-white">
                         <Link href="/dashboard/verification">
                           <ShieldAlert className="mr-2 h-4 w-4" /> Verify Profile Now
                         </Link>
@@ -147,10 +149,4 @@ export default function InquiriesPage() {
               </CardFooter>
             </Card>
           ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-    
+        

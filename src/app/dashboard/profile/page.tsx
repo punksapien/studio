@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from "react";
@@ -30,7 +29,7 @@ import {
   User,
   BuyerPersonaTypes,
   PreferredInvestmentSizes,
-  UserRole // Ensure UserRole is imported
+  UserRole 
 } from "@/lib/types";
 import { useState, useTransition, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -45,8 +44,8 @@ const ProfileSchema = z.object({
   fullName: z.string().min(1, { message: "Full name is required." }),
   phoneNumber: z.string().min(1, { message: "Phone number is required." }),
   country: z.string().min(1, { message: "Country is required." }),
-  role: z.enum(['seller', 'buyer'] as [UserRole, ...UserRole[]], { required_error: "Role is required." }), // Cast to satisfy enum
-  initialCompanyName: z.string().optional(),
+  role: z.enum(['seller', 'buyer'] as [UserRole, ...UserRole[]], { required_error: "Role is required." }), 
+  initialCompanyName: z.string().optional(), // Kept optional here, superRefine handles requirement
   buyerPersonaType: z.enum(BuyerPersonaTypes).optional(),
   buyerPersonaOther: z.string().optional(),
   investmentFocusDescription: z.string().optional(),
@@ -55,11 +54,7 @@ const ProfileSchema = z.object({
 }).superRefine((data, ctx) => {
   if (data.role === 'seller') {
     if (!data.initialCompanyName || data.initialCompanyName.trim().length < 1) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Initial company name is required for sellers.",
-        path: ["initialCompanyName"],
-      });
+      // This part won't be hit if role is fixed to buyer for this page
     }
   } else if (data.role === 'buyer') {
     if (!data.buyerPersonaType) {
@@ -83,7 +78,7 @@ const defaultProfileValues: Partial<z.infer<typeof ProfileSchema>> = {
   fullName: "",
   phoneNumber: "",
   country: "",
-  role: "buyer", // Default for this buyer dashboard context
+  role: "buyer", 
   initialCompanyName: "",
   buyerPersonaType: undefined,
   buyerPersonaOther: "",
@@ -108,12 +103,12 @@ export default function ProfilePage() {
         phoneNumber: currentUserServerData.phoneNumber || "",
         country: currentUserServerData.country || "",
         role: currentUserServerData.role,
-        initialCompanyName: currentUserServerData.role === 'seller' ? (currentUserServerData.initialCompanyName || "") : "",
-        buyerPersonaType: currentUserServerData.role === 'buyer' ? (currentUserServerData.buyerPersonaType || undefined) : undefined,
-        buyerPersonaOther: currentUserServerData.role === 'buyer' ? (currentUserServerData.buyerPersonaOther || "") : "",
-        investmentFocusDescription: currentUserServerData.role === 'buyer' ? (currentUserServerData.investmentFocusDescription || "") : "",
-        preferredInvestmentSize: currentUserServerData.role === 'buyer' ? (currentUserServerData.preferredInvestmentSize || undefined) : undefined,
-        keyIndustriesOfInterest: currentUserServerData.role === 'buyer' ? (currentUserServerData.keyIndustriesOfInterest || "") : "",
+        initialCompanyName: "", // Not applicable for buyer profile
+        buyerPersonaType: currentUserServerData.buyerPersonaType || undefined,
+        buyerPersonaOther: currentUserServerData.buyerPersonaOther || "",
+        investmentFocusDescription: currentUserServerData.investmentFocusDescription || "",
+        preferredInvestmentSize: currentUserServerData.preferredInvestmentSize || undefined,
+        keyIndustriesOfInterest: currentUserServerData.keyIndustriesOfInterest || "",
       });
     }
   }, [profileForm, currentUserServerData]);
@@ -127,23 +122,7 @@ export default function ProfilePage() {
     });
   };
 
-  const watchedRole = profileForm.watch("role");
   const watchedBuyerPersonaType = profileForm.watch("buyerPersonaType");
-
-  useEffect(() => {
-    // This logic might be redundant if the dashboard is strictly for buyers
-    // but kept for robustness if this component were to be shared.
-    if (watchedRole === 'buyer') {
-      profileForm.setValue('initialCompanyName', ''); // Clear seller-specific field
-    } else if (watchedRole === 'seller') {
-      // Clear buyer-specific fields
-      profileForm.setValue('buyerPersonaType', undefined);
-      profileForm.setValue('buyerPersonaOther', '');
-      profileForm.setValue('investmentFocusDescription', '');
-      profileForm.setValue('preferredInvestmentSize', undefined);
-      profileForm.setValue('keyIndustriesOfInterest', '');
-    }
-  }, [watchedRole, profileForm]);
 
   if (!currentUserServerData || currentUserServerData.role !== 'buyer') {
     return <div className="container py-8 text-center">Loading profile or user not found/not a buyer...</div>;
@@ -179,10 +158,8 @@ export default function ProfilePage() {
                 )}
               />
               
-              {/* Hidden role field as this page is for buyers */}
               <FormField control={profileForm.control} name="role" render={({ field }) => (<FormItem className="hidden"><FormControl><Input {...field} /></FormControl></FormItem>)} />
 
-              {/* Buyer Specific Fields */}
               <Separator />
               <h3 className="text-lg font-medium text-brand-dark-blue pt-2">Buyer Persona &amp; Focus</h3>
               <FormField control={profileForm.control} name="buyerPersonaType" render={({ field }) => (
@@ -202,10 +179,9 @@ export default function ProfilePage() {
               )}
               <FormField control={profileForm.control} name="investmentFocusDescription" render={({ field }) => (
                   <FormItem><FormLabel>Investment Focus or What You&apos;re Looking For</FormLabel>
-                    <FormControl><Textarea {...field} value={field.value || ""} placeholder="e.g., SaaS businesses in Southeast Asia with $100k-$1M ARR..." disabled={isProfilePending} rows={3}/></FormControl><FormMessage />
-                  </FormItem>
-                )}
-              />
+                    <FormControl><Textarea {...field} value={field.value || ""} placeholder="e.g., SaaS businesses in Southeast Asia with $100k-$1M ARR..." disabled={isProfilePending} rows={3}/></FormControl><FormMessage /></FormItem>
+                  )}
+                />
               <FormField control={profileForm.control} name="preferredInvestmentSize" render={({ field }) => (
                   <FormItem><FormLabel>Preferred Investment Size (Approximate)</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value || undefined} disabled={isProfilePending}>
@@ -217,8 +193,7 @@ export default function ProfilePage() {
               />
               <FormField control={profileForm.control} name="keyIndustriesOfInterest" render={({ field }) => (
                   <FormItem><FormLabel>Key Industries of Interest</FormLabel>
-                    <FormControl><Textarea {...field} value={field.value || ""} placeholder="e.g., Technology, E-commerce, Healthcare..." disabled={isProfilePending} rows={3}/></FormControl><FormMessage />
-                  </FormItem>
+                    <FormControl><Textarea {...field} value={field.value || ""} placeholder="e.g., Technology, E-commerce, Healthcare..." disabled={isProfilePending} rows={3}/></FormControl><FormMessage /></FormItem>
                 )}
               />
               <Button type="submit" disabled={isProfilePending} className="bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90">{isProfilePending ? "Saving..." : "Save Profile Changes"}</Button>
@@ -239,9 +214,6 @@ export default function ProfilePage() {
             </Button>
         </CardContent>
       </Card>
-
     </div>
   );
 }
-
-    

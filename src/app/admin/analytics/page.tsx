@@ -1,7 +1,6 @@
-
 import * as React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, LineChart, PieChart, Users, Briefcase, DollarSign, CheckCircle, TrendingUp, UserMinus, UserPlus, Banknote, ShieldCheck, Handshake, ListX, ListChecks } from "lucide-react"; // Added ListChecks
+import { BarChart, LineChart, PieChart, Users, Briefcase, DollarSign, CheckCircle, TrendingUp, UserMinus, UserPlus, Banknote, ShieldCheck, Handshake, ListX, ListChecks } from "lucide-react";
 import { sampleAdminDashboardMetrics, sampleUsers, sampleListings } from "@/lib/placeholder-data";
 import { Separator } from "@/components/ui/separator";
 
@@ -36,7 +35,7 @@ export default function AdminAnalyticsPage() {
         </Card>
          <Card className="shadow-md bg-brand-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-brand-dark-blue">Deactivated/Closed Listings</CardTitle>
+            <CardTitle className="text-sm font-medium text-brand-dark-blue">Closed/Deactivated Listings</CardTitle>
             <ListX className="h-5 w-5 text-brand-dark-blue/70" />
           </CardHeader>
           <CardContent>
@@ -147,7 +146,6 @@ export default function AdminAnalyticsPage() {
         </Card>
       </div>
 
-
       <Separator className="bg-brand-light-gray/80"/>
       <h2 className="text-2xl font-semibold tracking-tight pt-4 text-brand-dark-blue">Activity Charts (Placeholders)</h2>
       <div className="grid gap-6 lg:grid-cols-2">
@@ -195,5 +193,3 @@ export default function AdminAnalyticsPage() {
     </div>
   );
 }
-
-    

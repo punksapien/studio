@@ -17,7 +17,7 @@ import {
   FormField,
   FormItem,
   FormMessage,
-  FormLabel, // Added FormLabel import
+  FormLabel,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -149,7 +149,7 @@ export default function SettingsPage() {
                   <FormItem>
                     <FormLabel htmlFor="newPassword">New Password</FormLabel>
                     <FormControl><Input id="newPassword" {...field} type="password" disabled={isPasswordPending} /></FormControl>
-                    <FormDescription>Must be at least 8 characters.</FormMessage>
+                    <FormDescription className="text-xs">Must be at least 8 characters.</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -188,7 +188,7 @@ export default function SettingsPage() {
                 <p className="text-sm text-muted-foreground mb-2">
                     Deactivating your account will temporarily hide your profile and listings. You can reactivate it later.
                 </p>
-                <Button variant="outline" className="border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive">
+                <Button variant="outline" className="border-destructive text-destructive hover:bg-destructive/10">
                     Deactivate My Account
                 </Button>
             </div>
@@ -201,10 +201,4 @@ export default function SettingsPage() {
                     Delete My Account
                 </Button>
             </div>
-          </CardContent>
-      </Card>
-    </div>
-  );
-}
-
-    
+          </

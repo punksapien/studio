@@ -11,31 +11,33 @@ import { sampleBuyerNotifications, sampleUsers } from "@/lib/placeholder-data";
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
 
-// Placeholder for current buyer ID
-const currentBuyerId = 'user6'; // Change to 'user2' to see different notifications
+const currentBuyerId = 'user6'; 
 const currentUser: User | undefined = sampleUsers.find(u => u.id === currentBuyerId && u.role === 'buyer');
-
 
 function FormattedTimestamp({ timestamp }: { timestamp: Date | string }) {
   const [formattedDate, setFormattedDate] = useState<string | null>(null);
 
   useEffect(() => {
     if (timestamp) {
-      setFormattedDate(new Date(timestamp).toLocaleString());
+      const dateObj = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
+      if (!isNaN(dateObj.getTime())) {
+        setFormattedDate(dateObj.toLocaleString());
+      } else {
+        setFormattedDate('Invalid Date');
+      }
     } else {
       setFormattedDate('N/A');
     }
   }, [timestamp]);
 
   if (timestamp && !formattedDate) {
-    return <span className="italic">Loading date...</span>;
+    return <span className="italic text-xs">Loading date...</span>;
   }
-  return <>{formattedDate}</>;
+  return <>{formattedDate || 'N/A'}</>;
 }
 
 
 export default function NotificationsPage() {
-
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
 
   useEffect(() => {
@@ -117,19 +119,19 @@ export default function NotificationsPage() {
                   </p>
                 </div>
                 <div className="flex-shrink-0 flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
-                  {notification.link && notification.type !== 'verification' && (
+                  {notification.link && notification.type === 'verification' && notification.message.toLowerCase().includes("profile needs to be verified") && (
+                    <Button variant="default" size="sm" asChild className="bg-amber-500 hover:bg-amber-600 text-white">
+                        <Link href={notification.link}>
+                            <ShieldCheck className="mr-2 h-4 w-4"/> Verify Your Profile to Proceed
+                        </Link>
+                    </Button>
+                  )}
+                  {notification.link && !(notification.type === 'verification' && notification.message.toLowerCase().includes("profile needs to be verified")) && (
                     <Button variant="outline" size="sm" asChild className="border-brand-dark-blue/30 text-brand-dark-blue hover:bg-brand-light-gray">
                       <Link href={notification.link}>
                         {getIconForNotificationType(notification.type)}
                         View Details
                       </Link>
-                    </Button>
-                  )}
-                   {notification.type === 'verification' && notification.message.includes("your profile needs to be verified") && (
-                    <Button variant="default" size="sm" asChild className="bg-amber-500 hover:bg-amber-600 text-white">
-                        <Link href="/dashboard/verification">
-                            <ShieldCheck className="mr-2 h-4 w-4"/> Verify Your Profile to Proceed
-                        </Link>
                     </Button>
                   )}
                   {!notification.isRead && (
@@ -142,9 +144,3 @@ export default function NotificationsPage() {
             ))}
           </CardContent>
         </Card>
-      )}
-    </div>
-  );
-}
-
-    

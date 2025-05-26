@@ -51,11 +51,11 @@ This section details the core authentication mechanisms, focusing on an OTP (One
     2.  **Validate Input:** Use Zod schema (`BuyerRegisterSchema`).
     3.  **Check Email Uniqueness (D1 Query):** (As per Seller registration).
     4.  **Password Hashing:** (As per Seller registration).
-    5.  **Store Provisional User Record (D1 Insert):** Insert into `user_profiles` with all buyer-specific fields, `role` set to `'BUYER'`, and `email_verified_at` set to `NULL`.
+    5.  **Store Provisional User Record (D1 Insert):** Insert into `user_profiles` with all buyer-specific fields (e.g., `buyer_persona_type`, `investment_focus_description`), `role` set to `'BUYER'`, and `email_verified_at` set to `NULL`.
     6.  **Generate and Send OTP (for Email Verification):** (As per Seller registration, type 'REGISTRATION').
     7.  **Return Success Response:** With `email`.
 
-### C. User Login - Step 1: Credential Validation &amp; OTP Trigger
+### C. User Login - Step 1: Credential Validation & OTP Trigger
 
 *   **Triggering UI:** Login Form submission (`src/app/auth/login/page.tsx`).
 *   **Conceptual Next.js API Route:** `POST /api/auth/login/initiate`.
@@ -63,7 +63,7 @@ This section details the core authentication mechanisms, focusing on an OTP (One
     1.  **Receive Request:** Worker receives POST request with `email` and `password`.
     2.  **Validate Input:** Use Zod schema (`LoginSchema`).
     3.  **Fetch User (D1 Query):** Query `user_profiles` table: `SELECT user_id, hashed_password, password_salt, role, verification_status, is_paid, full_name, email_verified_at FROM user_profiles WHERE email = ?`.
-    4.  **User Existence &amp; Password Verification:** If no user found, or if re-hashing the provided `password` with the fetched `password_salt` does not match `hashed_password`, return 401 Unauthorized (e.g., "Invalid credentials.").
+    4.  **User Existence & Password Verification:** If no user found, or if re-hashing the provided `password` with the fetched `password_salt` does not match `hashed_password`, return 401 Unauthorized (e.g., "Invalid credentials.").
     5.  **Check Email Verification Status:** If `email_verified_at` is `NULL`, the user hasn't completed their initial registration OTP. Return an error like "Email not verified. Please complete registration via OTP."
     6.  **Generate and Send OTP (for Login 2FA):**
         *   Call shared OTP generation/sending function (see "I.G. OTP Logic") with `type='LOGIN'`.
@@ -87,7 +87,7 @@ This section details the core authentication mechanisms, focusing on an OTP (One
     1.  **Receive Request:** Worker receives POST request with `email`.
     2.  **Validate Input:** Use Zod schema.
     3.  **Fetch User (D1 Query):** Query `user_profiles`: `SELECT user_id, email_verified_at FROM user_profiles WHERE email = ?`.
-    4.  **Process Request:** If user exists AND `email_verified_at` is NOT NULL, generate and send OTP (type 'PASSWORD_RESET', see "I.G. OTP Logic").
+    4.  **Process Request:** If user exists AND `email_verified_at` IS NOT NULL, generate and send OTP (type 'PASSWORD_RESET', see "I.G. OTP Logic").
     5.  **Return Generic Success Response:** Always return 200 OK with "If an account with that email exists and is verified, an OTP for password reset has been sent." (Prevents email enumeration).
 
 ### F. Reset Password - Step 2: Verify OTP and Update Password
@@ -97,7 +97,7 @@ This section details the core authentication mechanisms, focusing on an OTP (One
 *   **Detailed Backend Worker Logic:**
     1.  **Receive Request:** Worker receives POST with `token` (the OTP itself or a unique ID mapping to it), `newPassword`, `confirmNewPassword`.
     2.  **Validate Input:** Zod schema for token format and new password rules (strength, match).
-    3.  **Verify Reset Token &amp; Fetch User ID (D1 Query):**
+    3.  **Verify Reset Token & Fetch User ID (D1 Query):**
         *   Query `otp_verifications` table: `SELECT user_id, expires_at, used_at FROM otp_verifications WHERE (otp = HASH(?) OR unique_token_id = ?) AND type = 'PASSWORD_RESET'`. (Adjust based on whether token is the OTP or a mapper).
         *   If no token found, or `expires_at` is past, or `used_at` IS NOT NULL, return 400 error ("Invalid or expired password reset token.").
         *   Fetch the `user_id` associated with the valid token.
@@ -124,7 +124,7 @@ This outlines common logic for OTP generation, storage, and sending.
     *   Store the hashed OTP, its salt, type, associated email/user_id, and expiry.
 *   **4. Send OTP via Email:** Integrate an email sending service (e.g., Mailgun, SendGrid, Cloudflare Email Workers). Compose an email template with the plain OTP and instructions based on OTP `type`.
 
-### H. OTP Verification (Generic Endpoint for Registration &amp; Login OTPs)
+### H. OTP Verification (Generic Endpoint for Registration & Login OTPs)
 
 *   **Triggering UI:** OTP Entry Form submission (`src/app/(auth)/verify-otp/page.tsx`).
 *   **Conceptual Next.js API Route:** `POST /api/auth/verify-otp`.
@@ -170,19 +170,19 @@ All actions require an authenticated 'SELLER' role. The `seller_id` (which is th
 *   **Triggering UI:** Seller Dashboard -> "Create New Listing" form submission (`/app/seller-dashboard/listings/create/page.tsx`).
 *   **Conceptual Next.js API Route:** `POST /api/listings`.
 *   **Detailed Backend Worker Logic:**
-    1.  **Authenticate Seller &amp; Authorize:**
+    1.  **Authenticate Seller & Authorize:**
         *   Verify authenticated user (via session). Retrieve `user_id` (this is `seller_id`).
         *   Query `user_profiles` (D1) to confirm `role` is 'SELLER'. If not, return 403 Forbidden.
-    2.  **Receive Request:** Worker receives POST with all listing data as per `ListingSchema`. This includes anonymous fields, detailed/verified fields, financial ranges and specifics, deal info, growth opportunities, and image URLs array.
+    2.  **Receive Request:** Worker receives POST with all listing data as per `ListingSchema`. This includes anonymous fields, detailed/verified fields, financial ranges and specifics (including new `askingPrice` (number) and `adjustedCashFlow`), deal info, growth opportunities, and `imageUrls` array.
     3.  **Validate Input:** Use Zod `ListingSchema` (or an equivalent API schema) for comprehensive validation. If fails, return 400.
-    4.  **Conceptual File Handling (R2 - see Section VI for full flow):** If actual file uploads were part of this, this is where keys/URLs from R2 would be processed. For now, `imageUrls` are assumed to be an array of strings (URLs provided by user).
+    4.  **Conceptual File Handling (R2 - see Section VI for full flow):** For fields like `financialDocumentsUrl`, `keyMetricsReportUrl`, etc., and image URLs if direct upload is supported beyond just string URLs. For `imageUrls` provided as strings, simply store them.
     5.  **Create Listing Record (D1 Insert):**
         *   Generate a unique `listing_id` (e.g., UUID).
         *   Fetch seller's current `verification_status` from their `user_profiles` (D1).
         *   Insert into `listings` table (D1) with:
             *   `listing_id`, `seller_id`.
-            *   All validated fields from the request (e.g., `listingTitleAnonymous`, `industry`, `askingPrice` (fixed number), `adjustedCashFlow`, `specificGrowthOpportunities` etc.). Store `imageUrls` as a JSON string or in a related table.
-            *   Placeholders for document URLs (e.g., `financial_documents_url`) set to `NULL` initially.
+            *   All validated fields from the request (e.g., `listingTitleAnonymous`, `industry`, `askingPrice` (number), `adjustedCashFlow` (number), `adjustedCashFlowExplanation`, `specificGrowthOpportunities` (as newline string for bullets), etc.). Store `imageUrls` as a JSON string or in a related table if preferred.
+            *   Placeholders for document URLs (e.g., `financial_documents_url`) set to `NULL` initially if not provided/handled yet.
             *   `status`: Default to `'ACTIVE_ANONYMOUS'`.
             *   `is_seller_verified`: Set to `true` if seller profile `verification_status = 'VERIFIED'`, else `false`.
             *   Timestamps: `created_at`, `updated_at`.
@@ -193,14 +193,14 @@ All actions require an authenticated 'SELLER' role. The `seller_id` (which is th
 *   **Triggering UI:** Seller Dashboard -> "My Listings" -> "Edit Listing" (`/app/seller-dashboard/listings/[listingId]/edit/page.tsx`).
 *   **Conceptual Next.js API Route:** `PUT /api/listings/[listingId]`.
 *   **Detailed Backend Worker Logic:**
-    1.  **Authenticate Seller &amp; Authorize:**
+    1.  **Authenticate Seller & Authorize:**
         *   Verify authenticated seller and get `user_id`.
         *   Retrieve `listingId` from path.
         *   Query `listings` (D1): `SELECT seller_id, status FROM listings WHERE listing_id = ?`.
         *   If not found, return 404. If `listings.seller_id !== user_id`, return 403.
-    2.  **Receive Request:** PUT request with `listingId` and updated listing data (partial `ListingSchema`).
+    2.  **Receive Request:** PUT request with `listingId` and updated listing data (partial `ListingSchema`). This includes all fields from the create form.
     3.  **Validate Input:** Use a partial/update version of Zod `ListingSchema`.
-    4.  **Conceptual File Updates (R2 - see Section VI):** If new `imageUrls` are provided, update. If document placeholders are updated, handle (though actual file replacement is complex).
+    4.  **Conceptual File Updates (R2 - see Section VI):** If new `imageUrls` are provided, update. If document placeholders are updated with new file references, handle.
     5.  **Update Listing Record (D1 Update):** Update specified fields for the `listingId` in `listings`. Update `updated_at`.
     6.  **Return Success Response:** 200 OK with updated listing data from D1.
 
@@ -209,9 +209,9 @@ All actions require an authenticated 'SELLER' role. The `seller_id` (which is th
 *   **Triggering UI:** Seller Dashboard -> "My Listings" -> "Deactivate/Reactivate" button.
 *   **Conceptual Next.js API Route:** `PUT /api/listings/[listingId]/status`.
 *   **Detailed Backend Worker Logic:**
-    1.  **Authenticate Seller &amp; Authorize:** (As in "Edit Listing").
+    1.  **Authenticate Seller & Authorize:** (As in "Edit Listing").
     2.  **Receive Request:** PUT request with `listingId` and desired `new_status` (e.g., `{ "new_status": "INACTIVE" }` or `{ "new_status": "ACTIVE_ANONYMOUS" }`).
-    3.  **Validate New Status Transition:** Fetch current `status` from D1. Ensure transition is valid based on business rules (e.g., seller can toggle active/inactive, but not bypass admin approval states). If invalid, return 400.
+    3.  **Validate New Status Transition:** Fetch current `status` from D1. Ensure transition is valid based on business rules (e.g., seller can toggle active/inactive, but not bypass admin approval states like `PENDING_VERIFICATION`). If invalid, return 400.
     4.  **Update Listing Status (D1 Update):** Update `status` field for the `listingId` in `listings`. Update `updated_at`.
     5.  **Return Success Response:** 200 OK with updated listing data.
 
@@ -223,7 +223,7 @@ All actions require an authenticated 'SELLER' role. The `seller_id` (which is th
     1.  **Authenticate Seller:** Get authenticated `user_id`.
     2.  **Receive Request:** POST with `verificationType`: 'PROFILE_SELLER' or 'LISTING', `listingId` (if 'LISTING'), `bestTimeToCall`, `notes`.
     3.  **Validate Input:** Zod schema. If `verificationType` is 'LISTING', ensure `listingId` is valid and owned by seller.
-    4.  **Check Current Status &amp; Prevent Redundant Requests (D1 Query):**
+    4.  **Check Current Status & Prevent Redundant Requests (D1 Query):**
         *   If 'PROFILE_SELLER': Check `user_profiles.verification_status`. If already 'PENDING_VERIFICATION' or 'VERIFIED', return 409.
         *   If 'LISTING': Check `listings.status`. If already 'PENDING_VERIFICATION', 'VERIFIED_ANONYMOUS', or 'VERIFIED_PUBLIC', return 409.
     5.  **Update Entity Status (D1 Update):**
@@ -236,7 +236,7 @@ All actions require an authenticated 'SELLER' role. The `seller_id` (which is th
 
 ---
 
-## III. Marketplace &amp; Buyer Actions
+## III. Marketplace & Buyer Actions
 
 ### A. Fetch All Listings (for `/marketplace`)
 
@@ -252,10 +252,10 @@ All actions require an authenticated 'SELLER' role. The `seller_id` (which is th
             *   Always: `listings.status IN ('ACTIVE_ANONYMOUS', 'VERIFIED_ANONYMOUS', 'VERIFIED_PUBLIC')`.
             *   Apply filters for `industry`, `country`, `revenueRange`.
             *   For `maxAskingPrice`: `AND askingPrice <= ?`.
-            *   For `keywords` (if array): Build dynamic `OR` conditions (e.g., `(listingTitleAnonymous LIKE '%key1%' OR ... ) OR (listingTitleAnonymous LIKE '%key2%' OR ... )`). (D1 specific full-text search might be better if available).
+            *   For `keywords` (if array): Build dynamic `OR` conditions (e.g., `(listingTitleAnonymous LIKE '%key1%' OR anonymousBusinessDescription LIKE '%key1%') OR (listingTitleAnonymous LIKE '%key2%' OR anonymousBusinessDescription LIKE '%key2%')`). Consider D1's full-text search capabilities if available for better performance.
         *   **Sorting (`ORDER BY`):** Based on `sortBy` and `sortOrder` (e.g., `listings.created_at DESC`, `listings.askingPrice ASC`).
         *   **Pagination:** `LIMIT ? OFFSET ?`.
-    5.  **Execute Query &amp; Fetch Total Count:** Main query and a `SELECT COUNT(*)` with same filters.
+    5.  **Execute Query & Fetch Total Count:** Main query and a `SELECT COUNT(*)` with same filters.
     6.  **Return Success Response:** 200 OK with `{ listings: [...], currentPage, totalPages, totalListings }`.
 
 ### B. Fetch Single Listing Details (`/listings/[listingId]`)
@@ -266,13 +266,13 @@ All actions require an authenticated 'SELLER' role. The `seller_id` (which is th
     1.  **Receive Request:** Get `listingId`.
     2.  **Determine Requesting Buyer's Status:** (As in "Fetch All Listings").
     3.  **Fetch Listing and Seller Data (D1 Queries):**
-        *   `SELECT * FROM listings WHERE listing_id = ?`. If not found or not publicly visible, return 404.
+        *   `SELECT * FROM listings WHERE listing_id = ?`. If not found or not publicly visible (e.g., status is INACTIVE or REJECTED_BY_ADMIN), return 404.
         *   If listing found, `SELECT user_id AS seller_user_id, verification_status AS seller_platform_verification_status FROM user_profiles WHERE user_id = fetched_listing.seller_id`.
     4.  **Construct Response Object (Conditional Data Exposure):**
-        *   **Always include:** All public/anonymous fields (`listingTitleAnonymous`, `industry`, `annualRevenueRange`, `askingPrice`, `imageUrls` (main image), `specificGrowthOpportunities` (as newline string for bullets), etc.) AND `listing.is_seller_verified`.
+        *   **Always include:** All public/anonymous fields (`listingTitleAnonymous`, `industry`, `locationCountry`, `locationCityRegionGeneral`, `anonymousBusinessDescription`, `keyStrengthsAnonymous`, `annualRevenueRange`, `netProfitMarginRange`, `askingPrice`, `dealStructureLookingFor`, `reasonForSellingAnonymous`, `imageUrls` (first URL or primary for anonymous view), `is_seller_verified`, `created_at`).
         *   **Conditionally Include Verified/Detailed Information:**
             *   Condition: `listing.is_seller_verified === true` AND authenticated buyer has `verification_status === 'VERIFIED'` AND `is_paid === true`.
-            *   If met, additionally include: `actualCompanyName`, `registeredBusinessName`, `yearEstablished`, `fullBusinessAddress`, `businessModel` (if not already public), `specificAnnualRevenueLastYear`, `specificNetProfitLastYear`, `adjustedCashFlow`, `adjustedCashFlowExplanation`, `detailedReasonForSelling`, `sellerRoleAndTimeCommitment`, `postSaleTransitionSupport`, all `imageUrls`, and URLs/keys for uploaded documents (`financialDocumentsUrl`, `keyMetricsReportUrl`, `ownershipDocumentsUrl`, `financialSnapshotUrl`, `ownershipDetailsUrl`, `locationRealEstateInfoUrl`, `webPresenceInfoUrl`, `secureDataRoomLink`).
+            *   If met, additionally include: `actualCompanyName`, `registeredBusinessName`, `yearEstablished`, `fullBusinessAddress`, `businessWebsiteUrl`, `socialMediaLinks`, `numberOfEmployees`, `technologyStack`, `specificAnnualRevenueLastYear`, `specificNetProfitLastYear`, `adjustedCashFlow`, `adjustedCashFlowExplanation`, `detailedReasonForSelling`, `sellerRoleAndTimeCommitment`, `postSaleTransitionSupport`, `specificGrowthOpportunities` (full text), all `imageUrls`, and URLs/keys for uploaded documents (`financialDocumentsUrl`, `keyMetricsReportUrl`, `ownershipDocumentsUrl`, `financialSnapshotUrl`, `ownershipDetailsUrl`, `locationRealEstateInfoUrl`, `webPresenceInfoUrl`, `secureDataRoomLink`).
             *   If not met, these fields are omitted or set to placeholder like "Access Restricted".
     5.  **Return Success Response:** 200 OK with the constructed listing object.
 
@@ -284,10 +284,10 @@ All actions require an authenticated 'SELLER' role. The `seller_id` (which is th
     1.  **Authenticate Buyer:** Verify session, get `user_id`. Query D1 `user_profiles` for `verification_status` and `is_paid`. If not 'BUYER', return 403.
     2.  **Receive Request:** POST with `{ "listingId": "string", "message"?: "string" }`.
     3.  **Validate Input:** Zod schema.
-    4.  **Fetch Listing &amp; Seller Details (D1 Query):** `SELECT seller_id, status AS listing_status, is_seller_verified, listingTitleAnonymous FROM listings WHERE listing_id = ?`. If not found/visible, return error.
+    4.  **Fetch Listing & Seller Details (D1 Query):** `SELECT seller_id, status AS listing_status, is_seller_verified, listingTitleAnonymous FROM listings WHERE listing_id = ?`. If not found/visible, return error.
     5.  **Create Inquiry Record (D1 Insert):**
         *   Insert into `inquiries` table: `inquiry_id`, `listing_id`, `buyer_id`, `seller_id`, `message` (optional), `inquiry_timestamp`, `status = 'NEW_INQUIRY'`, snapshots of `buyer_verification_at_inquiry`, `seller_verification_at_inquiry`, `listing_is_seller_verified_at_inquiry`. Timestamps.
-    6.  **Trigger Notifications &amp; Engagement Flow (Conceptual - see Section IV for Seller Dashboard handling):** Notify Seller (in-app/email). Admin queue/notification logic is primarily triggered when *seller engages*.
+    6.  **Trigger Notifications & Engagement Flow (Conceptual - see Section IV for Seller Dashboard handling):** Notify Seller (in-app/email). Admin queue/notification logic is primarily triggered when *seller engages*.
     7.  **Return Success Response:** 201 Created.
 
 ### D. Buyer Requests Profile Verification
@@ -306,7 +306,7 @@ All actions require an authenticated 'SELLER' role. The `seller_id` (which is th
 
 ---
 
-## IV. Dashboard Data Fetching &amp; Actions (Buyer &amp; Seller)
+## IV. Dashboard Data Fetching & Actions (Buyer & Seller)
 
 All API endpoints require user authentication. `user_id` from session is key.
 
@@ -329,7 +329,7 @@ All API endpoints require user authentication. `user_id` from session is key.
     *   **Profile Update API (PUT):** `/api/profile`
         *   **Backend Logic:**
             1.  Authenticate buyer, get `user_id`.
-            2.  Receive updated profile data (all editable buyer fields).
+            2.  Receive updated profile data (all editable buyer fields including new persona fields).
             3.  Validate against buyer-specific `ProfileSchema`.
             4.  `UPDATE user_profiles SET ... WHERE user_id = ?`.
             5.  Return 200 OK with updated profile.
@@ -352,7 +352,7 @@ All API endpoints require user authentication. `user_id` from session is key.
         *   **Backend Logic:** Authenticate. `UPDATE notifications SET is_read = true WHERE notification_id = ? AND user_id = ?`. Return 200 OK.
 
 6.  **Settings (`/dashboard/settings/page.tsx`)**
-    *   **Password Change API (PUT):** `/api/auth/change-password` (shared endpoint, if not specific to dashboard)
+    *   **Password Change API (PUT):** `/api/auth/change-password` (shared endpoint, moved UI trigger here).
         *   **Backend Logic:**
             1.  Authenticate user, get `user_id`.
             2.  Receive `currentPassword`, `newPassword`. Validate.
@@ -409,7 +409,7 @@ All API endpoints require user authentication. `user_id` from session is key.
                 *   Set `next_inquiry_status`.
                 *   If buyer is 'ANONYMOUS'/'PENDING_VERIFICATION': `status = 'SELLER_ENGAGED_BUYER_PENDING_VERIFICATION'`. Notify Buyer to verify. Add to Admin Verification Queue.
                 *   Else if seller's profile/listing is not verified: `status = 'SELLER_ENGAGED_SELLER_PENDING_VERIFICATION'`. Notify Seller to verify. Add to Admin Verification Queue.
-                *   Else (Both Buyer and Seller/Listing are verified): `status = 'READY_FOR_ADMIN_CONNECTION'`. Notify Admin. Notify Buyer &amp; Seller.
+                *   Else (Both Buyer and Seller/Listing are verified): `status = 'READY_FOR_ADMIN_CONNECTION'`. Notify Admin. Notify Buyer & Seller.
             8.  Update `inquiries` table (D1): `SET status = ?, engagement_timestamp = DATETIME('now') WHERE inquiry_id = ?`.
             9.  Return 200 OK.
 
@@ -514,7 +514,7 @@ All Admin APIs require ADMIN role authentication (e.g., check role in `user_prof
     *   Deactivated/Closed Listings: `SELECT COUNT(*) FROM listings WHERE status IN ('INACTIVE', 'CLOSED_DEAL')`.
     *   New Listings Created (24h/7d): `SELECT COUNT(*) FROM listings WHERE created_at >= DATETIME('now', '-X days')`.
     *   Listings by Industry: `SELECT industry, COUNT(*) FROM listings WHERE status IN ('ACTIVE_ANONYMOUS', 'VERIFIED_ANONYMOUS', 'VERIFIED_PUBLIC') GROUP BY industry`.
-    *   Listings by Asking Price (Ranges): Requires bucketing `listings.askingPrice` using CASE statements.
+    *   Listings by Asking Price (Ranges): Requires bucketing `listings.askingPrice` using CASE statements (if D1 supports this well, or multiple queries).
 *   **Engagement/Deal Flow Metrics:**
     *   Total Inquiries by Status: `SELECT status, COUNT(*) FROM inquiries GROUP BY status`.
     *   Successful Connections Facilitated MTD: `SELECT COUNT(*) FROM inquiries WHERE status = 'CONNECTION_FACILITATED' AND engagement_timestamp >= [start_of_month]`.
@@ -535,7 +535,7 @@ This outlines the intended multi-step process for handling file uploads (e.g., l
 2.  **Step 2: Backend Worker Generates Pre-signed R2 URL**
     *   **Conceptual Next.js API Route:** `POST /api/upload/generate-signed-url`.
     *   **Cloudflare Worker Logic:**
-        1.  **Authenticate User &amp; Authorize:** Based on `context` and `entityId`.
+        1.  **Authenticate User & Authorize:** Based on `context` and `entityId`.
         2.  **Validate Request Body.**
         3.  **Construct R2 Object Key:** Generate unique, secure key (e.g., `listings/${listingId}/images/${uuidv4()}-${sanitized_filename}`).
         4.  **Use Cloudflare R2 SDK/API:** Call R2 method to generate a pre-signed URL for a `PUT` operation (specify bucket, key, expiry, contentType).
@@ -549,7 +549,7 @@ This outlines the intended multi-step process for handling file uploads (e.g., l
 5.  **Step 5: Backend Worker Updates D1 Database with File Reference**
     *   **Conceptual Next.js API Route:** e.g., `POST /api/listings/[listingId]/documents`.
     *   **Cloudflare Worker Logic:**
-        1.  **Authenticate User &amp; Authorize.**
+        1.  **Authenticate User & Authorize.**
         2.  **Validate Request Body.**
         3.  **Update D1 Database:**
             *   **For listings:** If `documentType` is image, update `listings.imageUrls` array (JSON in D1 or related table). If specific document field (e.g., `financial_documents_url`), update that field with `fileKey` or public R2 URL.
@@ -559,5 +559,3 @@ This outlines the intended multi-step process for handling file uploads (e.g., l
 ---
 
 This updated document provides a comprehensive plan for the backend implementation.
-
-    

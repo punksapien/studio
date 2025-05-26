@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from "react";
@@ -15,22 +14,34 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from "@/components/ui/checkbox";
 import { industries, asianCountries, revenueRanges, placeholderKeywords } from '@/lib/types';
-import { Filter, Search } from 'lucide-react';
+import { Filter } from 'lucide-react';
+import { ScrollArea } from "@/components/ui/scroll-area";
 
-// Placeholder for actual filter state management and application logic
-// This component currently just renders the UI for filters.
 
 export function Filters() {
-  // In a real app, you'd use useState or a form library to manage selected keywords
   const [selectedKeywords, setSelectedKeywords] = React.useState<string[]>([]);
+  // TODO: Manage other filter states (industry, country, revenue, price) similarly
 
-  const handleKeywordChange = (keyword: string, checked: boolean | 'indeterminate') => {
+  const handleKeywordChange = (keyword: string) => {
     setSelectedKeywords(prev =>
-      checked === true ? [...prev, keyword] : prev.filter(k => k !== keyword)
+      prev.includes(keyword) ? prev.filter(k => k !== keyword) : [...prev, keyword]
     );
-    // TODO: Trigger actual filtering based on selectedKeywords
-    console.log("Selected keywords:", checked === true ? [...selectedKeywords, keyword] : selectedKeywords.filter(k => k !== keyword));
   };
+  
+  const handleApplyFilters = () => {
+    // Placeholder: In a real app, this would likely update URL query params
+    // or call a context/state update function to trigger filtering.
+    console.log("Applying filters with selected keywords:", selectedKeywords);
+    // Potentially: router.push(`/marketplace?keywords=${selectedKeywords.join(',')}&...otherFilters`);
+  };
+
+  const handleResetFilters = () => {
+    setSelectedKeywords([]);
+    // TODO: Reset other filter states here
+    console.log("Filters reset");
+    // Potentially: router.push('/marketplace');
+  };
+
 
   return (
     <Card className="sticky top-20 shadow-md bg-brand-white">
@@ -99,27 +110,27 @@ export function Filters() {
 
         <div className="space-y-2">
             <Label className="text-brand-dark-blue">Keywords</Label>
-            <div className="space-y-2 max-h-40 overflow-y-auto p-2 border border-brand-light-gray rounded-md bg-brand-light-gray/20">
+            <ScrollArea className="h-40 rounded-md border border-brand-light-gray p-3 bg-brand-light-gray/20">
+              <div className="space-y-2">
                 {placeholderKeywords.map((keyword) => (
                     <div key={keyword} className="flex items-center space-x-2">
                         <Checkbox
                             id={`keyword-${keyword.toLowerCase().replace(/\s+/g, '-')}`}
-                            onCheckedChange={(checked) => handleKeywordChange(keyword, checked)}
                             checked={selectedKeywords.includes(keyword)}
+                            onCheckedChange={() => handleKeywordChange(keyword)}
                         />
-                        <Label htmlFor={`keyword-${keyword.toLowerCase().replace(/\s+/g, '-')}`} className="text-sm font-normal text-brand-dark-blue/90">
+                        <Label htmlFor={`keyword-${keyword.toLowerCase().replace(/\s+/g, '-')}`} className="text-sm font-normal text-brand-dark-blue/90 cursor-pointer">
                             {keyword}
                         </Label>
                     </div>
                 ))}
-            </div>
+              </div>
+            </ScrollArea>
         </div>
 
-        <Button className="w-full bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90">Apply Filters</Button>
-        <Button variant="outline" className="w-full border-brand-dark-blue/50 text-brand-dark-blue hover:bg-brand-light-gray">Reset Filters</Button>
+        <Button onClick={handleApplyFilters} className="w-full bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90">Apply Filters</Button>
+        <Button onClick={handleResetFilters} variant="outline" className="w-full border-brand-dark-blue/50 text-brand-dark-blue hover:bg-brand-light-gray">Reset Filters</Button>
       </CardContent>
     </Card>
   );
 }
-
-    

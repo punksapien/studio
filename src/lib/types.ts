@@ -61,12 +61,12 @@ export interface User {
   verificationStatus: VerificationStatus;
   isPaid: boolean;
   initialCompanyName?: string;
-  buyerType?: BuyerType; // Legacy
+  buyerType?: BuyerType; // Legacy - consider phasing out if buyerPersonaType covers all needs
   createdAt: Date;
   updatedAt: Date;
   lastLogin?: Date;
-  listingCount?: number;
-  inquiryCount?: number;
+  listingCount?: number; // For sellers
+  inquiryCount?: number; // For buyers
 
   // Buyer Persona Fields
   buyerPersonaType?: BuyerPersona;
@@ -105,8 +105,8 @@ export interface Listing {
   askingPrice?: number; // Fixed asking price
   specificAnnualRevenueLastYear?: number; // TTM Specific
   specificNetProfitLastYear?: number; // TTM Specific
-  adjustedCashFlow?: number; // New field
-  adjustedCashFlowExplanation?: string; // New field
+  adjustedCashFlow?: number; 
+  adjustedCashFlowExplanation?: string;
 
   // Deal & Seller Info
   dealStructureLookingFor?: DealStructure[];
@@ -124,14 +124,14 @@ export interface Listing {
 
   // Media & Documents
   imageUrls?: string[]; // Array of image URLs
-  financialDocumentsUrl?: string; // Placeholder for URL from Supabase Storage
-  keyMetricsReportUrl?: string; // Placeholder for URL
-  ownershipDocumentsUrl?: string; // Placeholder for URL
-  financialSnapshotUrl?: string; // New placeholder
-  ownershipDetailsUrl?: string; // New placeholder
-  locationRealEstateInfoUrl?: string; // New placeholder
-  webPresenceInfoUrl?: string; // New placeholder
-  secureDataRoomLink?: string; // Optional link to external data room
+  financialDocumentsUrl?: string; 
+  keyMetricsReportUrl?: string; 
+  ownershipDocumentsUrl?: string; 
+  financialSnapshotUrl?: string; 
+  ownershipDetailsUrl?: string; 
+  locationRealEstateInfoUrl?: string; 
+  webPresenceInfoUrl?: string; 
+  secureDataRoomLink?: string; 
 
   createdAt: Date;
   updatedAt: Date;
@@ -166,17 +166,17 @@ export type InquiryStatusSystem =
 export interface Inquiry {
   id: string;
   listingId: string;
-  listingTitleAnonymous: string;
-  sellerStatus?: 'Anonymous Seller' | 'Platform Verified Seller';
+  listingTitleAnonymous: string; // From Listing
+  sellerStatus?: 'Anonymous Seller' | 'Platform Verified Seller'; // Derived from Listing's seller
   buyerId: string;
-  buyerName?: string;
-  buyerVerificationStatus?: VerificationStatus;
-  sellerId: string;
+  buyerName?: string; // From User profile
+  buyerVerificationStatus?: VerificationStatus; // From User profile
+  sellerId: string; // From Listing
   inquiryTimestamp: Date;
   engagementTimestamp?: Date;
-  status: InquiryStatusSystem;
-  statusBuyerPerspective?: InquiryStatusBuyerPerspective;
-  statusSellerPerspective?: InquiryStatusSellerPerspective;
+  status: InquiryStatusSystem; // Internal system status
+  statusBuyerPerspective?: InquiryStatusBuyerPerspective; // Calculated for buyer view
+  statusSellerPerspective?: InquiryStatusSellerPerspective; // Calculated for seller view
   createdAt: Date;
   updatedAt: Date;
 }
@@ -196,18 +196,18 @@ export interface AdminDashboardMetrics {
   totalFreeBuyers: number;
   totalActiveListingsAnonymous: number;
   totalActiveListingsVerified: number;
-  totalListingsAllStatuses: number; // New
-  closedOrDeactivatedListings: number; // New
+  totalListingsAllStatuses: number; 
+  closedOrDeactivatedListings: number; 
   buyerVerificationQueueCount: number;
-  sellerVerificationQueueCount: number;
+  sellerVerificationQueueCount: number; // Combined seller profile and listing verification requests
   readyToEngageQueueCount: number;
   successfulConnectionsMTD: number;
-  activeSuccessfulConnections: number;
-  closedSuccessfulConnections: number;
-  dealsClosedMTD?: number;
-  totalRevenueMTD?: number;
-  revenueFromBuyers: number;
-  revenueFromSellers: number;
+  activeSuccessfulConnections: number; 
+  closedSuccessfulConnections: number; 
+  dealsClosedMTD?: number; // If tracked specifically
+  totalRevenueMTD?: number; // Conceptual
+  revenueFromBuyers: number; // Conceptual
+  revenueFromSellers: number; // Conceptual
 }
 
 
@@ -216,20 +216,20 @@ export type VerificationQueueStatus = "New Request" | "Contacted" | "Docs Under 
 export interface VerificationRequestItem {
   id: string;
   timestamp: Date;
-  userId: string;
-  userName: string;
-  userRole: UserRole;
-  listingId?: string;
-  listingTitle?: string;
-  triggeringUserId?: string;
-  reason: string;
-  status: VerificationQueueStatus;
-  documentsSubmitted?: { name: string, type: 'id_proof' | 'business_reg' | 'financials' }[];
+  userId: string; // ID of the user being verified or whose listing is being verified
+  userName: string; // Name of that user
+  userRole: UserRole; // Role of that user
+  listingId?: string; // If it's a listing verification
+  listingTitle?: string; // Title of the listing being verified
+  triggeringUserId?: string; // Optional: ID of user whose action might have triggered this (e.g. buyer inquiry)
+  reason: string; // e.g., "Buyer profile verification", "Seller listing verification for [Listing XYZ]"
+  status: VerificationQueueStatus; // Status of this request in the admin queue
+  documentsSubmitted?: { name: string, type: 'id_proof' | 'business_reg' | 'financials' }[]; // Placeholder for document tracking
 }
 
 export interface ReadyToEngageItem {
-  id: string;
-  timestamp: Date;
+  id: string; // Inquiry ID that is ready for engagement
+  timestamp: Date; // When it became ready
   buyerId: string;
   buyerName: string;
   buyerVerificationStatus: VerificationStatus;
@@ -238,7 +238,7 @@ export interface ReadyToEngageItem {
   sellerVerificationStatus: VerificationStatus;
   listingId: string;
   listingTitle: string;
-  listingVerificationStatus: ListingStatus;
+  listingVerificationStatus: ListingStatus; // The verification status OF THE LISTING itself
 }
 
 export type NotificationType = 'inquiry' | 'verification' | 'system' | 'engagement' | 'listing_update';
@@ -247,10 +247,8 @@ export interface NotificationItem {
   id: string;
   timestamp: Date;
   message: string;
-  link?: string;
+  link?: string; 
   isRead: boolean;
-  userId: string;
-  type: NotificationType;
+  userId: string; // The user this notification is for
+  type: NotificationType; // Added this line
 }
-
-    

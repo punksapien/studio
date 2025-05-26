@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from "react";
@@ -48,17 +47,18 @@ const ListingSchema = z.object({
   registeredBusinessName: z.string().optional(),
   businessWebsiteUrl: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
   socialMediaLinks: z.string().optional(),
-  numberOfEmployees: z.string().optional(),
+  numberOfEmployees: z.string().optional(), 
   technologyStack: z.string().optional(),
 
   annualRevenueRange: z.string().min(1, "Annual revenue range is required."),
   netProfitMarginRange: z.string().optional(),
   askingPrice: z.coerce.number({invalid_type_error: "Asking price must be a number."}).positive({message: "Asking price must be positive."}).optional(),
-  adjustedCashFlow: z.coerce.number({invalid_type_error: "Adjusted cash flow must be a number."}).optional(),
-  adjustedCashFlowExplanation: z.string().optional(),
+  
   specificAnnualRevenueLastYear: z.coerce.number({invalid_type_error: "Specific annual revenue must be a number."}).optional(),
   specificNetProfitLastYear: z.coerce.number({invalid_type_error: "Specific net profit must be a number."}).optional(),
-
+  adjustedCashFlow: z.coerce.number({invalid_type_error: "Adjusted cash flow must be a number."}).optional(),
+  adjustedCashFlowExplanation: z.string().optional(),
+  
   dealStructureLookingFor: z.array(z.string()).optional(),
   reasonForSellingAnonymous: z.string().max(500, "Reason too long (max 500 chars).").optional(),
   detailedReasonForSelling: z.string().optional(),
@@ -100,10 +100,10 @@ export default function CreateSellerListingPage() {
       annualRevenueRange: "",
       netProfitMarginRange: "",
       askingPrice: undefined,
-      adjustedCashFlow: undefined,
-      adjustedCashFlowExplanation: "",
       specificAnnualRevenueLastYear: undefined,
       specificNetProfitLastYear: undefined,
+      adjustedCashFlow: undefined,
+      adjustedCashFlowExplanation: "",
       dealStructureLookingFor: [],
       reasonForSellingAnonymous: "",
       detailedReasonForSelling: "",
@@ -130,7 +130,7 @@ export default function CreateSellerListingPage() {
     if (keyStrengthsFields.length > 1) {
       const newFields = keyStrengthsFields.filter((_, i) => i !== index);
       setKeyStrengthsFields(newFields);
-      form.setValue("keyStrengthsAnonymous", newFields);
+       form.setValue("keyStrengthsAnonymous", newFields);
     }
   };
   
@@ -149,13 +149,11 @@ export default function CreateSellerListingPage() {
       keyStrengthsAnonymous: values.keyStrengthsAnonymous.filter(strength => strength && strength.trim() !== ""),
       imageUrls: imageUrls,
     };
-    // Remove individual imageUrl fields from submission object
     delete (cleanedValues as any).imageUrl1;
     delete (cleanedValues as any).imageUrl2;
     delete (cleanedValues as any).imageUrl3;
     delete (cleanedValues as any).imageUrl4;
     delete (cleanedValues as any).imageUrl5;
-
 
     startTransition(async () => {
       console.log("Create listing values:", cleanedValues);
@@ -201,7 +199,7 @@ export default function CreateSellerListingPage() {
                 />
                 <FormField control={form.control} name="locationCountry" render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Location (Country)</Label>
+                      <FormLabel>Location (Country)</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isPending}>
                         <FormControl><SelectTrigger><SelectValue placeholder="Select country" /></SelectTrigger></FormControl>
                         <SelectContent>{asianCountries.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
@@ -225,107 +223,38 @@ export default function CreateSellerListingPage() {
 
           {/* Section 2: Business Profile & Operations */}
           <Card className="shadow-md bg-brand-white">
-            <CardHeader>
-              <CardTitle className="text-brand-dark-blue">Section 2: Business Profile &amp; Operations</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle className="text-brand-dark-blue">Section 2: Business Profile &amp; Operations</CardTitle></CardHeader>
             <CardContent className="space-y-6">
               <FormField control={form.control} name="anonymousBusinessDescription" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Business Description</FormLabel>
-                    <FormControl><Textarea {...field} rows={6} placeholder="Describe your business, products/services, market position, and growth potential without revealing identifying details." disabled={isPending} /></FormControl>
-                    <FormDescription>Max 2000 characters.</FormMessage>
-                    <FormMessage />
-                  </FormItem>
+                  <FormItem><FormLabel>Business Description</FormLabel><FormControl><Textarea {...field} rows={6} placeholder="Describe your business, products/services, market position, and growth potential without revealing identifying details." disabled={isPending} /></FormControl><FormDescription>Max 2000 characters.</FormDescription><FormMessage /></FormItem>
                 )}
               />
               <FormField
                 control={form.control}
                 name="keyStrengthsAnonymous"
-                render={() => (
-                  <FormItem>
-                    <FormLabel>Key Strengths</FormLabel>
-                    <FormDescription>List 1-5 key strengths of your business.</FormDescription>
+                render={() => ( 
+                  <FormItem><FormLabel>Key Strengths</FormLabel><FormDescription>List 1-5 key strengths.</FormDescription>
                     {keyStrengthsFields.map((strength, index) => (
                        <div key={index} className="flex items-center gap-2">
-                          <Input
-                            value={strength}
-                            onChange={(e) => handleStrengthChange(index, e.target.value)}
-                            placeholder={`Strength ${index + 1}`}
-                            disabled={isPending}
-                            className="flex-grow"
-                          />
-                          {keyStrengthsFields.length > 1 && (
-                            <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveStrength(index)} disabled={isPending}>
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          )}
+                          <Input value={strength} onChange={(e) => handleStrengthChange(index, e.target.value)} placeholder={`Strength ${index + 1}`} disabled={isPending} className="flex-grow"/>
+                          {keyStrengthsFields.length > 1 && (<Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveStrength(index)} disabled={isPending}><Trash2 className="h-4 w-4 text-destructive" /></Button>)}
                         </div>
                     ))}
-                    {keyStrengthsFields.length < 5 && (
-                       <Button type="button" variant="outline" size="sm" onClick={handleAddStrength} disabled={isPending}>
-                          <PlusCircle className="h-4 w-4 mr-2" /> Add Strength
-                        </Button>
-                    )}
+                    {keyStrengthsFields.length < 5 && (<Button type="button" variant="outline" size="sm" onClick={handleAddStrength} disabled={isPending}><PlusCircle className="h-4 w-4 mr-2" /> Add Strength</Button>)}
                     <FormMessage>{form.formState.errors.keyStrengthsAnonymous?.message || (form.formState.errors.keyStrengthsAnonymous as any)?.[0]?.message}</FormMessage>
-                  </FormItem>
-                )}
+                  </FormItem>)}
               />
-               <FormField control={form.control} name="businessModel" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Business Model</FormLabel>
-                  <FormControl><Textarea {...field} value={field.value || ""} placeholder="e.g., SaaS, E-commerce (dropshipping/inventory), Service-based, Lead Generation, Content Site (Adsense/Affiliate), etc." disabled={isPending} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              <FormField control={form.control} name="yearEstablished" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Year Business Established</FormLabel>
-                  <FormControl><Input type="number" {...field} value={field.value === undefined ? '' : field.value} onChange={e => field.onChange(e.target.value === '' ? undefined : parseInt(e.target.value, 10))} placeholder="YYYY" disabled={isPending} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              <FormField control={form.control} name="registeredBusinessName" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Official Registered Business Name (for verification)</FormLabel>
-                  <FormControl><Input {...field} value={field.value || ""} placeholder="Your Company Pte Ltd" disabled={isPending} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              <FormField control={form.control} name="businessWebsiteUrl" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Primary Business Website</FormLabel>
-                  <FormControl><Input type="url" {...field} value={field.value || ""} placeholder="https://yourbusiness.com" disabled={isPending} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              <FormField control={form.control} name="socialMediaLinks" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Key Social Media Profiles (one per line)</FormLabel>
-                  <FormControl><Textarea {...field} value={field.value || ""} rows={3} placeholder="https://linkedin.com/company/yourbusiness\nhttps://facebook.com/yourbusiness" disabled={isPending} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              <FormField control={form.control} name="numberOfEmployees" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Number of Employees (Full-time equivalents)</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value || undefined} disabled={isPending}>
-                    <FormControl><SelectTrigger><SelectValue placeholder="Select number of employees" /></SelectTrigger></FormControl>
-                    <SelectContent>{employeeCountRanges.map(i => <SelectItem key={i} value={i}>{i}</SelectItem>)}</SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              <FormField control={form.control} name="technologyStack" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Technology Stack / Key Operational Assets</FormLabel>
-                  <FormControl><Textarea {...field} value={field.value || ""} rows={3} placeholder="Briefly describe the core technology, software, or unique operational assets (e.g., Custom CRM, Proprietary Algorithm, Shopify Plus, AWS Infrastructure, Key Supplier Contracts)." disabled={isPending} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
+              <FormField control={form.control} name="businessModel" render={({ field }) => (<FormItem><FormLabel>Business Model</FormLabel><FormControl><Textarea {...field} value={field.value || ""} placeholder="e.g., SaaS, E-commerce (dropshipping/inventory), Service-based, Lead Generation, Content Site (Adsense/Affiliate), etc." disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
+              <FormField control={form.control} name="yearEstablished" render={({ field }) => (<FormItem><FormLabel>Year Business Established</FormLabel><FormControl><Input type="number" {...field} value={field.value === undefined ? '' : field.value} onChange={e => field.onChange(e.target.value === '' ? undefined : parseInt(e.target.value, 10))} placeholder="YYYY" disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
+              <FormField control={form.control} name="registeredBusinessName" render={({ field }) => (<FormItem><FormLabel>Official Registered Business Name (for verification)</FormLabel><FormControl><Input {...field} value={field.value || ""} placeholder="Your Company Pte Ltd" disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
+              <FormField control={form.control} name="businessWebsiteUrl" render={({ field }) => (<FormItem><FormLabel>Primary Business Website</FormLabel><FormControl><Input type="url" {...field} value={field.value || ""} placeholder="https://yourbusiness.com" disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
+              <FormField control={form.control} name="socialMediaLinks" render={({ field }) => (<FormItem><FormLabel>Key Social Media Profiles (one per line)</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={3} placeholder="https://linkedin.com/company/yourbusiness\nhttps://facebook.com/yourbusiness" disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
+              <FormField control={form.control} name="numberOfEmployees" render={({ field }) => (<FormItem><FormLabel>Number of Employees (Full-time equivalents)</FormLabel><Select onValueChange={field.onChange} value={field.value || undefined} disabled={isPending}><FormControl><SelectTrigger><SelectValue placeholder="Select number of employees" /></SelectTrigger></FormControl><SelectContent>{employeeCountRanges.map(i => <SelectItem key={i} value={i}>{i}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+              <FormField control={form.control} name="technologyStack" render={({ field }) => (<FormItem><FormLabel>Technology Stack / Key Operational Assets</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={3} placeholder="Briefly describe the core technology, software, or unique operational assets (e.g., Custom CRM, Proprietary Algorithm, Shopify Plus, AWS Infrastructure, Key Supplier Contracts)." disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
             </CardContent>
           </Card>
 
-          {/* Section: Business Images */}
+           {/* Section: Business Images */}
           <Card className="shadow-md bg-brand-white">
             <CardHeader><CardTitle className="text-brand-dark-blue flex items-center gap-2"><ImagePlus className="h-5 w-5"/>Business Images</CardTitle><CardDescription>Provide up to 5 image URLs for your listing (e.g., logo, storefront, product shots). These will be shown to buyers.</CardDescription></CardHeader>
             <CardContent className="space-y-4">
@@ -335,174 +264,38 @@ export default function CreateSellerListingPage() {
 
           {/* Section 3: Financial Performance */}
           <Card className="shadow-md bg-brand-white">
-            <CardHeader>
-                <CardTitle className="text-brand-dark-blue">Section 3: Financial Performance</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle className="text-brand-dark-blue">Section 3: Financial Performance</CardTitle></CardHeader>
             <CardContent className="space-y-6">
                 <div className="grid md:grid-cols-2 gap-6">
-                    <FormField control={form.control} name="annualRevenueRange" render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Annual Revenue Range (Anonymous)</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isPending}>
-                                <FormControl><SelectTrigger><SelectValue placeholder="Select revenue range" /></SelectTrigger></FormControl>
-                                <SelectContent>{revenueRanges.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
-                            </Select>
-                            <FormMessage />
-                        </FormItem>
-                    )}/>
-                    <FormField control={form.control} name="netProfitMarginRange" render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Net Profit Margin Range (Anonymous, Optional)</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value || ""} disabled={isPending}>
-                                <FormControl><SelectTrigger><SelectValue placeholder="Select profit margin" /></SelectTrigger></FormControl>
-                                <SelectContent>{profitMarginRanges.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
-                            </Select>
-                            <FormMessage />
-                        </FormItem>
-                    )}/>
+                    <FormField control={form.control} name="annualRevenueRange" render={({ field }) => (<FormItem><FormLabel>Annual Revenue Range (Anonymous)</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={isPending}><FormControl><SelectTrigger><SelectValue placeholder="Select revenue range" /></SelectTrigger></FormControl><SelectContent>{revenueRanges.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)}/>
+                    <FormField control={form.control} name="netProfitMarginRange" render={({ field }) => (<FormItem><FormLabel>Net Profit Margin Range (Anonymous, Optional)</FormLabel><Select onValueChange={field.onChange} value={field.value || ""} disabled={isPending}><FormControl><SelectTrigger><SelectValue placeholder="Select profit margin"/></SelectTrigger></FormControl><SelectContent>{profitMarginRanges.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)}/>
                 </div>
-                 <FormField control={form.control} name="askingPrice" render={({ field }) => (
-                    <FormItem>
-                        <FormLabel className="flex items-center"><DollarSign className="h-4 w-4 mr-1 text-muted-foreground"/>Asking Price (USD)</FormLabel>
-                        <FormControl><Input type="number" {...field} value={field.value === undefined ? '' : field.value} onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} placeholder="e.g., 750000" disabled={isPending} /></FormControl>
-                        <FormDescription>Enter the specific asking price for your business.</FormDescription>
-                        <FormMessage />
-                    </FormItem>
-                )}/>
+                 <FormField control={form.control} name="askingPrice" render={({ field }) => (<FormItem><FormLabel className="flex items-center"><DollarSign className="h-4 w-4 mr-1 text-muted-foreground"/>Asking Price (USD)</FormLabel><FormControl><Input type="number" {...field} value={field.value === undefined ? '' : field.value} onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} placeholder="e.g., 750000" disabled={isPending} /></FormControl><FormDescription>Enter the specific asking price for your business.</FormDescription><FormMessage /></FormItem>)}/>
                 <Separator/>
                 <h3 className="text-md font-medium text-muted-foreground">Specific Financials (For Verified View)</h3>
-                 <FormField control={form.control} name="specificAnnualRevenueLastYear" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Actual Annual Revenue (TTM, in USD)</FormLabel>
-                      <FormControl><Input type="number" {...field} value={field.value === undefined ? '' : field.value} onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} placeholder="e.g., 750000" disabled={isPending} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                  <FormField control={form.control} name="specificNetProfitLastYear" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Actual Net Profit (TTM, in USD)</FormLabel>
-                      <FormControl><Input type="number" {...field} value={field.value === undefined ? '' : field.value} onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} placeholder="e.g., 180000" disabled={isPending} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                  <FormField control={form.control} name="adjustedCashFlow" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Adjusted Cash Flow / SDE (TTM, in USD)</FormLabel>
-                      <FormControl><Input type="number" {...field} value={field.value === undefined ? '' : field.value} onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} placeholder="e.g., 220000" disabled={isPending} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                  <FormField control={form.control} name="adjustedCashFlowExplanation" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Brief Explanation of Adjusted Cash Flow (Optional)</FormLabel>
-                      <FormControl><Textarea {...field} value={field.value || ""} rows={3} placeholder="Explain any adjustments made (e.g., owner's salary, non-recurring expenses)." disabled={isPending} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                <div className="space-y-2">
-                    <Label className="text-md font-medium text-muted-foreground">Supporting Financial Documents (For Verified Buyers Only)</Label>
-                    <FormItem>
-                        <Label htmlFor="financialStatements">Upload Financial Statements (e.g., P&amp;L, Balance Sheet)</Label>
-                        <Input id="financialStatements" type="file" disabled={isPending} />
-                        <FormDescription>PDF, XLSX accepted.</FormDescription>
-                    </FormItem>
-                    <FormItem>
-                        <Label htmlFor="keyMetricsReport">Upload Key Metrics Report (e.g., SaaS Metrics, Analytics Summary)</Label>
-                        <Input id="keyMetricsReport" type="file" disabled={isPending} />
-                         <FormDescription>PDF, XLSX accepted.</FormDescription>
-                    </FormItem>
-                </div>
+                 <FormField control={form.control} name="specificAnnualRevenueLastYear" render={({ field }) => (<FormItem><FormLabel>Actual Annual Revenue (TTM, in USD)</FormLabel><FormControl><Input type="number" {...field} value={field.value === undefined ? '' : field.value} onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} placeholder="e.g., 750000" disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
+                  <FormField control={form.control} name="specificNetProfitLastYear" render={({ field }) => (<FormItem><FormLabel>Actual Net Profit (TTM, in USD)</FormLabel><FormControl><Input type="number" {...field} value={field.value === undefined ? '' : field.value} onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} placeholder="e.g., 180000" disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
+                  <FormField control={form.control} name="adjustedCashFlow" render={({ field }) => (<FormItem><FormLabel>Adjusted Cash Flow / SDE (TTM, in USD)</FormLabel><FormControl><Input type="number" {...field} value={field.value === undefined ? '' : field.value} onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} placeholder="e.g., 220000" disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
+                  <FormField control={form.control} name="adjustedCashFlowExplanation" render={({ field }) => (<FormItem><FormLabel>Brief Explanation of Adjusted Cash Flow (Optional)</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={3} placeholder="Explain any adjustments made (e.g., owner's salary, non-recurring expenses)." disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
+                <div className="space-y-2"><Label className="text-md font-medium text-muted-foreground">Supporting Financial Documents (For Verified Buyers Only)</Label><FormItem><Label htmlFor="financialStatements">Upload Financial Statements (e.g., P&amp;L, Balance Sheet)</Label><Input id="financialStatements" type="file" disabled={isPending} /><FormDescription>PDF, XLSX accepted.</FormDescription></FormItem><FormItem><Label htmlFor="keyMetricsReport">Upload Key Metrics Report (e.g., SaaS Metrics, Analytics Summary)</Label><Input id="keyMetricsReport" type="file" disabled={isPending} /><FormDescription>PDF, XLSX accepted.</FormDescription></FormItem></div>
             </CardContent>
           </Card>
 
           {/* Section 4: Deal & Seller Information */}
           <Card className="shadow-md bg-brand-white">
-            <CardHeader>
-                <CardTitle className="text-brand-dark-blue">Section 4: Deal &amp; Seller Information</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle className="text-brand-dark-blue">Section 4: Deal &amp; Seller Information</CardTitle></CardHeader>
             <CardContent className="space-y-6">
                 <FormField
                     control={form.control}
                     name="dealStructureLookingFor"
-                    render={() => (
-                        <FormItem>
-                        <FormLabel>Looking for (Deal Structure):</FormLabel>
-                        <FormDescription>Select all that apply.</FormDescription>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 pt-2">
-                        {dealStructures.map((item) => (
-                            <FormField
-                            key={item}
-                            control={form.control}
-                            name="dealStructureLookingFor"
-                            render={({ field }) => {
-                                return (
-                                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                                    <FormControl>
-                                    <Checkbox
-                                        checked={field.value?.includes(item)}
-                                        onCheckedChange={(checked) => {
-                                        return checked
-                                            ? field.onChange([...(field.value || []), item])
-                                            : field.onChange(
-                                                field.value?.filter(
-                                                (value) => value !== item
-                                                )
-                                            );
-                                        }}
-                                        disabled={isPending}
-                                    />
-                                    </FormControl>
-                                    <FormLabel className="font-normal">{item}</FormLabel>
-                                </FormItem>
-                                );
-                            }}
-                            />
-                        ))}
-                        </div>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                <FormField control={form.control} name="reasonForSellingAnonymous" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Reason for Selling (Public Summary, Optional)</FormLabel>
-                    <FormControl><Textarea {...field} value={field.value || ""} rows={3} placeholder="Briefly state your reason for selling (e.g., Retirement, Other ventures)." disabled={isPending} /></FormControl>
-                    <FormDescription>Max 500 characters. This may be shown publicly.</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                    render={() => (<FormItem><FormLabel>Looking for (Deal Structure):</FormLabel><FormDescription>Select all that apply.</FormDescription><div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 pt-2">{dealStructures.map((item) => (<FormField key={item} control={form.control} name="dealStructureLookingFor" render={({ field }) => (<FormItem className="flex flex-row items-start space-x-3 space-y-0"><FormControl><Checkbox checked={field.value?.includes(item)} onCheckedChange={(checked) => checked ? field.onChange([...(field.value || []), item]) : field.onChange(field.value?.filter(v => v !== item))} disabled={isPending}/></FormControl><FormLabel className="font-normal">{item}</FormLabel></FormItem>)}/>))}</div><FormMessage /></FormItem>)}/>
+                <FormField control={form.control} name="reasonForSellingAnonymous" render={({ field }) => (<FormItem><FormLabel>Reason for Selling (Public Summary, Optional)</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={3} placeholder="Briefly state your reason for selling (e.g., Retirement, Other ventures)." disabled={isPending} /></FormControl><FormDescription>Max 500 characters. This may be shown publicly.</FormDescription><FormMessage /></FormItem>)}/>
               <Separator />
               <h3 className="text-md font-medium text-muted-foreground">Additional Seller Information (For Verified View)</h3>
-               <FormField control={form.control} name="detailedReasonForSelling" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Detailed Reason for Selling</FormLabel>
-                  <FormControl><Textarea {...field} value={field.value || ""} rows={3} placeholder="Provide more context for verified buyers." disabled={isPending} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-               <FormField control={form.control} name="sellerRoleAndTimeCommitment" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Seller&apos;s Current Role &amp; Time Commitment</FormLabel>
-                  <FormControl><Textarea {...field} value={field.value || ""} rows={3} placeholder="Describe your current day-to-day role and weekly time commitment to the business." disabled={isPending} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-               <FormField control={form.control} name="postSaleTransitionSupport" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Post-Sale Transition Support Offered</FormLabel>
-                  <FormControl><Textarea {...field} value={field.value || ""} rows={3} placeholder="What level of training or transition support are you willing to provide the buyer?" disabled={isPending} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              <div className="space-y-2">
-                  <Label className="text-md font-medium text-muted-foreground">Ownership &amp; Legal Documents (For Admin Verification &amp; Verified Buyers Only)</Label>
-                  <FormItem>
-                      <Label htmlFor="ownershipDocs">Upload Proof of Ownership / Incorporation Documents</Label>
-                      <Input id="ownershipDocs" type="file" disabled={isPending} />
-                      <FormDescription>PDF accepted.</FormDescription>
-                  </FormItem>
-              </div>
+               <FormField control={form.control} name="detailedReasonForSelling" render={({ field }) => (<FormItem><FormLabel>Detailed Reason for Selling</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={3} placeholder="Provide more context for verified buyers." disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
+               <FormField control={form.control} name="sellerRoleAndTimeCommitment" render={({ field }) => (<FormItem><FormLabel>Seller&apos;s Current Role &amp; Time Commitment</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={3} placeholder="Describe your current day-to-day role and weekly time commitment to the business." disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
+               <FormField control={form.control} name="postSaleTransitionSupport" render={({ field }) => (<FormItem><FormLabel>Post-Sale Transition Support Offered</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={3} placeholder="What level of training or transition support are you willing to provide the buyer?" disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
+              <div className="space-y-2"><Label className="text-md font-medium text-muted-foreground">Ownership &amp; Legal Documents (For Admin Verification &amp; Verified Buyers Only)</Label><FormItem><Label htmlFor="ownershipDocs">Upload Proof of Ownership / Incorporation Documents</Label><Input id="ownershipDocs" type="file" disabled={isPending} /><FormDescription>PDF accepted.</FormDescription></FormItem></div>
             </CardContent>
           </Card>
 
@@ -510,14 +303,7 @@ export default function CreateSellerListingPage() {
           <Card className="shadow-md bg-brand-white">
             <CardHeader><CardTitle className="text-brand-dark-blue">Section 5: Growth &amp; Future Potential</CardTitle></CardHeader>
             <CardContent className="space-y-6">
-                <FormField control={form.control} name="specificGrowthOpportunities" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Specific Growth Opportunities (Use bullet points)</FormLabel>
-                    <FormControl><Textarea {...field} value={field.value || ""} rows={5} placeholder="- Expand to new markets (e.g., Region X)\n- Launch new product line (e.g., Product Y)\n- Optimize marketing spend by Z%" disabled={isPending} /></FormControl>
-                    <FormDescription>List 3-5 specific, actionable growth opportunities.</FormMessage>
-                    <FormMessage />
-                  </FormItem>
-                )} />
+                <FormField control={form.control} name="specificGrowthOpportunities" render={({ field }) => (<FormItem><FormLabel>Specific Growth Opportunities (Use bullet points)</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={5} placeholder="- Expand to new markets (e.g., Region X)\n- Launch new product line (e.g., Product Y)\n- Optimize marketing spend by Z%" disabled={isPending} /></FormControl><FormDescription>List 3-5 specific, actionable growth opportunities.</FormDescription><FormMessage /></FormItem>)} />
             </CardContent>
           </Card>
 
@@ -536,5 +322,3 @@ export default function CreateSellerListingPage() {
     </div>
   );
 }
-
-    
