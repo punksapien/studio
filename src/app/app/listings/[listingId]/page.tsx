@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Separator } from '@/components/ui/separator';
 import {
   MapPin, DollarSign, Briefcase, ShieldCheck, MessageSquare, CalendarDays, UserCircle,
-  Info, TrendingUp, Tag, HandCoins, FileText, Link as LinkIconLucide, Building, Brain, Globe,
+  Info, TrendingUp, Tag, HandCoins, FileText, Link as LinkIconLucide, Building, Brain, Globe, // Ensured Globe is here
   BookOpen, ExternalLink, Users2 as UsersIcon, Images as ImagesIcon, Banknote, Eye,
   ChevronLeft, ChevronRight
 } from 'lucide-react';
@@ -37,7 +37,7 @@ function ImageGallery({ imageUrls, listingTitle }: { imageUrls?: string[]; listi
     if (currentIndex >= validImageUrls.length && validImageUrls.length > 0) {
       setCurrentIndex(0);
     } else if (validImageUrls.length === 0) {
-      setCurrentIndex(0); 
+      setCurrentIndex(0);
     }
   }, [validImageUrls, currentIndex]);
 
@@ -114,7 +114,7 @@ function ImageGallery({ imageUrls, listingTitle }: { imageUrls?: string[]; listi
               <Image
                 src={url}
                 alt={`Thumbnail ${index + 1} for ${listingTitle}`}
-                width={100} height={100} 
+                width={100} height={100}
                 className="w-full h-full object-cover"
                 data-ai-hint="business detail product"
                 onError={(e) => (e.currentTarget.src = "https://placehold.co/100x100.png?text=Error")}
@@ -184,9 +184,9 @@ export default function ListingDetailPage() {
   return (
     <div className="container py-8 md:py-12 bg-brand-light-gray">
       <Card className="shadow-xl overflow-hidden bg-brand-white">
-        <CardHeader className="p-4 md:p-6"> {/* Added padding to CardHeader for gallery spacing */}
+        <CardHeader className="p-4 md:p-6">
             <ImageGallery imageUrls={listing.imageUrls} listingTitle={listing.listingTitleAnonymous}/>
-            <div className="mt-4"> {/* Spacing between gallery and title block */}
+            <div className="mt-4">
                 <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-brand-dark-blue tracking-tight">{listing.listingTitleAnonymous}</h1>
                 <div className="mt-2 flex items-center gap-2 flex-wrap">
                   <Badge variant="secondary" className="bg-brand-dark-blue/10 text-brand-dark-blue">{listing.industry}</Badge>
@@ -198,7 +198,7 @@ export default function ListingDetailPage() {
                 </div>
             </div>
         </CardHeader>
-        <CardContent className="p-6 md:p-8 pt-0 grid lg:grid-cols-12 gap-8"> {/* Removed CardHeader's bottom title block bg gradient */}
+        <CardContent className="p-6 md:p-8 pt-0 grid lg:grid-cols-12 gap-8">
             <div className="lg:col-span-8 space-y-8">
                 {listing.isSellerVerified && !currentUser && (
                     <Card className="bg-blue-50 border-blue-300 dark:bg-blue-900/20 dark:border-blue-700">
@@ -434,5 +434,3 @@ export default function ListingDetailPage() {
     </div>
   );
 }
-
-    
