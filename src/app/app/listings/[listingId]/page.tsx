@@ -1,52 +1,95 @@
 
-'use client'; // Needs to be a client component for ImageGallery state
+'use client';
 
 import * as React from 'react';
-import { sampleListings, sampleUsers } from '@/lib/placeholder-data';
-import type { Listing, User } from '@/lib/types';
 import Image from 'next/image';
+import Link from 'next/link';
+import { useParams, notFound } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { MapPin, DollarSign, Briefcase, ShieldCheck, MessageSquare, CalendarDays, Users, Info, TrendingUp, Tag, HandCoins, FileText, Link as LinkIcon, Building, Brain, BookOpen, ExternalLink, UserCircle, Globe, Users2, RadioTower, ImagesIcon, Banknote, Eye } from 'lucide-react';
-import Link from 'next/link';
-import { notFound, useParams } from 'next/navigation'; // useParams for client component
+import { 
+  MapPin, DollarSign, Briefcase, ShieldCheck, MessageSquare, CalendarDays, Users as UsersIcon, 
+  Info, TrendingUp, Tag, HandCoins, FileText, Link as LinkIcon, Building, Brain, 
+  BookOpen, ExternalLink, UserCircle, Globe, Users2, Images as ImagesIcon, Banknote, Eye
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { sampleListings, sampleUsers } from '@/lib/placeholder-data';
+import type { Listing, User } from '@/lib/types';
+
+// Helper to format currency
+const formatCurrency = (amount?: number) => {
+  if (typeof amount !== 'number' || isNaN(amount)) return 'Contact for Price';
+  return `$${amount.toLocaleString()} USD`;
+};
 
 // Client component for Image Gallery
-function ImageGallery({ imageUrls }: { imageUrls: string[] }) {
-  const [mainImage, setMainImage] = React.useState(imageUrls[0] || "https://placehold.co/1200x400.png");
+function ImageGallery({ imageUrls, listingTitle }: { imageUrls?: string[]; listingTitle: string }) {
+  const [mainImage, setMainImage] = React.useState(
+    imageUrls && imageUrls.length > 0 && imageUrls[0] ? imageUrls[0] : "https://placehold.co/1200x675.png"
+  );
 
-  if (!imageUrls || imageUrls.length === 0) {
-    return <Image src="https://placehold.co/1200x400.png" alt="Placeholder Business Image" width={1200} height={400} className="w-full h-64 md:h-96 object-cover" data-ai-hint="generic business office" />;
+  React.useEffect(() => {
+    if (imageUrls && imageUrls.length > 0 && imageUrls[0]) {
+      setMainImage(imageUrls[0]);
+    } else {
+      setMainImage("https://placehold.co/1200x675.png");
+    }
+  }, [imageUrls]);
+
+  if (!imageUrls || imageUrls.filter(url => url && url.trim() !== "").length === 0) {
+    return (
+      <Image 
+        src="https://placehold.co/1200x400.png" 
+        alt={`${listingTitle} Placeholder`} 
+        width={1200} 
+        height={400} 
+        className="w-full h-64 md:h-96 object-cover rounded-t-lg" 
+        data-ai-hint="generic business office" 
+        priority 
+      />
+    );
   }
+
+  const validImageUrls = imageUrls.filter(url => url && url.trim() !== "");
+  const displayMainImage = validImageUrls.length > 0 ? mainImage : "https://placehold.co/1200x675.png";
+
 
   return (
     <div>
-      <div className="mb-4 rounded-lg overflow-hidden shadow-lg">
+      <div className="mb-4 rounded-lg overflow-hidden shadow-lg bg-muted aspect-[16/9] flex items-center justify-center">
         <Image
-          src={mainImage}
-          alt="Main business image"
+          src={displayMainImage}
+          alt={`Main image for ${listingTitle}`}
           width={1200}
-          height={675} // 16:9 aspect ratio for a large image
-          className="w-full h-auto max-h-[600px] object-contain"
+          height={675}
+          className="w-full h-full object-contain max-h-[500px] md:max-h-[600px]"
           data-ai-hint="business operations product"
-          priority // Prioritize loading the main image
+          priority
+          onError={() => setMainImage("https://placehold.co/1200x675.png")} // Fallback if image fails to load
         />
       </div>
-      {imageUrls.length > 1 && (
+      {validImageUrls.length > 1 && (
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
-          {imageUrls.map((url, index) => (
+          {validImageUrls.map((url, index) => (
             <button
               key={index}
               onClick={() => setMainImage(url)}
               className={cn(
-                "aspect-square rounded-md overflow-hidden focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-sky-blue transition-opacity",
-                url === mainImage ? "ring-2 ring-brand-sky-blue opacity-100" : "opacity-70 hover:opacity-100"
+                "aspect-square rounded-md overflow-hidden focus:outline-none focus:ring-2 focus:ring-offset-2 ring-brand-sky-blue transition-opacity",
+                url === mainImage ? "ring-2 opacity-100" : "opacity-70 hover:opacity-100"
               )}
+              aria-label={`View image ${index + 1} for ${listingTitle}`}
             >
-              <Image src={url} alt={`Thumbnail ${index + 1}`} width={150} height={150} className="w-full h-full object-cover" data-ai-hint="business detail product" />
+              <Image 
+                src={url} 
+                alt={`Thumbnail ${index + 1} for ${listingTitle}`} 
+                width={150} height={150} 
+                className="w-full h-full object-cover" 
+                data-ai-hint="business detail product" 
+                onError={(e) => (e.currentTarget.src = "https://placehold.co/150x150.png")} // Fallback for thumbnails
+              />
             </button>
           ))}
         </div>
@@ -55,34 +98,41 @@ function ImageGallery({ imageUrls }: { imageUrls: string[] }) {
   );
 }
 
-
 export default function ListingDetailPage() {
   const params = useParams();
   const listingId = typeof params.listingId === 'string' ? params.listingId : '';
   
-  // Simulate fetching data client-side or assume it's passed if this were a true client component receiving props
-  const [listing, setListing] = React.useState<Listing | null | undefined>(undefined); // undefined for loading, null for not found
+  const [listing, setListing] = React.useState<Listing | null | undefined>(undefined);
   const [seller, setSeller] = React.useState<User | null | undefined>(undefined);
-  const [currentUser, setCurrentUser] = React.useState<User | null | undefined>(undefined); // Placeholder for auth
+  
+  // Placeholder for current user - replace with actual auth logic
+  const [currentUser, setCurrentUser] = React.useState<User | null | undefined>(undefined);
 
   React.useEffect(() => {
+    // Simulate fetching current user
+    const storedUserId = 'user2'; // Example: Jane Smith (Verified & Paid Buyer)
+    const user = sampleUsers.find(u => u.id === storedUserId);
+    setCurrentUser(user || null);
+
+    // Simulate fetching listing data
     const fetchedListing = sampleListings.find(l => l.id === listingId);
     setListing(fetchedListing || null);
+
     if (fetchedListing) {
       const fetchedSeller = sampleUsers.find(u => u.id === fetchedListing.sellerId && u.role === 'seller');
       setSeller(fetchedSeller || null);
+    } else {
+      setSeller(null);
     }
-    // Simulate fetching current user
-    const fetchedCurrentUser = sampleUsers.find(u => u.id === 'user2'); // Example: Jane Smith (Verified & Paid Buyer)
-    setCurrentUser(fetchedCurrentUser || null);
   }, [listingId]);
 
-  if (listing === undefined || seller === undefined || currentUser === undefined) {
-    return <div className="container py-8 text-center">Loading listing details...</div>;
+  if (listing === undefined || currentUser === undefined) { // Seller can be undefined if listing not found yet
+    return <div className="container py-8 text-center min-h-screen flex items-center justify-center"><p>Loading listing details...</p></div>;
   }
 
   if (!listing) {
     notFound();
+    return null; // Keep TypeScript happy, notFound() will throw
   }
 
   const canViewVerifiedDetails =
@@ -91,11 +141,11 @@ export default function ListingDetailPage() {
     currentUser.verificationStatus === 'verified' &&
     currentUser.isPaid;
 
-  const DocumentLink = ({ href, children, docType }: { href?: string; children: React.ReactNode, docType: string }) => {
+  const DocumentLink = ({ href, children }: { href?: string; children: React.ReactNode}) => {
     if (!canViewVerifiedDetails) {
-        return <p className="text-sm text-muted-foreground italic">Document visible to paid, verified buyers.</p>;
+        return <p className="text-sm text-muted-foreground italic">Details available to paid, verified buyers.</p>;
     }
-    if (!href) {
+    if (!href || href.trim() === "" || href.trim() === "#") {
         return <p className="text-sm text-muted-foreground">Document not provided by seller.</p>;
     }
     return (
@@ -109,12 +159,7 @@ export default function ListingDetailPage() {
     <div className="container py-8 md:py-12 bg-brand-light-gray">
       <Card className="shadow-xl overflow-hidden bg-brand-white">
         <CardHeader className="p-0 relative">
-            {/* Main Image - Replaced direct Image with ImageGallery */}
-            {listing.imageUrls && listing.imageUrls.length > 0 ? (
-              <ImageGallery imageUrls={listing.imageUrls} />
-            ) : (
-              <Image src="https://placehold.co/1200x400.png" alt={listing.listingTitleAnonymous} width={1200} height={400} className="w-full h-64 md:h-96 object-cover" data-ai-hint="generic business office"/>
-            )}
+            <ImageGallery imageUrls={listing.imageUrls} listingTitle={listing.listingTitleAnonymous}/>
             <div className="absolute bottom-0 left-0 p-6 md:p-8 bg-gradient-to-t from-black/70 via-black/40 to-transparent w-full">
                 <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-brand-white tracking-tight">{listing.listingTitleAnonymous}</h1>
                 <div className="mt-2 flex items-center gap-2">
@@ -129,18 +174,19 @@ export default function ListingDetailPage() {
         </CardHeader>
         <CardContent className="p-6 md:p-8 grid lg:grid-cols-12 gap-8">
             <div className="lg:col-span-8 space-y-8">
-                {listing.isSellerVerified && !canViewVerifiedDetails && currentUser && !currentUser.isPaid && (
+                {listing.isSellerVerified && !currentUser && (
+                    <Card className="bg-blue-50 border-blue-300 dark:bg-blue-900/20 dark:border-blue-700">
+                        <CardHeader><CardTitle className="text-blue-700 dark:text-blue-300 flex items-center"><UserCircle className="h-5 w-5 mr-2"/>Access Verified Information</CardTitle></CardHeader>
+                        <CardContent><p className="text-sm text-blue-600 dark:text-blue-400">This listing is from a Platform Verified Seller. <Link href={`/auth/login?redirect=/app/listings/${listing.id}`} className="font-semibold underline hover:text-blue-700">Login</Link> or <Link href={`/auth/register?redirect=/app/listings/${listing.id}`} className="font-semibold underline hover:text-blue-700">Register</Link> as a paid, verified buyer to view detailed company information and documents.</p></CardContent>
+                    </Card>
+                )}
+                {listing.isSellerVerified && currentUser && currentUser.role === 'buyer' && !canViewVerifiedDetails && !currentUser.isPaid && (
                     <Card className="bg-amber-50 border-amber-300 dark:bg-amber-900/20 dark:border-amber-700">
                         <CardHeader><CardTitle className="text-amber-700 dark:text-amber-300 flex items-center"><Info className="h-5 w-5 mr-2"/>Unlock Full Details</CardTitle></CardHeader>
                         <CardContent><p className="text-sm text-amber-600 dark:text-amber-400">This listing is from a Platform Verified Seller. To view specific company details, financials, and documents, please <Link href="/dashboard/subscription" className="font-semibold underline hover:text-amber-700">upgrade to a paid buyer plan</Link>.</p></CardContent>
                     </Card>
                 )}
-                 {listing.isSellerVerified && !currentUser && (
-                    <Card className="bg-blue-50 border-blue-300 dark:bg-blue-900/20 dark:border-blue-700">
-                        <CardHeader><CardTitle className="text-blue-700 dark:text-blue-300 flex items-center"><UserCircle className="h-5 w-5 mr-2"/>Access Verified Information</CardTitle></CardHeader>
-                        <CardContent><p className="text-sm text-blue-600 dark:text-blue-400">This listing is from a Platform Verified Seller. <Link href={`/auth/login?redirect=/listings/${listing.id}`} className="font-semibold underline hover:text-blue-700">Login</Link> or <Link href={`/auth/register?redirect=/listings/${listing.id}`} className="font-semibold underline hover:text-blue-700">Register</Link> as a paid, verified buyer to view detailed company information and documents.</p></CardContent>
-                    </Card>
-                )}
+                 
 
                 <section id="business-overview">
                     <h2 className="text-2xl font-semibold text-brand-dark-blue mb-3 flex items-center"><BookOpen className="h-6 w-6 mr-2 text-primary"/>Business Overview</h2>
@@ -168,15 +214,15 @@ export default function ListingDetailPage() {
                     </>
                 )}
                 
-                {listing.adjustedCashFlow && (
-                    <>
-                        <Separator />
-                        <section id="adjusted-cash-flow">
-                          <h2 className="text-2xl font-semibold text-brand-dark-blue mb-3 flex items-center"><Banknote className="h-6 w-6 mr-2 text-primary" />Adjusted Cash Flow</h2>
-                          <p className="text-xl font-semibold text-primary mb-1">${listing.adjustedCashFlow.toLocaleString()} USD <span className="text-sm text-muted-foreground">(Annual TTM)</span></p>
-                          {listing.adjustedCashFlowExplanation && <p className="text-muted-foreground text-sm leading-relaxed">{listing.adjustedCashFlowExplanation}</p>}
-                        </section>
-                    </>
+                {(listing.adjustedCashFlow || listing.adjustedCashFlowExplanation) && (
+                  <>
+                    <Separator />
+                    <section id="adjusted-cash-flow">
+                      <h2 className="text-2xl font-semibold text-brand-dark-blue mb-3 flex items-center"><Banknote className="h-6 w-6 mr-2 text-primary" />Adjusted Cash Flow</h2>
+                      {listing.adjustedCashFlow !== undefined && <p className="text-xl font-semibold text-primary mb-1">{formatCurrency(listing.adjustedCashFlow)} <span className="text-sm text-muted-foreground">(Annual)</span></p>}
+                      {listing.adjustedCashFlowExplanation && <p className="text-muted-foreground text-sm leading-relaxed whitespace-pre-wrap">{listing.adjustedCashFlowExplanation}</p>}
+                    </section>
+                  </>
                 )}
 
                 {listing.specificGrowthOpportunities && (
@@ -210,7 +256,6 @@ export default function ListingDetailPage() {
                                 <p className="text-sm"><span className="font-medium">Year Established:</span> {listing.yearEstablished || 'N/A'}</p>
                                 <p className="text-sm"><span className="font-medium">Full Business Address:</span> {listing.fullBusinessAddress || 'N/A'}</p>
                                 <p className="text-sm"><span className="font-medium">Number of Employees:</span> {listing.numberOfEmployees || 'N/A'}</p>
-                                {/* Removed Business Model and Tech Stack from here as per simplification */}
                               </>
                             ) : (
                               <p className="text-sm text-muted-foreground italic">Visible to paid, verified buyers.</p>
@@ -226,21 +271,21 @@ export default function ListingDetailPage() {
                             ) : (
                               <p className="text-sm text-muted-foreground italic">Visible to paid, verified buyers.</p>
                             )}
-                            <DocumentLink href={listing.webPresenceInfoUrl} docType="web">Web & Analytics Report</DocumentLink>
+                            <DocumentLink href={listing.webPresenceInfoUrl}>Web & Analytics Report</DocumentLink>
                         </div>
                          <div>
                             <h3 className="font-semibold text-brand-dark-blue flex items-center gap-2 mb-1"><DollarSign className="h-5 w-5"/>Specific Financials</h3>
                              {canViewVerifiedDetails ? (
                               <>
-                                <p className="text-sm"><span className="font-medium">Specific Annual Revenue (TTM):</span> {listing.specificAnnualRevenueLastYear ? `$${listing.specificAnnualRevenueLastYear.toLocaleString()} USD` : 'N/A'}</p>
-                                <p className="text-sm"><span className="font-medium">Specific Net Profit (TTM):</span> {listing.specificNetProfitLastYear ? `$${listing.specificNetProfitLastYear.toLocaleString()} USD` : 'N/A'}</p>
+                                <p className="text-sm"><span className="font-medium">Specific Annual Revenue (TTM):</span> {listing.specificAnnualRevenueLastYear ? `${formatCurrency(listing.specificAnnualRevenueLastYear)}` : 'N/A'}</p>
+                                <p className="text-sm"><span className="font-medium">Specific Net Profit (TTM):</span> {listing.specificNetProfitLastYear ? `${formatCurrency(listing.specificNetProfitLastYear)}` : 'N/A'}</p>
                               </>
                             ) : (
                               <p className="text-sm text-muted-foreground italic">Visible to paid, verified buyers.</p>
                             )}
-                            <DocumentLink href={listing.financialSnapshotUrl} docType="financials">Financial Snapshot</DocumentLink>
-                            <DocumentLink href={listing.financialDocumentsUrl} docType="financial_statements">Full Financial Statements</DocumentLink>
-                            <DocumentLink href={listing.keyMetricsReportUrl} docType="metrics">Key Metrics Report</DocumentLink>
+                            <DocumentLink href={listing.financialSnapshotUrl}>Financial Snapshot</DocumentLink>
+                            <DocumentLink href={listing.financialDocumentsUrl}>Full Financial Statements</DocumentLink>
+                            <DocumentLink href={listing.keyMetricsReportUrl}>Key Metrics Report</DocumentLink>
                         </div>
                         <div>
                             <h3 className="font-semibold text-brand-dark-blue flex items-center gap-2 mb-1"><Users2 className="h-5 w-5"/>Seller & Deal Information</h3>
@@ -256,11 +301,11 @@ export default function ListingDetailPage() {
                         </div>
                          <div>
                             <h3 className="font-semibold text-brand-dark-blue flex items-center gap-2 mb-1"><FileText className="h-5 w-5"/>Other Documents</h3>
-                            <DocumentLink href={listing.ownershipDetailsUrl || listing.ownershipDocumentsUrl} docType="ownership">Ownership Documents</DocumentLink>
-                            <DocumentLink href={listing.locationRealEstateInfoUrl} docType="location">Location/Real Estate Info</DocumentLink>
+                            <DocumentLink href={listing.ownershipDetailsUrl || listing.ownershipDocumentsUrl}>Ownership Documents</DocumentLink>
+                            <DocumentLink href={listing.locationRealEstateInfoUrl}>Location/Real Estate Info</DocumentLink>
                          </div>
                          {canViewVerifiedDetails && listing.secureDataRoomLink && (
-                            <div><h3 className="font-semibold text-brand-dark-blue flex items-center gap-2 mb-1"><LinkIcon className="h-5 w-5"/>Secure Data Room</h3><DocumentLink href={listing.secureDataRoomLink} docType="dataroom">Access Data Room</DocumentLink></div>
+                            <div><h3 className="font-semibold text-brand-dark-blue flex items-center gap-2 mb-1"><LinkIcon className="h-5 w-5"/>Secure Data Room</h3><DocumentLink href={listing.secureDataRoomLink}>Access Data Room</DocumentLink></div>
                         )}
                     </div>
                 </section>
@@ -292,7 +337,7 @@ export default function ListingDetailPage() {
                         )}
                          <div className="flex items-center">
                             <DollarSign className="h-5 w-5 mr-3 text-primary flex-shrink-0" />
-                            <div><p className="font-medium text-brand-dark-blue">Asking Price</p><p className="text-muted-foreground">{listing.askingPrice ? `$${listing.askingPrice.toLocaleString()} USD` : 'Contact for Price'}</p></div>
+                            <div><p className="font-medium text-brand-dark-blue">Asking Price</p><p className="text-muted-foreground">{formatCurrency(listing.askingPrice)}</p></div>
                         </div>
                         {listing.dealStructureLookingFor && listing.dealStructureLookingFor.length > 0 && (
                              <div className="flex items-start">
@@ -300,9 +345,13 @@ export default function ListingDetailPage() {
                                 <div><p className="font-medium text-brand-dark-blue">Deal Structure</p><p className="text-muted-foreground">{listing.dealStructureLookingFor.join(', ')}</p></div>
                             </div>
                         )}
+                        <div className="flex items-center">
+                            <CalendarDays className="h-5 w-5 mr-3 text-primary flex-shrink-0" />
+                            <div><p className="font-medium text-brand-dark-blue">First Listed</p><p className="text-muted-foreground">{new Date(listing.createdAt).toLocaleDateString()}</p></div>
+                        </div>
                         {seller && (
                              <div className="flex items-center">
-                                <Users className="h-5 w-5 mr-3 text-primary flex-shrink-0" />
+                                <UserCircle className="h-5 w-5 mr-3 text-primary flex-shrink-0" />
                                 <div>
                                     <p className="font-medium text-brand-dark-blue">Seller Status</p>
                                     <p className="text-muted-foreground">
@@ -315,14 +364,22 @@ export default function ListingDetailPage() {
                         )}
                     </CardContent>
                     <CardFooter className="flex flex-col gap-2">
-                        <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90" disabled={!currentUser || currentUser.role !== 'buyer'}>
+                        <Button 
+                            className="w-full bg-primary text-primary-foreground hover:bg-primary/90" 
+                            disabled={!currentUser || currentUser.role !== 'buyer'}
+                            onClick={() => console.log("Inquire about business clicked for listing:", listing.id)}
+                        >
                             <MessageSquare className="h-4 w-4 mr-2"/>
                             Inquire About Business
                         </Button>
-                        {canViewVerifiedDetails && listing.status === 'verified_public' && ( 
-                           <Button variant="outline" className="w-full border-primary text-primary hover:bg-primary/10">
+                        {canViewVerifiedDetails && (listing.status === 'verified_public' || listing.status === 'verified_anonymous') && ( 
+                           <Button 
+                             variant="outline" 
+                             className="w-full border-primary text-primary hover:bg-primary/10"
+                             onClick={() => console.log("Open conversation clicked for listing:", listing.id)}
+                            >
                              <ExternalLink className="h-4 w-4 mr-2" />
-                             Open Conversation (Placeholder)
+                             Open Conversation
                            </Button>
                         )}
                     </CardFooter>
@@ -332,7 +389,7 @@ export default function ListingDetailPage() {
                         <CardContent className="p-4 text-center">
                             <p className="text-sm text-brand-dark-blue mb-2">Want to learn more or see verified details?</p>
                             <Button variant="outline" asChild className="border-brand-dark-blue text-brand-dark-blue hover:bg-brand-dark-blue/5">
-                                <Link href={`/auth/login?redirect=/listings/${listing.id}`}>Login or Register to Inquire</Link>
+                                <Link href={`/auth/login?redirect=/app/listings/${listing.id}`}>Login or Register to Inquire</Link>
                             </Button>
                         </CardContent>
                     </Card>
@@ -350,3 +407,8 @@ export default function ListingDetailPage() {
             </aside>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+    
