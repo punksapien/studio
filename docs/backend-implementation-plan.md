@@ -173,15 +173,16 @@ All actions require an authenticated 'SELLER' role. The `seller_id` (which is th
     1.  **Authenticate Seller & Authorize:**
         *   Verify authenticated user (via session). Retrieve `user_id` (this is `seller_id`).
         *   Query `user_profiles` (D1) to confirm `role` is 'SELLER'. If not, return 403 Forbidden.
-    2.  **Receive Request:** Worker receives POST with all listing data as per `ListingSchema`. This includes anonymous fields, detailed/verified fields, financial ranges and specifics (including `askingPrice` (number), `adjustedCashFlow` (number), `adjustedCashFlowExplanation`), deal info (like `dealStructureLookingFor` as an array of strings), growth opportunities (`specificGrowthOpportunities` as a string), and `imageUrls` (array of strings).
+    2.  **Receive Request:** Worker receives POST with all listing data as per `ListingSchema`. This includes `imageUrls` as an array of strings, `askingPrice` as a number, `adjustedCashFlow` as a number, `adjustedCashFlowExplanation` as a string, `specificGrowthOpportunities` as a string, and `dealStructureLookingFor` as an array of strings.
     3.  **Validate Input:** Use Zod `ListingSchema` (or an equivalent API schema) for comprehensive validation. If fails, return 400.
-    4.  **Conceptual File Handling (R2 - see Section VI for full flow):** For fields representing uploaded documents (e.g., `financialDocumentsUrl`, `keyMetricsReportUrl`), this section covers linking pre-uploaded file keys. The `imageUrls` array is expected to contain direct URLs provided by the user or URLs to files previously uploaded via a separate mechanism.
+    4.  **Conceptual File Handling (R2 - see Section VI for full flow):** For fields representing uploaded documents (e.g., `financialDocumentsUrl`, `keyMetricsReportUrl`), this section covers linking pre-uploaded file keys. The `imageUrls` array is expected to contain direct URLs provided by the user or URLs/keys to files previously uploaded via a separate mechanism.
     5.  **Create Listing Record (D1 Insert):**
         *   Generate a unique `listing_id` (e.g., UUID).
         *   Fetch seller's current `verification_status` from their `user_profiles` (D1).
         *   Insert into `listings` table (D1) with:
             *   `listing_id`, `seller_id`.
-            *   All validated fields from the request (e.g., `listingTitleAnonymous`, `industry`, `askingPrice` (number), `adjustedCashFlow` (number), `adjustedCashFlowExplanation`, `specificGrowthOpportunities` (string), `dealStructureLookingFor` (stored as JSON string array if D1 doesn't support native arrays well)). Store `imageUrls` as a JSON string array.
+            *   All validated fields from the request (e.g., `listingTitleAnonymous`, `industry`, `askingPrice` (number), `adjustedCashFlow` (number), `adjustedCashFlowExplanation` (string), `specificGrowthOpportunities` (string)).
+            *   Store `imageUrls` and `dealStructureLookingFor` as JSON string arrays.
             *   Placeholders for document URLs (e.g., `financial_documents_url`) set to `NULL` initially if not provided/handled yet via the R2 flow.
             *   `status`: Default to `'ACTIVE_ANONYMOUS'`.
             *   `is_seller_verified`: Set to `true` if seller profile `verification_status = 'VERIFIED'`, else `false`.
@@ -198,7 +199,7 @@ All actions require an authenticated 'SELLER' role. The `seller_id` (which is th
         *   Retrieve `listingId` from path.
         *   Query `listings` (D1): `SELECT seller_id, status FROM listings WHERE listing_id = ?`.
         *   If not found, return 404. If `listings.seller_id !== user_id`, return 403.
-    2.  **Receive Request:** PUT request with `listingId` and updated listing data (partial `ListingSchema`). This includes all fields from the create form, such as `askingPrice` (number), `adjustedCashFlow` (number), `imageUrls` (array), `dealStructureLookingFor` (array).
+    2.  **Receive Request:** PUT request with `listingId` and updated listing data (partial `ListingSchema`). This includes `imageUrls` as an array, `askingPrice` as a number, `adjustedCashFlow` as a number, `adjustedCashFlowExplanation` as a string, `specificGrowthOpportunities` as a string, and `dealStructureLookingFor` as an array.
     3.  **Validate Input:** Use a partial/update version of Zod `ListingSchema`.
     4.  **Conceptual File Updates (R2 - see Section VI):** If new `imageUrls` are provided, update (if they are R2 keys). If document placeholders are updated with new file references, handle.
     5.  **Update Listing Record (D1 Update):** Update specified fields for the `listingId` in `listings`. Store arrays like `imageUrls` and `dealStructureLookingFor` as JSON string arrays. Update `updated_at`.
@@ -243,7 +244,7 @@ All actions require an authenticated 'SELLER' role. The `seller_id` (which is th
 *   **Triggering UI:** `/marketplace` page load, filter changes, sorting, pagination.
 *   **Conceptual Next.js API Route:** `GET /api/listings`.
 *   **Detailed Backend Worker Logic:**
-    1.  **Receive Request:** GET with optional query parameters: `page`, `limit`, `industry`, `country`, `revenueRange`, `minAskingPrice`, `maxAskingPrice` (for numeric price filtering), `keywords` (array of strings from checkboxes), `sortBy`, `sortOrder`.
+    1.  **Receive Request:** GET with optional query parameters: `page`, `limit`, `industry`, `country`, `revenueRange`, `minAskingPrice` (number), `maxAskingPrice` (number), `keywords[]` (array of strings from multi-select filter), `sortBy`, `sortOrder`.
     2.  **Validate Query Parameters.**
     3.  **Determine Requesting Buyer's Status (Conceptual):** Check auth. If authenticated, get `user_id`, query D1 `user_profiles` for `verification_status` and `is_paid`.
     4.  **Construct SQL Query for D1 (`listings` table):**
@@ -253,7 +254,7 @@ All actions require an authenticated 'SELLER' role. The `seller_id` (which is th
             *   Apply filters for `industry`, `country`, `revenueRange`.
             *   For `minAskingPrice`: `AND askingPrice >= ?` (if provided).
             *   For `maxAskingPrice`: `AND askingPrice <= ?` (if provided).
-            *   For `keywords` (array of strings): Build dynamic `OR` conditions for each keyword against relevant text fields (e.g., `(listingTitleAnonymous LIKE '%key1%' OR anonymousBusinessDescription LIKE '%key1%') OR (listingTitleAnonymous LIKE '%key2%' OR anonymousBusinessDescription LIKE '%key2%') ...`). Consider D1's full-text search capabilities if available.
+            *   For `keywords` (array of strings): Build dynamic `OR` conditions for each keyword against relevant text fields (e.g., `( (listingTitleAnonymous LIKE '%key1%') OR (anonymousBusinessDescription LIKE '%key1%') OR (industry LIKE '%key1%') ) OR ( (listingTitleAnonymous LIKE '%key2%') OR (anonymousBusinessDescription LIKE '%key2%') OR (industry LIKE '%key2%') ) ...`). Consider D1's full-text search capabilities if available and more performant.
         *   **Sorting (`ORDER BY`):** Based on `sortBy` and `sortOrder` (e.g., `listings.created_at DESC`, `listings.askingPrice ASC`).
         *   **Pagination:** `LIMIT ? OFFSET ?`.
     5.  **Execute Query & Fetch Total Count:** Main query and a `SELECT COUNT(*)` with same filters.
@@ -270,10 +271,10 @@ All actions require an authenticated 'SELLER' role. The `seller_id` (which is th
         *   `SELECT * FROM listings WHERE listing_id = ?`. If not found or not publicly visible (e.g., status is INACTIVE or REJECTED_BY_ADMIN), return 404.
         *   If listing found, `SELECT user_id AS seller_user_id, verification_status AS seller_platform_verification_status, is_paid as seller_is_paid FROM user_profiles WHERE user_id = fetched_listing.seller_id`.
     4.  **Construct Response Object (Conditional Data Exposure):**
-        *   **Always include:** All public/anonymous fields: `listing_id`, `listingTitleAnonymous`, `industry`, `locationCountry`, `locationCityRegionGeneral`, `anonymousBusinessDescription`, `keyStrengthsAnonymous` (array), `annualRevenueRange`, `netProfitMarginRange`, `askingPrice` (number), `dealStructureLookingFor` (array), `reasonForSellingAnonymous`, `imageUrls` (array, potentially only first for anonymous or all), `is_seller_verified`, `created_at`, `specificGrowthOpportunities` (string).
+        *   **Always include:** All public/anonymous fields: `listing_id`, `listingTitleAnonymous`, `industry`, `locationCountry`, `locationCityRegionGeneral`, `anonymousBusinessDescription`, `keyStrengthsAnonymous` (array), `annualRevenueRange`, `netProfitMarginRange`, `askingPrice` (number), `dealStructureLookingFor` (array), `reasonForSellingAnonymous`, `imageUrls` (array), `is_seller_verified`, `created_at`, `specificGrowthOpportunities` (string), `adjustedCashFlow` (number, if seller provided), `adjustedCashFlowExplanation` (string, if seller provided).
         *   **Conditionally Include Verified/Detailed Information:**
             *   Condition: `listing.is_seller_verified === true` AND authenticated buyer has `verification_status === 'VERIFIED'` AND `is_paid === true`.
-            *   If met, additionally include: `actualCompanyName`, `registeredBusinessName`, `yearEstablished`, `fullBusinessAddress`, `businessWebsiteUrl`, `socialMediaLinks`, `numberOfEmployees`, `technologyStack`, `specificAnnualRevenueLastYear`, `specificNetProfitLastYear`, `adjustedCashFlow`, `adjustedCashFlowExplanation`, `detailedReasonForSelling`, `sellerRoleAndTimeCommitment`, `postSaleTransitionSupport`, all `imageUrls` (if not already sent), and URLs/keys for uploaded documents (`financialDocumentsUrl`, `keyMetricsReportUrl`, `ownershipDocumentsUrl`, `financialSnapshotUrl`, `ownershipDetailsUrl`, `locationRealEstateInfoUrl`, `webPresenceInfoUrl`, `secureDataRoomLink`).
+            *   If met, additionally include: `actualCompanyName`, `registeredBusinessName`, `yearEstablished`, `fullBusinessAddress`, `businessWebsiteUrl`, `socialMediaLinks`, `numberOfEmployees`, `technologyStack`, `specificAnnualRevenueLastYear`, `specificNetProfitLastYear`, `detailedReasonForSelling`, `sellerRoleAndTimeCommitment`, `postSaleTransitionSupport`, and URLs/keys for uploaded documents (`financialDocumentsUrl`, `keyMetricsReportUrl`, `ownershipDocumentsUrl`, `financialSnapshotUrl`, `ownershipDetailsUrl`, `locationRealEstateInfoUrl`, `webPresenceInfoUrl`, `secureDataRoomLink`).
             *   If not met, these fields are omitted or set to placeholder like "Access Restricted".
     5.  **Return Success Response:** 200 OK with the constructed listing object.
 
@@ -319,7 +320,7 @@ All API endpoints require user authentication. `user_id` from session is key.
     *   **Backend Logic (D1 Queries):**
         1.  Authenticate buyer, get `user_id`.
         2.  Fetch `user_profiles`: `SELECT full_name, verification_status FROM user_profiles WHERE user_id = ?`.
-        3.  Fetch active inquiry count: `SELECT COUNT(*) FROM inquiries WHERE buyer_id = ? AND status NOT IN ('archived', 'connection_facilitated')`.
+        3.  Fetch active inquiry count: `SELECT COUNT(*) FROM inquiries WHERE buyer_id = ? AND status NOT IN ('archived', 'connection_facilitated', 'connection_facilitated_in_app_chat_opened')`.
         4.  Fetch recent inquiries: `SELECT i.id, i.listing_id, i.inquiry_timestamp, i.status AS system_status, l.listingTitleAnonymous FROM inquiries i JOIN listings l ON i.listing_id = l.listing_id WHERE i.buyer_id = ? ORDER BY i.inquiry_timestamp DESC LIMIT 3`.
         5.  Map `system_status` to `statusBuyerPerspective`.
         6.  Return aggregated data.
@@ -341,6 +342,7 @@ All API endpoints require user authentication. `user_id` from session is key.
     *   **Backend Logic (D1 Query):** `SELECT i.id, i.listing_id, i.inquiry_timestamp, i.status AS system_status, l.listingTitleAnonymous, l.is_seller_verified AS listing_seller_is_verified, seller_profile.verification_status AS seller_platform_verification_status FROM inquiries i JOIN listings l ON i.listing_id = l.listing_id JOIN user_profiles seller_profile ON l.seller_id = seller_profile.user_id WHERE i.buyer_id = ? ORDER BY i.inquiry_timestamp DESC`.
     *   Map to `statusBuyerPerspective`. Return list.
     *   **Action: "Proceed to Verification" Button:** UI navigation to `/dashboard/verification`. Backend interaction handled by verification request API.
+    *   **Action: "Open Conversation" Button (New):** If `inquiry.status` is `CONNECTION_FACILITATED_IN_APP_CHAT_OPENED`, button links to `/dashboard/messages/[conversationId]`.
 
 4.  **Verification (`/dashboard/verification/page.tsx`)**
     *   **Data Needed:** Buyer's `verification_status` (via profile API).
@@ -410,12 +412,13 @@ All API endpoints require user authentication. `user_id` from session is key.
             6.  Fetch seller's profile (D1): `SELECT verification_status AS seller_verification_status FROM user_profiles WHERE user_id = inquiry.seller_id`.
             7.  **Implement Engagement Flow Logic (from MVP document):**
                 *   Determine `next_inquiry_status`.
-                *   If buyer `verification_status` is 'ANONYMOUS' or 'PENDING_VERIFICATION': `next_inquiry_status = 'SELLER_ENGAGED_BUYER_PENDING_VERIFICATION'`. Notify Buyer to verify. Add to Admin Verification Queue (conceptual - or Buyer triggers it themselves).
-                *   Else if seller's profile `verification_status` is NOT 'VERIFIED' OR listing `is_seller_verified` is false (and listing `status` isn't already `VERIFIED_ANONYMOUS` or `VERIFIED_PUBLIC`): `next_inquiry_status = 'SELLER_ENGAGED_SELLER_PENDING_VERIFICATION'`. Notify Seller to verify profile/listing. Add to Admin Verification Queue (conceptual - or Seller triggers it themselves).
+                *   If buyer `verification_status` is 'ANONYMOUS' or 'PENDING_VERIFICATION': `next_inquiry_status = 'SELLER_ENGAGED_BUYER_PENDING_VERIFICATION'`. Notify Buyer to verify.
+                *   Else if seller's profile `verification_status` is NOT 'VERIFIED' OR listing `is_seller_verified` is false (and listing `status` isn't already `VERIFIED_ANONYMOUS` or `VERIFIED_PUBLIC`): `next_inquiry_status = 'SELLER_ENGAGED_SELLER_PENDING_VERIFICATION'`. Notify Seller to verify profile/listing.
                 *   Else (Both Buyer and Seller/Listing are effectively verified for this interaction): `next_inquiry_status = 'READY_FOR_ADMIN_CONNECTION'`. Notify Admin. Notify Buyer & Seller.
             8.  Update `inquiries` table (D1): `SET status = ?, engagement_timestamp = DATETIME('now') WHERE inquiry_id = ?`.
             9.  Trigger appropriate notifications.
             10. Return 200 OK.
+    *   **Action: "Open Conversation" Button (New):** If `inquiry.status` is `CONNECTION_FACILITATED_IN_APP_CHAT_OPENED`, button links to `/seller-dashboard/messages/[conversationId]`.
 
 6.  **Verification (`/seller-dashboard/verification/page.tsx`)**
     *   **Data Fetching API (GET):** `/api/seller-dashboard/verification-data`.
@@ -512,9 +515,15 @@ All Admin APIs require ADMIN role authentication (e.g., check role in `user_prof
 1.  **Fetch Engagements Ready for Connection (`GET /api/admin/engagements` or `/api/admin/inquiries?status=READY_FOR_ADMIN_CONNECTION`)**
     *   **Backend Logic (D1 Query):** `SELECT i.id AS inquiry_id, i.listing_id, i.buyer_id, i.seller_id, i.engagement_timestamp, buyer.full_name AS buyer_name, buyer.email AS buyer_email, buyer.phone_number AS buyer_phone, seller.full_name AS seller_name, seller.email AS seller_email, seller.phone_number AS seller_phone, l.listingTitleAnonymous FROM inquiries i JOIN user_profiles buyer ON i.buyer_id = buyer.user_id JOIN user_profiles seller ON i.seller_id = seller.user_id JOIN listings l ON i.listing_id = l.listing_id WHERE i.status = 'READY_FOR_ADMIN_CONNECTION' ORDER BY i.engagement_timestamp ASC`. Paginate. Return list.
 
-2.  **Update Engagement Status (`PUT /api/admin/engagements/[inquiryId]/status`)**
-    *   **Request Body:** `{ new_status: 'CONNECTION_FACILITATED', admin_notes?: string }`.
-    *   **Backend Logic:** Receive `inquiryId`, `new_status`. Validate. `UPDATE inquiries SET status = 'CONNECTION_FACILITATED', admin_notes = COALESCE(?, admin_notes) WHERE inquiry_id = ?`. Log. Notify parties. Return 200 OK.
+2.  **Facilitate Connection & Create Conversation (`POST /api/admin/engagements/[inquiryId]/facilitate-connection`)**
+    *   **Request Body:** `{ admin_notes?: string }`.
+    *   **Backend Logic:**
+        1.  Authenticate Admin. Fetch `inquiry` by `inquiryId`.
+        2.  Verify `inquiry.status` is `READY_FOR_ADMIN_CONNECTION`.
+        3.  **Create `Conversation` record in D1** (See Section VII.A for details).
+        4.  Update `inquiries.status` to `CONNECTION_FACILITATED_IN_APP_CHAT_OPENED`.
+        5.  Update `inquiries.admin_notes` with `admin_notes`.
+        6.  Log action. Notify buyer and seller about the new chat. Return 200 OK with `conversationId`.
 
 ### E. Analytics Data Aggregation (Conceptual for D1 Queries)
 
@@ -526,15 +535,15 @@ All Admin APIs require ADMIN role authentication (e.g., check role in `user_prof
 *   **Listing Metrics:**
     *   Total Listings (All Statuses): `SELECT COUNT(*) FROM listings`.
     *   Active Listings (Verified vs Anonymous): `SELECT status, COUNT(*) FROM listings WHERE status IN ('ACTIVE_ANONYMOUS', 'VERIFIED_ANONYMOUS', 'VERIFIED_PUBLIC') GROUP BY status`.
-    *   Closed/Deactivated Listings: `SELECT COUNT(*) FROM listings WHERE status IN ('INACTIVE', 'closed_deal', 'rejected_by_admin')`.
+    *   Closed/Deactivated Listings: `SELECT COUNT(*) FROM listings WHERE status IN ('INACTIVE', 'closed_deal', 'rejected_by_admin')`. (Status names might vary, e.g., `SOLD`).
     *   New Listings Created (24h/7d): `SELECT COUNT(*) FROM listings WHERE created_at >= DATETIME('now', '-X days')`.
     *   Listings by Industry: `SELECT industry, COUNT(*) FROM listings WHERE status IN ('ACTIVE_ANONYMOUS', 'VERIFIED_ANONYMOUS', 'VERIFIED_PUBLIC') GROUP BY industry`.
     *   Listings by Asking Price (Ranges): Requires bucketing `listings.askingPrice` (numeric) using CASE statements (if D1 supports this well, or multiple queries).
 *   **Engagement/Deal Flow Metrics:**
     *   Total Inquiries by Status: `SELECT status, COUNT(*) FROM inquiries GROUP BY status`.
-    *   Successful Connections Facilitated MTD: `SELECT COUNT(*) FROM inquiries WHERE status = 'CONNECTION_FACILITATED' AND engagement_timestamp >= [start_of_month]`.
-    *   Active Successful Connections: `SELECT COUNT(*) FROM inquiries WHERE status = 'CONNECTION_FACILITATED' AND (deal_closed_timestamp IS NULL OR deal_status != 'CLOSED')` (assuming future deal tracking fields).
-    *   Closed Successful Connections/Deals Closed MTD: `SELECT COUNT(*) FROM inquiries WHERE status = 'CONNECTION_FACILITATED' AND deal_closed_timestamp >= [start_of_month] AND deal_status = 'CLOSED'` (assuming future deal tracking fields).
+    *   Successful Connections Facilitated MTD: `SELECT COUNT(*) FROM inquiries WHERE status = 'CONNECTION_FACILITATED_IN_APP_CHAT_OPENED' AND engagement_timestamp >= [start_of_month]`.
+    *   Active Successful Connections: `SELECT COUNT(*) FROM inquiries WHERE status = 'CONNECTION_FACILITATED_IN_APP_CHAT_OPENED' AND (deal_closed_timestamp IS NULL OR deal_status != 'CLOSED')` (assuming future deal tracking fields).
+    *   Closed Successful Connections/Deals Closed MTD: `SELECT COUNT(*) FROM inquiries WHERE status = 'CONNECTION_FACILITATED_IN_APP_CHAT_OPENED' AND deal_closed_timestamp >= [start_of_month] AND deal_status = 'CLOSED'` (assuming future deal tracking fields).
 *   **Revenue Metrics (Conceptual - assuming a `subscriptions` table):**
     *   Total Revenue MTD: `SELECT SUM(amount) FROM subscriptions WHERE status = 'ACTIVE' AND transaction_date >= [start_of_month]`.
     *   Revenue from Buyers/Sellers: Filter `subscriptions` by joining with `user_profiles.role`.
@@ -563,7 +572,7 @@ This outlines the intended multi-step process for handling file uploads (e.g., l
     *   **Triggering UI:** After successful R2 upload.
     *   **Frontend Action:** Makes API request (e.g., `POST /api/upload/confirm-and-link`).
     *   **Request Body:** `{ objectKey: string (R2 objectKey), originalFilename: string, context: 'listing_image' | ..., entityId: string (listingId or userId), documentType?: string, imageUrlIndex?: number (if for listing images array) }`.
-    *   **(Alternative for listing images from text inputs):** If image URLs are just text inputs in the form, the main "Create/Edit Listing" API (Section II.A/B) handles saving these string URLs. The pre-signed URL flow would be for direct file uploads for *documents*.
+    *   **(Alternative for listing images from text inputs):** If image URLs are just text inputs in the form, the main "Create/Edit Listing" API (Section II.A/B) handles saving these string URLs. The pre-signed URL flow would be for direct file uploads for *documents* and potentially direct image uploads for listings/messages.
 5.  **Step 5: Backend Worker Updates D1 Database with File Reference**
     *   **Conceptual Next.js API Route:** e.g., `POST /api/upload/confirm-and-link`.
     *   **Cloudflare Worker Logic:**
@@ -573,9 +582,148 @@ This outlines the intended multi-step process for handling file uploads (e.g., l
             *   **For listings (if `context='listing_document'`):** Update specific document URL field in `listings` table (e.g., `financial_documents_url = objectKey`).
             *   **For profile verification (if `context='verification_document_...'`):** Update `user_profiles` (e.g., `id_proof_document_key = objectKey`) or insert into a separate `user_verification_documents` table linked to `user_id` and `verification_request_id`.
             *   **Note on `imageUrls` for Listings:** If using direct file uploads for listing images, the array of `objectKey`s would be stored in `listings.imageUrls` (as JSON string). If sellers provide external URLs via text inputs, those strings are stored directly.
+            *   **For message attachments (Future):** Update `messages.attachmentUrl` and `messages.attachmentType`.
         4.  **Return Success Response:** 200 OK.
 
 ---
+## VII. In-App Messaging System (NEW)
 
-This document provides a comprehensive plan for the backend implementation.
+This section details the backend logic for the direct in-app messaging system between verified buyers and sellers after an admin facilitates their connection.
+
+### A. Creating a Conversation (Admin Action)
+
+*   **Triggering Event:** Admin clicks "Mark Connection Facilitated" for an inquiry in the Admin Engagement Queue.
+*   **Conceptual API Route (Called by Admin Panel Frontend):** `POST /api/admin/engagements/[inquiryId]/facilitate-connection` (This existing admin route is expanded).
+*   **Detailed Backend Worker Logic:**
+    1.  **Authenticate Admin:** Verify admin privileges.
+    2.  **Fetch Inquiry Details (D1 Query):** Retrieve the `inquiry` record using `inquiryId` to get `buyer_id`, `seller_id`, and `listing_id`.
+    3.  **Verify Inquiry Status:** Ensure `inquiries.status` is `'READY_FOR_ADMIN_CONNECTION'`. If not, return an error.
+    4.  **Create Conversation Record (D1 Insert):**
+        *   Generate a new unique `conversation_id` (e.g., UUID).
+        *   Insert a new record into the `conversations` table with:
+            *   `conversation_id`
+            *   `inquiry_id`
+            *   `listing_id`
+            *   `buyer_id`
+            *   `seller_id`
+            *   `created_at` (current timestamp)
+            *   `updated_at` (current timestamp)
+            *   `last_message_snippet`: NULL or a system message like "Chat initiated by Admin."
+            *   `buyer_unread_count`: 0
+            *   `seller_unread_count`: 0
+    5.  **Update Inquiry Status (D1 Update):** Change `inquiries.status` to `'CONNECTION_FACILITATED_IN_APP_CHAT_OPENED'`.
+    6.  **Trigger Notifications (Conceptual):**
+        *   Create notification records in D1 `notifications` table for both the buyer and the seller.
+        *   Message: "Your connection for listing '[Listing Title]' is now active. You can start messaging directly on Nobridge."
+        *   Link: `/dashboard/messages/[new_conversation_id]` or `/seller-dashboard/messages/[new_conversation_id]`.
+        *   Type: `'new_message'` or `'engagement'`.
+        *   (Future) Send email notifications.
+    7.  **Audit Log (D1 Insert):** Log the admin action.
+    8.  **Return Success Response:** 200 OK with `{ success: true, message: "Connection facilitated and conversation created.", conversationId: new_conversation_id }`.
+
+### B. Fetching User's Conversations (List View)
+
+*   **Triggering UI:** Buyer/Seller navigates to their "Messages" page (e.g., `/dashboard/messages`).
+*   **Conceptual API Route:** `GET /api/conversations`
+*   **Detailed Backend Worker Logic:**
+    1.  **Authenticate User:** Get `user_id` from session.
+    2.  **Receive Request:** Optional query parameters for pagination (`page`, `limit`).
+    3.  **Query Conversations (D1 Query):**
+        ```sql
+        SELECT 
+            c.conversation_id, c.listing_id, c.buyer_id, c.seller_id, c.updated_at, c.last_message_snippet,
+            CASE
+                WHEN c.buyer_id = ?1 THEN c.buyer_unread_count
+                WHEN c.seller_id = ?1 THEN c.seller_unread_count
+                ELSE 0
+            END AS unread_count,
+            l.listingTitleAnonymous AS listing_title,
+            other_user.full_name AS other_party_name,
+            other_user.role AS other_party_role 
+        FROM conversations c
+        JOIN listings l ON c.listing_id = l.listing_id
+        JOIN user_profiles other_user ON (CASE WHEN c.buyer_id = ?1 THEN c.seller_id ELSE c.buyer_id END) = other_user.user_id
+        WHERE c.buyer_id = ?1 OR c.seller_id = ?1
+        ORDER BY c.updated_at DESC
+        LIMIT ?2 OFFSET ?3; 
+        ```
+        (Bind `user_id` to `?1`, `limit` to `?2`, `offset` to `?3`).
+    4.  **Fetch Total Count:** A separate `COUNT(*)` query with the same `WHERE` clause for pagination.
+    5.  **Return Success Response:** 200 OK with paginated list of conversation summaries.
+
+### C. Fetching Messages for a Conversation
+
+*   **Triggering UI:** User opens a specific conversation from their list.
+*   **Conceptual API Route:** `GET /api/conversations/[conversationId]/messages`
+*   **Detailed Backend Worker Logic:**
+    1.  **Authenticate User:** Get `user_id` from session.
+    2.  **Receive Request:** `conversationId` from path. Optional query params for pagination (`beforeTimestamp?`, `limit`).
+    3.  **Verify Participation (D1 Query):** Fetch `conversations` record for `conversationId`. Check if `user_id` matches `buyer_id` or `seller_id`. If not, return 403 Forbidden.
+    4.  **Fetch Messages (D1 Query):**
+        ```sql
+        SELECT message_id, sender_id, content_text, timestamp, is_read, attachment_url, attachment_type 
+        FROM messages 
+        WHERE conversation_id = ?1 
+        -- AND timestamp < ?2 -- Optional for "load older" pagination
+        ORDER BY timestamp ASC -- Or DESC if paginating from newest
+        LIMIT ?3;
+        ```
+        (Bind `conversationId` to `?1`, `beforeTimestamp` to `?2`, `limit` to `?3`).
+    5.  **Mark Messages as Read (D1 Update):**
+        ```sql
+        UPDATE messages 
+        SET is_read = true 
+        WHERE conversation_id = ?1 AND receiver_id = ?2 AND is_read = false;
+        ```
+        (Bind `conversationId` to `?1`, `user_id` to `?2`).
+    6.  **Update Unread Count on Conversation (D1 Update):**
+        *   If user is buyer: `UPDATE conversations SET buyer_unread_count = 0 WHERE conversation_id = ?1`.
+        *   If user is seller: `UPDATE conversations SET seller_unread_count = 0 WHERE conversation_id = ?1`.
+        (Bind `conversationId` to `?1`).
+    7.  **Return Success Response:** 200 OK with list of messages.
+
+### D. Sending a New Message
+
+*   **Triggering UI:** User types and clicks "Send" in the chat interface.
+*   **Conceptual API Route:** `POST /api/conversations/[conversationId]/messages`
+*   **Detailed Backend Worker Logic:**
+    1.  **Authenticate User:** Get `user_id` (this is `sender_id`).
+    2.  **Receive Request:** `conversationId` from path, `{ contentText: string, attachmentUrl?: string, attachmentType?: string }` in body.
+    3.  **Validate Input:** Ensure `contentText` is not empty (unless attachment present).
+    4.  **Verify Participation & Get Receiver ID (D1 Query):** Fetch `conversations` record for `conversationId`. Check if `user_id` matches `buyer_id` or `seller_id`. If not, 403. Determine `receiver_id` (the other participant).
+    5.  **Create Message Record (D1 Insert):**
+        *   Generate new `message_id` (UUID).
+        *   Insert into `messages` table: `message_id`, `conversation_id`, `sender_id`, `receiver_id`, `content_text`, `timestamp` (current), `is_read = false`, `attachment_url`, `attachment_type`.
+    6.  **Update Conversation Record (D1 Update):**
+        *   `UPDATE conversations SET updated_at = DATETIME('now'), last_message_snippet = SUBSTR(?, 1, 100)` (bind `contentText`).
+        *   Increment `unread_count` for the `receiver_id`:
+            *   If receiver is buyer: `UPDATE conversations SET buyer_unread_count = buyer_unread_count + 1 WHERE conversation_id = ?`.
+            *   If receiver is seller: `UPDATE conversations SET seller_unread_count = seller_unread_count + 1 WHERE conversation_id = ?`.
+    7.  **Trigger Real-time Notification (Conceptual - See VII.E):** Notify `receiver_id`.
+    8.  **Return Success Response:** 201 Created with the newly created message object.
+
+### E. Real-time Considerations (Cloudflare)
+
+*   **Polling (MVP):**
+    *   Client-side: `useEffect` hook in the conversation view polls `GET /api/conversations/[conversationId]/messages` (perhaps with a `sinceTimestamp` parameter) every few seconds (e.g., 5-10s).
+    *   Pros: Simple to implement.
+    *   Cons: Not truly real-time, can lead to delays and unnecessary requests.
+*   **Cloudflare Workers + Durable Objects + WebSockets (Advanced):**
+    *   A Durable Object per conversation could manage WebSocket connections for participants.
+    *   When a message is sent (via POST API), the Worker handling the POST forwards the message to the Durable Object.
+    *   The Durable Object then broadcasts the message to all connected WebSocket clients for that conversation.
+    *   Pros: True real-time, efficient.
+    *   Cons: Significantly more complex to set up and manage state/connections in Durable Objects. Requires careful handling of WebSocket lifecycles.
+*   **Third-Party Push Notification Services (e.g., Pusher, Ably, or custom via FCM/APNS):**
+    *   When a message is sent, the backend worker also sends a lightweight push notification to the receiver's registered devices/endpoints (if they are not actively on the chat page).
+    *   The push notification itself might not contain the message content but rather an alert ("New message from X") and a payload to prompt the client app to fetch new messages or update the UI.
+    *   Pros: Good for notifying users who are not active on the site. Can be combined with polling for users who *are* active.
+    *   Cons: Adds dependency on third-party services or native push infrastructure.
+
+**For this plan, the conceptual implementation will initially assume Polling for simplicity, with a note that WebSockets/Push Notifications are future enhancements.**
+
+---
+
+This document provides a comprehensive plan for the backend implementation, including the new messaging system.
+
     

@@ -1,7 +1,7 @@
 
 # API Route Specifications (Intended)
 
-This document outlines the specifications for the Next.js API routes that are *intended* to be implemented for the BizMatch Asia platform. Currently, these routes are conceptual placeholders based on frontend form submissions and actions; their backend logic needs full development.
+This document outlines the specifications for the Next.js API routes that are *intended* to be implemented for the Nobridge platform. Currently, these routes are conceptual placeholders based on frontend form submissions and actions; their backend logic needs full development.
 
 **Base Path:** `/api` (e.g., a route handler would be at `src/app/api/auth/register/route.ts`)
 
@@ -27,7 +27,7 @@ This document outlines the specifications for the Next.js API routes that are *i
     {
       "success": true,
       "message": "Buyer registered successfully. Please check your email to verify your account.",
-      "userId": "<clerk_user_id>"
+      "userId": "<clerk_user_id_or_internal_id>"
     }
     ```
 *   **Error Responses:**
@@ -39,25 +39,17 @@ This document outlines the specifications for the Next.js API routes that are *i
         ```json
         { "success": false, "error": "Email address already in use." }
         ```
-    *   `500 Internal Server Error`: Clerk or Supabase error during user creation.
+    *   `500 Internal Server Error`: Backend (e.g., D1 or Worker) error during user creation.
         ```json
         { "success": false, "error": "Failed to create user. Please try again later." }
         ```
-*   **Intended Backend Logic (Clerk & Supabase):**
+*   **Intended Backend Logic (Conceptual for D1 & Workers):**
     1.  **Validation:** Parse and validate the request body using `BuyerRegisterSchema`. If invalid, return 400.
-    2.  **Email Check (Supabase):** Query `user_profiles` table in Supabase to check if `email` already exists. If so, return 409.
-    3.  **User Creation (Clerk):** Call `clerkClient.users.createUser()` with `emailAddress`, `password`, `firstName` (from `fullName`), `lastName` (from `fullName`).
-    4.  **Profile Creation (Supabase):** On successful Clerk user creation, insert a new record into `user_profiles` table:
-        *   `id`: Use Clerk User ID.
-        *   `clerk_user_id`: Store Clerk User ID.
-        *   `full_name`, `email`, `phone_number`, `country`.
-        *   `role`: 'buyer'.
-        *   `verification_status`: 'anonymous'.
-        *   `is_paid`: `false`.
-        *   All buyer persona fields: `buyer_persona_type`, `buyer_persona_other`, etc.
-        *   `created_at`, `updated_at`: Current timestamps.
-    5.  **Email Verification (Clerk):** Ensure Clerk's email verification flow is triggered for the new user (often default Clerk behavior).
-    6.  **Response:** Return 201 success with user ID. Log any Clerk or Supabase errors and return 500 if they occur.
+    2.  **Email Check (D1):** Query `user_profiles` table in D1 to check if `email` already exists. If so, return 409.
+    3.  **Password Hashing:** Hash password.
+    4.  **Profile Creation (D1):** Insert a new record into `user_profiles` table.
+    5.  **OTP Generation & Email:** Generate OTP, store it (hashed) in `otp_verifications`, send OTP email.
+    6.  **Response:** Return 201 success with user ID/email for OTP page.
 
 ### 1.2. Seller Registration
 *   **File Path (Intended):** `src/app/api/auth/register/seller/route.ts`
@@ -71,77 +63,59 @@ This document outlines the specifications for the Next.js API routes that are *i
     *   `country: string`
     *   `initialCompanyName?: string`
 *   **Success/Error Responses:** Similar structure to Buyer Registration.
-*   **Intended Backend Logic (Clerk & Supabase):**
-    1.  **Validation:** Validate against `SellerRegisterSchema`.
-    2.  **Email Check (Supabase):** Check `user_profiles` for existing email.
-    3.  **User Creation (Clerk):** Create user in Clerk.
-    4.  **Profile Creation (Supabase):** Insert into `user_profiles`:
-        *   `id` (Clerk User ID), `clerk_user_id`.
-        *   `full_name`, `email`, `phone_number`, `country`.
-        *   `role`: 'seller'.
-        *   `initial_company_name` (if provided).
-        *   `verification_status`: 'anonymous', `is_paid`: `false`.
-        *   `created_at`, `updated_at`.
-    5.  **Email Verification (Clerk):** Trigger Clerk email verification.
-    6.  **Response:** Return appropriate success/error.
+*   **Intended Backend Logic (Conceptual for D1 & Workers):** Similar to buyer, but role is 'seller'.
 
 ### 1.3. User Login
-*   **Note:** This is primarily handled by Clerk's hosted pages or UI components (`<SignIn />`). A custom API is generally not needed unless specific pre/post login actions are required. If a custom API is built:
-*   **File Path (Intended, if custom):** `src/app/api/auth/login/route.ts`
+*   **File Path (Intended):** `POST /api/auth/login/initiate` (for credential check & OTP trigger)
 *   **HTTP Method:** `POST`
 *   **Request Body Schema:** (Refers to `LoginSchema` from `/app/auth/login/page.tsx`)
     *   `email: string`
     *   `password: string`
-*   **Success Response (200 OK, if custom and not redirecting):**
+*   **Success Response (200 OK):**
     ```json
-    { "success": true, "message": "Login successful.", "user": { /* basic user info, session token if needed */ } }
+    { "success": true, "message": "Credentials verified. OTP sent to your email." }
     ```
-*   **Intended Backend Logic (Clerk & Supabase):**
-    1.  **(TODO)** Use Clerk SDK to attempt sign-in (`clerkClient.signIn.create`, `attemptFirstFactor`).
-    2.  **(TODO)** On successful Clerk sign-in, retrieve the Clerk `userId`.
-    3.  **(TODO)** Update `last_login` timestamp in Supabase `user_profiles` table for the `userId`.
-    4.  **(TODO)** Clerk typically handles session creation and redirects. If custom, return session info or success.
+*   **Intended Backend Logic (Conceptual for D1 & Workers):**
+    1.  Validate credentials against D1.
+    2.  If valid and email verified, generate and send Login OTP.
 
-### 1.4. Forgot Password
-*   **Note:** This is primarily handled by Clerk's hosted pages or UI components.
-*   **File Path (Intended, if custom):** `src/app/api/auth/forgot-password/route.ts`
+### 1.4. OTP Verification
+*   **File Path (Intended):** `POST /api/auth/verify-otp`
+*   **Request Body:** `{ email: string, otp: string, type: 'register' | 'login' | 'password_reset' }`
+*   **Success Response (200 OK):**
+    *   Register: `{ "success": true, "message": "Email verified. Please login." }`
+    *   Login: `{ "success": true, "message": "Login successful.", "sessionToken": "...", "user": { ... } }`
+*   **Intended Backend Logic (Conceptual for D1 & Workers):**
+    1.  Verify OTP against stored hashed OTP in D1.
+    2.  If 'register', update `user_profiles.email_verified_at`.
+    3.  If 'login', generate session, update `last_login`.
+
+### 1.5. Forgot Password
+*   **File Path (Intended):** `POST /api/auth/forgot-password/initiate`
 *   **Request Body Schema:** (Refers to `ForgotPasswordSchema` from `/app/auth/forgot-password/page.tsx`)
     *   `email: string`
-*   **Intended Backend Logic (Clerk):**
-    1.  **(TODO)** Validate email.
-    2.  **(TODO)** Use Clerk SDK to trigger a password reset email for the given email address.
+*   **Intended Backend Logic (Conceptual for D1 & Workers):**
+    1.  Validate email. If user exists and verified, generate and send 'PASSWORD_RESET' OTP.
 
 ## 2. User Profile Routes (`/api/profile/*`)
 
 ### 2.1. Update User Profile
-*   **File Path (Intended):** `src/app/api/profile/route.ts`
+*   **File Path (Intended):** `PUT /api/profile`
 *   **HTTP Method:** `PUT`
 *   **Purpose:** Updates the current logged-in user's profile information.
 *   **Request Body Schema:** (Refers to `ProfileSchema` from buyer/seller profile pages)
-    *   `fullName: string`
-    *   `phoneNumber: string`
-    *   `country: string`
-    *   `initialCompanyName?: string` (for sellers)
-    *   `buyerPersonaType?: BuyerPersona`
-    *   `buyerPersonaOther?: string`
-    *   `investmentFocusDescription?: string`
-    *   `preferredInvestmentSize?: PreferredInvestmentSize`
-    *   `keyIndustriesOfInterest?: string`
 *   **Success Response (200 OK):**
     ```json
-    { "success": true, "message": "Profile updated successfully.", "user": { /* updated user profile data from Supabase */ } }
+    { "success": true, "message": "Profile updated successfully.", "user": { /* updated user profile data from D1 */ } }
     ```
-*   **Intended Backend Logic (Clerk & Supabase):**
-    1.  **(TODO)** Authenticate user via Clerk: Get `auth().userId`. If no user, return 401.
-    2.  **(TODO)** Validate request body against `ProfileSchema` (ensure role matches fields).
-    3.  **(TODO)** Update corresponding fields in Supabase `user_profiles` table for the `userId`.
-    4.  **(TODO)** If `fullName` changed, consider updating in Clerk: `clerkClient.users.updateUser(userId, { firstName, lastName })`.
-    5.  **(TODO)** Return the updated user profile data fetched from Supabase.
+*   **Intended Backend Logic (Conceptual for D1 & Workers):**
+    1.  Authenticate user.
+    2.  Validate request body.
+    3.  Update corresponding fields in D1 `user_profiles` table.
 
 ### 2.2. Change Password
-*   **File Path (Intended):** `src/app/api/password/route.ts`
+*   **File Path (Intended):** `PUT /api/auth/change-password`
 *   **HTTP Method:** `PUT`
-*   **Purpose:** Changes the current logged-in user's password.
 *   **Request Body Schema:** (Refers to `PasswordChangeSchema` from profile pages)
     *   `currentPassword: string`
     *   `newPassword: string`
@@ -149,36 +123,30 @@ This document outlines the specifications for the Next.js API routes that are *i
     ```json
     { "success": true, "message": "Password updated successfully." }
     ```
-*   **Intended Backend Logic (Clerk):**
-    1.  **(TODO)** Authenticate user via Clerk: Get `auth().userId`.
-    2.  **(TODO)** Validate request body.
-    3.  **(TODO)** Use Clerk SDK: `clerkClient.users.updateUser(userId, { password: newPassword, oldPassword: currentPassword })`. Clerk handles current password verification.
-    4.  **(TODO)** Return success or error based on Clerk's response.
+*   **Intended Backend Logic (Conceptual for D1 & Workers):**
+    1.  Authenticate user. Verify `currentPassword`. Update D1 with new hashed password.
 
 ## 3. Listing Routes (`/api/listings/*`)
 
 ### 3.1. Create Listing
-*   **File Path (Intended):** `src/app/api/listings/route.ts` (for POST)
+*   **File Path (Intended):** `POST /api/listings`
 *   **HTTP Method:** `POST`
 *   **Purpose:** Creates a new business listing for the authenticated seller.
 *   **Request Body Schema:** (Refers to `ListingSchema` from `/app/seller-dashboard/listings/create/page.tsx`)
+    * Includes `imageUrls` as `string[]`, `askingPrice` as `number`, `adjustedCashFlow` as `number`, `dealStructureLookingFor` as `string[]`.
 *   **Success Response (201 Created):**
     ```json
     { "success": true, "message": "Listing created successfully.", "listing": { /* created listing data */ } }
     ```
-*   **Intended Backend Logic (Clerk & Supabase):**
-    1.  **(TODO)** Authenticate user (Clerk `auth().userId`). Verify user role is 'seller'.
-    2.  **(TODO)** Validate request body against `ListingSchema`.
-    3.  **(TODO)** Insert new listing into Supabase `listings` table, with `seller_id = auth().userId`.
-    4.  **(TODO)** Set initial `status` (e.g., 'active' or 'pending_verification') and `is_seller_verified` (based on the seller's current profile status).
-    5.  **(TODO) File Uploads:** For document fields (e.g., `financialDocumentsUrl`), handle file uploads to Supabase Storage. Generate unique filenames. Store the public URLs in the `listings` table. This requires `multipart/form-data` handling.
-    6.  **(TODO)** Return the created listing data.
+*   **Intended Backend Logic (Conceptual for D1, R2 & Workers):**
+    1.  Authenticate seller. Validate.
+    2.  Insert new listing into D1 `listings` table. Store `imageUrls` and `dealStructureLookingFor` as JSON string arrays.
+    3.  Handle file uploads (for document fields if any) to R2, store keys/URLs.
 
 ### 3.2. Get Listings (Marketplace)
-*   **File Path (Intended):** `src/app/api/listings/route.ts` (for GET)
+*   **File Path (Intended):** `GET /api/listings`
 *   **HTTP Method:** `GET`
-*   **Purpose:** Fetches listings for the public marketplace with filtering, sorting, and pagination.
-*   **Query Parameters:** `page?`, `limit?`, `industry?`, `country?`, `revenueRange?`, `priceRange?`, `keywords?`, `sortBy?`, `sortOrder?`
+*   **Query Parameters:** `page?`, `limit?`, `industry?`, `country?`, `revenueRange?`, `minAskingPrice?` (number), `maxAskingPrice?` (number), `keywords[]?` (array of strings), `sortBy?`, `sortOrder?`
 *   **Success Response (200 OK):**
     ```json
     {
@@ -189,128 +157,192 @@ This document outlines the specifications for the Next.js API routes that are *i
       "totalListings": 95
     }
     ```
-*   **Intended Backend Logic (Supabase):**
-    1.  **(TODO)** Parse and validate query parameters.
-    2.  **(TODO)** Construct Supabase query to fetch `listings` where `status` is 'active', 'verified_anonymous', or 'verified_public'.
-    3.  **(TODO)** Implement filtering logic based on query parameters (e.g., `industry` IN (...), `country` = ..., range checks for financial fields). Keyword search might use `ILIKE` or full-text search.
-    4.  **(TODO)** Implement sorting.
-    5.  **(TODO)** Implement pagination using `offset` and `limit`.
-    6.  **(TODO)** Select only fields suitable for anonymous public display (e.g., `listingTitleAnonymous`, `industry`, `locationCountry`, `annualRevenueRange`, `askingPriceRange`, `anonymousBusinessDescription` snippet, `imageUrl`, `is_seller_verified`, `created_at`).
-    7.  **(TODO)** Join with `user_profiles` on `seller_id` to get `is_seller_verified` for the badge.
+*   **Intended Backend Logic (Conceptual for D1 & Workers):**
+    1.  Parse query parameters.
+    2.  Build D1 query: filter by `askingPrice >= minAskingPrice AND askingPrice <= maxAskingPrice`. For `keywords`, use multiple `OR columnName LIKE '%keyword%'` clauses.
+    3.  Implement sorting and pagination.
 
 ### 3.3. Get Single Listing (Public Detail)
-*   **File Path (Intended):** `src/app/api/listings/[listingId]/route.ts`
+*   **File Path (Intended):** `GET /api/listings/[listingId]`
 *   **HTTP Method:** `GET`
-*   **Purpose:** Fetches details for a single listing, conditionally showing verified information.
 *   **Success Response (200 OK):**
     ```json
-    { "success": true, "listing": { /* listing data, potentially including verified fields */ } }
+    { "success": true, "listing": { /* listing data, including imageUrls array, adjustedCashFlow, etc. */ } }
     ```
-*   **Intended Backend Logic (Clerk & Supabase):**
-    1.  **(TODO)** Extract `listingId`.
-    2.  **(TODO)** Fetch listing from Supabase `listings`. If not found or not active/verified, return 404.
-    3.  **(TODO)** Fetch associated seller's `user_profiles` record.
-    4.  **(TODO)** Get current authenticated user's ID, `verification_status`, and `is_paid` (from Clerk `auth()` and Supabase `user_profiles`).
-    5.  **(TODO)** Construct the response object. If the listing's seller (`seller.is_verified`) is true AND the current viewing buyer is also verified (`currentUser.verification_status === 'verified'`) AND paid (`currentUser.is_paid === true`), then include all detailed/verified fields from the listing (e.g., `actualCompanyName`, specific financials, document URLs, `potentialForGrowthNarrative`, `specificGrowthOpportunities`). Otherwise, only include anonymous fields.
-    6.  **(TODO)** Return listing data.
+*   **Intended Backend Logic (Conceptual for D1 & Workers):**
+    1.  Fetch listing. Determine requesting user's status.
+    2.  Conditionally include verified fields based on user status and seller verification.
 
 ### 3.4. Update Listing (Seller)
-*   **File Path (Intended):** `src/app/api/listings/[listingId]/route.ts`
-*   **HTTP Method:** `PUT`
-*   **Purpose:** Allows an authenticated seller to update their own listing.
-*   **Request Body Schema:** (Partial `ListingSchema`, all fields optional for update)
-*   **Intended Backend Logic (Clerk & Supabase):**
-    1.  **(TODO)** Authenticate seller (`auth().userId`).
-    2.  **(TODO)** Fetch listing from Supabase by `listingId`. Verify `listing.seller_id === auth().userId`. If not owner, return 403.
-    3.  **(TODO)** Validate request body against a partial/update version of `ListingSchema`.
-    4.  **(TODO)** Update the listing in Supabase `listings` table.
-    5.  **(TODO) File Updates:** Handle potential updates or deletions of associated files in Supabase Storage.
-    6.  **(TODO)** Return updated listing data.
+*   **File Path (Intended):** `PUT /api/listings/[listingId]`
+*   **Request Body Schema:** (Partial `ListingSchema`)
+    *   Includes `imageUrls` as `string[]`, `askingPrice` as `number`, `adjustedCashFlow` as `number`, `dealStructureLookingFor` as `string[]`.
+*   **Intended Backend Logic (Conceptual for D1, R2 & Workers):**
+    1.  Authenticate seller, verify ownership.
+    2.  Update listing in D1. Handle file updates/deletions in R2.
 
 ## 4. Inquiry Routes (`/api/inquiries/*`)
 
 ### 4.1. Create Inquiry
-*   **File Path (Intended):** `src/app/api/inquiries/route.ts` (for POST)
+*   **File Path (Intended):** `POST /api/inquiries`
 *   **HTTP Method:** `POST`
 *   **Request Body:** `{ "listingId": "string", "message"?: "string" }`
 *   **Success Response (201 Created):**
     ```json
     { "success": true, "message": "Inquiry submitted.", "inquiry": { /* created inquiry data */ } }
     ```
-*   **Intended Backend Logic (Clerk & Supabase):**
-    1.  **(TODO)** Authenticate buyer (`auth().userId`).
-    2.  **(TODO)** Validate `listingId`. Fetch the listing to get `seller_id`.
-    3.  **(TODO)** Create a new record in Supabase `inquiries` table: `buyer_id`, `listing_id`, `seller_id`, `inquiry_timestamp`, initial `status = 'new_inquiry'`, `message` (if provided).
-    4.  **(TODO) Notification System:** Trigger notification to the seller.
-    5.  **(TODO)** Return created inquiry.
+*   **Intended Backend Logic (Conceptual for D1 & Workers):**
+    1.  Authenticate buyer. Create record in D1 `inquiries`.
+    2.  Trigger notification to seller.
 
 ### 4.2. Get Inquiries (for User Dashboards)
-*   **File Path (Intended):** `src/app/api/inquiries/route.ts` (for GET)
-*   **Query Parameters:** `role: 'buyer' | 'seller'`, `listingId?: string` (if seller filters)
+*   **File Path (Intended):** `GET /api/inquiries`
+*   **Query Parameters:** `role: 'buyer' | 'seller'`, `listingId?: string`
 *   **Success Response (200 OK):**
     ```json
-    { "success": true, "inquiries": [ /* array of inquiry objects with relevant details */ ] }
+    { "success": true, "inquiries": [ /* array of inquiry objects */ ] }
     ```
-*   **Intended Backend Logic (Clerk & Supabase):**
-    1.  **(TODO)** Authenticate user (`auth().userId`). Fetch their role from `user_profiles`.
-    2.  **(TODO)** If `role === 'buyer'`, fetch inquiries from Supabase where `buyer_id = auth().userId`.
-    3.  **(TODO)** If `role === 'seller'`, fetch inquiries where `seller_id = auth().userId`. Apply `listingId` filter if provided.
-    4.  **(TODO)** For each inquiry, join with `listings` and `user_profiles` (for buyer/seller info) to populate display fields like `listingTitleAnonymous`, `buyerName`, `sellerStatus`, `buyerVerificationStatus`.
-    5.  **(TODO)** Determine `statusBuyerPerspective` and `statusSellerPerspective` based on `inquiry.status` and user roles/verification.
-    6.  **(TODO)** Return inquiries.
+*   **Intended Backend Logic (Conceptual for D1 & Workers):**
+    1.  Authenticate user. Fetch inquiries based on role. Join with other tables for details.
 
 ### 4.3. Seller Engages with Inquiry
-*   **File Path (Intended):** `src/app/api/inquiries/[inquiryId]/engage/route.ts`
+*   **File Path (Intended):** `POST /api/inquiries/[inquiryId]/engage`
 *   **HTTP Method:** `POST`
 *   **Success Response (200 OK):**
     ```json
     { "success": true, "message": "Engagement status updated.", "inquiry": { /* updated inquiry data */ } }
     ```
-*   **Intended Backend Logic (Clerk & Supabase):**
-    1.  **(TODO)** Authenticate seller (`auth().userId`).
-    2.  **(TODO)** Fetch inquiry by `inquiryId`. Verify `inquiry.seller_id === auth().userId`.
-    3.  **(TODO)** Fetch buyer's `verification_status` and seller's listing's `verification_status` / `is_seller_verified`.
-    4.  **(TODO)** Update `inquiries.status` in Supabase based on the verification flow logic (e.g., to 'seller_engaged_buyer_pending_verification', 'seller_engaged_seller_pending_verification', or 'ready_for_admin_connection').
-    5.  **(TODO)** Set `engagement_timestamp`.
-    6.  **(TODO) Notification System:** Trigger notifications to buyer and/or admin.
-    7.  **(TODO)** Return updated inquiry.
+*   **Intended Backend Logic (Conceptual for D1 & Workers):**
+    1.  Authenticate seller. Update `inquiries.status` based on verification flow.
+    2.  If both parties are verified, this route *might* also trigger conversation creation in the future, but the primary conversation creation is now through admin action.
+    3.  Update `inquiry.status` to reflect engagement.
+    4.  Trigger notifications.
 
 ## 5. Verification Request Routes (`/api/verification-requests/*`)
 
 ### 5.1. Create Verification Request
-*   **File Path (Intended):** `src/app/api/verification-requests/route.ts`
+*   **File Path (Intended):** `POST /api/verification-requests`
 *   **HTTP Method:** `POST`
 *   **Request Body:** `{ "type": "'profile_buyer' | 'profile_seller' | 'listing'", "listingId"?: "string", "bestTimeToCall"?: "string", "notes"?: "string" }`
+*   **Intended Backend Logic (Conceptual for D1 & Workers):**
+    1.  Authenticate user. Store request in D1 `verification_requests`. Update entity status. Notify admin.
+
+## 6. Messaging Routes (`/api/conversations/*`) (NEW)
+
+### 6.1. Create Conversation (Admin Initiated)
+*   **File Path (Conceptual - part of Admin action):** `POST /api/admin/engagements/[inquiryId]/facilitate-connection` (This existing Admin route is expanded)
+*   **HTTP Method:** `POST`
+*   **Purpose:** Triggered by an Admin when they "Mark Connection as Facilitated" for an inquiry. This action now also creates the conversation.
+*   **Request Payload (from Admin Panel Frontend):** `{ }` (or other admin-specific payload, `inquiryId` is from path).
+*   **Success Response (200 OK):**
+    ```json
+    { "success": true, "message": "Connection facilitated and conversation created.", "conversationId": "<new_conversation_id>" }
+    ```
+*   **Intended Backend Logic (Conceptual for D1 & Workers):**
+    1.  Admin authentication.
+    2.  Fetch `inquiry` details using `inquiryId` (buyerId, sellerId, listingId).
+    3.  Create a new `Conversation` record in D1.
+    4.  Update `inquiries.status` to 'CONNECTION_FACILITATED_IN_APP_CHAT_OPENED'.
+    5.  Notify buyer and seller that chat is available.
+
+### 6.2. Get User's Conversations (List)
+*   **File Path (Intended):** `GET /api/conversations`
+*   **HTTP Method:** `GET`
+*   **Purpose:** Fetches a list of all conversations for the authenticated user.
+*   **Query Parameters:** `page?`, `limit?` (for pagination)
+*   **Success Response (200 OK):**
+    ```json
+    {
+      "success": true,
+      "conversations": [
+        {
+          "conversationId": "string",
+          "otherPartyName": "string",
+          "otherPartyRole": "'buyer' | 'seller'",
+          "listingTitle": "string",
+          "lastMessageSnippet": "string",
+          "lastMessageTimestamp": "Date",
+          "unreadCount": "number"
+        }
+        // ... more conversations
+      ],
+      "totalPages": "number",
+      "currentPage": "number"
+    }
+    ```
+*   **Intended Backend Logic (Conceptual for D1 & Workers):**
+    1.  Authenticate user.
+    2.  Query D1 `conversations` where `buyerId` OR `sellerId` matches user's ID.
+    3.  Join with `user_profiles` for other party's name, and `listings` for title.
+    4.  Order by `updatedAt` DESC. Paginate.
+
+### 6.3. Get Messages for a Conversation
+*   **File Path (Intended):** `GET /api/conversations/[conversationId]/messages`
+*   **HTTP Method:** `GET`
+*   **Purpose:** Fetches messages for a specific conversation.
+*   **Query Parameters:** `beforeTimestamp?` (for fetching older messages/pagination), `limit?`
+*   **Success Response (200 OK):**
+    ```json
+    {
+      "success": true,
+      "messages": [
+        {
+          "messageId": "string",
+          "senderId": "string",
+          "contentText": "string",
+          "timestamp": "Date",
+          "isRead": "boolean",
+          "attachmentUrl?": "string"
+        }
+        // ... more messages
+      ]
+    }
+    ```
+*   **Intended Backend Logic (Conceptual for D1 & Workers):**
+    1.  Authenticate user and verify participation in `conversationId`.
+    2.  Fetch `messages` from D1 for this `conversationId`, ordered by `timestamp` ASC (or DESC for pagination).
+    3.  Mark fetched messages as read for the current user: `UPDATE messages SET is_read = true WHERE conversation_id = ? AND receiver_id = ? AND is_read = false`.
+    4.  Update `conversations.unreadCount` for the current user for this `conversationId` to 0.
+
+### 6.4. Send Message in Conversation
+*   **File Path (Intended):** `POST /api/conversations/[conversationId]/messages`
+*   **HTTP Method:** `POST`
+*   **Purpose:** Sends a new message in a specific conversation.
+*   **Request Body:**
+    ```json
+    {
+      "contentText": "string"
+      // "attachmentUrl"?: "string" // Future
+    }
+    ```
 *   **Success Response (201 Created):**
     ```json
-    { "success": true, "message": "Verification request submitted." }
+    {
+      "success": true,
+      "message": { /* The newly created message object */ }
+    }
     ```
-*   **Intended Backend Logic (Clerk & Supabase):**
-    1.  **(TODO)** Authenticate user (`auth().userId`).
-    2.  **(TODO)** Validate request body. If `type === 'listing'`, ensure `listingId` is provided and belongs to the user.
-    3.  **(TODO)** Store request in Supabase `verification_requests` table: `user_id`, `request_type`, `listing_id`, `notes`, `best_time_to_call`, `status = 'New Request'`.
-    4.  **(TODO)** Update `user_profiles.verification_status = 'pending_verification'` or `listings.status = 'pending_verification'` as appropriate.
-    5.  **(TODO) Notification System:** Notify admin team.
+*   **Intended Backend Logic (Conceptual for D1 & Workers):**
+    1.  Authenticate user and verify participation.
+    2.  Determine `receiverId` from conversation.
+    3.  Create new `Message` record in D1.
+    4.  Update `conversations.updatedAt` and `lastMessageSnippet`.
+    5.  Increment `unreadCount` for the `receiverId` on the `Conversation` record.
+    6.  Trigger real-time notification/event (e.g., push notification, or client polls).
 
-## 6. Admin Panel API Routes (Conceptual - All require Admin Auth)
+## 7. Admin Panel API Routes (Conceptual - All require Admin Auth)
 
-*   **`/api/admin/users`**:
-    *   `GET`: List users with filters/pagination.
-    *   `PUT /[userId]/status`: Update user verification/paid status.
-    *   `PUT /[userId]/profile`: Admin edit user details.
-    *   `DELETE /[userId]`: Delete user.
-    *   `POST /[userId]/reset-password-link`: Trigger Clerk password reset.
-*   **`/api/admin/listings`**:
-    *   `GET`: List all listings with filters/pagination.
-    *   `GET /[listingId]`: Get full listing details.
-    *   `PUT /[listingId]/status`: Approve/reject/deactivate/verify listing.
-*   **`/api/admin/verification-requests`**:
-    *   `GET`: Fetch requests (filter by type buyer/seller/listing).
-    *   `PUT /[requestId]/status`: Update verification request status.
+*   **`/api/admin/users`**: (Existing - GET, PUT /[userId]/status, PUT /[userId]/profile, DELETE /[userId], POST /[userId]/reset-password-otp)
+*   **`/api/admin/listings`**: (Existing - GET, GET /[listingId], PUT /[listingId]/status)
+*   **`/api/admin/verification-requests`**: (Existing - GET, PUT /[requestId]/status)
 *   **`/api/admin/engagements`**:
-    *   `GET`: Fetch engagements ready for connection.
-    *   `PUT /[engagementId]/status`: Update engagement status (e.g., 'connection_facilitated').
-*   **`/api/admin/analytics`**:
-    *   Endpoints for various metrics (summary, user breakdown, listing breakdown, revenue).
+    *   `GET`: Fetch engagements ready for connection (status `READY_FOR_ADMIN_CONNECTION`).
+    *   `POST /[inquiryId]/facilitate-connection`: (Was PUT) This route is now responsible for:
+        1.  Updating `inquiries.status` to 'CONNECTION_FACILITATED_IN_APP_CHAT_OPENED'.
+        2.  **Creating the `Conversation` record.**
+        3.  Notifying buyer and seller.
+*   **`/api/admin/analytics`**: (Existing - endpoints for various metrics)
 
-This outlines the intended API structure. Each endpoint requires careful implementation of authentication, authorization, validation, business logic, and database interactions using Supabase and Clerk.
+This outlines the intended API structure, including new messaging endpoints.
+
+    

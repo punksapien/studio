@@ -168,6 +168,7 @@ export type InquiryStatusBuyerPerspective =
   | 'Seller Engaged - Seller Verification Pending'
   | 'Ready for Admin Connection'
   | 'Connection Facilitated by Admin'
+  | 'Connection Facilitated - Chat Open' // Added for messaging
   | 'Archived';
 
 export type InquiryStatusSellerPerspective =
@@ -176,6 +177,7 @@ export type InquiryStatusSellerPerspective =
   | 'You Engaged - Your Listing Verification Pending'
   | 'Ready for Admin Connection'
   | 'Connection Facilitated by Admin'
+  | 'Connection Facilitated - Chat Open' // Added for messaging
   | 'Archived';
 
 export type InquiryStatusSystem = // Internal state
@@ -183,7 +185,8 @@ export type InquiryStatusSystem = // Internal state
   | 'seller_engaged_buyer_pending_verification'
   | 'seller_engaged_seller_pending_verification'
   | 'ready_for_admin_connection'
-  | 'connection_facilitated'
+  | 'connection_facilitated' // Original state before chat
+  | 'connection_facilitated_in_app_chat_opened' // New state after admin opens chat
   | 'archived';
 
 export interface Inquiry {
@@ -204,6 +207,38 @@ export interface Inquiry {
   updatedAt: Date;
 }
 ```
+
+### `Conversation` Interface (NEW)
+```typescript
+export interface Conversation {
+  conversationId: string; // Primary Key, UUID
+  inquiryId: string;      // Foreign Key to link to the original inquiry
+  listingId: string;      // Foreign Key to listings
+  buyerId: string;        // Foreign Key to user_profiles (buyer)
+  sellerId: string;       // Foreign Key to user_profiles (seller)
+  createdAt: Date;        // Timestamp of conversation creation
+  updatedAt: Date;        // Timestamp of the last message
+  lastMessageSnippet?: string; // Snippet of the last message for list views
+  buyerUnreadCount?: number;   // Unread messages for the buyer (default 0)
+  sellerUnreadCount?: number;  // Unread messages for the seller (default 0)
+}
+```
+
+### `Message` Interface (NEW)
+```typescript
+export interface Message {
+  messageId: string;       // Primary Key, UUID
+  conversationId: string;  // Foreign Key to conversations
+  senderId: string;        // Foreign Key to user_profiles (who sent it)
+  receiverId: string;      // Foreign Key to user_profiles (recipient, for notifications)
+  contentText: string;     // The text content of the message
+  timestamp: Date;         // When the message was sent
+  isRead: boolean;         // Has the receiver read this message (default false)
+  attachmentUrl?: string;   // URL to file in R2 (for future use)
+  attachmentType?: string;  // e.g., 'image', 'pdf' (for future use)
+}
+```
+
 
 ### `AdminDashboardMetrics` Interface (Updated)
 ```typescript
@@ -275,7 +310,7 @@ export interface ReadyToEngageItem {
 
 ### `NotificationItem` Interface (Updated)
 ```typescript
-export type NotificationType = 'inquiry' | 'verification' | 'system' | 'engagement' | 'listing_update';
+export type NotificationType = 'inquiry' | 'verification' | 'system' | 'engagement' | 'listing_update' | 'new_message'; // Added 'new_message'
 
 export interface NotificationItem {
   id: string;
@@ -298,7 +333,7 @@ export const profitMarginRanges = [
   "< 0% (Loss-making)", "0% - 10%", "10% - 20%",
   "20% - 30%", "30%+"
 ];
-// askingPriceRanges is removed as askingPrice is now a fixed number
+// askingPrice is now a fixed number, so askingPriceRanges constant is removed.
 
 export const placeholderKeywords: string[] = ["SaaS", "E-commerce", "Retail", "Service Business", "High Growth", "Profitable", "Fintech", "Logistics", "Healthcare Tech"];
 ```
@@ -346,7 +381,7 @@ Zod schemas are primarily defined inline within their respective form page compo
     *   `adjustedCashFlowExplanation` (optional string for adjusted cash flow).
 *   **Deal & Seller Info:** `dealStructureLookingFor` (optional array of strings from multi-select checkboxes, corresponding to `DealStructure[]`), `detailedReasonForSelling` (optional), `sellerRoleAndTimeCommitment` (optional), `postSaleTransitionSupport` (optional).
 *   **Growth:** `specificGrowthOpportunities` (optional string for newline-separated bullet points).
-*   **Image URLs:** `imageUrl1` through `imageUrl5` (optional URLs, combined into `imageUrls` array upon form submission).
+*   **Image URLs:** `imageUrl1` through `imageUrl5` (optional URLs, combined into `imageUrls` array of strings upon form submission).
 *   Rules: Includes min/max lengths, array validation, URL validation, number constraints.
 
 These types and schemas are fundamental to maintaining data integrity.
