@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -62,6 +63,7 @@ function ImageGallery({ imageUrls, listingTitle }: { imageUrls?: string[]; listi
     <div className="w-full"> {/* Outer gallery div */}
       <div className={cn(
         "rounded-lg overflow-hidden shadow-lg bg-muted aspect-[16/9] flex items-center justify-center relative",
+        "max-h-[400px] sm:max-h-[500px] md:max-h-[450px] lg:max-h-[500px]", // Max height constraints
         validImageUrls.length > 1 ? "mb-2" : "mb-0" // Reduce margin if thumbnails are present
       )}>
         <Image
@@ -69,7 +71,7 @@ function ImageGallery({ imageUrls, listingTitle }: { imageUrls?: string[]; listi
           alt={`Main image for ${listingTitle} (${currentIndex + 1} of ${validImageUrls.length})`}
           width={1200}
           height={675}
-          className="w-full h-full object-contain max-h-[40vh] sm:max-h-[50vh] md:max-h-[450px] lg:max-h-[500px]"
+          className="w-full h-full object-contain" // Using object-contain
           data-ai-hint="business operations product"
           priority
           key={mainImage}
@@ -105,7 +107,7 @@ function ImageGallery({ imageUrls, listingTitle }: { imageUrls?: string[]; listi
               key={index}
               onClick={() => handleThumbnailClick(index)}
               className={cn(
-                "flex-shrink-0 w-20 h-20 sm:w-24 sm:h-24 rounded-md overflow-hidden focus:outline-none transition-opacity cursor-pointer",
+                "flex-shrink-0 w-20 h-16 sm:w-24 sm:h-20 rounded-md overflow-hidden focus:outline-none transition-opacity cursor-pointer", // Adjusted thumbnail size
                 index === currentIndex ? "ring-2 ring-primary ring-offset-2 opacity-100" : "opacity-70 hover:opacity-100"
               )}
               aria-label={`View image ${index + 1} for ${listingTitle}`}
@@ -113,10 +115,10 @@ function ImageGallery({ imageUrls, listingTitle }: { imageUrls?: string[]; listi
               <Image
                 src={url}
                 alt={`Thumbnail ${index + 1} for ${listingTitle}`}
-                width={100} height={100}
+                width={100} height={80} // Adjusted for new aspect ratio
                 className="w-full h-full object-cover"
                 data-ai-hint="business detail product"
-                onError={(e) => (e.currentTarget.src = "https://placehold.co/100x100.png?text=Error")}
+                onError={(e) => (e.currentTarget.src = "https://placehold.co/100x80.png?text=Error")}
               />
             </button>
           ))}
@@ -267,7 +269,7 @@ export default function ListingDetailPage() {
                 <section id="verified-details" className={`p-6 rounded-lg ${canViewVerifiedDetails ? 'bg-primary/5 border-primary/20' : 'bg-muted/30 border-muted/50'}`}>
                     <h2 className="text-2xl font-semibold text-primary mb-4 flex items-center">
                       <ShieldCheck className="h-6 w-6 mr-2"/>
-                      {canViewVerifiedDetails ? "Verified Seller Information & Documents" : "Verified Seller Information (Restricted Access)"}
+                      {canViewVerifiedDetails ? "Verified Seller Information &amp; Documents" : "Verified Seller Information (Restricted Access)"}
                     </h2>
 
                     <div className="space-y-4">
@@ -295,7 +297,7 @@ export default function ListingDetailPage() {
                             ) : (
                               <p className="text-sm text-muted-foreground italic">Visible to paid, verified buyers.</p>
                             )}
-                            <DocumentLink href={listing.webPresenceInfoUrl} docType="web">Web & Analytics Report</DocumentLink>
+                            <DocumentLink href={listing.webPresenceInfoUrl} docType="web">Web &amp; Analytics Report</DocumentLink>
                         </div>
                          <div>
                             <h3 className="font-semibold text-brand-dark-blue flex items-center gap-2 mb-1"><DollarSign className="h-5 w-5"/>Specific Financials</h3>
@@ -311,11 +313,11 @@ export default function ListingDetailPage() {
                             <DocumentLink href={listing.keyMetricsReportUrl} docType="metrics">Key Metrics Report</DocumentLink>
                         </div>
                         <div>
-                            <h3 className="font-semibold text-brand-dark-blue flex items-center gap-2 mb-1"><UsersIcon className="h-5 w-5"/>Seller & Deal Information</h3>
+                            <h3 className="font-semibold text-brand-dark-blue flex items-center gap-2 mb-1"><UsersIcon className="h-5 w-5"/>Seller &amp; Deal Information</h3>
                              {canViewVerifiedDetails ? (
                               <>
                                 <p className="text-sm"><span className="font-medium">Detailed Reason for Selling:</span> <span className="whitespace-pre-wrap">{listing.detailedReasonForSelling || 'N/A'}</span></p>
-                                <p className="text-sm"><span className="font-medium">Seller Role & Time Commitment:</span> <span className="whitespace-pre-wrap">{listing.sellerRoleAndTimeCommitment || 'N/A'}</span></p>
+                                <p className="text-sm"><span className="font-medium">Seller Role &amp; Time Commitment:</span> <span className="whitespace-pre-wrap">{listing.sellerRoleAndTimeCommitment || 'N/A'}</span></p>
                                 <p className="text-sm"><span className="font-medium">Post-Sale Transition Support:</span> <span className="whitespace-pre-wrap">{listing.postSaleTransitionSupport || 'N/A'}</span></p>
                               </>
                             ) : (

@@ -149,4 +149,8 @@ export default function InquiriesPage() {
               </CardFooter>
             </Card>
           ))}
-        
+        </div>
+      )}
+    </div>
+  );
+}

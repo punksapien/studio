@@ -339,10 +339,10 @@ All API endpoints require user authentication. `user_id` from session is key.
 3.  **My Inquiries (`/dashboard/inquiries/page.tsx`)**
     *   **Data Needed:** List of buyer's inquiries (listing title, seller's verification status, inquiry date, buyer-perspective status).
     *   **Conceptual API (GET):** `/api/inquiries?role=buyer` (or derive role from session).
-    *   **Backend Logic (D1 Query):** `SELECT i.id, i.listing_id, i.inquiry_timestamp, i.status AS system_status, l.listingTitleAnonymous, l.is_seller_verified AS listing_seller_is_verified, seller_profile.verification_status AS seller_platform_verification_status FROM inquiries i JOIN listings l ON i.listing_id = l.listing_id JOIN user_profiles seller_profile ON l.seller_id = seller_profile.user_id WHERE i.buyer_id = ? ORDER BY i.inquiry_timestamp DESC`.
-    *   Map to `statusBuyerPerspective`. Return list.
-    *   **Action: "Proceed to Verification" Button:** UI navigation to `/dashboard/verification`. Backend interaction handled by verification request API.
-    *   **Action: "Open Conversation" Button (New):** If `inquiry.status` is `CONNECTION_FACILITATED_IN_APP_CHAT_OPENED`, button links to `/dashboard/messages/[conversationId]`.
+        *   **Backend Logic (D1 Query):** `SELECT i.id, i.listing_id, i.inquiry_timestamp, i.status AS system_status, l.listingTitleAnonymous, l.is_seller_verified AS listing_seller_is_verified, seller_profile.verification_status AS seller_platform_verification_status FROM inquiries i JOIN listings l ON i.listing_id = l.listing_id JOIN user_profiles seller_profile ON l.seller_id = seller_profile.user_id WHERE i.buyer_id = ? ORDER BY i.inquiry_timestamp DESC`.
+        *   Map to `statusBuyerPerspective`. Return list.
+        *   **Action: "Proceed to Verification" Button:** UI navigation to `/dashboard/verification`. Backend interaction handled by verification request API.
+        *   **Action: "Open Conversation" Button (New):** If `inquiry.status` is `CONNECTION_FACILITATED_IN_APP_CHAT_OPENED`, button links to `/dashboard/messages/[conversationId]`.
 
 4.  **Verification (`/dashboard/verification/page.tsx`)**
     *   **Data Needed:** Buyer's `verification_status` (via profile API).
@@ -414,7 +414,7 @@ All API endpoints require user authentication. `user_id` from session is key.
                 *   Determine `next_inquiry_status`.
                 *   If buyer `verification_status` is 'ANONYMOUS' or 'PENDING_VERIFICATION': `next_inquiry_status = 'SELLER_ENGAGED_BUYER_PENDING_VERIFICATION'`. Notify Buyer to verify.
                 *   Else if seller's profile `verification_status` is NOT 'VERIFIED' OR listing `is_seller_verified` is false (and listing `status` isn't already `VERIFIED_ANONYMOUS` or `VERIFIED_PUBLIC`): `next_inquiry_status = 'SELLER_ENGAGED_SELLER_PENDING_VERIFICATION'`. Notify Seller to verify profile/listing.
-                *   Else (Both Buyer and Seller/Listing are effectively verified for this interaction): `next_inquiry_status = 'READY_FOR_ADMIN_CONNECTION'`. Notify Admin. Notify Buyer & Seller.
+                *   Else (Both Buyer and Seller are effectively verified for this interaction): `next_inquiry_status = 'READY_FOR_ADMIN_CONNECTION'`. Notify Admin. Notify Buyer & Seller.
             8.  Update `inquiries` table (D1): `SET status = ?, engagement_timestamp = DATETIME('now') WHERE inquiry_id = ?`.
             9.  Trigger appropriate notifications.
             10. Return 200 OK.
@@ -570,8 +570,8 @@ This outlines the intended multi-step process for handling file uploads (e.g., l
     *   **Frontend Action:** Uses `fetch` API (`PUT`) to `signedUrl` with the file as body. `Content-Type` header must match.
 4.  **Step 4: Frontend Notifies Backend of Successful Upload & Links File to Entity**
     *   **Triggering UI:** After successful R2 upload.
-    *   **Frontend Action:** Makes API request (e.g., `POST /api/upload/confirm-and-link`).
     *   **Request Body:** `{ objectKey: string (R2 objectKey), originalFilename: string, context: 'listing_image' | ..., entityId: string (listingId or userId), documentType?: string, imageUrlIndex?: number (if for listing images array) }`.
+    *   **Conceptual Next.js API Route:** e.g., `POST /api/upload/confirm-and-link`.
     *   **(Alternative for listing images from text inputs):** If image URLs are just text inputs in the form, the main "Create/Edit Listing" API (Section II.A/B) handles saving these string URLs. The pre-signed URL flow would be for direct file uploads for *documents* and potentially direct image uploads for listings/messages.
 5.  **Step 5: Backend Worker Updates D1 Database with File Reference**
     *   **Conceptual Next.js API Route:** e.g., `POST /api/upload/confirm-and-link`.
@@ -687,7 +687,7 @@ This section details the backend logic for the direct in-app messaging system be
 *   **Triggering UI:** User types and clicks "Send" in the chat interface.
 *   **Conceptual API Route:** `POST /api/conversations/[conversationId]/messages`
 *   **Detailed Backend Worker Logic:**
-    1.  **Authenticate User:** Get `user_id` (this is `sender_id`).
+    1.  **Authenticate User:** Get `user_id` (this is `senderId`).
     2.  **Receive Request:** `conversationId` from path, `{ contentText: string, attachmentUrl?: string, attachmentType?: string }` in body.
     3.  **Validate Input:** Ensure `contentText` is not empty (unless attachment present).
     4.  **Verify Participation & Get Receiver ID (D1 Query):** Fetch `conversations` record for `conversationId`. Check if `user_id` matches `buyer_id` or `seller_id`. If not, 403. Determine `receiver_id` (the other participant).
@@ -715,7 +715,7 @@ This section details the backend logic for the direct in-app messaging system be
     *   Pros: True real-time, efficient.
     *   Cons: Significantly more complex to set up and manage state/connections in Durable Objects. Requires careful handling of WebSocket lifecycles.
 *   **Third-Party Push Notification Services (e.g., Pusher, Ably, or custom via FCM/APNS):**
-    *   When a message is sent, the backend worker also sends a lightweight push notification to the receiver's registered devices/endpoints (if they are not actively on the chat page).
+    *   When a message is sent, the backend worker also sends a lightweight push notification to the receiver's registered devices/endpoints (if they are not actively on the site).
     *   The push notification itself might not contain the message content but rather an alert ("New message from X") and a payload to prompt the client app to fetch new messages or update the UI.
     *   Pros: Good for notifying users who are not active on the site. Can be combined with polling for users who *are* active.
     *   Cons: Adds dependency on third-party services or native push infrastructure.
@@ -725,5 +725,3 @@ This section details the backend logic for the direct in-app messaging system be
 ---
 
 This document provides a comprehensive plan for the backend implementation, including the new messaging system.
-
-    

@@ -252,3 +252,28 @@ export interface NotificationItem {
   userId: string; // The user this notification is for
   type: NotificationType; // Added this line
 }
+
+export interface Conversation {
+  conversationId: string;
+  inquiryId: string;
+  listingId: string;
+  buyerId: string;
+  sellerId: string;
+  createdAt: Date;
+  updatedAt: Date;
+  lastMessageSnippet?: string;
+  buyerUnreadCount?: number;
+  sellerUnreadCount?: number;
+}
+
+export interface Message {
+  messageId: string;
+  conversationId: string;
+  senderId: string;
+  receiverId: string;
+  contentText: string;
+  timestamp: Date;
+  isRead: boolean;
+  attachmentUrl?: string;
+  attachmentType?: string;
+}

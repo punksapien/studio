@@ -144,3 +144,7 @@ export default function NotificationsPage() {
             ))}
           </CardContent>
         </Card>
+      )}
+    </div>
+  );
+}

@@ -94,6 +94,7 @@ Defines ranges for the number of employees in a business.
 ### `DealStructure` Type
 ```typescript
 export type DealStructure = 'Full Acquisition' | 'Partial Sale/Investment' | 'Open to Offers';
+export const dealStructures: DealStructure[] = ['Full Acquisition', 'Partial Sale/Investment', 'Open to Offers'];
 ```
 
 ### `Listing` Interface (Updated)
@@ -111,7 +112,7 @@ export interface Listing {
   annualRevenueRange: string;
   netProfitMarginRange?: string;
   askingPrice?: number; // Fixed number for asking price
-  dealStructureLookingFor?: DealStructure[]; // Array of specific strings from DealStructure type
+  dealStructureLookingFor?: string[]; // Array of strings from DealStructure type (multi-select)
   reasonForSellingAnonymous?: string;
   
   // Detailed Info (for verified view / admin)
@@ -385,5 +386,3 @@ Zod schemas are primarily defined inline within their respective form page compo
 *   Rules: Includes min/max lengths, array validation, URL validation, number constraints.
 
 These types and schemas are fundamental to maintaining data integrity.
-
-    

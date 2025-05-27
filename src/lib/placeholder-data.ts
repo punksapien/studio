@@ -489,6 +489,62 @@ export const sampleSellerNotifications: NotificationItem[] = [
     message: "Great news! Both you and Jane Smith (Buyer) for listing 'Profitable E-commerce Store in SEA' are verified and have agreed to engage. Our team will be in touch shortly.",
     link: '/seller-dashboard/inquiries#inq_s1',
     isRead: true,
-    type: 'engagement' // Corrected the unterminated string here
+    type: 'engagement'
   }
 ];
+
+// Adding placeholder Conversation and Message data
+export const sampleConversations: any[] = [
+  {
+    conversationId: "conv1",
+    inquiryId: "inq_b1", // Linked to Jane Smith's inquiry for John Doe's E-commerce store
+    listingId: "1",
+    buyerId: "user2", // Jane Smith
+    sellerId: "user1", // John Doe
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2), // 2 days ago
+    updatedAt: new Date(Date.now() - 1000 * 60 * 5), // 5 minutes ago
+    lastMessageSnippet: "Yes, Thursday afternoon works for me. How about 2 PM SGT?",
+    buyerUnreadCount: 0,
+    sellerUnreadCount: 1,
+  }
+];
+
+export const sampleMessages: any[] = [
+  {
+    messageId: "msg1_conv1",
+    conversationId: "conv1",
+    senderId: "user1", // John Doe (Seller)
+    receiverId: "user2", // Jane Smith (Buyer)
+    contentText: "Hello Jane, thanks for your interest in the E-commerce Store. What specifically are you looking for?",
+    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
+    isRead: true,
+  },
+  {
+    messageId: "msg2_conv1",
+    conversationId: "conv1",
+    senderId: "user2", // Jane Smith (Buyer)
+    receiverId: "user1", // John Doe (Seller)
+    contentText: "Hi John, I'm interested in the financials and growth potential. Could you share more details?",
+    timestamp: new Date(Date.now() - 1000 * 60 * 55), // 55 minutes ago
+    isRead: true,
+  },
+  {
+    messageId: "msg3_conv1",
+    conversationId: "conv1",
+    senderId: "user1", // John Doe (Seller)
+    receiverId: "user2", // Jane Smith (Buyer)
+    contentText: "Certainly. I can provide access to the data room once we've had an initial chat. Are you available for a quick call this week?",
+    timestamp: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
+    isRead: true,
+  },
+  {
+    messageId: "msg4_conv1",
+    conversationId: "conv1",
+    senderId: "user2", // Jane Smith (Buyer)
+    receiverId: "user1", // John Doe (Seller)
+    contentText: "Yes, Thursday afternoon works for me. How about 2 PM SGT?",
+    timestamp: new Date(Date.now() - 1000 * 60 * 5), // 5 minutes ago
+    isRead: false, // Seller hasn't read this yet
+  },
+];
+

@@ -304,12 +304,12 @@ export default function EditSellerListingPage() {
                 <FormField control={form.control} name="netProfitMarginRange" render={({ field }) => (<FormItem><FormLabel>Net Profit Margin Range (Anonymous, Optional)</FormLabel><Select onValueChange={field.onChange} value={field.value || ""} disabled={isPending}><FormControl><SelectTrigger><SelectValue placeholder="Select profit margin"/></SelectTrigger></FormControl><SelectContent>{profitMarginRanges.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)}/>
               </div>
               <FormField control={form.control} name="askingPrice" render={({ field }) => (<FormItem><FormLabel className="flex items-center"><DollarSign className="h-4 w-4 mr-1 text-muted-foreground"/>Asking Price (USD)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} placeholder="e.g., 750000" disabled={isPending} /></FormControl><FormMessage /></FormItem>)}/>
+              <FormField control={form.control} name="adjustedCashFlow" render={({ field }) => (<FormItem><FormLabel>Adjusted Cash Flow / SDE (TTM, USD)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} placeholder="e.g., 220000" disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
+              <FormField control={form.control} name="adjustedCashFlowExplanation" render={({ field }) => (<FormItem><FormLabel>Adj. Cash Flow Explanation (Optional)</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={3} placeholder="Explain any adjustments made (e.g., owner's salary, non-recurring expenses)." disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
               <Separator/>
               <h3 className="text-md font-medium text-muted-foreground">Specific Financials (For Verified View)</h3>
               <FormField control={form.control} name="specificAnnualRevenueLastYear" render={({ field }) => (<FormItem><FormLabel>Actual Annual Revenue (TTM, USD)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
               <FormField control={form.control} name="specificNetProfitLastYear" render={({ field }) => (<FormItem><FormLabel>Actual Net Profit (TTM, USD)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
-              <FormField control={form.control} name="adjustedCashFlow" render={({ field }) => (<FormItem><FormLabel>Adjusted Cash Flow / SDE (TTM, USD)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
-              <FormField control={form.control} name="adjustedCashFlowExplanation" render={({ field }) => (<FormItem><FormLabel>Adj. Cash Flow Explanation (Optional)</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={3} placeholder="Explain any adjustments made (e.g., owner's salary, non-recurring expenses)." disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
               <div className="space-y-2"><Label className="text-md font-medium text-muted-foreground">Supporting Financial Documents</Label><FormItem><Label htmlFor="financialStatements">Financial Statements</Label><Input id="financialStatements" type="file" disabled={isPending} /><FormDescription>PDF, XLSX accepted.</FormDescription></FormItem><FormItem><Label htmlFor="keyMetricsReport">Key Metrics Report</Label><Input id="keyMetricsReport" type="file" disabled={isPending} /><FormDescription>PDF, XLSX accepted.</FormDescription></FormItem></div>
             </CardContent>
           </Card>
@@ -333,17 +333,58 @@ export default function EditSellerListingPage() {
           <Card className="shadow-md bg-brand-white">
             <CardHeader><CardTitle className="text-brand-dark-blue">Section 5: Growth &amp; Future Potential</CardTitle></CardHeader>
             <CardContent className="space-y-6">
-                <FormField control={form.control} name="specificGrowthOpportunities" render={({ field }) => (<FormItem><FormLabel>Specific Growth Opportunities (Use bullet points)</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={5} placeholder="- Expand to new markets (e.g., Region X)\n- Launch new product line (e.g., Product Y)\n- Optimize marketing spend by Z%" disabled={isPending} /></FormControl><FormDescription>List 3-5 specific, actionable growth opportunities.</FormDescription><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="specificGrowthOpportunities" render={({ field }) => (<FormItem><FormLabel>Specific Growth Opportunities (Use bullet points)</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={5} placeholder="- Expand to new markets (e.g., Region X)\n- Launch new product line (e.g., Product Y)\n- Optimize marketing spend by Z%" disabled={isPending} /></FormControl><FormDescription>List 3-5 specific, actionable growth opportunities.</FormMessage><FormMessage /></FormItem>)} />
             </CardContent>
           </Card>
           
           <Separator />
           <div className="flex justify-end gap-4">
-            <Button type="button" variant="outline" onClick={() => form.reset(listing ? { /* existing logic to reset to listing data */ } : form.formState.defaultValues)} disabled={isPending}>
+            <Button type="button" variant="outline" onClick={() => {
+                const initialImageUrls = listing?.imageUrls || [];
+                form.reset({
+                  listingTitleAnonymous: listing?.listingTitleAnonymous || "",
+                  industry: listing?.industry || "",
+                  locationCountry: listing?.locationCountry || "",
+                  locationCityRegionGeneral: listing?.locationCityRegionGeneral || "",
+                  anonymousBusinessDescription: listing?.anonymousBusinessDescription || "",
+                  keyStrengthsAnonymous: listing?.keyStrengthsAnonymous?.length ? listing.keyStrengthsAnonymous : [''],
+                  businessModel: listing?.businessModel || "",
+                  yearEstablished: listing?.yearEstablished || undefined,
+                  registeredBusinessName: listing?.registeredBusinessName || "",
+                  businessWebsiteUrl: listing?.businessWebsiteUrl || "",
+                  socialMediaLinks: listing?.socialMediaLinks || "",
+                  numberOfEmployees: listing?.numberOfEmployees || undefined,
+                  technologyStack: listing?.technologyStack || "",
+                  annualRevenueRange: listing?.annualRevenueRange || "",
+                  netProfitMarginRange: listing?.netProfitMarginRange || "",
+                  askingPrice: listing?.askingPrice === undefined ? undefined : Number(listing.askingPrice),
+                  specificAnnualRevenueLastYear: listing?.specificAnnualRevenueLastYear === undefined ? undefined : Number(listing.specificAnnualRevenueLastYear),
+                  specificNetProfitLastYear: listing?.specificNetProfitLastYear === undefined ? undefined : Number(listing.specificNetProfitLastYear),
+                  adjustedCashFlow: listing?.adjustedCashFlow === undefined ? undefined : Number(listing.adjustedCashFlow),
+                  adjustedCashFlowExplanation: listing?.adjustedCashFlowExplanation || "",
+                  dealStructureLookingFor: listing?.dealStructureLookingFor || [],
+                  reasonForSellingAnonymous: listing?.reasonForSellingAnonymous || "",
+                  detailedReasonForSelling: listing?.detailedReasonForSelling || "",
+                  sellerRoleAndTimeCommitment: listing?.sellerRoleAndTimeCommitment || "",
+                  postSaleTransitionSupport: listing?.postSaleTransitionSupport || "",
+                  specificGrowthOpportunities: listing?.specificGrowthOpportunities || "",
+                  imageUrl1: initialImageUrls[0] || "",
+                  imageUrl2: initialImageUrls[1] || "",
+                  imageUrl3: initialImageUrls[2] || "",
+                  imageUrl4: initialImageUrls[3] || "",
+                  imageUrl5: initialImageUrls[4] || "",
+                });
+                setKeyStrengthsFields(listing?.keyStrengthsAnonymous?.length ? listing.keyStrengthsAnonymous : ['']);
+              }} 
+              disabled={isPending}>
                 Reset Changes
             </Button>
             <Button type="submit" className="min-w-[150px] bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90" disabled={isPending}>
                 {isPending ? "Saving..." : "Save Changes"}
             </Button>
           </div>
-        
+        </form>
+      </Form>
+    </div>
+  );
+}

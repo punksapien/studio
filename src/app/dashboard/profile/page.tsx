@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from "react";
@@ -45,18 +46,14 @@ const ProfileSchema = z.object({
   phoneNumber: z.string().min(1, { message: "Phone number is required." }),
   country: z.string().min(1, { message: "Country is required." }),
   role: z.enum(['seller', 'buyer'] as [UserRole, ...UserRole[]], { required_error: "Role is required." }), 
-  initialCompanyName: z.string().optional(), // Kept optional here, superRefine handles requirement
+  initialCompanyName: z.string().optional(), 
   buyerPersonaType: z.enum(BuyerPersonaTypes).optional(),
   buyerPersonaOther: z.string().optional(),
   investmentFocusDescription: z.string().optional(),
   preferredInvestmentSize: z.enum(PreferredInvestmentSizes).optional(),
   keyIndustriesOfInterest: z.string().optional(),
 }).superRefine((data, ctx) => {
-  if (data.role === 'seller') {
-    if (!data.initialCompanyName || data.initialCompanyName.trim().length < 1) {
-      // This part won't be hit if role is fixed to buyer for this page
-    }
-  } else if (data.role === 'buyer') {
+  if (data.role === 'buyer') {
     if (!data.buyerPersonaType) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -103,7 +100,7 @@ export default function ProfilePage() {
         phoneNumber: currentUserServerData.phoneNumber || "",
         country: currentUserServerData.country || "",
         role: currentUserServerData.role,
-        initialCompanyName: "", // Not applicable for buyer profile
+        initialCompanyName: "", 
         buyerPersonaType: currentUserServerData.buyerPersonaType || undefined,
         buyerPersonaOther: currentUserServerData.buyerPersonaOther || "",
         investmentFocusDescription: currentUserServerData.investmentFocusDescription || "",
@@ -167,8 +164,7 @@ export default function ProfilePage() {
                     <Select onValueChange={field.onChange} value={field.value || undefined} disabled={isProfilePending}>
                       <FormControl><SelectTrigger><SelectValue placeholder="Select your primary role" /></SelectTrigger></FormControl>
                       <SelectContent>{BuyerPersonaTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}</SelectContent>
-                    </Select><FormMessage />
-                  </FormItem>
+                    </Select><FormMessage /></FormItem>
                 )}
               />
               {watchedBuyerPersonaType === "Other" && (
@@ -187,12 +183,11 @@ export default function ProfilePage() {
                     <Select onValueChange={field.onChange} value={field.value || undefined} disabled={isProfilePending}>
                       <FormControl><SelectTrigger><SelectValue placeholder="Select preferred investment size" /></SelectTrigger></FormControl>
                       <SelectContent>{PreferredInvestmentSizes.map(size => <SelectItem key={size} value={size}>{size}</SelectItem>)}</SelectContent>
-                    </Select><FormMessage />
-                  </FormItem>
+                    </Select><FormMessage /></FormItem>
                 )}
               />
               <FormField control={profileForm.control} name="keyIndustriesOfInterest" render={({ field }) => (
-                  <FormItem><FormLabel>Key Industries of Interest</FormLabel>
+                  <FormItem><FormLabel>Key Industries of Interest</Label>
                     <FormControl><Textarea {...field} value={field.value || ""} placeholder="e.g., Technology, E-commerce, Healthcare..." disabled={isProfilePending} rows={3}/></FormControl><FormMessage /></FormItem>
                 )}
               />

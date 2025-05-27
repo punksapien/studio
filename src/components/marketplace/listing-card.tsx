@@ -28,7 +28,7 @@ export function ListingCard({ listing }: ListingCardProps) {
           width={400}
           height={250}
           className="w-full h-48 object-cover"
-          data-ai-hint={listing.imageUrls?.[0] ? "business storefront building" : "generic business"}
+          data-ai-hint={listing.imageUrls?.[0] ? (listing.industry ? listing.industry.toLowerCase().replace(/\s+/g, '-') : "business") : "generic business"}
         />
         {listing.isSellerVerified && (
           <Badge variant="outline" className="absolute top-2 right-2 bg-green-100 border-green-500 text-green-700 dark:bg-green-700 dark:text-green-200 dark:border-green-500">
@@ -39,7 +39,7 @@ export function ListingCard({ listing }: ListingCardProps) {
       </CardHeader>
       <CardContent className="p-4 flex-grow">
         <CardTitle className="text-lg text-brand-dark-blue mb-2 leading-tight">
-          <Link href={`/app/listings/${listing.id}`} className="hover:text-brand-sky-blue transition-colors">
+          <Link href={`/listings/${listing.id}`} className="hover:text-brand-sky-blue transition-colors">
             {listing.listingTitleAnonymous}
           </Link>
         </CardTitle>
@@ -69,7 +69,7 @@ export function ListingCard({ listing }: ListingCardProps) {
             {listing.inquiryCount || 0} Inquiries
           </span>
           <Button asChild size="sm" className="bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90">
-            <Link href={`/app/listings/${listing.id}`}>
+            <Link href={`/listings/${listing.id}`}>
               View Details <ExternalLink className="ml-2 h-4 w-4" />
             </Link>
           </Button>
@@ -78,5 +78,3 @@ export function ListingCard({ listing }: ListingCardProps) {
     </Card>
   );
 }
-
-    
