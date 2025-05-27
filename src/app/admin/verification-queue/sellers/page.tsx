@@ -1,6 +1,5 @@
-
 'use client';
-
+import * as React from "react";
 import {
   Table,
   TableBody,
@@ -17,15 +16,14 @@ import type { VerificationRequestItem, VerificationQueueStatus } from "@/lib/typ
 import Link from "next/link";
 import { Eye, FileText, MessageSquare } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import React, { useState, useEffect } from "react";
 
 const sellerRequests: VerificationRequestItem[] = sampleVerificationRequests.filter(req => req.userRole === 'seller');
 
 // Helper component for client-side date formatting
 function FormattedTimestamp({ timestamp }: { timestamp: Date | string }) {
-  const [formattedDate, setFormattedDate] = useState<string | null>(null);
+  const [formattedDate, setFormattedDate] = React.useState<string | null>(null);
 
-  useEffect(() => {
+  React.useEffect(() => {
     setFormattedDate(new Date(timestamp).toLocaleString());
   }, [timestamp]);
 

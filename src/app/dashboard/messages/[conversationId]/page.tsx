@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -167,11 +166,11 @@ export default function ConversationPage() {
         <div className="flex-grow">
           <h2 className="font-semibold text-base md:text-lg text-brand-dark-blue">{conversation.otherParty.name}</h2>
           <p className="text-xs text-muted-foreground">
-            Regarding: <Link href={`/app/listings/${conversation.listing.id}`} className="hover:underline text-brand-sky-blue">{conversation.listing.title}</Link>
+            Regarding: <Link href={`/listings/${conversation.listing.id}`} className="hover:underline text-brand-sky-blue">{conversation.listing.title}</Link>
           </p>
         </div>
         <Button variant="outline" size="sm" asChild>
-          <Link href={`/app/listings/${conversation.listing.id}`}>
+          <Link href={`/listings/${conversation.listing.id}`}>
             <Briefcase className="h-4 w-4 mr-2" /> View Listing
           </Link>
         </Button>
@@ -230,5 +229,3 @@ export default function ConversationPage() {
     </div>
   );
 }
-
-    

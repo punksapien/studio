@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -22,7 +21,7 @@ import { Button } from '@/components/ui/button';
 import {
   LayoutDashboard,
   UserCircle,
-  MessageSquare,
+  MessageSquare, // Kept for inquiries
   Settings,
   LogOut,
   ShieldCheck,
@@ -30,8 +29,9 @@ import {
   ShoppingCart,
   HelpCircle,
   FileText,
-  MessageSquareQuote, // Corrected
+  MessageSquareQuote,
   Home,
+  Mail // Added Mail icon for Messages
 } from 'lucide-react';
 import type { UserRole } from '@/lib/types';
 
@@ -41,6 +41,7 @@ const buyerSidebarNavItems = [
   { title: 'Overview', href: '/dashboard', icon: LayoutDashboard, tooltip: "Dashboard Overview" },
   { title: 'My Profile', href: '/dashboard/profile', icon: UserCircle, tooltip: "Manage Profile" },
   { title: 'My Inquiries', href: '/dashboard/inquiries', icon: MessageSquare, tooltip: "View Inquiries" },
+  { title: 'Messages', href: '/dashboard/messages', icon: Mail, tooltip: "My Conversations" }, 
   { title: 'Verification', href: '/dashboard/verification', icon: ShieldCheck, tooltip: "Account Verification" },
   { title: 'Notifications', href: '/dashboard/notifications', icon: Bell, tooltip: "My Notifications" },
   { title: 'Settings', href: '/dashboard/settings', icon: Settings, tooltip: "Account Settings" },
@@ -72,9 +73,9 @@ export default function DashboardLayout({
   }
 
   return (
-    <SidebarProvider defaultOpen> {/* Ensures sidebar is open by default on desktop */}
-      <div className="flex min-h-screen"> {/* Ensures the layout takes full screen height */}
-        <Sidebar variant="sidebar" className="border-r border-sidebar-border bg-sidebar text-sidebar-foreground"> {/* Removed collapsible="icon" */}
+    <SidebarProvider defaultOpen> 
+      <div className="flex min-h-screen"> 
+        <Sidebar variant="sidebar" className="border-r border-sidebar-border bg-sidebar text-sidebar-foreground"> 
           <SidebarHeader className="p-4 border-b border-sidebar-border">
             <div className="flex items-center justify-between">
               <Logo size="lg" />
@@ -90,8 +91,8 @@ export default function DashboardLayout({
                     isActive={pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))}
                     tooltip={{ children: item.tooltip, className: "bg-primary text-primary-foreground" }}
                   >
-                    <Link href={item.href} className="flex items-center"> {/* Ensure flex and items-center for alignment */}
-                      <item.icon className="h-5 w-5 mr-3" /> {/* Added mr-3 for spacing */}
+                    <Link href={item.href} className="flex items-center"> 
+                      <item.icon className="h-5 w-5 mr-3" /> 
                       <span>{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
@@ -117,26 +118,22 @@ export default function DashboardLayout({
             </SidebarMenu>
           </SidebarContent>
           <SidebarFooter className="p-4 border-t border-sidebar-border">
-            <Button variant="outline" className="w-full text-destructive-foreground bg-destructive hover:bg-destructive/90 flex items-center justify-center"> {/* Added flex items-center justify-center */}
-              <LogOut className="h-5 w-5 mr-2" /> {/* Added mr-2 for spacing */}
+            <Button variant="outline" className="w-full text-destructive-foreground bg-destructive hover:bg-destructive/90 flex items-center justify-center"> 
+              <LogOut className="h-5 w-5 mr-2" /> 
               <span>Logout</span>
             </Button>
           </SidebarFooter>
         </Sidebar>
         <SidebarInset className="flex-grow flex flex-col overflow-hidden">
-          <div className="flex-grow flex flex-col p-4 md:p-6 lg:p-8 overflow-y-auto">
-            <header className="md:hidden flex items-center justify-between mb-4 p-2 border rounded-md bg-card">
+            <header className="md:hidden flex items-center justify-between p-2 border-b bg-card sticky top-0 z-10">
               <Logo size="lg" />
               <SidebarTrigger/>
             </header>
-            <div className="flex-grow">  {/* This div will allow children to take full height */}
+            <div className="flex-grow flex flex-col">
              {children}
             </div>
-          </div>
         </SidebarInset>
       </div>
     </SidebarProvider>
   );
 }
-
-    

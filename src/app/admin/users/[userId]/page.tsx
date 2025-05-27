@@ -1,4 +1,4 @@
-
+import * as React from 'react';
 import { sampleUsers, sampleListings } from "@/lib/placeholder-data";
 import type { User, Listing } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { Separator } from "@/components/ui/separator";
-import { Mail, Phone, MapPin, CalendarDays, Briefcase, DollarSign, UserCircle, ShieldCheck, ShieldAlert, Edit, MessageSquare, Trash2, KeyRound, Edit3, FileText, Clock, Building, Brain, Users2, TrendingUp, Handshake, Wallet, Target } from "lucide-react";
+import { Mail, Phone, MapPin, CalendarDays, Briefcase, DollarSign, UserCircle, ShieldCheck, ShieldAlert, Edit, MessageSquare, Trash2, KeyRound, Edit3, FileText, Clock, Building, Brain, Globe, Users2, TrendingUp, Handshake, Wallet, Target } from "lucide-react";
 import { notFound } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -84,9 +84,6 @@ export default async function AdminUserDetailPage({ params }: { params: { userId
             {user.role === 'seller' && user.initialCompanyName && (
               <p className="flex items-center"><Briefcase className="h-4 w-4 mr-2 text-muted-foreground" /> <span className="font-medium text-foreground">Company (Initial):</span>&nbsp;{user.initialCompanyName}</p>
             )}
-            {user.role === 'buyer' && user.buyerPersonaType && (
-              <p className="flex items-center"><Users2 className="h-4 w-4 mr-2 text-muted-foreground" /> <span className="font-medium text-foreground">Buyer Persona:</span>&nbsp;{user.buyerPersonaType} {user.buyerPersonaType === 'Other' && user.buyerPersonaOther ? `(${user.buyerPersonaOther})` : ''}</p>
-            )}
              <p className="flex items-center"><ShieldCheck className="h-4 w-4 mr-2 text-muted-foreground" /> <span className="font-medium text-foreground">Email Verified:</span>&nbsp;{user.isEmailVerified ? 'Yes' : 'No'}</p>
              {user.lastLogin && <p className="flex items-center"><Clock className="h-4 w-4 mr-2 text-muted-foreground" /> <span className="font-medium text-foreground">Last Login:</span>&nbsp;{new Date(user.lastLogin).toLocaleString()}</p>}
           </div>
@@ -94,7 +91,7 @@ export default async function AdminUserDetailPage({ params }: { params: { userId
       </Card>
 
       <Tabs defaultValue="profile_details">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4"> {/* Adjusted grid-cols for potential new tab */}
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
           <TabsTrigger value="profile_details">Profile & Activity</TabsTrigger>
           {user.role === 'buyer' && <TabsTrigger value="buyer_persona">Buyer Persona</TabsTrigger>}
           <TabsTrigger value="verification_docs" disabled={user.verificationStatus === 'anonymous'}>Verification Data</TabsTrigger>
@@ -173,7 +170,7 @@ export default async function AdminUserDetailPage({ params }: { params: { userId
                     {user.verificationStatus !== 'anonymous' ? (
                         <div className="space-y-2">
                             <p><span className="font-medium">Registered Name (if provided):</span> {user.initialCompanyName || user.fullName}</p>
-                            {user.role === 'buyer' && user.buyerType && <p><span className="font-medium">Stated Buyer Type (Legacy):</span> {user.buyerType}</p>}
+                            {user.role === 'buyer' && user.buyerPersonaType && <p><span className="font-medium">Stated Buyer Persona:</span> {user.buyerPersonaType}</p>}
                             <p className="font-medium mt-4">Uploaded Documents (Placeholders):</p>
                             <ul className="list-disc list-inside pl-4 text-muted-foreground">
                                 <li><Link href="#" className="text-primary hover:underline flex items-center gap-1"><FileText size={16}/> ID_Proof_Document.pdf</Link></li>
@@ -205,5 +202,3 @@ export default async function AdminUserDetailPage({ params }: { params: { userId
     </div>
   );
 }
-
-    

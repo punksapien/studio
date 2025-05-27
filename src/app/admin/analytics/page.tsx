@@ -30,7 +30,7 @@ export default function AdminAnalyticsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-brand-dark-blue">{metrics.totalListingsAllStatuses}</div>
-            <p className="text-xs text-brand-dark-blue/70">{metrics.totalActiveListingsVerified} verified active, {metrics.totalActiveListingsAnonymous} anonymous active</p>
+            <p className="text-xs text-brand-dark-blue/70">{metrics.totalActiveListingsVerified + metrics.totalActiveListingsAnonymous} active</p>
           </CardContent>
         </Card>
          <Card className="shadow-md bg-brand-white">
@@ -45,12 +45,12 @@ export default function AdminAnalyticsPage() {
         </Card>
          <Card className="shadow-md bg-brand-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-brand-dark-blue">Total Facilitated Connections (MTD)</CardTitle>
+            <CardTitle className="text-sm font-medium text-brand-dark-blue">Total Facilitated Connections</CardTitle>
             <Handshake className="h-5 w-5 text-brand-dark-blue/70" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-brand-dark-blue">{metrics.successfulConnectionsMTD}</div>
-            <p className="text-xs text-brand-dark-blue/70">{metrics.activeSuccessfulConnections} active, {metrics.closedSuccessfulConnections} closed</p>
+            <p className="text-xs text-brand-dark-blue/70">{metrics.activeSuccessfulConnections} active, {metrics.closedSuccessfulConnections} closed (MTD)</p>
           </CardContent>
         </Card>
       </div>

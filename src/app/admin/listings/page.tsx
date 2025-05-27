@@ -1,4 +1,5 @@
 'use client';
+import * as React from "react"; 
 import {
   Table,
   TableBody,
@@ -22,16 +23,20 @@ import { sampleListings, sampleUsers } from "@/lib/placeholder-data";
 import type { Listing, User } from "@/lib/types";
 import Link from "next/link";
 import { Eye, Edit3, Trash2, Filter, Search, ShieldCheck, AlertTriangle, DollarSign, CalendarDays } from "lucide-react";
-import { industries } from "@/lib/types"; // Ensure industries is imported
-import React, { useEffect, useState } from "react";
+import { industries } from "@/lib/types";
 
 // Helper component for client-side date formatting
 function FormattedDate({ dateString }: { dateString: Date | string }) {
-  const [formattedDate, setFormattedDate] = useState<string | null>(null);
+  const [formattedDate, setFormattedDate] = React.useState<string | null>(null);
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (dateString) {
-      setFormattedDate(new Date(dateString).toLocaleDateString());
+      const dateObj = typeof dateString === 'string' ? new Date(dateString) : dateString;
+      if (!isNaN(dateObj.getTime())) {
+        setFormattedDate(dateObj.toLocaleDateString());
+      } else {
+        setFormattedDate('N/A');
+      }
     } else {
       setFormattedDate('N/A');
     }

@@ -1,5 +1,5 @@
-
 'use client';
+import * as React from "react"; 
 import {
   Table,
   TableBody,
@@ -15,15 +15,14 @@ import type { ReadyToEngageItem, VerificationStatus, ListingStatus } from "@/lib
 import Link from "next/link";
 import { Eye, Mail, Archive, ShieldCheck, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import React, { useState, useEffect } from "react"; // Added React import for useState, useEffect
 
 const engagements: ReadyToEngageItem[] = sampleReadyToEngageItems;
 
 // Helper component for client-side date formatting
 function FormattedTimestamp({ timestamp }: { timestamp: Date | string }) {
-  const [formattedDate, setFormattedDate] = useState<string | null>(null);
+  const [formattedDate, setFormattedDate] = React.useState<string | null>(null);
 
-  useEffect(() => {
+  React.useEffect(() => {
     setFormattedDate(new Date(timestamp).toLocaleString());
   }, [timestamp]);
 

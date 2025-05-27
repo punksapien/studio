@@ -1,9 +1,10 @@
 'use client';
 
+import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import Link from "next/link"; // Not typically used for admin login back button
+// import Link from "next/link"; // Not typically used for admin login back button
 
 import { Button } from "@/components/ui/button";
 import {
@@ -47,10 +48,9 @@ export default function AdminLoginPage() {
     startTransition(async () => {
       console.log("Admin Login values:", values);
       await new Promise(resolve => setTimeout(resolve, 1000));
-      if (values.email === "admin@bizmatch.asia" && values.password === "password") {
+      if (values.email === "admin@nobridge.asia" && values.password === "password") { // Updated email domain
         setSuccess("Login successful! Redirecting to admin dashboard...");
-        // In a real app: router.push('/admin');
-         if (typeof window !== 'undefined') window.location.href = '/admin';
+         if (typeof window !== 'undefined') window.location.href = '/admin'; // Updated redirect path
       } else {
         setError("Invalid admin credentials.");
       }

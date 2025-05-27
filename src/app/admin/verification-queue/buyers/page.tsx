@@ -1,6 +1,5 @@
-
 'use client';
-
+import * as React from "react"; 
 import {
   Table,
   TableBody,
@@ -17,15 +16,14 @@ import type { VerificationRequestItem, VerificationQueueStatus, User } from "@/l
 import Link from "next/link";
 import { Eye, CheckCircle2, XCircle, MessageSquare, FileText, Edit } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import React, { useState, useEffect } from "react";
 
 const buyerRequests: VerificationRequestItem[] = sampleVerificationRequests.filter(req => req.userRole === 'buyer');
 
 // Helper component for client-side date formatting
 function FormattedTimestamp({ timestamp }: { timestamp: Date | string }) {
-  const [formattedDate, setFormattedDate] = useState<string | null>(null);
+  const [formattedDate, setFormattedDate] = React.useState<string | null>(null);
 
-  useEffect(() => {
+  React.useEffect(() => {
     setFormattedDate(new Date(timestamp).toLocaleString());
   }, [timestamp]);
 
@@ -67,7 +65,7 @@ export default function AdminBuyerVerificationQueuePage() {
                   <TableHead className="whitespace-nowrap">Date Requested</TableHead>
                   <TableHead className="whitespace-nowrap">Buyer Name</TableHead>
                   <TableHead>Email</TableHead>
-                  <TableHead className="whitespace-nowrap">Buyer Type</TableHead>
+                  <TableHead className="whitespace-nowrap">Buyer Persona</TableHead>
                   <TableHead className="whitespace-nowrap">Docs Submitted</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -83,7 +81,7 @@ export default function AdminBuyerVerificationQueuePage() {
                         <Link href={`/admin/users/${req.userId}`} className="hover:underline">{req.userName}</Link>
                     </TableCell>
                      <TableCell className="text-xs">{user?.email}</TableCell>
-                     <TableCell className="text-xs whitespace-nowrap">{user?.buyerPersonaType || user?.buyerType || 'N/A'}</TableCell>
+                     <TableCell className="text-xs whitespace-nowrap">{user?.buyerPersonaType || 'N/A'}</TableCell>
                      <TableCell className="text-xs whitespace-nowrap">
                         {req.documentsSubmitted?.length ? `${req.documentsSubmitted.length} doc(s)` : 'None'}
                      </TableCell>

@@ -14,12 +14,13 @@ export default function GlobalLayoutWrapper({ children }: GlobalLayoutWrapperPro
   const pathname = usePathname();
 
   const isDashboardRoute =
-    pathname.startsWith('/app/admin') || // Updated to check for /app/admin
+    pathname.startsWith('/admin') || // Corrected path for admin routes
     pathname.startsWith('/dashboard') ||
     pathname.startsWith('/seller-dashboard');
 
   if (isDashboardRoute) {
     // For dashboard routes, render children directly without Navbar/Footer
+    // as they have their own specific layouts.
     return <>{children}</>;
   }
 
@@ -32,5 +33,3 @@ export default function GlobalLayoutWrapper({ children }: GlobalLayoutWrapperPro
     </>
   );
 }
-
-    

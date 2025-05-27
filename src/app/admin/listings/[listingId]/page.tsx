@@ -1,3 +1,4 @@
+import * as React from 'react';
 import { sampleListings, sampleUsers } from "@/lib/placeholder-data";
 import type { Listing, User } from "@/lib/types";
 import Image from 'next/image';
@@ -107,7 +108,7 @@ export default async function AdminListingDetailPage({ params }: { params: { lis
                         <section>
                             <h3 className="text-xl font-semibold text-brand-dark-blue mb-2 flex items-center"><TrendingUp className="h-5 w-5 mr-2 text-primary"/>Key Strengths</h3>
                             <ul className="list-disc list-inside space-y-1 text-muted-foreground pl-5">
-                                {listing.keyStrengthsAnonymous.map((strength, index) => (
+                                {(listing.keyStrengthsAnonymous || []).map((strength, index) => (
                                 <li key={index}>{strength}</li>
                                 ))}
                             </ul>
@@ -128,8 +129,8 @@ export default async function AdminListingDetailPage({ params }: { params: { lis
                                 <p><span className="font-medium text-brand-dark-blue">Annual Revenue:</span> {listing.annualRevenueRange}</p>
                                 {listing.netProfitMarginRange && <p><span className="font-medium text-brand-dark-blue">Net Profit Margin:</span> {listing.netProfitMarginRange}</p>}
                                 <p><span className="font-medium text-brand-dark-blue">Asking Price (USD):</span> {listing.askingPrice ? `$${listing.askingPrice.toLocaleString()}` : 'N/A'}</p>
-                                {listing.adjustedCashFlow && <p><span className="font-medium text-brand-dark-blue">Adjusted Cash Flow (USD):</span> ${listing.adjustedCashFlow.toLocaleString()}</p>}
-                                {listing.dealStructureLookingFor && <p><span className="font-medium text-brand-dark-blue">Deal Structure:</span> {listing.dealStructureLookingFor.join(', ')}</p>}
+                                {listing.adjustedCashFlow !== undefined && <p><span className="font-medium text-brand-dark-blue">Adjusted Cash Flow (USD):</span> ${listing.adjustedCashFlow.toLocaleString()}</p>}
+                                {listing.dealStructureLookingFor && listing.dealStructureLookingFor.length > 0 && <p><span className="font-medium text-brand-dark-blue">Deal Structure:</span> {(listing.dealStructureLookingFor || []).join(', ')}</p>}
                                 <p><span className="font-medium text-brand-dark-blue">Listed On:</span> {new Date(listing.createdAt).toLocaleDateString()}</p>
                                 {seller && (
                                   <>
@@ -151,7 +152,7 @@ export default async function AdminListingDetailPage({ params }: { params: { lis
                         <p><span className="font-medium text-brand-dark-blue">Registered Business Name:</span> {listing.registeredBusinessName || 'N/A'}</p>
                         <p><span className="font-medium text-brand-dark-blue">Actual Company Name (if different):</span> {listing.actualCompanyName || 'N/A'}</p>
                         <p><span className="font-medium text-brand-dark-blue">Full Business Address:</span> {listing.fullBusinessAddress || 'N/A'}</p>
-                        <p><span className="font-medium text-brand-dark-blue">Business Website:</span> {listing.businessWebsiteUrl ? <Link href={listing.businessWebsiteUrl} target="_blank" className="text-primary hover:underline">{listing.businessWebsiteUrl}</Link> : 'N/A'}</p>
+                        <p><span className="font-medium text-brand-dark-blue">Business Website:</span> {listing.businessWebsiteUrl ? <Link href={listing.businessWebsiteUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{listing.businessWebsiteUrl}</Link> : 'N/A'}</p>
                         <div><span className="font-medium text-brand-dark-blue">Social Media:</span> <pre className="text-muted-foreground whitespace-pre-wrap text-xs">{listing.socialMediaLinks || 'N/A'}</pre></div>
                         <p><span className="font-medium text-brand-dark-blue">Number of Employees:</span> {listing.numberOfEmployees || 'N/A'}</p>
                         <div><span className="font-medium text-brand-dark-blue">Technology Stack:</span> <p className="text-muted-foreground whitespace-pre-wrap text-xs">{listing.technologyStack || 'N/A'}</p></div>
@@ -163,7 +164,7 @@ export default async function AdminListingDetailPage({ params }: { params: { lis
                     <div className="grid md:grid-cols-2 gap-4 p-4 bg-brand-light-gray/30 rounded-lg border border-brand-light-gray text-sm">
                         <p><span className="font-medium text-brand-dark-blue">Specific Annual Revenue (TTM):</span> {listing.specificAnnualRevenueLastYear ? `$${listing.specificAnnualRevenueLastYear.toLocaleString()} USD` : 'N/A'}</p>
                         <p><span className="font-medium text-brand-dark-blue">Specific Net Profit (TTM):</span> {listing.specificNetProfitLastYear ? `$${listing.specificNetProfitLastYear.toLocaleString()} USD` : 'N/A'}</p>
-                        <p><span className="font-medium text-brand-dark-blue">Adjusted Cash Flow (TTM):</span> {listing.adjustedCashFlow ? `$${listing.adjustedCashFlow.toLocaleString()} USD` : 'N/A'}</p>
+                        <p><span className="font-medium text-brand-dark-blue">Adjusted Cash Flow (TTM):</span> {listing.adjustedCashFlow !== undefined ? `$${listing.adjustedCashFlow.toLocaleString()} USD` : 'N/A'}</p>
                         {listing.adjustedCashFlowExplanation && <p className="md:col-span-2"><span className="font-medium text-brand-dark-blue">Adj. Cash Flow Explanation:</span> {listing.adjustedCashFlowExplanation}</p>}
                     </div>
                 </TabsContent>
@@ -180,12 +181,12 @@ export default async function AdminListingDetailPage({ params }: { params: { lis
                 <TabsContent value="growth" className="space-y-6">
                     <h3 className="text-xl font-semibold text-brand-dark-blue mb-2 flex items-center"><Brain className="h-5 w-5 mr-2 text-primary"/>Specific Growth Opportunities</h3>
                      <div className="p-4 bg-brand-light-gray/30 rounded-lg border border-brand-light-gray space-y-3 text-sm">
-                        <div className="text-muted-foreground leading-relaxed whitespace-pre-wrap pl-1">
-                          {listing.specificGrowthOpportunities?.split('\n').map((line, index) => (
-                            line.trim() && <p key={index} className="ml-0 before:content-['•'] before:mr-2">{line.trim().replace(/^- /, '')}</p>
+                        <ul className="list-disc list-inside text-muted-foreground leading-relaxed pl-1">
+                          {(listing.specificGrowthOpportunities || "").split('\n').map((line, index) => (
+                            line.trim() && <li key={index}>{line.trim().replace(/^- /, '')}</li>
                           ))}
-                          {!listing.specificGrowthOpportunities && <p>N/A</p>}
-                        </div>
+                          {!listing.specificGrowthOpportunities && <li>N/A</li>}
+                        </ul>
                      </div>
                 </TabsContent>
 
@@ -207,21 +208,21 @@ export default async function AdminListingDetailPage({ params }: { params: { lis
                     <div className="p-4 bg-brand-light-gray/30 rounded-lg border border-brand-light-gray space-y-3">
                         <div className="flex justify-between items-center p-2 border-b">
                             <p className="font-medium text-brand-dark-blue">Financial Statements (e.g., P&L.pdf)</p>
-                            {listing.financialDocumentsUrl ? <Button variant="link" size="sm" asChild><Link href={listing.financialDocumentsUrl} target="_blank">View</Link></Button> : <Badge variant="outline">Not Provided</Badge>}
+                            {listing.financialDocumentsUrl ? <Button variant="link" size="sm" asChild><Link href={listing.financialDocumentsUrl} target="_blank" rel="noopener noreferrer">View</Link></Button> : <Badge variant="outline">Not Provided</Badge>}
                         </div>
                          <div className="flex justify-between items-center p-2 border-b">
                             <p className="font-medium text-brand-dark-blue">Key Metrics Report (e.g., Metrics.xlsx)</p>
-                             {listing.keyMetricsReportUrl ? <Button variant="link" size="sm" asChild><Link href={listing.keyMetricsReportUrl} target="_blank">View</Link></Button> : <Badge variant="outline">Not Provided</Badge>}
+                             {listing.keyMetricsReportUrl ? <Button variant="link" size="sm" asChild><Link href={listing.keyMetricsReportUrl} target="_blank" rel="noopener noreferrer">View</Link></Button> : <Badge variant="outline">Not Provided</Badge>}
                         </div>
                          <div className="flex justify-between items-center p-2">
                             <p className="font-medium text-brand-dark-blue">Proof of Ownership (e.g., Incorporation.pdf)</p>
-                            {listing.ownershipDocumentsUrl ? <Button variant="link" size="sm" asChild><Link href={listing.ownershipDocumentsUrl} target="_blank">View</Link></Button> : <Badge variant="outline">Not Provided</Badge>}
+                            {listing.ownershipDocumentsUrl ? <Button variant="link" size="sm" asChild><Link href={listing.ownershipDocumentsUrl} target="_blank" rel="noopener noreferrer">View</Link></Button> : <Badge variant="outline">Not Provided</Badge>}
                         </div>
                          {listing.secureDataRoomLink && (
                             <div className="flex justify-between items-center p-2 border-t mt-2 pt-3">
                                 <p className="font-medium text-brand-dark-blue">Secure Data Room:</p>
                                 <Button variant="default" size="sm" asChild className="bg-primary text-primary-foreground">
-                                    <Link href={listing.secureDataRoomLink} target="_blank">Access Link</Link>
+                                    <Link href={listing.secureDataRoomLink} target="_blank" rel="noopener noreferrer">Access Link</Link>
                                 </Button>
                             </div>
                         )}

@@ -1,5 +1,5 @@
-
 'use client';
+import * as React from "react"; 
 import {
   Table,
   TableBody,
@@ -24,7 +24,6 @@ import type { User } from "@/lib/types";
 import Link from "next/link";
 import { Eye, ShieldCheck, ShieldAlert, Filter, Search, Trash2, KeyRound, Edit, DollarSign, Briefcase } from "lucide-react";
 
-// In a real app, users would be fetched and paginated.
 const users: User[] = sampleUsers;
 
 export default function AdminUsersPage() {

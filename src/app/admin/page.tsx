@@ -1,8 +1,7 @@
-
-import * as React from "react"; // Ensure React is imported
+import * as React from "react";
 import { MetricCard } from "@/components/admin/metric-card";
 import { sampleAdminDashboardMetrics, sampleVerificationRequests, sampleReadyToEngageItems } from "@/lib/placeholder-data";
-import { Users, Briefcase, BellRing, LineChart, ListChecks, UserCheck, Building, DollarSign, CheckCircle, Banknote, ListX, Handshake } from "lucide-react";
+import { Users, Briefcase, BellRing, LineChart, ListChecks, UserCheck, Building, DollarSign, Banknote, ListX, Handshake } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -43,14 +42,14 @@ export default function AdminDashboardPage() {
           icon={Briefcase}
           description={`${metrics.newListingsCreated24h} in last 24h`}
         />
-         <MetricCard
+        <MetricCard
           title="Total Listings (All Statuses)"
           value={metrics.totalListingsAllStatuses}
-          icon={Briefcase}
-          description={`${metrics.totalActiveListingsVerified} verified`}
+          icon={ListChecks} 
+          description={`${metrics.totalActiveListingsVerified + metrics.totalActiveListingsAnonymous} active`}
         />
         <MetricCard
-          title="Deactivated/Closed Listings"
+          title="Closed/Deactivated Listings"
           value={metrics.closedOrDeactivatedListings}
           icon={ListX}
           description="Inactive or deal finalized"
@@ -92,10 +91,10 @@ export default function AdminDashboardPage() {
           description="Pairs ready for admin connection"
         />
         <MetricCard
-          title="Total Facilitated Connections (MTD)"
+          title="Total Facilitated Connections"
           value={metrics.successfulConnectionsMTD}
           icon={Handshake}
-          description={`${metrics.activeSuccessfulConnections} active, ${metrics.closedSuccessfulConnections} closed`}
+          description={`${metrics.activeSuccessfulConnections} active, ${metrics.closedSuccessfulConnections} closed (MTD)`}
         />
       </div>
 

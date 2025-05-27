@@ -1,9 +1,8 @@
-
 'use client';
 
+import * as React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import * as React from 'react';
 import {
   SidebarProvider,
   Sidebar,
@@ -35,20 +34,20 @@ import {
 } from 'lucide-react';
 
 const adminSidebarNavItems = [
-  { title: 'Dashboard', href: '/app/admin', icon: LayoutDashboard, tooltip: "Admin Overview" },
-  { title: 'User Management', href: '/app/admin/users', icon: Users, tooltip: "Manage Users" },
-  { title: 'Listing Management', href: '/app/admin/listings', icon: Briefcase, tooltip: "Manage Listings" },
-  { title: 'Buyer Verification', href: '/app/admin/verification-queue/buyers', icon: UserCheck, tooltip: "Buyer Verifications" },
-  { title: 'Seller/Listing Verification', href: '/app/admin/verification-queue/sellers', icon: Building, tooltip: "Seller/Listing Verifications" },
-  { title: 'Engagement Queue', href: '/app/admin/engagement-queue', icon: BellRing, tooltip: "Engagement Queue" },
-  { title: 'Analytics', href: '/app/admin/analytics', icon: LineChart, tooltip: "Platform Analytics" },
+  { title: 'Dashboard', href: '/admin', icon: LayoutDashboard, tooltip: "Admin Overview" },
+  { title: 'User Management', href: '/admin/users', icon: Users, tooltip: "Manage Users" },
+  { title: 'Listing Management', href: '/admin/listings', icon: Briefcase, tooltip: "Manage Listings" },
+  { title: 'Buyer Verification', href: '/admin/verification-queue/buyers', icon: UserCheck, tooltip: "Buyer Verifications" },
+  { title: 'Seller/Listing Verification', href: '/admin/verification-queue/sellers', icon: Building, tooltip: "Seller/Listing Verifications" },
+  { title: 'Engagement Queue', href: '/admin/engagement-queue', icon: BellRing, tooltip: "Engagement Queue" },
+  { title: 'Analytics', href: '/admin/analytics', icon: LineChart, tooltip: "Platform Analytics" },
 ];
 
 const utilityNavItems = [
-  { title: 'Help', href: '/help', icon: HelpCircle, tooltip: "Get Help" },
-  { title: 'Refer Docs', href: '/docs', icon: FileText, tooltip: "View Documentation" },
-  { title: 'FAQ', href: '/faq', icon: MessageSquareQuote, tooltip: "Frequently Asked Questions" },
-  { title: 'Back to Homepage', href: '/', icon: Home, tooltip: "Go to Homepage" },
+  { title: 'Help', href: '/help', icon: HelpCircle, tooltip: "Get Help" }, // Assuming /help is a public page
+  { title: 'Refer Docs', href: '/docs', icon: FileText, tooltip: "View Documentation" }, // Assuming /docs is public
+  { title: 'FAQ', href: '/faq', icon: MessageSquareQuote, tooltip: "Frequently Asked Questions" }, // Assuming /faq is public
+  { title: 'Back to Homepage', href: '/', icon: Home, tooltip: "Go to Nobridge Homepage" },
 ];
 
 const isAdminAuthenticated = true; // Placeholder for actual auth check
@@ -60,10 +59,9 @@ export default function AdminLayout({
 }) {
   const pathname = usePathname();
 
-  if (!isAdminAuthenticated && pathname !== '/app/admin/login') {
+  if (!isAdminAuthenticated && pathname !== '/admin/login') {
     if (typeof window !== 'undefined') {
-      console.warn("Admin not authenticated, redirect to /app/admin/login would happen here via router.");
-      // import { useRouter } from 'next/navigation'; const router = useRouter(); router.push('/app/admin/login');
+      console.warn("Admin not authenticated, redirect to /admin/login would happen here via router.");
     }
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background">
@@ -73,7 +71,7 @@ export default function AdminLayout({
     );
   }
 
-  if (pathname === '/app/admin/login') { // Adjusted for new path
+  if (pathname === '/admin/login') {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-primary/5 via-background to-background py-12">
         {children}
@@ -91,18 +89,18 @@ export default function AdminLayout({
               <SidebarTrigger className="md:hidden" />
             </div>
           </SidebarHeader>
-          <SidebarContent>
+          <SidebarContent className="flex-grow">
             <SidebarMenu>
               {adminSidebarNavItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
-                    isActive={pathname === item.href || (item.href !== '/app/admin' && pathname.startsWith(item.href))}
+                    isActive={pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href))}
                     tooltip={{ children: item.tooltip, className: "bg-primary text-primary-foreground" }}
                   >
                     <Link href={item.href} className="flex items-center">
-                      <item.icon className="h-5 w-5 mr-3" />
-                      <span>{item.title}</span>
+                      <item.icon className="h-5 w-5 mr-3 shrink-0" />
+                      <span className="truncate">{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -117,9 +115,9 @@ export default function AdminLayout({
                     isActive={pathname === item.href}
                     tooltip={{ children: item.tooltip, className: "bg-primary text-primary-foreground" }}
                   >
-                    <Link href={item.href} className="flex items-center">
-                      <item.icon className="h-5 w-5 mr-3" />
-                      <span>{item.title}</span>
+                     <Link href={item.href} className="flex items-center">
+                      <item.icon className="h-5 w-5 mr-3 shrink-0" />
+                      <span className="truncate">{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -127,26 +125,22 @@ export default function AdminLayout({
             </SidebarMenu>
           </SidebarContent>
           <SidebarFooter className="p-4 border-t border-sidebar-border">
-            <Button variant="outline" className="w-full text-destructive-foreground bg-destructive hover:bg-destructive/90 flex items-center justify-center">
-              <LogOut className="h-5 w-5 mr-2" />
-              <span className="group-data-[state=collapsed]:hidden">Logout Admin</span>
+            <Button variant="outline" className="w-full text-destructive-foreground bg-destructive hover:bg-destructive/90">
+              <LogOut className="h-5 w-5 mr-2 shrink-0" />
+              <span className="truncate">Logout Admin</span>
             </Button>
           </SidebarFooter>
         </Sidebar>
-        <SidebarInset className="flex-grow flex flex-col overflow-hidden">
-          <div className="flex-grow flex flex-col p-4 md:p-6 lg:p-8 overflow-y-auto">
-             <header className="md:hidden flex items-center justify-between mb-4 p-2 border rounded-md bg-card">
-                <Logo size="lg" />
-                <SidebarTrigger/>
-            </header>
-            <div className="flex-grow">
-              {children}
-            </div>
-          </div>
+        <SidebarInset className="flex-grow flex flex-col overflow-auto">
+           <header className="md:hidden flex items-center justify-between p-4 border-b bg-card">
+              <Logo size="lg" />
+              <SidebarTrigger/>
+           </header>
+           <div className="p-4 md:p-6 lg:p-8 flex-1 overflow-y-auto">
+            {children}
+           </div>
         </SidebarInset>
       </div>
     </SidebarProvider>
   );
 }
-
-    
