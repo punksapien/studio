@@ -91,6 +91,11 @@ export const employeeCountRanges: EmployeeCountRange[] = ["Sole Operator", "1-5"
 ```
 Defines ranges for the number of employees in a business.
 
+### `DealStructure` Type
+```typescript
+export type DealStructure = 'Full Acquisition' | 'Partial Sale/Investment' | 'Open to Offers';
+```
+
 ### `Listing` Interface (Updated)
 ```typescript
 export interface Listing {
@@ -105,8 +110,8 @@ export interface Listing {
   keyStrengthsAnonymous: string[]; // Array of strings for bullet points
   annualRevenueRange: string;
   netProfitMarginRange?: string;
-  askingPrice?: number; // Changed from range to fixed number
-  dealStructureLookingFor?: DealStructure[]; // Array for multi-select
+  askingPrice?: number; // Fixed number for asking price
+  dealStructureLookingFor?: DealStructure[]; // Array of specific strings from DealStructure type
   reasonForSellingAnonymous?: string;
   
   // Detailed Info (for verified view / admin)
@@ -123,8 +128,8 @@ export interface Listing {
   // Specific Financials (for verified view / admin)
   specificAnnualRevenueLastYear?: number;
   specificNetProfitLastYear?: number;
-  adjustedCashFlow?: number; // Added
-  adjustedCashFlowExplanation?: string; // Added
+  adjustedCashFlow?: number; 
+  adjustedCashFlowExplanation?: string; 
 
   // Detailed Seller & Deal Info (for verified view / admin)
   detailedReasonForSelling?: string;
@@ -132,7 +137,7 @@ export interface Listing {
   postSaleTransitionSupport?: string;
 
   // Growth
-  specificGrowthOpportunities?: string; // For bullet points (string with newlines)
+  specificGrowthOpportunities?: string; // String for newline-separated bullet points
 
   // Status & Timestamps
   status: ListingStatus;
@@ -217,8 +222,8 @@ export interface AdminDashboardMetrics {
   totalFreeBuyers: number;
   totalActiveListingsAnonymous: number;
   totalActiveListingsVerified: number;
-  totalListingsAllStatuses: number; // Added
-  closedOrDeactivatedListings: number; // Added
+  totalListingsAllStatuses: number; 
+  closedOrDeactivatedListings: number; 
   buyerVerificationQueueCount: number;
   sellerVerificationQueueCount: number;
   readyToEngageQueueCount: number;
@@ -334,13 +339,13 @@ Zod schemas are primarily defined inline within their respective form page compo
 *   **Anonymous Info:** `listingTitleAnonymous`, `industry`, `locationCountry`, `locationCityRegionGeneral`, `anonymousBusinessDescription`, `keyStrengthsAnonymous` (array of strings), `annualRevenueRange`, `netProfitMarginRange` (optional), `reasonForSellingAnonymous` (optional).
 *   **Detailed/Verified Business Info:** `businessModel` (optional), `yearEstablished` (optional number), `registeredBusinessName` (optional), `businessWebsiteUrl` (optional URL), `socialMediaLinks` (optional), `numberOfEmployees` (optional enum `employeeCountRanges`), `technologyStack` (optional).
 *   **Financials:**
-    *   `askingPrice` (optional number - **changed from range to fixed number**).
+    *   `askingPrice` (optional number).
     *   `specificAnnualRevenueLastYear` (optional number).
     *   `specificNetProfitLastYear` (optional number).
-    *   `adjustedCashFlow` (optional number - **added**).
-    *   `adjustedCashFlowExplanation` (optional string for adjusted cash flow - **added**).
-*   **Deal & Seller Info:** `dealStructureLookingFor` (optional array of strings from multi-select checkboxes), `detailedReasonForSelling` (optional), `sellerRoleAndTimeCommitment` (optional), `postSaleTransitionSupport` (optional).
-*   **Growth:** `specificGrowthOpportunities` (optional string for newline-separated bullet points - narrative removed).
+    *   `adjustedCashFlow` (optional number).
+    *   `adjustedCashFlowExplanation` (optional string for adjusted cash flow).
+*   **Deal & Seller Info:** `dealStructureLookingFor` (optional array of strings from multi-select checkboxes, corresponding to `DealStructure[]`), `detailedReasonForSelling` (optional), `sellerRoleAndTimeCommitment` (optional), `postSaleTransitionSupport` (optional).
+*   **Growth:** `specificGrowthOpportunities` (optional string for newline-separated bullet points).
 *   **Image URLs:** `imageUrl1` through `imageUrl5` (optional URLs, combined into `imageUrls` array upon form submission).
 *   Rules: Includes min/max lengths, array validation, URL validation, number constraints.
 

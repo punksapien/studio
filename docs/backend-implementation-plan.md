@@ -173,15 +173,15 @@ All actions require an authenticated 'SELLER' role. The `seller_id` (which is th
     1.  **Authenticate Seller & Authorize:**
         *   Verify authenticated user (via session). Retrieve `user_id` (this is `seller_id`).
         *   Query `user_profiles` (D1) to confirm `role` is 'SELLER'. If not, return 403 Forbidden.
-    2.  **Receive Request:** Worker receives POST with all listing data as per `ListingSchema`. This includes anonymous fields, detailed/verified fields, financial ranges and specifics (including new `askingPrice` (number) and `adjustedCashFlow`), deal info, growth opportunities, and `imageUrls` array.
+    2.  **Receive Request:** Worker receives POST with all listing data as per `ListingSchema`. This includes anonymous fields, detailed/verified fields, financial ranges and specifics (including `askingPrice` (number), `adjustedCashFlow` (number), `adjustedCashFlowExplanation`), deal info (like `dealStructureLookingFor` as an array of strings), growth opportunities (`specificGrowthOpportunities` as a string), and `imageUrls` (array of strings).
     3.  **Validate Input:** Use Zod `ListingSchema` (or an equivalent API schema) for comprehensive validation. If fails, return 400.
-    4.  **Conceptual File Handling (R2 - see Section VI for full flow):** For fields like `financialDocumentsUrl`, `keyMetricsReportUrl`, etc., and image URLs if direct upload is supported beyond just string URLs. For `imageUrls` provided as strings from the form (e.g. `imageUrl1`, `imageUrl2`), simply store them as an array in the D1 record. The actual file upload process would be separate (see Section VI).
+    4.  **Conceptual File Handling (R2 - see Section VI for full flow):** For fields representing uploaded documents (e.g., `financialDocumentsUrl`, `keyMetricsReportUrl`), this section covers linking pre-uploaded file keys. The `imageUrls` array is expected to contain direct URLs provided by the user or URLs to files previously uploaded via a separate mechanism.
     5.  **Create Listing Record (D1 Insert):**
         *   Generate a unique `listing_id` (e.g., UUID).
         *   Fetch seller's current `verification_status` from their `user_profiles` (D1).
         *   Insert into `listings` table (D1) with:
             *   `listing_id`, `seller_id`.
-            *   All validated fields from the request (e.g., `listingTitleAnonymous`, `industry`, `askingPrice` (number), `adjustedCashFlow` (number), `adjustedCashFlowExplanation`, `specificGrowthOpportunities` (as newline string for bullets), etc.). Store `imageUrls` as a JSON string array.
+            *   All validated fields from the request (e.g., `listingTitleAnonymous`, `industry`, `askingPrice` (number), `adjustedCashFlow` (number), `adjustedCashFlowExplanation`, `specificGrowthOpportunities` (string), `dealStructureLookingFor` (stored as JSON string array if D1 doesn't support native arrays well)). Store `imageUrls` as a JSON string array.
             *   Placeholders for document URLs (e.g., `financial_documents_url`) set to `NULL` initially if not provided/handled yet via the R2 flow.
             *   `status`: Default to `'ACTIVE_ANONYMOUS'`.
             *   `is_seller_verified`: Set to `true` if seller profile `verification_status = 'VERIFIED'`, else `false`.
@@ -198,10 +198,10 @@ All actions require an authenticated 'SELLER' role. The `seller_id` (which is th
         *   Retrieve `listingId` from path.
         *   Query `listings` (D1): `SELECT seller_id, status FROM listings WHERE listing_id = ?`.
         *   If not found, return 404. If `listings.seller_id !== user_id`, return 403.
-    2.  **Receive Request:** PUT request with `listingId` and updated listing data (partial `ListingSchema`). This includes all fields from the create form.
+    2.  **Receive Request:** PUT request with `listingId` and updated listing data (partial `ListingSchema`). This includes all fields from the create form, such as `askingPrice` (number), `adjustedCashFlow` (number), `imageUrls` (array), `dealStructureLookingFor` (array).
     3.  **Validate Input:** Use a partial/update version of Zod `ListingSchema`.
-    4.  **Conceptual File Updates (R2 - see Section VI):** If new `imageUrls` are provided, update. If document placeholders are updated with new file references, handle.
-    5.  **Update Listing Record (D1 Update):** Update specified fields for the `listingId` in `listings`. Update `updated_at`.
+    4.  **Conceptual File Updates (R2 - see Section VI):** If new `imageUrls` are provided, update (if they are R2 keys). If document placeholders are updated with new file references, handle.
+    5.  **Update Listing Record (D1 Update):** Update specified fields for the `listingId` in `listings`. Store arrays like `imageUrls` and `dealStructureLookingFor` as JSON string arrays. Update `updated_at`.
     6.  **Return Success Response:** 200 OK with updated listing data from D1.
 
 ### C. Deactivate/Reactivate Listing
@@ -243,16 +243,17 @@ All actions require an authenticated 'SELLER' role. The `seller_id` (which is th
 *   **Triggering UI:** `/marketplace` page load, filter changes, sorting, pagination.
 *   **Conceptual Next.js API Route:** `GET /api/listings`.
 *   **Detailed Backend Worker Logic:**
-    1.  **Receive Request:** GET with optional query parameters: `page`, `limit`, `industry`, `country`, `revenueRange`, `maxAskingPrice` (for fixed price filtering), `keywords` (array of strings from checkboxes), `sortBy`, `sortOrder`.
+    1.  **Receive Request:** GET with optional query parameters: `page`, `limit`, `industry`, `country`, `revenueRange`, `minAskingPrice`, `maxAskingPrice` (for numeric price filtering), `keywords` (array of strings from checkboxes), `sortBy`, `sortOrder`.
     2.  **Validate Query Parameters.**
     3.  **Determine Requesting Buyer's Status (Conceptual):** Check auth. If authenticated, get `user_id`, query D1 `user_profiles` for `verification_status` and `is_paid`.
     4.  **Construct SQL Query for D1 (`listings` table):**
-        *   **Base `SELECT`:** Public anonymous fields: `listing_id`, `listingTitleAnonymous`, `industry`, `locationCountry`, `SUBSTR(anonymousBusinessDescription, 1, 150) AS description_snippet`, `annualRevenueRange`, `askingPrice` (fixed number), `imageUrls` (first URL or primary), `is_seller_verified`, `created_at`.
+        *   **Base `SELECT`:** Public anonymous fields: `listing_id`, `listingTitleAnonymous`, `industry`, `locationCountry`, `SUBSTR(anonymousBusinessDescription, 1, 150) AS description_snippet`, `annualRevenueRange`, `askingPrice` (number), `imageUrls` (first URL or primary), `is_seller_verified`, `created_at`.
         *   **Filtering (`WHERE` clauses):**
             *   Always: `listings.status IN ('ACTIVE_ANONYMOUS', 'VERIFIED_ANONYMOUS', 'VERIFIED_PUBLIC')`.
             *   Apply filters for `industry`, `country`, `revenueRange`.
-            *   For `maxAskingPrice`: `AND askingPrice <= ?`.
-            *   For `keywords` (array): Build dynamic `OR` conditions for each keyword against `listingTitleAnonymous` and `anonymousBusinessDescription` (e.g., `(listingTitleAnonymous LIKE '%key1%' OR anonymousBusinessDescription LIKE '%key1%') OR (listingTitleAnonymous LIKE '%key2%' OR anonymousBusinessDescription LIKE '%key2%')`). Consider D1's full-text search capabilities if available for better performance.
+            *   For `minAskingPrice`: `AND askingPrice >= ?` (if provided).
+            *   For `maxAskingPrice`: `AND askingPrice <= ?` (if provided).
+            *   For `keywords` (array of strings): Build dynamic `OR` conditions for each keyword against relevant text fields (e.g., `(listingTitleAnonymous LIKE '%key1%' OR anonymousBusinessDescription LIKE '%key1%') OR (listingTitleAnonymous LIKE '%key2%' OR anonymousBusinessDescription LIKE '%key2%') ...`). Consider D1's full-text search capabilities if available.
         *   **Sorting (`ORDER BY`):** Based on `sortBy` and `sortOrder` (e.g., `listings.created_at DESC`, `listings.askingPrice ASC`).
         *   **Pagination:** `LIMIT ? OFFSET ?`.
     5.  **Execute Query & Fetch Total Count:** Main query and a `SELECT COUNT(*)` with same filters.
@@ -269,10 +270,10 @@ All actions require an authenticated 'SELLER' role. The `seller_id` (which is th
         *   `SELECT * FROM listings WHERE listing_id = ?`. If not found or not publicly visible (e.g., status is INACTIVE or REJECTED_BY_ADMIN), return 404.
         *   If listing found, `SELECT user_id AS seller_user_id, verification_status AS seller_platform_verification_status, is_paid as seller_is_paid FROM user_profiles WHERE user_id = fetched_listing.seller_id`.
     4.  **Construct Response Object (Conditional Data Exposure):**
-        *   **Always include:** All public/anonymous fields (`listingTitleAnonymous`, `industry`, `locationCountry`, `locationCityRegionGeneral`, `anonymousBusinessDescription`, `keyStrengthsAnonymous`, `annualRevenueRange`, `netProfitMarginRange`, `askingPrice` (number), `dealStructureLookingFor`, `reasonForSellingAnonymous`, `imageUrls` (first URL or primary for anonymous view), `is_seller_verified`, `created_at`, `specificGrowthOpportunities` (newline separated bullet points for all to see).
+        *   **Always include:** All public/anonymous fields: `listing_id`, `listingTitleAnonymous`, `industry`, `locationCountry`, `locationCityRegionGeneral`, `anonymousBusinessDescription`, `keyStrengthsAnonymous` (array), `annualRevenueRange`, `netProfitMarginRange`, `askingPrice` (number), `dealStructureLookingFor` (array), `reasonForSellingAnonymous`, `imageUrls` (array, potentially only first for anonymous or all), `is_seller_verified`, `created_at`, `specificGrowthOpportunities` (string).
         *   **Conditionally Include Verified/Detailed Information:**
             *   Condition: `listing.is_seller_verified === true` AND authenticated buyer has `verification_status === 'VERIFIED'` AND `is_paid === true`.
-            *   If met, additionally include: `actualCompanyName`, `registeredBusinessName`, `yearEstablished`, `fullBusinessAddress`, `businessWebsiteUrl`, `socialMediaLinks`, `numberOfEmployees`, `technologyStack`, `specificAnnualRevenueLastYear`, `specificNetProfitLastYear`, `adjustedCashFlow`, `adjustedCashFlowExplanation`, `detailedReasonForSelling`, `sellerRoleAndTimeCommitment`, `postSaleTransitionSupport`, all `imageUrls`, and URLs/keys for uploaded documents (`financialDocumentsUrl`, `keyMetricsReportUrl`, `ownershipDocumentsUrl`, `financialSnapshotUrl`, `ownershipDetailsUrl`, `locationRealEstateInfoUrl`, `webPresenceInfoUrl`, `secureDataRoomLink`).
+            *   If met, additionally include: `actualCompanyName`, `registeredBusinessName`, `yearEstablished`, `fullBusinessAddress`, `businessWebsiteUrl`, `socialMediaLinks`, `numberOfEmployees`, `technologyStack`, `specificAnnualRevenueLastYear`, `specificNetProfitLastYear`, `adjustedCashFlow`, `adjustedCashFlowExplanation`, `detailedReasonForSelling`, `sellerRoleAndTimeCommitment`, `postSaleTransitionSupport`, all `imageUrls` (if not already sent), and URLs/keys for uploaded documents (`financialDocumentsUrl`, `keyMetricsReportUrl`, `ownershipDocumentsUrl`, `financialSnapshotUrl`, `ownershipDetailsUrl`, `locationRealEstateInfoUrl`, `webPresenceInfoUrl`, `secureDataRoomLink`).
             *   If not met, these fields are omitted or set to placeholder like "Access Restricted".
     5.  **Return Success Response:** 200 OK with the constructed listing object.
 
@@ -525,7 +526,7 @@ All Admin APIs require ADMIN role authentication (e.g., check role in `user_prof
 *   **Listing Metrics:**
     *   Total Listings (All Statuses): `SELECT COUNT(*) FROM listings`.
     *   Active Listings (Verified vs Anonymous): `SELECT status, COUNT(*) FROM listings WHERE status IN ('ACTIVE_ANONYMOUS', 'VERIFIED_ANONYMOUS', 'VERIFIED_PUBLIC') GROUP BY status`.
-    *   Closed/Deactivated Listings: `SELECT COUNT(*) FROM listings WHERE status IN ('INACTIVE', 'CLOSED_DEAL')`.
+    *   Closed/Deactivated Listings: `SELECT COUNT(*) FROM listings WHERE status IN ('INACTIVE', 'closed_deal', 'rejected_by_admin')`.
     *   New Listings Created (24h/7d): `SELECT COUNT(*) FROM listings WHERE created_at >= DATETIME('now', '-X days')`.
     *   Listings by Industry: `SELECT industry, COUNT(*) FROM listings WHERE status IN ('ACTIVE_ANONYMOUS', 'VERIFIED_ANONYMOUS', 'VERIFIED_PUBLIC') GROUP BY industry`.
     *   Listings by Asking Price (Ranges): Requires bucketing `listings.askingPrice` (numeric) using CASE statements (if D1 supports this well, or multiple queries).
@@ -571,11 +572,10 @@ This outlines the intended multi-step process for handling file uploads (e.g., l
         3.  **Update D1 Database:**
             *   **For listings (if `context='listing_document'`):** Update specific document URL field in `listings` table (e.g., `financial_documents_url = objectKey`).
             *   **For profile verification (if `context='verification_document_...'`):** Update `user_profiles` (e.g., `id_proof_document_key = objectKey`) or insert into a separate `user_verification_documents` table linked to `user_id` and `verification_request_id`.
-            *   **Note on `imageUrls` for Listings:** If using direct file uploads for listing images, the array of `objectKey`s would be stored in `listings.imageUrls`. If sellers provide external URLs via text inputs, those strings are stored directly.
+            *   **Note on `imageUrls` for Listings:** If using direct file uploads for listing images, the array of `objectKey`s would be stored in `listings.imageUrls` (as JSON string). If sellers provide external URLs via text inputs, those strings are stored directly.
         4.  **Return Success Response:** 200 OK.
 
 ---
 
 This document provides a comprehensive plan for the backend implementation.
-
     
