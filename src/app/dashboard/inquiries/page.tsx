@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { ArrowRight, MessageSquare, Mail, Eye, ShieldAlert, Info } from "lucide-react";
+import { ArrowRight, MessageSquare, Mail, Eye, ShieldAlert, Info, ExternalLink } from "lucide-react";
 import type { Inquiry, User, InquiryStatusBuyerPerspective } from "@/lib/types";
 import { sampleBuyerInquiries, sampleUsers } from "@/lib/placeholder-data";
 
@@ -47,7 +47,7 @@ export default function InquiriesPage() {
 
   const getStatusBadgeClass = (status?: InquiryStatusBuyerPerspective) => {
     if (!status) return "";
-    if (status.includes("Ready") || status.includes("Facilitated")) return "bg-green-500 text-white"; 
+    if (status === "Connection Facilitated - Chat Open" || status.includes("Ready") || status.includes("Facilitated")) return "bg-green-500 text-white"; 
     if (status.includes("Required") || status.includes("Pending")) return "bg-amber-500 text-white"; 
     if (status === 'Inquiry Sent') return "bg-blue-500 text-white";
     return "";
@@ -141,9 +141,11 @@ export default function InquiriesPage() {
                      Admin Connecting <Mail className="ml-2 h-4 w-4" />
                    </Button>
                 )}
-                {inquiry.status === 'connection_facilitated' && (
-                   <Button size="sm" variant="outline" disabled className="border-brand-dark-blue/50 text-brand-dark-blue hover:bg-brand-light-gray/70">
-                     View Messages (Coming Soon)
+                {inquiry.status === 'connection_facilitated_in_app_chat_opened' && inquiry.conversationId && (
+                   <Button size="sm" variant="default" asChild className="bg-brand-sky-blue text-brand-white hover:bg-brand-sky-blue/90">
+                     <Link href={`/dashboard/messages/${inquiry.conversationId}`}>
+                       <MessageSquare className="mr-2 h-4 w-4" /> Open Conversation
+                     </Link>
                    </Button>
                 )}
               </CardFooter>
@@ -154,3 +156,5 @@ export default function InquiriesPage() {
     </div>
   );
 }
+
+    

@@ -133,7 +133,7 @@ This document outlines the specifications for the Next.js API routes that are *i
 *   **HTTP Method:** `POST`
 *   **Purpose:** Creates a new business listing for the authenticated seller.
 *   **Request Body Schema:** (Refers to `ListingSchema` from `/app/seller-dashboard/listings/create/page.tsx`)
-    * Includes `imageUrls` as `string[]`, `askingPrice` as `number`, `adjustedCashFlow` as `number`, `dealStructureLookingFor` as `string[]`.
+    * Includes `imageUrls` as `string[]`, `askingPrice` as `number`, `adjustedCashFlow` as `number`, `adjustedCashFlowExplanation` as `string`, `specificGrowthOpportunities` as string, and `dealStructureLookingFor` as `string[]`.
 *   **Success Response (201 Created):**
     ```json
     { "success": true, "message": "Listing created successfully.", "listing": { /* created listing data */ } }
@@ -167,7 +167,7 @@ This document outlines the specifications for the Next.js API routes that are *i
 *   **HTTP Method:** `GET`
 *   **Success Response (200 OK):**
     ```json
-    { "success": true, "listing": { /* listing data, including imageUrls array, adjustedCashFlow, etc. */ } }
+    { "success": true, "listing": { /* listing data, including imageUrls array, adjustedCashFlow, specificGrowthOpportunities, etc. */ } }
     ```
 *   **Intended Backend Logic (Conceptual for D1 & Workers):**
     1.  Fetch listing. Determine requesting user's status.
@@ -176,7 +176,7 @@ This document outlines the specifications for the Next.js API routes that are *i
 ### 3.4. Update Listing (Seller)
 *   **File Path (Intended):** `PUT /api/listings/[listingId]`
 *   **Request Body Schema:** (Partial `ListingSchema`)
-    *   Includes `imageUrls` as `string[]`, `askingPrice` as `number`, `adjustedCashFlow` as `number`, `dealStructureLookingFor` as `string[]`.
+    *   Includes `imageUrls` as `string[]`, `askingPrice` as `number`, `adjustedCashFlow` as `number`, `adjustedCashFlowExplanation` as `string`, `specificGrowthOpportunities` as string, and `dealStructureLookingFor` as `string[]`.
 *   **Intended Backend Logic (Conceptual for D1, R2 & Workers):**
     1.  Authenticate seller, verify ownership.
     2.  Update listing in D1. Handle file updates/deletions in R2.
@@ -233,7 +233,7 @@ This document outlines the specifications for the Next.js API routes that are *i
 *   **File Path (Conceptual - part of Admin action):** `POST /api/admin/engagements/[inquiryId]/facilitate-connection` (This existing Admin route is expanded)
 *   **HTTP Method:** `POST`
 *   **Purpose:** Triggered by an Admin when they "Mark Connection as Facilitated" for an inquiry. This action now also creates the conversation.
-*   **Request Payload (from Admin Panel Frontend):** `{ }` (or other admin-specific payload, `inquiryId` is from path).
+*   **Request Payload (from Admin Panel Frontend):** `{ inquiryId: string }` (Though `inquiryId` is usually from path parameter).
 *   **Success Response (200 OK):**
     ```json
     { "success": true, "message": "Connection facilitated and conversation created.", "conversationId": "<new_conversation_id>" }
@@ -243,7 +243,8 @@ This document outlines the specifications for the Next.js API routes that are *i
     2.  Fetch `inquiry` details using `inquiryId` (buyerId, sellerId, listingId).
     3.  Create a new `Conversation` record in D1.
     4.  Update `inquiries.status` to 'CONNECTION_FACILITATED_IN_APP_CHAT_OPENED'.
-    5.  Notify buyer and seller that chat is available.
+    5.  Update `inquiries.conversationId` with the new conversation ID.
+    6.  Notify buyer and seller that chat is available.
 
 ### 6.2. Get User's Conversations (List)
 *   **File Path (Intended):** `GET /api/conversations`
@@ -340,7 +341,8 @@ This document outlines the specifications for the Next.js API routes that are *i
     *   `POST /[inquiryId]/facilitate-connection`: (Was PUT) This route is now responsible for:
         1.  Updating `inquiries.status` to 'CONNECTION_FACILITATED_IN_APP_CHAT_OPENED'.
         2.  **Creating the `Conversation` record.**
-        3.  Notifying buyer and seller.
+        3.  Updating `inquiries.conversationId` with the new conversation ID.
+        4.  Notifying buyer and seller.
 *   **`/api/admin/analytics`**: (Existing - endpoints for various metrics)
 
 This outlines the intended API structure, including new messaging endpoints.

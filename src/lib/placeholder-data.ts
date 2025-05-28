@@ -1,5 +1,5 @@
 
-import type { Listing, User, AdminDashboardMetrics, VerificationRequestItem, ReadyToEngageItem, Inquiry, NotificationItem, ListingStatus } from './types';
+import type { Listing, User, AdminDashboardMetrics, VerificationRequestItem, ReadyToEngageItem, Inquiry, NotificationItem, ListingStatus, Conversation, Message } from './types';
 import { BuyerPersonaTypes, PreferredInvestmentSizes, industries, asianCountries, revenueRanges, profitMarginRanges, dealStructures, employeeCountRanges, placeholderKeywords } from './types';
 
 
@@ -254,8 +254,9 @@ export const sampleBuyerInquiries: Inquiry[] = [
     buyerVerificationStatus: 'verified',
     inquiryTimestamp: new Date('2023-11-10T10:00:00Z'),
     sellerStatus: 'Platform Verified Seller',
-    status: 'ready_for_admin_connection',
-    statusBuyerPerspective: 'Ready for Admin Connection',
+    status: 'connection_facilitated_in_app_chat_opened',
+    statusBuyerPerspective: 'Connection Facilitated - Chat Open',
+    conversationId: 'conv1',
     createdAt: new Date('2023-11-10T10:00:00Z'),
     updatedAt: new Date('2023-11-11T10:00:00Z'),
   },
@@ -301,8 +302,9 @@ export const sampleSellerInquiries: Inquiry[] = [
     buyerName: 'Jane Smith (Buyer)',
     buyerVerificationStatus: 'verified',
     inquiryTimestamp: new Date('2023-11-10T10:00:00Z'),
-    status: 'ready_for_admin_connection',
-    statusSellerPerspective: 'Ready for Admin Connection',
+    status: 'connection_facilitated_in_app_chat_opened',
+    statusSellerPerspective: 'Connection Facilitated - Chat Open',
+    conversationId: 'conv1',
     createdAt: new Date('2023-11-10T10:00:00Z'),
     updatedAt: new Date('2023-11-11T10:00:00Z'),
     engagementTimestamp: new Date('2023-11-11T09:00:00Z'),
@@ -360,7 +362,7 @@ export const sampleAdminDashboardMetrics: AdminDashboardMetrics = {
   totalActiveListingsAnonymous: sampleListings.filter(l => (l.status === 'active' || l.status === 'verified_anonymous')).length,
   totalActiveListingsVerified: sampleListings.filter(l => l.status === 'verified_public').length,
   totalListingsAllStatuses: sampleListings.length,
-  closedOrDeactivatedListings: sampleListings.filter(l => l.status === 'inactive' || l.status === 'closed_deal').length,
+  closedOrDeactivatedListings: sampleListings.filter(l => l.status === 'inactive' || l.status === 'closed_deal' || l.status === 'rejected_by_admin').length,
   buyerVerificationQueueCount: sampleUsers.filter(u => u.role === 'buyer' && u.verificationStatus === 'pending_verification').length,
   sellerVerificationQueueCount: sampleUsers.filter(u => u.role === 'seller' && u.verificationStatus === 'pending_verification').length + sampleListings.filter(l => l.status === 'pending_verification').length,
   readyToEngageQueueCount: sampleSellerInquiries.filter(i => i.status === 'ready_for_admin_connection').length,
@@ -420,7 +422,7 @@ export const sampleVerificationRequests: VerificationRequestItem[] = [
 
 export const sampleReadyToEngageItems: ReadyToEngageItem[] = [
   {
-    id: 'rte1',
+    id: 'rte1', // This is an inquiry ID
     timestamp: new Date('2023-11-11T10:00:00Z'),
     buyerId: 'user2',
     buyerName: 'Jane Smith (Buyer)',
@@ -439,10 +441,10 @@ export const sampleBuyerNotifications: NotificationItem[] = [
     id: 'notif1_buyer2',
     userId: 'user2',
     timestamp: new Date('2023-11-11T10:05:00Z'),
-    message: "Great news! Both you and the Seller for listing 'Profitable E-commerce Store in SEA' are verified and have agreed to engage. Our team will be in touch shortly.",
-    link: '/dashboard/inquiries#inq_b1',
+    message: "Your connection for listing 'Profitable E-commerce Store in SEA' is now active. You can start messaging directly.",
+    link: '/dashboard/messages/conv1',
     isRead: false,
-    type: 'engagement'
+    type: 'new_message'
   },
   {
     id: 'notif2_buyer6',
@@ -486,65 +488,65 @@ export const sampleSellerNotifications: NotificationItem[] = [
     id: 'notif3_seller1',
     userId: 'user1',
     timestamp: new Date('2023-11-11T10:05:00Z'),
-    message: "Great news! Both you and Jane Smith (Buyer) for listing 'Profitable E-commerce Store in SEA' are verified and have agreed to engage. Our team will be in touch shortly.",
-    link: '/seller-dashboard/inquiries#inq_s1',
+    message: "Your connection for listing 'Profitable E-commerce Store in SEA' with buyer Jane Smith is now active. You can start messaging directly.",
+    link: '/seller-dashboard/messages/conv1',
     isRead: true,
-    type: 'engagement'
+    type: 'new_message'
   }
 ];
 
-// Adding placeholder Conversation and Message data
-export const sampleConversations: any[] = [
+export const sampleConversations: Conversation[] = [
   {
     conversationId: "conv1",
-    inquiryId: "inq_b1", // Linked to Jane Smith's inquiry for John Doe's E-commerce store
+    inquiryId: "inq_b1", 
     listingId: "1",
-    buyerId: "user2", // Jane Smith
-    sellerId: "user1", // John Doe
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2), // 2 days ago
-    updatedAt: new Date(Date.now() - 1000 * 60 * 5), // 5 minutes ago
+    buyerId: "user2", 
+    sellerId: "user1", 
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2), 
+    updatedAt: new Date(Date.now() - 1000 * 60 * 5), 
     lastMessageSnippet: "Yes, Thursday afternoon works for me. How about 2 PM SGT?",
     buyerUnreadCount: 0,
     sellerUnreadCount: 1,
   }
 ];
 
-export const sampleMessages: any[] = [
+export const sampleMessages: Message[] = [
   {
     messageId: "msg1_conv1",
     conversationId: "conv1",
-    senderId: "user1", // John Doe (Seller)
-    receiverId: "user2", // Jane Smith (Buyer)
+    senderId: "user1", 
+    receiverId: "user2", 
     contentText: "Hello Jane, thanks for your interest in the E-commerce Store. What specifically are you looking for?",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
+    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2), 
     isRead: true,
   },
   {
     messageId: "msg2_conv1",
     conversationId: "conv1",
-    senderId: "user2", // Jane Smith (Buyer)
-    receiverId: "user1", // John Doe (Seller)
+    senderId: "user2", 
+    receiverId: "user1", 
     contentText: "Hi John, I'm interested in the financials and growth potential. Could you share more details?",
-    timestamp: new Date(Date.now() - 1000 * 60 * 55), // 55 minutes ago
+    timestamp: new Date(Date.now() - 1000 * 60 * 55), 
     isRead: true,
   },
   {
     messageId: "msg3_conv1",
     conversationId: "conv1",
-    senderId: "user1", // John Doe (Seller)
-    receiverId: "user2", // Jane Smith (Buyer)
+    senderId: "user1", 
+    receiverId: "user2", 
     contentText: "Certainly. I can provide access to the data room once we've had an initial chat. Are you available for a quick call this week?",
-    timestamp: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
+    timestamp: new Date(Date.now() - 1000 * 60 * 30), 
     isRead: true,
   },
   {
     messageId: "msg4_conv1",
     conversationId: "conv1",
-    senderId: "user2", // Jane Smith (Buyer)
-    receiverId: "user1", // John Doe (Seller)
+    senderId: "user2", 
+    receiverId: "user1", 
     contentText: "Yes, Thursday afternoon works for me. How about 2 PM SGT?",
-    timestamp: new Date(Date.now() - 1000 * 60 * 5), // 5 minutes ago
-    isRead: false, // Seller hasn't read this yet
+    timestamp: new Date(Date.now() - 1000 * 60 * 5), 
+    isRead: false, 
   },
 ];
 
+    

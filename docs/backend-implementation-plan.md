@@ -320,7 +320,7 @@ All API endpoints require user authentication. `user_id` from session is key.
     *   **Backend Logic (D1 Queries):**
         1.  Authenticate buyer, get `user_id`.
         2.  Fetch `user_profiles`: `SELECT full_name, verification_status FROM user_profiles WHERE user_id = ?`.
-        3.  Fetch active inquiry count: `SELECT COUNT(*) FROM inquiries WHERE buyer_id = ? AND status NOT IN ('archived', 'connection_facilitated', 'connection_facilitated_in_app_chat_opened')`.
+        3.  Fetch active inquiry count: `SELECT COUNT(*) FROM inquiries WHERE buyer_id = ? AND status NOT IN ('archived', 'connection_facilitated_in_app_chat_opened')`.
         4.  Fetch recent inquiries: `SELECT i.id, i.listing_id, i.inquiry_timestamp, i.status AS system_status, l.listingTitleAnonymous FROM inquiries i JOIN listings l ON i.listing_id = l.listing_id WHERE i.buyer_id = ? ORDER BY i.inquiry_timestamp DESC LIMIT 3`.
         5.  Map `system_status` to `statusBuyerPerspective`.
         6.  Return aggregated data.
@@ -522,8 +522,9 @@ All Admin APIs require ADMIN role authentication (e.g., check role in `user_prof
         2.  Verify `inquiry.status` is `READY_FOR_ADMIN_CONNECTION`.
         3.  **Create `Conversation` record in D1** (See Section VII.A for details).
         4.  Update `inquiries.status` to `CONNECTION_FACILITATED_IN_APP_CHAT_OPENED`.
-        5.  Update `inquiries.admin_notes` with `admin_notes`.
-        6.  Log action. Notify buyer and seller about the new chat. Return 200 OK with `conversationId`.
+        5.  Update `inquiries.conversationId` with the new conversation ID.
+        6.  Update `inquiries.admin_notes` with `admin_notes`.
+        7.  Log action. Notify buyer and seller about the new chat. Return 200 OK with `conversationId`.
 
 ### E. Analytics Data Aggregation (Conceptual for D1 Queries)
 
@@ -535,7 +536,7 @@ All Admin APIs require ADMIN role authentication (e.g., check role in `user_prof
 *   **Listing Metrics:**
     *   Total Listings (All Statuses): `SELECT COUNT(*) FROM listings`.
     *   Active Listings (Verified vs Anonymous): `SELECT status, COUNT(*) FROM listings WHERE status IN ('ACTIVE_ANONYMOUS', 'VERIFIED_ANONYMOUS', 'VERIFIED_PUBLIC') GROUP BY status`.
-    *   Closed/Deactivated Listings: `SELECT COUNT(*) FROM listings WHERE status IN ('INACTIVE', 'closed_deal', 'rejected_by_admin')`. (Status names might vary, e.g., `SOLD`).
+    *   Closed/Deactivated Listings: `SELECT COUNT(*) FROM listings WHERE status IN ('INACTIVE', 'closed_deal', 'rejected_by_admin')`.
     *   New Listings Created (24h/7d): `SELECT COUNT(*) FROM listings WHERE created_at >= DATETIME('now', '-X days')`.
     *   Listings by Industry: `SELECT industry, COUNT(*) FROM listings WHERE status IN ('ACTIVE_ANONYMOUS', 'VERIFIED_ANONYMOUS', 'VERIFIED_PUBLIC') GROUP BY industry`.
     *   Listings by Asking Price (Ranges): Requires bucketing `listings.askingPrice` (numeric) using CASE statements (if D1 supports this well, or multiple queries).
@@ -586,14 +587,12 @@ This outlines the intended multi-step process for handling file uploads (e.g., l
         4.  **Return Success Response:** 200 OK.
 
 ---
-## VII. In-App Messaging System (NEW)
-
-This section details the backend logic for the direct in-app messaging system between verified buyers and sellers after an admin facilitates their connection.
+## VII. In-App Messaging System
 
 ### A. Creating a Conversation (Admin Action)
 
 *   **Triggering Event:** Admin clicks "Mark Connection Facilitated" for an inquiry in the Admin Engagement Queue.
-*   **Conceptual API Route (Called by Admin Panel Frontend):** `POST /api/admin/engagements/[inquiryId]/facilitate-connection` (This existing admin route is expanded).
+*   **Conceptual API Route (Called by Admin Panel Frontend):** `POST /api/admin/engagements/[inquiryId]/facilitate-connection`.
 *   **Detailed Backend Worker Logic:**
     1.  **Authenticate Admin:** Verify admin privileges.
     2.  **Fetch Inquiry Details (D1 Query):** Retrieve the `inquiry` record using `inquiryId` to get `buyer_id`, `seller_id`, and `listing_id`.
@@ -612,18 +611,19 @@ This section details the backend logic for the direct in-app messaging system be
             *   `buyer_unread_count`: 0
             *   `seller_unread_count`: 0
     5.  **Update Inquiry Status (D1 Update):** Change `inquiries.status` to `'CONNECTION_FACILITATED_IN_APP_CHAT_OPENED'`.
-    6.  **Trigger Notifications (Conceptual):**
+    6.  **Update Inquiry Conversation ID (D1 Update):** Set `inquiries.conversationId = <new_conversation_id>` for the given `inquiryId`.
+    7.  **Trigger Notifications (Conceptual):**
         *   Create notification records in D1 `notifications` table for both the buyer and the seller.
         *   Message: "Your connection for listing '[Listing Title]' is now active. You can start messaging directly on Nobridge."
         *   Link: `/dashboard/messages/[new_conversation_id]` or `/seller-dashboard/messages/[new_conversation_id]`.
         *   Type: `'new_message'` or `'engagement'`.
         *   (Future) Send email notifications.
-    7.  **Audit Log (D1 Insert):** Log the admin action.
-    8.  **Return Success Response:** 200 OK with `{ success: true, message: "Connection facilitated and conversation created.", conversationId: new_conversation_id }`.
+    8.  **Audit Log (D1 Insert):** Log the admin action.
+    9.  **Return Success Response:** 200 OK with `{ success: true, message: "Connection facilitated and conversation created.", conversationId: new_conversation_id }`.
 
 ### B. Fetching User's Conversations (List View)
 
-*   **Triggering UI:** Buyer/Seller navigates to their "Messages" page (e.g., `/dashboard/messages`).
+*   **Triggering UI:** Buyer/Seller navigates to their "Messages" page (e.g., `/dashboard/messages` or `/seller-dashboard/messages`).
 *   **Conceptual API Route:** `GET /api/conversations`
 *   **Detailed Backend Worker Logic:**
     1.  **Authenticate User:** Get `user_id` from session.
@@ -715,7 +715,7 @@ This section details the backend logic for the direct in-app messaging system be
     *   Pros: True real-time, efficient.
     *   Cons: Significantly more complex to set up and manage state/connections in Durable Objects. Requires careful handling of WebSocket lifecycles.
 *   **Third-Party Push Notification Services (e.g., Pusher, Ably, or custom via FCM/APNS):**
-    *   When a message is sent, the backend worker also sends a lightweight push notification to the receiver's registered devices/endpoints (if they are not actively on the site).
+    *   When a message is sent, the backend worker also sends a lightweight push notification to the receiver's registered devices/endpoints (if they are not active on the site).
     *   The push notification itself might not contain the message content but rather an alert ("New message from X") and a payload to prompt the client app to fetch new messages or update the UI.
     *   Pros: Good for notifying users who are not active on the site. Can be combined with polling for users who *are* active.
     *   Cons: Adds dependency on third-party services or native push infrastructure.
@@ -725,3 +725,5 @@ This section details the backend logic for the direct in-app messaging system be
 ---
 
 This document provides a comprehensive plan for the backend implementation, including the new messaging system.
+
+    

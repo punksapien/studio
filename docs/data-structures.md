@@ -161,15 +161,14 @@ export interface Listing {
 }
 ```
 
-### `Inquiry` System Types
+### `Inquiry` System Types (Updated)
 ```typescript
 export type InquiryStatusBuyerPerspective =
   | 'Inquiry Sent'
   | 'Seller Engaged - Your Verification Required'
   | 'Seller Engaged - Seller Verification Pending'
   | 'Ready for Admin Connection'
-  | 'Connection Facilitated by Admin'
-  | 'Connection Facilitated - Chat Open' // Added for messaging
+  | 'Connection Facilitated - Chat Open' // Updated
   | 'Archived';
 
 export type InquiryStatusSellerPerspective =
@@ -177,8 +176,7 @@ export type InquiryStatusSellerPerspective =
   | 'You Engaged - Buyer Verification Pending'
   | 'You Engaged - Your Listing Verification Pending'
   | 'Ready for Admin Connection'
-  | 'Connection Facilitated by Admin'
-  | 'Connection Facilitated - Chat Open' // Added for messaging
+  | 'Connection Facilitated - Chat Open' // Updated
   | 'Archived';
 
 export type InquiryStatusSystem = // Internal state
@@ -186,8 +184,7 @@ export type InquiryStatusSystem = // Internal state
   | 'seller_engaged_buyer_pending_verification'
   | 'seller_engaged_seller_pending_verification'
   | 'ready_for_admin_connection'
-  | 'connection_facilitated' // Original state before chat
-  | 'connection_facilitated_in_app_chat_opened' // New state after admin opens chat
+  | 'connection_facilitated_in_app_chat_opened' // Updated
   | 'archived';
 
 export interface Inquiry {
@@ -206,6 +203,7 @@ export interface Inquiry {
   statusSellerPerspective?: InquiryStatusSellerPerspective; 
   createdAt: Date;
   updatedAt: Date;
+  conversationId?: string; // Added to link to a chat conversation
 }
 ```
 
@@ -305,13 +303,13 @@ export interface ReadyToEngageItem {
   sellerVerificationStatus: VerificationStatus;
   listingId: string;
   listingTitle: string;
-  listingVerificationStatus: ListingStatus; // The verification status OF THE LISTING itself
+  listingVerificationStatus: ListingStatus; 
 }
 ```
 
 ### `NotificationItem` Interface (Updated)
 ```typescript
-export type NotificationType = 'inquiry' | 'verification' | 'system' | 'engagement' | 'listing_update' | 'new_message'; // Added 'new_message'
+export type NotificationType = 'inquiry' | 'verification' | 'system' | 'engagement' | 'listing_update' | 'new_message';
 
 export interface NotificationItem {
   id: string;
@@ -320,7 +318,7 @@ export interface NotificationItem {
   link?: string; 
   isRead: boolean;
   userId: string; 
-  type: NotificationType; // Ensured type is present
+  type: NotificationType; 
 }
 ```
 
@@ -334,7 +332,6 @@ export const profitMarginRanges = [
   "< 0% (Loss-making)", "0% - 10%", "10% - 20%",
   "20% - 30%", "30%+"
 ];
-// askingPrice is now a fixed number, so askingPriceRanges constant is removed.
 
 export const placeholderKeywords: string[] = ["SaaS", "E-commerce", "Retail", "Service Business", "High Growth", "Profitable", "Fintech", "Logistics", "Healthcare Tech"];
 ```
@@ -373,7 +370,7 @@ Zod schemas are primarily defined inline within their respective form page compo
 
 ### Listing Creation/Edit Schema (`/app/seller-dashboard/listings/create/page.tsx` and `/app/seller-dashboard/listings/[listingId]/edit/page.tsx`) - Updated
 *   **Anonymous Info:** `listingTitleAnonymous`, `industry`, `locationCountry`, `locationCityRegionGeneral`, `anonymousBusinessDescription`, `keyStrengthsAnonymous` (array of strings), `annualRevenueRange`, `netProfitMarginRange` (optional), `reasonForSellingAnonymous` (optional).
-*   **Detailed/Verified Business Info:** `businessModel` (optional), `yearEstablished` (optional number), `registeredBusinessName` (optional), `businessWebsiteUrl` (optional URL), `socialMediaLinks` (optional), `numberOfEmployees` (optional enum `employeeCountRanges`), `technologyStack` (optional).
+*   **Detailed/Verified Business Info:** `businessModel` (optional), `yearEstablished` (optional number), `registeredBusinessName` (optional), `actualCompanyName` (optional), `businessWebsiteUrl` (optional URL), `socialMediaLinks` (optional), `numberOfEmployees` (optional enum `employeeCountRanges`), `technologyStack` (optional).
 *   **Financials:**
     *   `askingPrice` (optional number).
     *   `specificAnnualRevenueLastYear` (optional number).
@@ -386,3 +383,5 @@ Zod schemas are primarily defined inline within their respective form page compo
 *   Rules: Includes min/max lengths, array validation, URL validation, number constraints.
 
 These types and schemas are fundamental to maintaining data integrity.
+
+    
