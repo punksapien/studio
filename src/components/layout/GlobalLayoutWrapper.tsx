@@ -14,7 +14,6 @@ export default function GlobalLayoutWrapper({ children }: GlobalLayoutWrapperPro
   const pathname = usePathname();
 
   // Check if the current path is an admin, buyer dashboard, or seller dashboard route.
-  // This ensures that these sections use their own dedicated layouts.
   const isAdminRoute = pathname === '/admin' || pathname.startsWith('/admin/');
   const isBuyerDashboardRoute = pathname === '/dashboard' || pathname.startsWith('/dashboard/');
   const isSellerDashboardRoute = pathname === '/seller-dashboard' || pathname.startsWith('/seller-dashboard/');
