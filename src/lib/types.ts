@@ -61,12 +61,12 @@ export interface User {
   verificationStatus: VerificationStatus;
   isPaid: boolean;
   initialCompanyName?: string;
-  buyerType?: BuyerType; 
+  buyerType?: BuyerType;
   createdAt: Date;
   updatedAt: Date;
   lastLogin?: Date;
-  listingCount?: number; 
-  inquiryCount?: number; 
+  listingCount?: number;
+  inquiryCount?: number;
 
   buyerPersonaType?: BuyerPersona;
   buyerPersonaOther?: string;
@@ -86,45 +86,45 @@ export interface Listing {
   locationCityRegionGeneral: string;
   anonymousBusinessDescription: string;
   keyStrengthsAnonymous: string[];
-  
+
   businessModel?: string;
   yearEstablished?: number;
   registeredBusinessName?: string;
   actualCompanyName?: string;
   fullBusinessAddress?: string;
   businessWebsiteUrl?: string;
-  socialMediaLinks?: string; 
+  socialMediaLinks?: string;
   numberOfEmployees?: EmployeeCountRange;
   technologyStack?: string;
 
-  annualRevenueRange: string; 
-  netProfitMarginRange?: string; 
-  askingPrice?: number; 
-  specificAnnualRevenueLastYear?: number; 
-  specificNetProfitLastYear?: number; 
-  adjustedCashFlow?: number; 
+  annualRevenueRange: string;
+  netProfitMarginRange?: string;
+  askingPrice?: number;
+  specificAnnualRevenueLastYear?: number;
+  specificNetProfitLastYear?: number;
+  adjustedCashFlow?: number;
   adjustedCashFlowExplanation?: string;
 
-  dealStructureLookingFor?: string[]; 
+  dealStructureLookingFor?: string[];
   reasonForSellingAnonymous?: string;
   detailedReasonForSelling?: string;
   sellerRoleAndTimeCommitment?: string;
   postSaleTransitionSupport?: string;
 
-  specificGrowthOpportunities?: string; 
+  specificGrowthOpportunities?: string;
 
   status: ListingStatus;
-  isSellerVerified: boolean; 
+  isSellerVerified: boolean;
 
-  imageUrls?: string[]; 
-  financialDocumentsUrl?: string; 
-  keyMetricsReportUrl?: string; 
-  ownershipDocumentsUrl?: string; 
-  financialSnapshotUrl?: string; 
-  ownershipDetailsUrl?: string; 
-  locationRealEstateInfoUrl?: string; 
-  webPresenceInfoUrl?: string; 
-  secureDataRoomLink?: string; 
+  imageUrls?: string[];
+  financialDocumentsUrl?: string;
+  keyMetricsReportUrl?: string;
+  ownershipDocumentsUrl?: string;
+  financialSnapshotUrl?: string;
+  ownershipDetailsUrl?: string;
+  locationRealEstateInfoUrl?: string;
+  webPresenceInfoUrl?: string;
+  secureDataRoomLink?: string;
 
   createdAt: Date;
   updatedAt: Date;
@@ -137,15 +137,15 @@ export type InquiryStatusBuyerPerspective =
   | 'Seller Engaged - Your Verification Required'
   | 'Seller Engaged - Seller Verification Pending'
   | 'Ready for Admin Connection'
-  | 'Connection Facilitated - Chat Open' 
+  | 'Connection Facilitated - Chat Open'
   | 'Archived';
 
 export type InquiryStatusSellerPerspective =
   | 'New Inquiry'
   | 'You Engaged - Buyer Verification Pending'
-  | 'You Engaged - Your Listing Verification Pending'
+  | 'You Engaged - Your Listing Verification Pending' // Or Your Profile/Listing Verification Pending
   | 'Ready for Admin Connection'
-  | 'Connection Facilitated - Chat Open' 
+  | 'Connection Facilitated - Chat Open'
   | 'Archived';
 
 export type InquiryStatusSystem =
@@ -153,27 +153,26 @@ export type InquiryStatusSystem =
   | 'seller_engaged_buyer_pending_verification'
   | 'seller_engaged_seller_pending_verification'
   | 'ready_for_admin_connection'
-  | 'connection_facilitated_in_app_chat_opened' 
+  | 'connection_facilitated_in_app_chat_opened' // Updated Status
   | 'archived';
 
 export interface Inquiry {
   id: string;
   listingId: string;
-  listingTitleAnonymous: string; 
-  sellerStatus?: 'Anonymous Seller' | 'Platform Verified Seller'; 
+  listingTitleAnonymous: string;
+  sellerStatus?: 'Anonymous Seller' | 'Platform Verified Seller';
   buyerId: string;
-  buyerName?: string; 
-  buyerVerificationStatus?: VerificationStatus; 
-  sellerId: string; 
+  buyerName?: string;
+  buyerVerificationStatus?: VerificationStatus;
+  sellerId: string;
   inquiryTimestamp: Date;
   engagementTimestamp?: Date;
-  status: InquiryStatusSystem; 
-  statusBuyerPerspective?: InquiryStatusBuyerPerspective; 
-  statusSellerPerspective?: InquiryStatusSellerPerspective; 
+  status: InquiryStatusSystem;
+  statusBuyerPerspective?: InquiryStatusBuyerPerspective;
+  statusSellerPerspective?: InquiryStatusSellerPerspective;
   createdAt: Date;
   updatedAt: Date;
-  // Add a field to store conversationId if a chat is opened.
-  conversationId?: string; 
+  conversationId?: string;
 }
 
 export interface AdminDashboardMetrics {
@@ -191,18 +190,18 @@ export interface AdminDashboardMetrics {
   totalFreeBuyers: number;
   totalActiveListingsAnonymous: number;
   totalActiveListingsVerified: number;
-  totalListingsAllStatuses: number; 
-  closedOrDeactivatedListings: number; 
+  totalListingsAllStatuses: number;
+  closedOrDeactivatedListings: number;
   buyerVerificationQueueCount: number;
-  sellerVerificationQueueCount: number; 
+  sellerVerificationQueueCount: number;
   readyToEngageQueueCount: number;
   successfulConnectionsMTD: number;
-  activeSuccessfulConnections: number; 
-  closedSuccessfulConnections: number; 
-  dealsClosedMTD?: number; 
-  totalRevenueMTD?: number; 
-  revenueFromBuyers: number; 
-  revenueFromSellers: number; 
+  activeSuccessfulConnections: number;
+  closedSuccessfulConnections: number;
+  dealsClosedMTD?: number;
+  totalRevenueMTD?: number;
+  revenueFromBuyers: number;
+  revenueFromSellers: number;
 }
 
 
@@ -211,20 +210,21 @@ export type VerificationQueueStatus = "New Request" | "Contacted" | "Docs Under 
 export interface VerificationRequestItem {
   id: string;
   timestamp: Date;
-  userId: string; 
-  userName: string; 
-  userRole: UserRole; 
-  listingId?: string; 
-  listingTitle?: string; 
-  triggeringUserId?: string; 
-  reason: string; 
-  status: VerificationQueueStatus; 
-  documentsSubmitted?: { name: string, type: 'id_proof' | 'business_reg' | 'financials' }[]; 
+  userId: string;
+  userName: string;
+  userRole: UserRole;
+  listingId?: string;
+  listingTitle?: string;
+  triggeringUserId?: string;
+  reason: string;
+  status: VerificationQueueStatus;
+  documentsSubmitted?: { name: string, type: 'id_proof' | 'business_reg' | 'financials' }[];
 }
 
+// This type might be redundant if Admin Engagement Queue directly uses Inquiry type
 export interface ReadyToEngageItem {
-  id: string; 
-  timestamp: Date; 
+  id: string; // Inquiry ID
+  timestamp: Date; // When it became ready
   buyerId: string;
   buyerName: string;
   buyerVerificationStatus: VerificationStatus;
@@ -233,7 +233,7 @@ export interface ReadyToEngageItem {
   sellerVerificationStatus: VerificationStatus;
   listingId: string;
   listingTitle: string;
-  listingVerificationStatus: ListingStatus; 
+  listingVerificationStatus: ListingStatus;
 }
 
 export type NotificationType = 'inquiry' | 'verification' | 'system' | 'engagement' | 'listing_update' | 'new_message';
@@ -242,35 +242,36 @@ export interface NotificationItem {
   id: string;
   timestamp: Date;
   message: string;
-  link?: string; 
+  link?: string;
   isRead: boolean;
-  userId: string; 
-  type: NotificationType; 
+  userId: string;
+  type: NotificationType;
 }
 
+export type ConversationStatus = 'ACTIVE' | 'ARCHIVED_BY_ADMIN' | 'CLOSED_BY_PARTICIPANT';
+
 export interface Conversation {
-  conversationId: string; 
-  inquiryId: string;      
-  listingId: string;      
-  buyerId: string;        
-  sellerId: string;       
-  createdAt: Date;        
-  updatedAt: Date;        
-  lastMessageSnippet?: string; 
-  buyerUnreadCount?: number;   
-  sellerUnreadCount?: number;  
+  conversationId: string;
+  inquiryId: string;
+  listingId: string;
+  buyerId: string;
+  sellerId: string;
+  createdAt: Date;
+  updatedAt: Date;
+  lastMessageSnippet?: string;
+  buyerUnreadCount?: number;
+  sellerUnreadCount?: number;
+  status: ConversationStatus; // Added status
 }
 
 export interface Message {
-  messageId: string;       
-  conversationId: string;  
-  senderId: string;        
-  receiverId: string;      
-  contentText: string;     
-  timestamp: Date;         
-  isRead: boolean;         
-  attachmentUrl?: string;   
-  attachmentType?: string;  
+  messageId: string;
+  conversationId: string;
+  senderId: string;
+  receiverId: string;
+  contentText: string;
+  timestamp: Date;
+  isRead: boolean;
+  attachmentUrl?: string;
+  attachmentType?: string;
 }
-
-    

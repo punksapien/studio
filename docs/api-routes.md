@@ -241,7 +241,7 @@ This document outlines the specifications for the Next.js API routes that are *i
 *   **Intended Backend Logic (Conceptual for D1 & Workers):**
     1.  Admin authentication.
     2.  Fetch `inquiry` details using `inquiryId` (buyerId, sellerId, listingId).
-    3.  Create a new `Conversation` record in D1.
+    3.  Create a new `Conversation` record in D1 (with `status: 'ACTIVE'`).
     4.  Update `inquiries.status` to 'CONNECTION_FACILITATED_IN_APP_CHAT_OPENED'.
     5.  Update `inquiries.conversationId` with the new conversation ID.
     6.  Notify buyer and seller that chat is available.
@@ -263,7 +263,8 @@ This document outlines the specifications for the Next.js API routes that are *i
           "listingTitle": "string",
           "lastMessageSnippet": "string",
           "lastMessageTimestamp": "Date",
-          "unreadCount": "number"
+          "unreadCount": "number",
+          "status": "ConversationStatus"
         }
         // ... more conversations
       ],
@@ -273,7 +274,7 @@ This document outlines the specifications for the Next.js API routes that are *i
     ```
 *   **Intended Backend Logic (Conceptual for D1 & Workers):**
     1.  Authenticate user.
-    2.  Query D1 `conversations` where `buyerId` OR `sellerId` matches user's ID.
+    2.  Query D1 `conversations` where `buyerId` OR `sellerId` matches user's ID AND `status = 'ACTIVE'`.
     3.  Join with `user_profiles` for other party's name, and `listings` for title.
     4.  Order by `updatedAt` DESC. Paginate.
 
@@ -340,11 +341,16 @@ This document outlines the specifications for the Next.js API routes that are *i
     *   `GET`: Fetch engagements ready for connection (status `READY_FOR_ADMIN_CONNECTION`).
     *   `POST /[inquiryId]/facilitate-connection`: (Was PUT) This route is now responsible for:
         1.  Updating `inquiries.status` to 'CONNECTION_FACILITATED_IN_APP_CHAT_OPENED'.
-        2.  **Creating the `Conversation` record.**
+        2.  **Creating the `Conversation` record (with `status: 'ACTIVE'`).**
         3.  Updating `inquiries.conversationId` with the new conversation ID.
         4.  Notifying buyer and seller.
+*   **`/api/admin/conversations` (NEW)**
+    *   `GET`: List all conversations (paginated, with filters for buyer, seller, listing, status).
+*   **`/api/admin/conversations/[conversationId]/messages` (NEW)**
+    *   `GET`: Get all messages for a specific conversation (read-only for admin, paginated).
+*   **`/api/admin/conversations/[conversationId]/status` (NEW)**
+    *   `PUT`: Update conversation status (e.g., 'ARCHIVED_BY_ADMIN').
+        *   Request Body: `{ newStatus: ConversationStatus }`
 *   **`/api/admin/analytics`**: (Existing - endpoints for various metrics)
 
-This outlines the intended API structure, including new messaging endpoints.
-
-    
+This outlines the intended API structure, including new messaging endpoints and admin oversight for conversations.

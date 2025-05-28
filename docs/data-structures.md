@@ -114,7 +114,7 @@ export interface Listing {
   askingPrice?: number; // Fixed number for asking price
   dealStructureLookingFor?: string[]; // Array of strings from DealStructure type (multi-select)
   reasonForSellingAnonymous?: string;
-  
+
   // Detailed Info (for verified view / admin)
   businessModel?: string;
   yearEstablished?: number;
@@ -125,12 +125,12 @@ export interface Listing {
   socialMediaLinks?: string; // Could be newline separated string
   numberOfEmployees?: EmployeeCountRange;
   technologyStack?: string;
-  
+
   // Specific Financials (for verified view / admin)
   specificAnnualRevenueLastYear?: number;
   specificNetProfitLastYear?: number;
-  adjustedCashFlow?: number; 
-  adjustedCashFlowExplanation?: string; 
+  adjustedCashFlow?: number;
+  adjustedCashFlowExplanation?: string;
 
   // Detailed Seller & Deal Info (for verified view / admin)
   detailedReasonForSelling?: string;
@@ -142,18 +142,18 @@ export interface Listing {
 
   // Status & Timestamps
   status: ListingStatus;
-  isSellerVerified: boolean; 
+  isSellerVerified: boolean;
 
   // Media & Documents
   imageUrls?: string[]; // Array of image URLs (up to 5)
-  financialDocumentsUrl?: string; 
-  keyMetricsReportUrl?: string; 
-  ownershipDocumentsUrl?: string; 
-  financialSnapshotUrl?: string; 
-  ownershipDetailsUrl?: string; 
-  locationRealEstateInfoUrl?: string; 
-  webPresenceInfoUrl?: string; 
-  secureDataRoomLink?: string; 
+  financialDocumentsUrl?: string;
+  keyMetricsReportUrl?: string;
+  ownershipDocumentsUrl?: string;
+  financialSnapshotUrl?: string;
+  ownershipDetailsUrl?: string;
+  locationRealEstateInfoUrl?: string;
+  webPresenceInfoUrl?: string;
+  secureDataRoomLink?: string;
 
   createdAt: Date;
   updatedAt: Date;
@@ -174,7 +174,7 @@ export type InquiryStatusBuyerPerspective =
 export type InquiryStatusSellerPerspective =
   | 'New Inquiry'
   | 'You Engaged - Buyer Verification Pending'
-  | 'You Engaged - Your Listing Verification Pending'
+  | 'You Engaged - Your Listing Verification Pending' // Or Profile/Listing
   | 'Ready for Admin Connection'
   | 'Connection Facilitated - Chat Open' // Updated
   | 'Archived';
@@ -184,7 +184,7 @@ export type InquiryStatusSystem = // Internal state
   | 'seller_engaged_buyer_pending_verification'
   | 'seller_engaged_seller_pending_verification'
   | 'ready_for_admin_connection'
-  | 'connection_facilitated_in_app_chat_opened' // Updated
+  | 'connection_facilitated_in_app_chat_opened' // Updated Status
   | 'archived';
 
 export interface Inquiry {
@@ -193,18 +193,23 @@ export interface Inquiry {
   listingTitleAnonymous: string;
   sellerStatus?: 'Anonymous Seller' | 'Platform Verified Seller';
   buyerId: string;
-  buyerName?: string; 
-  buyerVerificationStatus?: VerificationStatus; 
+  buyerName?: string;
+  buyerVerificationStatus?: VerificationStatus;
   sellerId: string;
   inquiryTimestamp: Date;
   engagementTimestamp?: Date;
-  status: InquiryStatusSystem; 
-  statusBuyerPerspective?: InquiryStatusBuyerPerspective; 
-  statusSellerPerspective?: InquiryStatusSellerPerspective; 
+  status: InquiryStatusSystem;
+  statusBuyerPerspective?: InquiryStatusBuyerPerspective;
+  statusSellerPerspective?: InquiryStatusSellerPerspective;
   createdAt: Date;
   updatedAt: Date;
   conversationId?: string; // Added to link to a chat conversation
 }
+```
+
+### `ConversationStatus` Type (NEW)
+```typescript
+export type ConversationStatus = 'ACTIVE' | 'ARCHIVED_BY_ADMIN' | 'CLOSED_BY_PARTICIPANT';
 ```
 
 ### `Conversation` Interface (NEW)
@@ -220,6 +225,7 @@ export interface Conversation {
   lastMessageSnippet?: string; // Snippet of the last message for list views
   buyerUnreadCount?: number;   // Unread messages for the buyer (default 0)
   sellerUnreadCount?: number;  // Unread messages for the seller (default 0)
+  status: ConversationStatus; // Added status for admin oversight
 }
 ```
 
@@ -256,18 +262,18 @@ export interface AdminDashboardMetrics {
   totalFreeBuyers: number;
   totalActiveListingsAnonymous: number;
   totalActiveListingsVerified: number;
-  totalListingsAllStatuses: number; 
-  closedOrDeactivatedListings: number; 
+  totalListingsAllStatuses: number;
+  closedOrDeactivatedListings: number;
   buyerVerificationQueueCount: number;
   sellerVerificationQueueCount: number;
   readyToEngageQueueCount: number;
-  successfulConnectionsMTD: number; 
-  activeSuccessfulConnections: number; 
-  closedSuccessfulConnections: number; 
-  dealsClosedMTD?: number; 
-  totalRevenueMTD?: number; 
-  revenueFromBuyers: number; 
-  revenueFromSellers: number; 
+  successfulConnectionsMTD: number;
+  activeSuccessfulConnections: number;
+  closedSuccessfulConnections: number;
+  dealsClosedMTD?: number;
+  totalRevenueMTD?: number;
+  revenueFromBuyers: number;
+  revenueFromSellers: number;
 }
 ```
 
@@ -283,15 +289,17 @@ export interface VerificationRequestItem {
   userRole: UserRole;
   listingId?: string;
   listingTitle?: string;
-  triggeringUserId?: string; 
-  reason: string; 
-  status: VerificationQueueStatus; 
-  documentsSubmitted?: { name: string, type: 'id_proof' | 'business_reg' | 'financials' }[]; 
+  triggeringUserId?: string;
+  reason: string;
+  status: VerificationQueueStatus;
+  documentsSubmitted?: { name: string, type: 'id_proof' | 'business_reg' | 'financials' }[];
 }
 ```
 
 ### `ReadyToEngageItem` Interface
 ```typescript
+// This type might be redundant if Admin Engagement Queue directly uses Inquiry type
+// For placeholder-data.ts, it's defined to match expected structure for that component.
 export interface ReadyToEngageItem {
   id: string; // Inquiry ID
   timestamp: Date; // When it became ready
@@ -303,7 +311,7 @@ export interface ReadyToEngageItem {
   sellerVerificationStatus: VerificationStatus;
   listingId: string;
   listingTitle: string;
-  listingVerificationStatus: ListingStatus; 
+  listingVerificationStatus: ListingStatus;
 }
 ```
 
@@ -315,10 +323,10 @@ export interface NotificationItem {
   id: string;
   timestamp: Date;
   message: string;
-  link?: string; 
+  link?: string;
   isRead: boolean;
-  userId: string; 
-  type: NotificationType; 
+  userId: string;
+  type: NotificationType;
 }
 ```
 
@@ -383,5 +391,3 @@ Zod schemas are primarily defined inline within their respective form page compo
 *   Rules: Includes min/max lengths, array validation, URL validation, number constraints.
 
 These types and schemas are fundamental to maintaining data integrity.
-
-    

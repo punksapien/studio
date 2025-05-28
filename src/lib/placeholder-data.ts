@@ -1,5 +1,5 @@
 
-import type { Listing, User, AdminDashboardMetrics, VerificationRequestItem, ReadyToEngageItem, Inquiry, NotificationItem, ListingStatus, Conversation, Message } from './types';
+import type { Listing, User, AdminDashboardMetrics, VerificationRequestItem, Inquiry, NotificationItem, ListingStatus, Conversation, Message } from './types';
 import { BuyerPersonaTypes, PreferredInvestmentSizes, industries, asianCountries, revenueRanges, profitMarginRanges, dealStructures, employeeCountRanges, placeholderKeywords } from './types';
 
 
@@ -110,7 +110,7 @@ export const sampleUsers: User[] = [
     createdAt: new Date('2023-06-15T09:00:00Z'),
     updatedAt: new Date('2023-06-15T09:00:00Z'),
     lastLogin: new Date('2024-05-17T10:00:00Z'),
-    inquiryCount: 1,
+    inquiryCount: 2, // Updated from 1 to 2 for new inquiry
   },
 ];
 
@@ -221,7 +221,7 @@ export const sampleListings: Listing[] = [
   },
    {
     id: '4',
-    sellerId: 'user3',
+    sellerId: 'user3', // Changed to user3 to have an unverified seller with a listing for engagement queue
     listingTitleAnonymous: 'Modern Cafe in Tourist Hotspot',
     industry: 'Retail',
     locationCountry: 'Thailand',
@@ -232,20 +232,20 @@ export const sampleListings: Listing[] = [
     netProfitMarginRange: '15% - 25%',
     askingPrice: 220000,
     adjustedCashFlow: 65000,
-    status: 'pending_verification',
-    isSellerVerified: false,
+    status: 'pending_verification', // This listing is pending verification.
+    isSellerVerified: false, // Seller is not yet verified.
     businessModel: "Brick-and-mortar retail cafe",
     yearEstablished: 2021,
     createdAt: new Date('2023-12-01T09:00:00Z'),
     updatedAt: new Date('2023-12-01T09:00:00Z'),
     imageUrls: ['https://placehold.co/800x600.png'],
-    inquiryCount: 0,
+    inquiryCount: 1, // One inquiry made to this
   },
 ];
 
-export const sampleBuyerInquiries: Inquiry[] = [
+export let sampleInquiries: Inquiry[] = [ // Changed from const to let
   {
-    id: 'inq_b1',
+    id: 'inq_b1', // Buyer Jane (user2, verified) inquires Seller John (user1, verified) for Listing 1
     listingId: '1',
     listingTitleAnonymous: 'Profitable E-commerce Store in SEA',
     sellerId: 'user1',
@@ -254,97 +254,75 @@ export const sampleBuyerInquiries: Inquiry[] = [
     buyerVerificationStatus: 'verified',
     inquiryTimestamp: new Date('2023-11-10T10:00:00Z'),
     sellerStatus: 'Platform Verified Seller',
-    status: 'connection_facilitated_in_app_chat_opened',
+    status: 'connection_facilitated_in_app_chat_opened', // Admin already facilitated
     statusBuyerPerspective: 'Connection Facilitated - Chat Open',
-    conversationId: 'conv1',
+    statusSellerPerspective: 'Connection Facilitated - Chat Open',
+    conversationId: 'conv1', // Has an active conversation
     createdAt: new Date('2023-11-10T10:00:00Z'),
     updatedAt: new Date('2023-11-11T10:00:00Z'),
+    engagementTimestamp: new Date('2023-11-10T10:30:00Z'),
   },
   {
-    id: 'inq_b2',
+    id: 'inq_b2', // Buyer Jane (user2, verified) inquires Seller Alex (user3, anonymous) for Listing 2
     listingId: '2',
     listingTitleAnonymous: 'Established SaaS Platform - B2B Niche',
-    sellerId: 'user3',
-    buyerId: 'user2',
+    sellerId: 'user3', // Alex Tan (anonymous seller)
+    buyerId: 'user2', // Jane Smith (verified buyer)
     buyerName: 'Jane Smith (Buyer)',
     buyerVerificationStatus: 'verified',
     inquiryTimestamp: new Date('2023-11-08T15:30:00Z'),
     sellerStatus: 'Anonymous Seller',
-    status: 'seller_engaged_seller_pending_verification',
-    statusBuyerPerspective: 'Seller Engaged - Seller Verification Pending',
+    status: 'ready_for_admin_connection', // Seller Alex needs to verify profile, buyer Jane is verified. Now ready for admin.
+    statusBuyerPerspective: 'Ready for Admin Connection',
+    statusSellerPerspective: 'Ready for Admin Connection',
     createdAt: new Date('2023-11-08T15:30:00Z'),
     updatedAt: new Date('2023-11-08T15:30:00Z'),
+    engagementTimestamp: new Date('2023-11-09T15:30:00Z'),
   },
   {
-    id: 'inq_b3',
+    id: 'inq_b3', // Buyer Anna (user6, anonymous) inquires Seller John (user1, verified) for Listing 1
     listingId: '1',
     listingTitleAnonymous: 'Profitable E-commerce Store in SEA',
     sellerId: 'user1',
-    buyerId: 'user6',
+    buyerId: 'user6', // Anna Tay (anonymous buyer)
     buyerName: 'Anna Tay (Buyer - Anonymous)',
     buyerVerificationStatus: 'anonymous',
     inquiryTimestamp: new Date('2023-11-12T09:00:00Z'),
     sellerStatus: 'Platform Verified Seller',
-    status: 'seller_engaged_buyer_pending_verification',
+    status: 'seller_engaged_buyer_pending_verification', // Seller John engaged, but buyer Anna needs verification
     statusBuyerPerspective: 'Seller Engaged - Your Verification Required',
+    statusSellerPerspective: 'You Engaged - Buyer Verification Pending',
     createdAt: new Date('2023-11-12T09:00:00Z'),
     updatedAt: new Date('2023-11-12T10:00:00Z'),
+    engagementTimestamp: new Date('2023-11-12T09:30:00Z'),
+  },
+  { // New Inquiry: Buyer Michael (user5, verified) inquires Seller Alex (user3, anonymous) for Listing 4 (pending verification)
+    id: 'inq_b4',
+    listingId: '4',
+    listingTitleAnonymous: 'Modern Cafe in Tourist Hotspot',
+    sellerId: 'user3', // Alex Tan (anonymous seller)
+    buyerId: 'user5', // Michael Lee (verified buyer)
+    buyerName: 'Michael Lee (Buyer - Free)',
+    buyerVerificationStatus: 'verified',
+    inquiryTimestamp: new Date('2024-05-22T14:00:00Z'),
+    sellerStatus: 'Anonymous Seller', // Listing 4's seller is user3 (Alex Tan) who is anonymous
+    status: 'new_inquiry', // New inquiry, seller needs to engage
+    statusBuyerPerspective: 'Inquiry Sent',
+    statusSellerPerspective: 'New Inquiry',
+    createdAt: new Date('2024-05-22T14:00:00Z'),
+    updatedAt: new Date('2024-05-22T14:00:00Z'),
   },
 ];
 
-export const sampleSellerInquiries: Inquiry[] = [
-  {
-    id: 'inq_s1',
-    listingId: '1',
-    listingTitleAnonymous: 'Profitable E-commerce Store in SEA',
-    sellerId: 'user1',
-    buyerId: 'user2',
-    buyerName: 'Jane Smith (Buyer)',
-    buyerVerificationStatus: 'verified',
-    inquiryTimestamp: new Date('2023-11-10T10:00:00Z'),
-    status: 'connection_facilitated_in_app_chat_opened',
-    statusSellerPerspective: 'Connection Facilitated - Chat Open',
-    conversationId: 'conv1',
-    createdAt: new Date('2023-11-10T10:00:00Z'),
-    updatedAt: new Date('2023-11-11T10:00:00Z'),
-    engagementTimestamp: new Date('2023-11-11T09:00:00Z'),
-  },
-  {
-    id: 'inq_s2',
-    listingId: '1',
-    listingTitleAnonymous: 'Profitable E-commerce Store in SEA',
-    sellerId: 'user1',
-    buyerId: 'user6',
-    buyerName: 'Anna Tay (Buyer - Anonymous)',
-    buyerVerificationStatus: 'anonymous',
-    inquiryTimestamp: new Date('2023-11-12T09:00:00Z'),
-    status: 'new_inquiry',
-    statusSellerPerspective: 'New Inquiry',
-    createdAt: new Date('2023-11-12T09:00:00Z'),
-    updatedAt: new Date('2023-11-12T09:00:00Z'),
-  },
-   {
-    id: 'inq_s3',
-    listingId: '2',
-    listingTitleAnonymous: 'Established SaaS Platform - B2B Niche',
-    sellerId: 'user3',
-    buyerId: 'user2',
-    buyerName: 'Jane Smith (Buyer)',
-    buyerVerificationStatus: 'verified',
-    inquiryTimestamp: new Date('2023-11-08T15:30:00Z'),
-    status: 'seller_engaged_seller_pending_verification',
-    statusSellerPerspective: 'You Engaged - Your Listing Verification Pending',
-    createdAt: new Date('2023-11-08T15:30:00Z'),
-    updatedAt: new Date('2023-11-09T15:30:00Z'),
-    engagementTimestamp: new Date('2023-11-09T15:30:00Z'),
-  },
-];
+// Update sampleBuyerInquiries and sampleSellerInquiries based on sampleInquiries
+export const sampleBuyerInquiries: Inquiry[] = sampleInquiries.filter(i => sampleUsers.find(u => u.id === i.buyerId));
+export const sampleSellerInquiries: Inquiry[] = sampleInquiries.filter(i => sampleUsers.find(u => u.id === i.sellerId));
 
 
 const revenueFromBuyersPlaceholder = 5600;
 const revenueFromSellersPlaceholder = 7850;
-const activeSuccessfulConnectionsPlaceholder = 8;
-const closedSuccessfulConnectionsPlaceholder = 4;
+const activeSuccessfulConnectionsPlaceholder = sampleInquiries.filter(i => i.status === 'connection_facilitated_in_app_chat_opened').length; // Live count
+const closedSuccessfulConnectionsPlaceholder = 0; // Assuming none are "deal_closed" yet
 
 export const sampleAdminDashboardMetrics: AdminDashboardMetrics = {
   newUserRegistrations24hSellers: 2,
@@ -365,7 +343,7 @@ export const sampleAdminDashboardMetrics: AdminDashboardMetrics = {
   closedOrDeactivatedListings: sampleListings.filter(l => l.status === 'inactive' || l.status === 'closed_deal' || l.status === 'rejected_by_admin').length,
   buyerVerificationQueueCount: sampleUsers.filter(u => u.role === 'buyer' && u.verificationStatus === 'pending_verification').length,
   sellerVerificationQueueCount: sampleUsers.filter(u => u.role === 'seller' && u.verificationStatus === 'pending_verification').length + sampleListings.filter(l => l.status === 'pending_verification').length,
-  readyToEngageQueueCount: sampleSellerInquiries.filter(i => i.status === 'ready_for_admin_connection').length,
+  readyToEngageQueueCount: sampleInquiries.filter(i => i.status === 'ready_for_admin_connection').length,
   successfulConnectionsMTD: activeSuccessfulConnectionsPlaceholder + closedSuccessfulConnectionsPlaceholder,
   activeSuccessfulConnections: activeSuccessfulConnectionsPlaceholder,
   closedSuccessfulConnections: closedSuccessfulConnectionsPlaceholder,
@@ -420,21 +398,8 @@ export const sampleVerificationRequests: VerificationRequestItem[] = [
   },
 ];
 
-export const sampleReadyToEngageItems: ReadyToEngageItem[] = [
-  {
-    id: 'rte1', // This is an inquiry ID
-    timestamp: new Date('2023-11-11T10:00:00Z'),
-    buyerId: 'user2',
-    buyerName: 'Jane Smith (Buyer)',
-    buyerVerificationStatus: 'verified',
-    sellerId: 'user1',
-    sellerName: 'John Doe (Seller)',
-    sellerVerificationStatus: 'verified',
-    listingId: '1',
-    listingTitle: 'Profitable E-commerce Store in SEA',
-    listingVerificationStatus: 'verified_public'
-  },
-];
+// This variable is no longer needed as Admin Engagement Queue directly filters `sampleInquiries`
+// export const sampleReadyToEngageItems: Inquiry[] = sampleInquiries.filter(i => i.status === 'ready_for_admin_connection');
 
 export const sampleBuyerNotifications: NotificationItem[] = [
   {
@@ -471,7 +436,7 @@ export const sampleSellerNotifications: NotificationItem[] = [
     userId: 'user1',
     timestamp: new Date('2023-11-12T09:05:00Z'),
     message: "You have a new inquiry for your listing 'Profitable E-commerce Store in SEA' from Anna Tay (Buyer - Anonymous).",
-    link: '/seller-dashboard/inquiries#inq_s2',
+    link: '/seller-dashboard/inquiries#inq_b3', // Link to the specific inquiry item
     isRead: false,
     type: 'inquiry'
   },
@@ -479,7 +444,7 @@ export const sampleSellerNotifications: NotificationItem[] = [
     id: 'notif2_seller3',
     userId: 'user3',
     timestamp: new Date('2023-11-13T11:00:00Z'),
-    message: "You've chosen to engage with Jane Smith regarding 'Established SaaS Platform - B2B Niche'. To proceed, your listing needs to be verified.",
+    message: "You've chosen to engage with Jane Smith regarding 'Established SaaS Platform - B2B Niche'. To proceed, your listing and profile needs to be verified.",
     link: '/seller-dashboard/verification?listingId=2',
     isRead: false,
     type: 'verification'
@@ -495,58 +460,57 @@ export const sampleSellerNotifications: NotificationItem[] = [
   }
 ];
 
-export const sampleConversations: Conversation[] = [
+export let sampleConversations: Conversation[] = [ // Changed to let
   {
     conversationId: "conv1",
-    inquiryId: "inq_b1", 
+    inquiryId: "inq_b1",
     listingId: "1",
-    buyerId: "user2", 
-    sellerId: "user1", 
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2), 
-    updatedAt: new Date(Date.now() - 1000 * 60 * 5), 
+    buyerId: "user2",
+    sellerId: "user1",
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2),
+    updatedAt: new Date(Date.now() - 1000 * 60 * 5),
     lastMessageSnippet: "Yes, Thursday afternoon works for me. How about 2 PM SGT?",
     buyerUnreadCount: 0,
     sellerUnreadCount: 1,
+    status: 'ACTIVE',
   }
 ];
 
-export const sampleMessages: Message[] = [
+export let sampleMessages: Message[] = [ // Changed to let
   {
     messageId: "msg1_conv1",
     conversationId: "conv1",
-    senderId: "user1", 
-    receiverId: "user2", 
+    senderId: "user1",
+    receiverId: "user2",
     contentText: "Hello Jane, thanks for your interest in the E-commerce Store. What specifically are you looking for?",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2), 
+    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2),
     isRead: true,
   },
   {
     messageId: "msg2_conv1",
     conversationId: "conv1",
-    senderId: "user2", 
-    receiverId: "user1", 
+    senderId: "user2",
+    receiverId: "user1",
     contentText: "Hi John, I'm interested in the financials and growth potential. Could you share more details?",
-    timestamp: new Date(Date.now() - 1000 * 60 * 55), 
+    timestamp: new Date(Date.now() - 1000 * 60 * 55),
     isRead: true,
   },
   {
     messageId: "msg3_conv1",
     conversationId: "conv1",
-    senderId: "user1", 
-    receiverId: "user2", 
+    senderId: "user1",
+    receiverId: "user2",
     contentText: "Certainly. I can provide access to the data room once we've had an initial chat. Are you available for a quick call this week?",
-    timestamp: new Date(Date.now() - 1000 * 60 * 30), 
+    timestamp: new Date(Date.now() - 1000 * 60 * 30),
     isRead: true,
   },
   {
     messageId: "msg4_conv1",
     conversationId: "conv1",
-    senderId: "user2", 
-    receiverId: "user1", 
+    senderId: "user2",
+    receiverId: "user1",
     contentText: "Yes, Thursday afternoon works for me. How about 2 PM SGT?",
-    timestamp: new Date(Date.now() - 1000 * 60 * 5), 
-    isRead: false, 
+    timestamp: new Date(Date.now() - 1000 * 60 * 5),
+    isRead: false,
   },
 ];
-
-    

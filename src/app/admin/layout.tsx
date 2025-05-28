@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -31,6 +32,7 @@ import {
   FileText,
   MessageSquareQuote,
   Home,
+  MessageSquare // Added for Conversations
 } from 'lucide-react';
 
 const adminSidebarNavItems = [
@@ -40,13 +42,14 @@ const adminSidebarNavItems = [
   { title: 'Buyer Verification', href: '/admin/verification-queue/buyers', icon: UserCheck, tooltip: "Buyer Verifications" },
   { title: 'Seller/Listing Verification', href: '/admin/verification-queue/sellers', icon: Building, tooltip: "Seller/Listing Verifications" },
   { title: 'Engagement Queue', href: '/admin/engagement-queue', icon: BellRing, tooltip: "Engagement Queue" },
+  { title: 'Conversations', href: '/admin/conversations', icon: MessageSquare, tooltip: "Platform Conversations" },
   { title: 'Analytics', href: '/admin/analytics', icon: LineChart, tooltip: "Platform Analytics" },
 ];
 
 const utilityNavItems = [
-  { title: 'Help', href: '/help', icon: HelpCircle, tooltip: "Get Help" }, // Assuming /help is a public page
-  { title: 'Refer Docs', href: '/docs', icon: FileText, tooltip: "View Documentation" }, // Assuming /docs is public
-  { title: 'FAQ', href: '/faq', icon: MessageSquareQuote, tooltip: "Frequently Asked Questions" }, // Assuming /faq is public
+  { title: 'Help', href: '/help', icon: HelpCircle, tooltip: "Get Help" },
+  { title: 'Refer Docs', href: '/docs', icon: FileText, tooltip: "View Documentation" },
+  { title: 'FAQ', href: '/faq', icon: MessageSquareQuote, tooltip: "Frequently Asked Questions" },
   { title: 'Back to Homepage', href: '/', icon: Home, tooltip: "Go to Nobridge Homepage" },
 ];
 
@@ -62,11 +65,13 @@ export default function AdminLayout({
   if (!isAdminAuthenticated && pathname !== '/admin/login') {
     if (typeof window !== 'undefined') {
       console.warn("Admin not authenticated, redirect to /admin/login would happen here via router.");
+      // router.replace('/admin/login'); // This would be the actual redirect
     }
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background">
         <Logo size="2xl" />
         <p className="mt-4 text-lg text-muted-foreground">Access Denied. Redirecting to login...</p>
+        {/* Client-side redirect might be needed here if router can't be used in this state */}
       </div>
     );
   }
@@ -132,11 +137,11 @@ export default function AdminLayout({
           </SidebarFooter>
         </Sidebar>
         <SidebarInset className="flex-grow flex flex-col overflow-auto">
-           <header className="md:hidden flex items-center justify-between p-4 border-b bg-card">
+           <header className="md:hidden flex items-center justify-between p-4 border-b bg-card sticky top-0 z-10"> {/* Added sticky top and z-index */}
               <Logo size="lg" />
               <SidebarTrigger/>
            </header>
-           <div className="p-4 md:p-6 lg:p-8 flex-1 overflow-y-auto">
+           <div className="p-4 md:p-6 lg:p-8 flex-1 overflow-y-auto"> {/* Main content scroll */}
             {children}
            </div>
         </SidebarInset>

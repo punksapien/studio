@@ -1,4 +1,5 @@
-// Firebase Studio: Applying specific path checks for dashboard routes - v3
+
+// Firebase Studio: Applying specific path checks for dashboard routes - v4 (Final Check)
 'use client';
 
 import { usePathname } from 'next/navigation';
@@ -14,6 +15,7 @@ export default function GlobalLayoutWrapper({ children }: GlobalLayoutWrapperPro
   const pathname = usePathname();
 
   // Check if the current path is an admin, buyer dashboard, or seller dashboard route.
+  // Ensure exact matches for root dashboard paths and startsWith for sub-paths.
   const isAdminRoute = pathname === '/admin' || pathname.startsWith('/admin/');
   const isBuyerDashboardRoute = pathname === '/dashboard' || pathname.startsWith('/dashboard/');
   const isSellerDashboardRoute = pathname === '/seller-dashboard' || pathname.startsWith('/seller-dashboard/');
@@ -23,6 +25,7 @@ export default function GlobalLayoutWrapper({ children }: GlobalLayoutWrapperPro
 
   if (isDedicatedLayoutRoute) {
     // For routes with their own dedicated layouts, render children directly.
+    // These dedicated layouts (e.g., AdminLayout, DashboardLayout) handle their own structure.
     return <>{children}</>;
   }
 

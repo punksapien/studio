@@ -1,5 +1,6 @@
+
 'use client';
-import * as React from "react"; 
+import * as React from "react";
 import {
   Table,
   TableBody,
@@ -10,13 +11,12 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { sampleReadyToEngageItems } from "@/lib/placeholder-data";
-import type { ReadyToEngageItem, VerificationStatus, ListingStatus } from "@/lib/types";
+import { sampleReadyToEngageItems, sampleConversations, sampleInquiries } from "@/lib/placeholder-data"; // Updated to sampleInquiries
+import type { Inquiry, User, VerificationStatus, ListingStatus } from "@/lib/types"; // Updated to Inquiry
 import Link from "next/link";
-import { Eye, Mail, Archive, ShieldCheck, AlertTriangle } from "lucide-react";
+import { Eye, Mail, Archive, ShieldCheck, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-
-const engagements: ReadyToEngageItem[] = sampleReadyToEngageItems;
+import { useToast } from "@/hooks/use-toast";
 
 // Helper component for client-side date formatting
 function FormattedTimestamp({ timestamp }: { timestamp: Date | string }) {
@@ -27,71 +27,143 @@ function FormattedTimestamp({ timestamp }: { timestamp: Date | string }) {
   }, [timestamp]);
 
   if (!formattedDate) {
-    return <span className="italic text-xs">Loading...</span>; 
+    return <span className="italic text-xs">Loading...</span>;
   }
   return <>{formattedDate}</>;
 }
 
 export default function AdminEngagementQueuePage() {
-  const getVerificationBadge = (status: VerificationStatus) => {
-    if (status === 'verified') return <Badge className="bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-200 border-green-300 dark:border-green-500"><ShieldCheck className="h-3 w-3 mr-1" />Verified</Badge>;
-    return <Badge variant="secondary"><AlertTriangle className="h-3 w-3 mr-1" />{status}</Badge>;
+  const { toast } = useToast();
+  // Use sampleInquiries and filter for those ready for connection
+  const [engagements, setEngagements] = React.useState<Inquiry[]>(
+    sampleInquiries.filter(i => i.status === 'ready_for_admin_connection')
+  );
+
+  const handleFacilitateConnection = (inquiryId: string) => {
+    // Simulate backend action
+    console.log(`Admin facilitating connection for inquiry ID: ${inquiryId}`);
+
+    // Update the inquiry status in our placeholder data
+    const inquiryIndex = sampleInquiries.findIndex(i => i.id === inquiryId);
+    if (inquiryIndex !== -1) {
+      const updatedInquiry = {
+        ...sampleInquiries[inquiryIndex],
+        status: 'connection_facilitated_in_app_chat_opened' as Inquiry['status'], // Cast to InquiryStatusSystem
+        conversationId: `conv-${inquiryId}-${Date.now()}` // Generate a unique conversation ID
+      };
+      sampleInquiries[inquiryIndex] = updatedInquiry;
+
+      // Also update the local state for the UI
+      setEngagements(prevEngagements =>
+        prevEngagements.filter(e => e.id !== inquiryId) // Remove from "ready" queue
+      );
+      
+      // Add to sampleConversations if it doesn't exist (for UI demo purposes)
+      if (!sampleConversations.find(c => c.inquiryId === inquiryId)) {
+        sampleConversations.push({
+          conversationId: updatedInquiry.conversationId!,
+          inquiryId: updatedInquiry.id,
+          listingId: updatedInquiry.listingId,
+          buyerId: updatedInquiry.buyerId,
+          sellerId: updatedInquiry.sellerId,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          lastMessageSnippet: "Chat initiated by Admin.",
+          buyerUnreadCount: 0,
+          sellerUnreadCount: 0,
+          status: 'ACTIVE' // Add status
+        });
+      }
+      
+      toast({
+        title: "Connection Facilitated",
+        description: `Chat has been opened for Inquiry ID: ${inquiryId}. Buyer and Seller notified.`,
+      });
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: `Could not find inquiry ID: ${inquiryId} to facilitate connection.`,
+      });
+    }
   };
 
-  const getListingVerificationBadge = (status: ListingStatus) => {
-    if (status === 'verified_public' || status === 'verified_anonymous') return <Badge className="bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-200 border-green-300 dark:border-green-500"><ShieldCheck className="h-3 w-3 mr-1" />Verified</Badge>;
-    return <Badge variant="secondary"><AlertTriangle className="h-3 w-3 mr-1" />{status.replace('_', ' ')}</Badge>;
-  }
+
+  const getVerificationBadge = (status?: VerificationStatus) => {
+    if (!status) return <Badge variant="outline">Unknown</Badge>;
+    if (status === 'verified') return <Badge className="bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-200 border-green-300 dark:border-green-500"><ShieldCheck className="h-3 w-3 mr-1" />Verified</Badge>;
+    return <Badge variant="secondary"><AlertTriangle className="h-3 w-3 mr-1" />{status.replace(/_/g, ' ')}</Badge>;
+  };
+
+  // Find listing based on listingId from the inquiry
+  const getListingDetails = (listingId: string) => {
+    // This would typically be a more complex lookup, e.g., from sampleListings
+    return { title: `Listing ${listingId}`, status: 'verified_public' as ListingStatus };
+  };
+
 
   return (
     <div className="space-y-8">
       <Card className="shadow-md">
         <CardHeader>
           <CardTitle>Engagement Queue: Ready for Connection</CardTitle>
-          <CardDescription>Manage engagements where both buyer and seller are verified and have agreed to connect. Total pending: {engagements.length}</CardDescription>
+          <CardDescription>Manage engagements where both buyer and seller are verified and ready for connection. Total pending: {engagements.length}</CardDescription>
         </CardHeader>
         <CardContent>
-          {/* Filters could be added here: by date range, specific listing etc. */}
           <div className="rounded-md border overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="whitespace-nowrap">Inquiry ID</TableHead>
                   <TableHead className="whitespace-nowrap">Date Ready</TableHead>
                   <TableHead className="whitespace-nowrap">Buyer Name</TableHead>
                   <TableHead className="whitespace-nowrap">Buyer Status</TableHead>
                   <TableHead className="whitespace-nowrap">Seller Name</TableHead>
                   <TableHead className="whitespace-nowrap">Seller Status</TableHead>
                   <TableHead className="whitespace-nowrap">Listing Title</TableHead>
-                  <TableHead className="whitespace-nowrap">Listing Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {engagements.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell className="text-xs whitespace-nowrap"><FormattedTimestamp timestamp={item.timestamp} /></TableCell>
-                    <TableCell className="font-medium whitespace-nowrap">
-                        <Link href={`/admin/users/${item.buyerId}`} className="hover:underline">{item.buyerName}</Link>
-                    </TableCell>
-                    <TableCell>{getVerificationBadge(item.buyerVerificationStatus)}</TableCell>
-                     <TableCell className="font-medium whitespace-nowrap">
-                        <Link href={`/admin/users/${item.sellerId}`} className="hover:underline">{item.sellerName}</Link>
-                    </TableCell>
-                    <TableCell>{getVerificationBadge(item.sellerVerificationStatus)}</TableCell>
-                    <TableCell className="whitespace-nowrap">
-                        <Link href={`/admin/listings/${item.listingId}`} className="hover:underline">{item.listingTitle}</Link>
-                    </TableCell>
-                    <TableCell>{getListingVerificationBadge(item.listingVerificationStatus)}</TableCell>
-                    <TableCell className="text-right whitespace-nowrap">
-                      <Button variant="ghost" size="icon" title="Mark Connection Initiated">
-                        <Mail className="h-4 w-4 text-blue-600" />
-                      </Button>
-                       <Button variant="ghost" size="icon" title="Resolve/Archive Engagement">
-                        <Archive className="h-4 w-4 text-green-600" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {engagements.map((item) => {
+                    // Assuming buyerName and sellerName are part of Inquiry or can be fetched
+                    const buyer = sampleUsers.find(u => u.id === item.buyerId);
+                    const seller = sampleUsers.find(u => u.id === item.sellerId);
+                    const listing = sampleListings.find(l => l.id === item.listingId);
+
+                    return (
+                      <TableRow key={item.id}>
+                        <TableCell className="text-xs whitespace-nowrap">{item.id}</TableCell>
+                        <TableCell className="text-xs whitespace-nowrap">
+                          {item.engagementTimestamp ? <FormattedTimestamp timestamp={item.engagementTimestamp} /> : 'N/A'}
+                        </TableCell>
+                        <TableCell className="font-medium whitespace-nowrap">
+                            <Link href={`/admin/users/${item.buyerId}`} className="hover:underline">{buyer?.fullName || item.buyerId}</Link>
+                        </TableCell>
+                        <TableCell>{getVerificationBadge(buyer?.verificationStatus)}</TableCell>
+                         <TableCell className="font-medium whitespace-nowrap">
+                            <Link href={`/admin/users/${item.sellerId}`} className="hover:underline">{seller?.fullName || item.sellerId}</Link>
+                        </TableCell>
+                        <TableCell>{getVerificationBadge(seller?.verificationStatus)}</TableCell>
+                        <TableCell className="whitespace-nowrap">
+                            <Link href={`/admin/listings/${item.listingId}`} className="hover:underline">{listing?.listingTitleAnonymous || item.listingId}</Link>
+                        </TableCell>
+                        <TableCell className="text-right whitespace-nowrap">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="Facilitate Connection & Open Chat"
+                            onClick={() => handleFacilitateConnection(item.id)}
+                          >
+                            <Mail className="h-4 w-4 text-green-600" />
+                          </Button>
+                           <Button variant="ghost" size="icon" title="Archive Engagement (Not Implemented)">
+                            <Archive className="h-4 w-4 text-muted-foreground" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                })}
                 {engagements.length === 0 && (
                     <TableRow>
                         <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
