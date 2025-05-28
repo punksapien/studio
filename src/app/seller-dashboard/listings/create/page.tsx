@@ -40,7 +40,7 @@ const ListingSchema = z.object({
   locationCityRegionGeneral: z.string().min(2, "City/Region is required.").max(50, "City/Region too long."),
   anonymousBusinessDescription: z.string().min(50, "Description must be at least 50 characters.").max(2000, "Description too long (max 2000 chars)."),
   keyStrengthsAnonymous: z.array(z.string().min(1, "Strength cannot be empty.")).min(1, "At least one key strength is required.").max(5, "Maximum of 5 key strengths."),
-  
+
   businessModel: z.string().optional(),
   yearEstablished: z.coerce.number().optional().refine(val => val === undefined || (val >= 1900 && val <= new Date().getFullYear()), {
     message: "Please enter a valid year.",
@@ -48,25 +48,25 @@ const ListingSchema = z.object({
   registeredBusinessName: z.string().optional(),
   businessWebsiteUrl: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
   socialMediaLinks: z.string().optional(),
-  numberOfEmployees: z.string().optional(), 
+  numberOfEmployees: z.string().optional(),
   technologyStack: z.string().optional(),
 
   annualRevenueRange: z.string().min(1, "Annual revenue range is required."),
   netProfitMarginRange: z.string().optional(),
   askingPrice: z.coerce.number({invalid_type_error: "Asking price must be a number."}).positive({message: "Asking price must be positive."}).optional(),
-  
+
   specificAnnualRevenueLastYear: z.coerce.number({invalid_type_error: "Specific annual revenue must be a number."}).optional(),
   specificNetProfitLastYear: z.coerce.number({invalid_type_error: "Specific net profit must be a number."}).optional(),
   adjustedCashFlow: z.coerce.number({invalid_type_error: "Adjusted cash flow must be a number."}).optional(),
   adjustedCashFlowExplanation: z.string().optional(),
-  
+
   dealStructureLookingFor: z.array(z.string()).optional(),
   reasonForSellingAnonymous: z.string().max(500, "Reason too long (max 500 chars).").optional(),
   detailedReasonForSelling: z.string().optional(),
   sellerRoleAndTimeCommitment: z.string().optional(),
   postSaleTransitionSupport: z.string().optional(),
 
-  specificGrowthOpportunities: z.string().optional(), // Textarea for bullet points
+  specificGrowthOpportunities: z.string().optional(),
 
   imageUrl1: z.string().url({ message: "Invalid URL" }).optional().or(z.literal('')),
   imageUrl2: z.string().url({ message: "Invalid URL" }).optional().or(z.literal('')),
@@ -134,7 +134,7 @@ export default function CreateSellerListingPage() {
        form.setValue("keyStrengthsAnonymous", newFields);
     }
   };
-  
+
   const handleStrengthChange = (index: number, value: string) => {
     const newFields = [...keyStrengthsFields];
     newFields[index] = value;
@@ -144,7 +144,7 @@ export default function CreateSellerListingPage() {
 
   const onSubmit = (values: ListingFormValues) => {
     const imageUrls = [values.imageUrl1, values.imageUrl2, values.imageUrl3, values.imageUrl4, values.imageUrl5].filter(url => url && url.trim() !== "") as string[];
-    
+
     const cleanedValues = {
       ...values,
       keyStrengthsAnonymous: values.keyStrengthsAnonymous.filter(strength => strength && strength.trim() !== ""),
@@ -233,7 +233,7 @@ export default function CreateSellerListingPage() {
               <FormField
                 control={form.control}
                 name="keyStrengthsAnonymous"
-                render={() => ( 
+                render={() => (
                   <FormItem><FormLabel>Key Strengths</FormLabel><FormDescription>List 1-5 key strengths.</FormDescription>
                     {keyStrengthsFields.map((strength, index) => (
                        <div key={index} className="flex items-center gap-2">
@@ -255,7 +255,6 @@ export default function CreateSellerListingPage() {
             </CardContent>
           </Card>
 
-           {/* Section: Business Images */}
           <Card className="shadow-md bg-brand-white">
             <CardHeader><CardTitle className="text-brand-dark-blue flex items-center gap-2"><ImagePlus className="h-5 w-5"/>Business Images</CardTitle><CardDescription>Provide up to 5 image URLs for your listing (e.g., logo, storefront, product shots). These will be shown to buyers.</CardDescription></CardHeader>
             <CardContent className="space-y-4">
@@ -263,7 +262,6 @@ export default function CreateSellerListingPage() {
             </CardContent>
           </Card>
 
-          {/* Section 3: Financial Performance */}
           <Card className="shadow-md bg-brand-white">
             <CardHeader><CardTitle className="text-brand-dark-blue">Section 3: Financial Performance</CardTitle></CardHeader>
             <CardContent className="space-y-6">
@@ -282,7 +280,6 @@ export default function CreateSellerListingPage() {
             </CardContent>
           </Card>
 
-          {/* Section 4: Deal & Seller Information */}
           <Card className="shadow-md bg-brand-white">
             <CardHeader><CardTitle className="text-brand-dark-blue">Section 4: Deal &amp; Seller Information</CardTitle></CardHeader>
             <CardContent className="space-y-6">
@@ -290,7 +287,7 @@ export default function CreateSellerListingPage() {
                     control={form.control}
                     name="dealStructureLookingFor"
                     render={() => (<FormItem><FormLabel>Looking for (Deal Structure):</FormLabel><FormDescription>Select all that apply.</FormDescription><div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 pt-2">{dealStructures.map((item) => (<FormField key={item} control={form.control} name="dealStructureLookingFor" render={({ field }) => (<FormItem className="flex flex-row items-start space-x-3 space-y-0"><FormControl><Checkbox checked={field.value?.includes(item)} onCheckedChange={(checked) => checked ? field.onChange([...(field.value || []), item]) : field.onChange(field.value?.filter(v => v !== item))} disabled={isPending}/></FormControl><FormLabel className="font-normal">{item}</FormLabel></FormItem>)}/>))}</div><FormMessage /></FormItem>)}/>
-                <FormField control={form.control} name="reasonForSellingAnonymous" render={({ field }) => (<FormItem><FormLabel>Reason for Selling (Public Summary, Optional)</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={3} placeholder="Briefly state your reason for selling (e.g., Retirement, Other ventures)." disabled={isPending} /></FormControl><FormDescription>Max 500 characters. This may be shown publicly.</FormMessage /></FormItem>)}/>
+                <FormField control={form.control} name="reasonForSellingAnonymous" render={({ field }) => (<FormItem><FormLabel>Reason for Selling (Public Summary, Optional)</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={3} placeholder="Briefly state your reason for selling (e.g., Retirement, Other ventures)." disabled={isPending} /></FormControl><FormDescription>Max 500 characters. This may be shown publicly.</FormDescription><FormMessage /></FormItem>)}/>
               <Separator />
               <h3 className="text-md font-medium text-muted-foreground">Additional Seller Information (For Verified View)</h3>
                <FormField control={form.control} name="detailedReasonForSelling" render={({ field }) => (<FormItem><FormLabel>Detailed Reason for Selling</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={3} placeholder="Provide more context for verified buyers." disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
@@ -300,7 +297,6 @@ export default function CreateSellerListingPage() {
             </CardContent>
           </Card>
 
-          {/* Section 5: Growth & Future Potential */}
           <Card className="shadow-md bg-brand-white">
             <CardHeader><CardTitle className="text-brand-dark-blue">Section 5: Growth &amp; Future Potential</CardTitle></CardHeader>
             <CardContent className="space-y-6">

@@ -30,7 +30,7 @@ import {
   User,
   BuyerPersonaTypes,
   PreferredInvestmentSizes,
-  UserRole 
+  UserRole
 } from "@/lib/types";
 import { useState, useTransition, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -38,15 +38,15 @@ import { Separator } from "@/components/ui/separator";
 import { sampleUsers } from "@/lib/placeholder-data";
 import Link from "next/link";
 
-const currentBuyerId = 'user2'; 
+const currentBuyerId = 'user2';
 const currentUserServerData: User | undefined = sampleUsers.find(u => u.id === currentBuyerId && u.role === 'buyer');
 
 const ProfileSchema = z.object({
   fullName: z.string().min(1, { message: "Full name is required." }),
   phoneNumber: z.string().min(1, { message: "Phone number is required." }),
   country: z.string().min(1, { message: "Country is required." }),
-  role: z.enum(['seller', 'buyer'] as [UserRole, ...UserRole[]], { required_error: "Role is required." }), 
-  initialCompanyName: z.string().optional(), 
+  role: z.enum(['seller', 'buyer'] as [UserRole, ...UserRole[]], { required_error: "Role is required." }),
+  initialCompanyName: z.string().optional(),
   buyerPersonaType: z.enum(BuyerPersonaTypes).optional(),
   buyerPersonaOther: z.string().optional(),
   investmentFocusDescription: z.string().optional(),
@@ -75,7 +75,7 @@ const defaultProfileValues: Partial<z.infer<typeof ProfileSchema>> = {
   fullName: "",
   phoneNumber: "",
   country: "",
-  role: "buyer", 
+  role: "buyer",
   initialCompanyName: "",
   buyerPersonaType: undefined,
   buyerPersonaOther: "",
@@ -100,7 +100,7 @@ export default function ProfilePage() {
         phoneNumber: currentUserServerData.phoneNumber || "",
         country: currentUserServerData.country || "",
         role: currentUserServerData.role,
-        initialCompanyName: "", 
+        initialCompanyName: "",
         buyerPersonaType: currentUserServerData.buyerPersonaType || undefined,
         buyerPersonaOther: currentUserServerData.buyerPersonaOther || "",
         investmentFocusDescription: currentUserServerData.investmentFocusDescription || "",
@@ -122,7 +122,11 @@ export default function ProfilePage() {
   const watchedBuyerPersonaType = profileForm.watch("buyerPersonaType");
 
   if (!currentUserServerData || currentUserServerData.role !== 'buyer') {
-    return <div className="container py-8 text-center">Loading profile or user not found/not a buyer...</div>;
+    return (
+      <div className="container py-8 text-center">
+        Loading profile or user not found/not a buyer...
+      </div>
+    );
   }
 
   return (
@@ -154,7 +158,7 @@ export default function ProfilePage() {
                   </FormItem>
                 )}
               />
-              
+
               <FormField control={profileForm.control} name="role" render={({ field }) => (<FormItem className="hidden"><FormControl><Input {...field} /></FormControl></FormItem>)} />
 
               <Separator />
@@ -187,7 +191,7 @@ export default function ProfilePage() {
                 )}
               />
               <FormField control={profileForm.control} name="keyIndustriesOfInterest" render={({ field }) => (
-                  <FormItem><FormLabel>Key Industries of Interest</Label>
+                  <FormItem><FormLabel>Key Industries of Interest</FormLabel>
                     <FormControl><Textarea {...field} value={field.value || ""} placeholder="e.g., Technology, E-commerce, Healthcare..." disabled={isProfilePending} rows={3}/></FormControl><FormMessage /></FormItem>
                 )}
               />

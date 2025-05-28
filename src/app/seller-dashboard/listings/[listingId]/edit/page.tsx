@@ -32,7 +32,7 @@ import { useTransition, useState, useEffect } from "react";
 import { Separator } from "@/components/ui/separator";
 import { sampleListings, sampleUsers } from "@/lib/placeholder-data";
 import { PlusCircle, Trash2, DollarSign, ImagePlus } from "lucide-react";
-import { notFound, useRouter, useParams } from 'next/navigation'; // Added useParams
+import { notFound, useRouter, useParams } from 'next/navigation';
 import { Label } from "@/components/ui/label";
 
 
@@ -43,7 +43,7 @@ const ListingSchema = z.object({
   locationCityRegionGeneral: z.string().min(2, "City/Region is required.").max(50, "City/Region too long."),
   anonymousBusinessDescription: z.string().min(50, "Description must be at least 50 characters.").max(2000, "Description too long (max 2000 chars)."),
   keyStrengthsAnonymous: z.array(z.string().min(1, "Strength cannot be empty.")).min(1, "At least one key strength is required.").max(5, "Maximum of 5 key strengths."),
-  
+
   businessModel: z.string().optional(),
   yearEstablished: z.coerce.number().optional().refine(val => val === undefined || (val >= 1900 && val <= new Date().getFullYear()), {
     message: "Please enter a valid year.",
@@ -51,18 +51,18 @@ const ListingSchema = z.object({
   registeredBusinessName: z.string().optional(),
   businessWebsiteUrl: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
   socialMediaLinks: z.string().optional(),
-  numberOfEmployees: z.string().optional(), 
+  numberOfEmployees: z.string().optional(),
   technologyStack: z.string().optional(),
 
   annualRevenueRange: z.string().min(1, "Annual revenue range is required."),
   netProfitMarginRange: z.string().optional(),
   askingPrice: z.coerce.number({invalid_type_error: "Asking price must be a number."}).positive({message: "Asking price must be positive."}).optional(),
-  
+
   specificAnnualRevenueLastYear: z.coerce.number({invalid_type_error: "Specific annual revenue must be a number."}).optional(),
   specificNetProfitLastYear: z.coerce.number({invalid_type_error: "Specific net profit must be a number."}).optional(),
   adjustedCashFlow: z.coerce.number({invalid_type_error: "Adjusted cash flow must be a number."}).optional(),
   adjustedCashFlowExplanation: z.string().optional(),
-  
+
   dealStructureLookingFor: z.array(z.string()).optional(),
   reasonForSellingAnonymous: z.string().max(500, "Reason too long (max 500 chars).").optional(),
   detailedReasonForSelling: z.string().optional(),
@@ -80,11 +80,7 @@ const ListingSchema = z.object({
 
 type ListingFormValues = z.infer<typeof ListingSchema>;
 
-// interface EditSellerListingPageProps { // Not needed if using useParams
-//   params: { listingId: string };
-// }
-
-const currentSellerId = 'user1'; // Placeholder for actual authenticated seller ID
+const currentSellerId = 'user1';
 const currentUser: User | undefined = sampleUsers.find(u => u.id === currentSellerId && u.role === 'seller');
 
 export default function EditSellerListingPage() {
@@ -129,7 +125,7 @@ export default function EditSellerListingPage() {
       imageUrl1: "", imageUrl2: "", imageUrl3: "", imageUrl4: "", imageUrl5: "",
     },
   });
-  
+
   useEffect(() => {
     const fetchedListing = sampleListings.find(l => l.id === listingId && l.sellerId === currentUser?.id);
     if (fetchedListing) {
@@ -190,7 +186,7 @@ export default function EditSellerListingPage() {
        form.setValue("keyStrengthsAnonymous", newFields);
     }
   };
-  
+
   const handleStrengthChange = (index: number, value: string) => {
     const newFields = [...keyStrengthsFields];
     newFields[index] = value;
@@ -220,11 +216,19 @@ export default function EditSellerListingPage() {
   };
 
   if (!currentUser) {
-    return <div className="container py-8 text-center">Please login as a seller to edit listings.</div>;
+    return (
+      <div className="container py-8 text-center">
+        Please login as a seller to edit listings.
+      </div>
+    );
   }
 
   if (!listing) {
-    return <div className="container py-8 text-center">Loading listing data or listing not found...</div>;
+    return (
+      <div className="container py-8 text-center">
+        Loading listing data or listing not found...
+      </div>
+    );
   }
 
   return (
@@ -287,7 +291,6 @@ export default function EditSellerListingPage() {
             </CardContent>
           </Card>
 
-          {/* Section: Business Images */}
           <Card className="shadow-md bg-brand-white">
             <CardHeader><CardTitle className="text-brand-dark-blue flex items-center gap-2"><ImagePlus className="h-5 w-5"/>Business Images</CardTitle><CardDescription>Provide up to 5 image URLs for your listing.</CardDescription></CardHeader>
             <CardContent className="space-y-4">
@@ -295,7 +298,6 @@ export default function EditSellerListingPage() {
             </CardContent>
           </Card>
 
-          {/* Section 3: Financial Performance */}
           <Card className="shadow-md bg-brand-white">
             <CardHeader><CardTitle className="text-brand-dark-blue">Section 3: Financial Performance</CardTitle></CardHeader>
             <CardContent className="space-y-6">
@@ -314,7 +316,6 @@ export default function EditSellerListingPage() {
             </CardContent>
           </Card>
 
-          {/* Section 4: Deal & Seller Information */}
           <Card className="shadow-md bg-brand-white">
             <CardHeader><CardTitle className="text-brand-dark-blue">Section 4: Deal &amp; Seller Information</CardTitle></CardHeader>
             <CardContent className="space-y-6">
@@ -329,14 +330,13 @@ export default function EditSellerListingPage() {
             </CardContent>
           </Card>
 
-          {/* Section 5: Growth & Future Potential */}
           <Card className="shadow-md bg-brand-white">
             <CardHeader><CardTitle className="text-brand-dark-blue">Section 5: Growth &amp; Future Potential</CardTitle></CardHeader>
             <CardContent className="space-y-6">
                 <FormField control={form.control} name="specificGrowthOpportunities" render={({ field }) => (<FormItem><FormLabel>Specific Growth Opportunities (Use bullet points)</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={5} placeholder="- Expand to new markets (e.g., Region X)\n- Launch new product line (e.g., Product Y)\n- Optimize marketing spend by Z%" disabled={isPending} /></FormControl><FormDescription>List 3-5 specific, actionable growth opportunities.</FormMessage><FormMessage /></FormItem>)} />
             </CardContent>
           </Card>
-          
+
           <Separator />
           <div className="flex justify-end gap-4">
             <Button type="button" variant="outline" onClick={() => {
@@ -375,7 +375,7 @@ export default function EditSellerListingPage() {
                   imageUrl5: initialImageUrls[4] || "",
                 });
                 setKeyStrengthsFields(listing?.keyStrengthsAnonymous?.length ? listing.keyStrengthsAnonymous : ['']);
-              }} 
+              }}
               disabled={isPending}>
                 Reset Changes
             </Button>

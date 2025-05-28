@@ -79,11 +79,11 @@ export default function AdminAnalyticsPage() {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mt-4">
         <Card className="shadow-md bg-brand-white">
           <CardHeader className="pb-2"> <CardTitle className="text-sm font-medium flex items-center justify-between text-brand-dark-blue">Verified Buyers <ShieldCheck className="h-5 w-5 text-brand-sky-blue" /></CardTitle></CardHeader>
-          <CardContent><div className="text-2xl font-bold text-brand-dark-blue">{sampleUsers.filter(u => u.role === 'buyer' &amp;& u.verificationStatus === 'verified').length}</div></CardContent>
+          <CardContent><div className="text-2xl font-bold text-brand-dark-blue">{sampleUsers.filter(u => u.role === 'buyer' && u.verificationStatus === 'verified').length}</div></CardContent>
         </Card>
          <Card className="shadow-md bg-brand-white">
           <CardHeader className="pb-2"> <CardTitle className="text-sm font-medium flex items-center justify-between text-brand-dark-blue">Verified Sellers <ShieldCheck className="h-5 w-5 text-brand-sky-blue" /></CardTitle></CardHeader>
-          <CardContent><div className="text-2xl font-bold text-brand-dark-blue">{sampleUsers.filter(u => u.role === 'seller' &amp;& u.verificationStatus === 'verified').length}</div></CardContent>
+          <CardContent><div className="text-2xl font-bold text-brand-dark-blue">{sampleUsers.filter(u => u.role === 'seller' && u.verificationStatus === 'verified').length}</div></CardContent>
         </Card>
       </div>
 
