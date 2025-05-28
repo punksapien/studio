@@ -1,6 +1,7 @@
+
 import * as React from "react";
 import { MetricCard } from "@/components/admin/metric-card";
-import { sampleAdminDashboardMetrics, sampleVerificationRequests, sampleReadyToEngageItems } from "@/lib/placeholder-data";
+import { sampleAdminDashboardMetrics, sampleVerificationRequests, sampleInquiries, sampleListings, sampleUsers } from "@/lib/placeholder-data";
 import { Users, Briefcase, BellRing, LineChart, ListChecks, UserCheck, Building, DollarSign, Banknote, ListX, Handshake } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,11 +14,27 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import type { Inquiry } from "@/lib/types";
 
 export default function AdminDashboardPage() {
   const metrics = sampleAdminDashboardMetrics;
   const buyerVerificationRequests = sampleVerificationRequests.filter(req => req.userRole === 'buyer' && req.status !== 'Approved' && req.status !== 'Rejected');
   const sellerVerificationRequests = sampleVerificationRequests.filter(req => req.userRole === 'seller' && req.status !== 'Approved' && req.status !== 'Rejected');
+
+  const adminPageReadyToEngageItems = sampleInquiries
+    .filter(i => i.status === 'ready_for_admin_connection')
+    .map(inquiry => {
+      const buyer = sampleUsers.find(u => u.id === inquiry.buyerId);
+      const seller = sampleUsers.find(u => u.id === inquiry.sellerId);
+      const listing = sampleListings.find(l => l.id === inquiry.listingId);
+      return {
+        id: inquiry.id,
+        buyerName: buyer?.fullName || inquiry.buyerId,
+        sellerName: seller?.fullName || inquiry.sellerId,
+        listingTitle: listing?.listingTitleAnonymous || inquiry.listingId,
+        timestamp: inquiry.engagementTimestamp || inquiry.inquiryTimestamp, // Prefer engagementTimestamp
+      };
+    });
 
   return (
     <div className="space-y-8">
@@ -173,7 +190,7 @@ export default function AdminDashboardPage() {
                     <Link href="/admin/engagement-queue">View All</Link>
                 </Button>
             </div>
-            <CardDescription>Top {sampleReadyToEngageItems.slice(0,3).length} engagements ready for admin facilitation.</CardDescription>
+            <CardDescription>Top {adminPageReadyToEngageItems.slice(0,3).length} engagements ready for admin facilitation.</CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
@@ -182,19 +199,19 @@ export default function AdminDashboardPage() {
                   <TableHead>Buyer</TableHead>
                   <TableHead>Seller</TableHead>
                   <TableHead>Listing</TableHead>
-                   <TableHead>Date</TableHead>
+                   <TableHead>Date Ready</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sampleReadyToEngageItems.slice(0,3).map(item => (
+                {adminPageReadyToEngageItems.slice(0,3).map(item => (
                   <TableRow key={item.id}>
                     <TableCell>{item.buyerName}</TableCell>
                     <TableCell>{item.sellerName}</TableCell>
                     <TableCell>{item.listingTitle}</TableCell>
-                    <TableCell>{new Date(item.timestamp).toLocaleDateString()}</TableCell>
+                    <TableCell>{item.timestamp ? new Date(item.timestamp).toLocaleDateString() : 'N/A'}</TableCell>
                   </TableRow>
                 ))}
-                {sampleReadyToEngageItems.length === 0 && <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-4">No engagements ready for connection.</TableCell></TableRow>}
+                {adminPageReadyToEngageItems.length === 0 && <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-4">No engagements ready for connection.</TableCell></TableRow>}
               </TableBody>
             </Table>
           </CardContent>
