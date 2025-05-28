@@ -82,7 +82,7 @@ Represents a user in the system, accommodating both buyers and sellers with role
 ```typescript
 export type ListingStatus = 'active' | 'inactive' | 'pending_verification' | 'verified_anonymous' | 'verified_public' | 'rejected_by_admin' | 'closed_deal';
 ```
-Defines the status of a business listing. Note: 'SOLD' can be considered synonymous with 'closed_deal'.
+Defines the status of a business listing. Note: 'closed_deal' is the preferred status for sold/finalized listings.
 
 ### `EmployeeCountRange` & `employeeCountRanges`
 ```typescript
@@ -225,7 +225,7 @@ export interface Conversation {
   lastMessageSnippet?: string; // Snippet of the last message for list views
   buyerUnreadCount?: number;   // Unread messages for the buyer (default 0)
   sellerUnreadCount?: number;  // Unread messages for the seller (default 0)
-  status: ConversationStatus; // Added status for admin oversight
+  status: ConversationStatus; // e.g., 'ACTIVE', 'ARCHIVED_BY_ADMIN'
 }
 ```
 
@@ -262,8 +262,8 @@ export interface AdminDashboardMetrics {
   totalFreeBuyers: number;
   totalActiveListingsAnonymous: number;
   totalActiveListingsVerified: number;
-  totalListingsAllStatuses: number;
-  closedOrDeactivatedListings: number;
+  totalListingsAllStatuses: number; // NEW
+  closedOrDeactivatedListings: number; // NEW
   buyerVerificationQueueCount: number;
   sellerVerificationQueueCount: number;
   readyToEngageQueueCount: number;
@@ -296,25 +296,6 @@ export interface VerificationRequestItem {
 }
 ```
 
-### `ReadyToEngageItem` Interface
-```typescript
-// This type might be redundant if Admin Engagement Queue directly uses Inquiry type
-// For placeholder-data.ts, it's defined to match expected structure for that component.
-export interface ReadyToEngageItem {
-  id: string; // Inquiry ID
-  timestamp: Date; // When it became ready
-  buyerId: string;
-  buyerName: string;
-  buyerVerificationStatus: VerificationStatus;
-  sellerId: string;
-  sellerName: string;
-  sellerVerificationStatus: VerificationStatus;
-  listingId: string;
-  listingTitle: string;
-  listingVerificationStatus: ListingStatus;
-}
-```
-
 ### `NotificationItem` Interface (Updated)
 ```typescript
 export type NotificationType = 'inquiry' | 'verification' | 'system' | 'engagement' | 'listing_update' | 'new_message';
@@ -332,6 +313,9 @@ export interface NotificationItem {
 
 ### Constants for Filters/Dropdowns (Updated)
 ```typescript
+export const industries = ["Software", "Retail", "Manufacturing", "Services - Marketing", "E-commerce", "Healthcare", "Finance", "Education", "Real Estate", "Hospitality", "Agriculture", "Other"];
+export const asianCountries = ["Singapore", "Malaysia", "Indonesia", "Thailand", "Vietnam", "Philippines", "Hong Kong", "Japan", "South Korea", "India", "China", "Other"];
+
 export const revenueRanges = [
   "< $50K USD", "$50K - $100K USD", "$100K - $250K USD",
   "$250K - $500K USD", "$500K - $1M USD", "$1M+ USD"
@@ -341,12 +325,13 @@ export const profitMarginRanges = [
   "20% - 30%", "30%+"
 ];
 
+// placeholderKeywords is now used for the multi-select keyword filter
 export const placeholderKeywords: string[] = ["SaaS", "E-commerce", "Retail", "Service Business", "High Growth", "Profitable", "Fintech", "Logistics", "Healthcare Tech"];
 ```
 
 ## 2. Zod Validation Schemas
 
-Zod schemas are primarily defined inline within their respective form page components.
+Zod schemas are primarily defined inline within their respective form page components. Key schemas include:
 
 ### Buyer Registration Schema (`/app/auth/register/buyer/page.tsx`)
 *   Includes `fullName`, `email`, `password`, `confirmPassword`, `phoneNumber`, `country`.
@@ -377,7 +362,7 @@ Zod schemas are primarily defined inline within their respective form page compo
 *   Fields: `currentPassword`, `newPassword`, `confirmNewPassword`.
 
 ### Listing Creation/Edit Schema (`/app/seller-dashboard/listings/create/page.tsx` and `/app/seller-dashboard/listings/[listingId]/edit/page.tsx`) - Updated
-*   **Anonymous Info:** `listingTitleAnonymous`, `industry`, `locationCountry`, `locationCityRegionGeneral`, `anonymousBusinessDescription`, `keyStrengthsAnonymous` (array of strings), `annualRevenueRange`, `netProfitMarginRange` (optional), `reasonForSellingAnonymous` (optional).
+*   **Core Anonymous Info:** `listingTitleAnonymous`, `industry`, `locationCountry`, `locationCityRegionGeneral`, `anonymousBusinessDescription`, `keyStrengthsAnonymous` (array of strings), `annualRevenueRange`, `netProfitMarginRange` (optional).
 *   **Detailed/Verified Business Info:** `businessModel` (optional), `yearEstablished` (optional number), `registeredBusinessName` (optional), `actualCompanyName` (optional), `businessWebsiteUrl` (optional URL), `socialMediaLinks` (optional), `numberOfEmployees` (optional enum `employeeCountRanges`), `technologyStack` (optional).
 *   **Financials:**
     *   `askingPrice` (optional number).
@@ -385,9 +370,11 @@ Zod schemas are primarily defined inline within their respective form page compo
     *   `specificNetProfitLastYear` (optional number).
     *   `adjustedCashFlow` (optional number).
     *   `adjustedCashFlowExplanation` (optional string for adjusted cash flow).
-*   **Deal & Seller Info:** `dealStructureLookingFor` (optional array of strings from multi-select checkboxes, corresponding to `DealStructure[]`), `detailedReasonForSelling` (optional), `sellerRoleAndTimeCommitment` (optional), `postSaleTransitionSupport` (optional).
+*   **Deal & Seller Info:** `dealStructureLookingFor` (optional array of strings from multi-select checkboxes, corresponding to `DealStructure[]`), `reasonForSellingAnonymous` (optional), `detailedReasonForSelling` (optional), `sellerRoleAndTimeCommitment` (optional), `postSaleTransitionSupport` (optional).
 *   **Growth:** `specificGrowthOpportunities` (optional string for newline-separated bullet points).
 *   **Image URLs:** `imageUrl1` through `imageUrl5` (optional URLs, combined into `imageUrls` array of strings upon form submission).
 *   Rules: Includes min/max lengths, array validation, URL validation, number constraints.
 
 These types and schemas are fundamental to maintaining data integrity.
+
+    

@@ -1,158 +1,141 @@
 
 # Consolidated Backend TODO List
 
-This document provides a consolidated checklist of backend functionalities that need to be implemented for the BizMatch Asia platform. These tasks are primarily derived from the intended logic for API routes and interactions with services like Clerk (authentication) and Supabase (database, storage).
+This document provides a consolidated checklist of backend functionalities that need to be implemented for the Nobridge platform. These tasks are primarily derived from the intended logic for API routes and interactions with services like Cloudflare D1/R2.
 
-## I. Authentication & User Management (Clerk & Supabase)
+## I. Authentication & User Management (Conceptual: OTP based or Clerk)
 
 1.  **Buyer Registration (`POST /api/auth/register/buyer`):**
-    *   [ ] Validate input against Zod schema (`BuyerRegisterSchema`).
-    *   [ ] Check Supabase `user_profiles` table for existing email. Return 409 if exists.
-    *   [ ] Create user in Clerk (`clerkClient.users.createUser` with email, password, name).
-    *   [ ] Store buyer profile in Supabase `user_profiles` (link with Clerk User ID, set role 'buyer', default statuses `anonymous`/`false` for verification/paid, save persona fields).
-    *   [ ] Trigger Clerk's email verification flow.
+    *   [ ] Validate input against `BuyerRegisterSchema`.
+    *   [ ] Check D1 `user_profiles` for existing email.
+    *   [ ] Hash password.
+    *   [ ] Store buyer profile in D1 `user_profiles` (link with `user_id`, set role 'buyer', default statuses `anonymous`/`false` for verification/paid, save persona fields, `email_verified_at = NULL`).
+    *   [ ] Generate and send 'REGISTRATION' OTP.
     *   [ ] Implement robust error handling.
 2.  **Seller Registration (`POST /api/auth/register/seller`):**
-    *   [ ] Validate input against Zod schema (`SellerRegisterSchema`).
-    *   [ ] Check Supabase `user_profiles` for existing email. Return 409 if exists.
-    *   [ ] Create user in Clerk.
-    *   [ ] Store seller profile in Supabase `user_profiles` (link with Clerk User ID, set role 'seller', default statuses, save `initialCompanyName`).
-    *   [ ] Trigger Clerk email verification.
-    *   [ ] Implement error handling.
-3.  **User Login (Clerk Integration):**
-    *   [ ] Ensure Clerk frontend SDK and Next.js middleware correctly handle the login flow and session management.
-    *   [ ] (If custom API route/hook is used for post-login actions) Implement logic to update `last_login` timestamp in Supabase `user_profiles` table for the logged-in user.
-4.  **Forgot Password (Clerk Integration):**
-    *   [ ] Ensure Clerk frontend SDK correctly handles the forgot password flow.
-    *   [ ] (If custom API route is used) Implement logic using Clerk SDK to trigger password reset email.
-5.  **User Profile Update (`PUT /api/profile` or specific `/api/dashboard/profile`, `/api/seller-dashboard/profile`):**
-    *   [ ] Authenticate user via Clerk session (`auth().userId`).
-    *   [ ] Validate request body against `ProfileSchema`.
-    *   [ ] Update the user's profile data (name, phone, country, buyer persona fields for buyers, initial company name for sellers) in Supabase `user_profiles` table.
-    *   [ ] If `fullName` changes, update corresponding fields in Clerk (`clerkClient.users.updateUser`).
-    *   [ ] Return updated profile data.
-6.  **Password Change (`PUT /api/password` or specific dashboard routes):**
-    *   [ ] Authenticate user via Clerk session.
-    *   [ ] Validate request body against `PasswordChangeSchema`.
-    *   [ ] Use Clerk SDK (`clerkClient.users.updateUser`) to verify current password and set the new password.
-    *   [ ] Return success/error response.
+    *   [ ] Similar to buyer, role 'seller', save `initialCompanyName`.
+3.  **User Login - Initiate (`POST /api/auth/login/initiate`):**
+    *   [ ] Validate `email`, `password` against D1.
+    *   [ ] If valid & `email_verified_at` is NOT NULL, generate and send 'LOGIN' OTP.
+4.  **OTP Verification (`POST /api/auth/verify-otp`):**
+    *   [ ] Validate `email`, `otp`, `type`.
+    *   [ ] Verify OTP against D1 `otp_verifications`.
+    *   [ ] If type 'register', update `user_profiles.email_verified_at`.
+    *   [ ] If type 'login', generate session token/cookie, update `user_profiles.last_login`.
+    *   [ ] If type 'password_reset', allow password update.
+5.  **Forgot Password - Initiate (`POST /api/auth/forgot-password/initiate`):**
+    *   [ ] If user exists & verified, send 'PASSWORD_RESET' OTP.
+6.  **Reset Password - Complete (`POST /api/auth/reset-password/complete`):**
+    *   [ ] Verify 'PASSWORD_RESET' OTP via `/api/auth/verify-otp`.
+    *   [ ] Update password in D1.
+7.  **User Profile Update (`PUT /api/profile`):**
+    *   [ ] Authenticate user.
+    *   [ ] Validate request body against relevant `ProfileSchema`.
+    *   [ ] Update user's profile data in D1 `user_profiles`.
+8.  **Password Change (from Settings - `PUT /api/auth/change-password`):**
+    *   [ ] Authenticate user.
+    *   [ ] Validate `currentPassword`, `newPassword`.
+    *   [ ] Verify `currentPassword` against D1, then update with new hashed password.
 
-## II. Listing Management (Supabase & Supabase Storage)
+## II. Listing Management (D1 & R2)
 
 1.  **Create Listing (`POST /api/listings`):**
-    *   [ ] Authenticate user (ensure role is 'seller' via Clerk session and Supabase profile).
-    *   [ ] Validate request body against `ListingSchema`.
-    *   [ ] Insert new listing into Supabase `listings` table, linking to `seller_id`.
-    *   [ ] Set initial `status` (e.g., 'active' or 'pending_verification') and `is_seller_verified` (based on seller's current profile status).
-    *   [ ] **Implement file upload logic:** For fields like `imageUrl` and other document URLs (e.g., `financialDocumentsUrl`, `keyMetricsReportUrl`, `ownershipDocumentsUrl`):
-        *   Handle `multipart/form-data` if files are directly uploaded.
-        *   Securely upload files to Supabase Storage (e.g., under a path like `listings/[listingId]/documents/[filename]`).
-        *   Store the public or signed URLs generated by Supabase Storage in the corresponding fields of the `listings` table.
-    *   [ ] Return created listing data.
+    *   [ ] Authenticate seller.
+    *   [ ] Validate request body against `ListingSchema` (including `imageUrls` string array, `askingPrice` number, `adjustedCashFlow` number, `dealStructureLookingFor` string array).
+    *   [ ] Insert new listing into D1 `listings` table (store arrays as JSON strings, numbers as numbers).
+    *   [ ] Handle document uploads (if any) to R2, store R2 keys/URLs.
 2.  **Get Listings (Marketplace - `GET /api/listings`):**
-    *   [ ] Implement filtering based on query parameters (industry, country, revenueRange, priceRange, keywords).
-    *   [ ] Implement sorting based on query parameters.
-    *   [ ] Implement pagination.
-    *   [ ] Query Supabase `listings` table, ensuring only `active`, `verified_anonymous`, or `verified_public` listings are returned.
-    *   [ ] Only return fields suitable for anonymous public display, plus `is_seller_verified` (from joined `user_profiles` or listing itself).
+    *   [ ] Implement filtering: `industry`, `country`, numeric `minAskingPrice`/`maxAskingPrice`, `keywords[]` (array of strings, use multiple `LIKE` clauses).
+    *   [ ] Implement sorting and pagination.
+    *   [ ] Query D1 `listings`, return public anonymous fields.
 3.  **Get Single Listing (Public Detail - `GET /api/listings/[listingId]`):**
-    *   [ ] Fetch the specific listing from Supabase by `listingId`. Return 404 if not found or not publicly visible.
-    *   [ ] Fetch associated seller's profile from Supabase (`user_profiles`).
-    *   [ ] Get current authenticated user's details (ID, `verification_status`, `is_paid`) from Clerk session and Supabase.
-    *   [ ] Conditionally include detailed/verified fields (e.g., `actualCompanyName`, specific financials, document URLs, `potentialForGrowthNarrative`, `specificGrowthOpportunities`) in the response. This happens if the listing's seller is verified (`seller.verification_status === 'verified'`) AND the current viewing buyer is also verified (`currentUser.verification_status === 'verified'`) AND paid (`currentUser.is_paid === true`). Otherwise, only return anonymous fields.
+    *   [ ] Fetch listing from D1.
+    *   [ ] Conditionally include verified fields based on seller verification and requesting buyer's verification/paid status. Ensure response includes `imageUrls` array, `adjustedCashFlow`, `specificGrowthOpportunities`.
 4.  **Update Listing (Seller - `PUT /api/listings/[listingId]`):**
-    *   [ ] Authenticate seller and verify they own the listing (`listing.seller_id === auth().userId`).
-    *   [ ] Validate request body (partial `ListingSchema`, all fields optional).
-    *   [ ] Update listing data in Supabase `listings` table.
-    *   [ ] Handle potential updates/deletion of associated files in Supabase Storage.
-    *   [ ] Return updated listing data.
+    *   [ ] Authenticate seller and verify ownership.
+    *   [ ] Validate request body (partial `ListingSchema`).
+    *   [ ] Update D1 `listings`. Handle R2 file updates/deletions.
 
-## III. Inquiry System (Supabase)
+## III. Inquiry System (D1)
 
 1.  **Create Inquiry (`POST /api/inquiries`):**
-    *   [ ] Authenticate user (ensure role is 'buyer').
-    *   [ ] Validate `listingId`. Fetch the listing from Supabase to get `seller_id`.
-    *   [ ] Create a new record in Supabase `inquiries` table with `buyer_id` (from authenticated user), `listing_id`, `seller_id`, `inquiry_timestamp`, initial `status = 'new_inquiry'`, and optional `message`.
-    *   [ ] **Implement notification system:** Trigger a notification (in-app and/or email) to the seller about the new inquiry.
-    *   [ ] Return created inquiry data.
-2.  **Get Inquiries (for User Dashboards - `GET /api/inquiries`):**
-    *   [ ] Authenticate user. Fetch their role from Supabase `user_profiles`.
-    *   [ ] If role is 'buyer', fetch inquiries from Supabase where `buyer_id = auth().userId`.
-    *   [ ] If role is 'seller', fetch inquiries where `seller_id = auth().userId`. Allow optional `listingId` query parameter to filter by a specific listing.
-    *   [ ] For each inquiry, join with `listings` (for `listingTitleAnonymous`) and `user_profiles` (for buyer/seller names and verification statuses) to populate display fields.
-    *   [ ] Determine and include `statusBuyerPerspective` and `statusSellerPerspective` based on the inquiry's system `status` and the roles/verification statuses of involved parties.
+    *   [ ] Authenticate buyer.
+    *   [ ] Validate `listingId`. Fetch `seller_id`.
+    *   [ ] Create record in D1 `inquiries` (status `new_inquiry`, `conversationId = NULL`).
+    *   [ ] Notify seller.
+2.  **Get Inquiries (User Dashboards - `GET /api/inquiries`):**
+    *   [ ] Authenticate user. Fetch inquiries based on role (`buyer_id` or `seller_id`).
+    *   [ ] Join with `listings`, `user_profiles`. Include `conversationId`.
 3.  **Seller Engages with Inquiry (`POST /api/inquiries/[inquiryId]/engage`):**
-    *   [ ] Authenticate seller. Fetch inquiry by `inquiryId` and verify `inquiry.seller_id === auth().userId`.
-    *   [ ] Fetch buyer's `verification_status` (from `user_profiles`) and seller's listing's `verification_status` (or `seller.verification_status`).
-    *   [ ] Update `inquiries.status` in Supabase based on the defined verification flow logic (e.g., to 'seller_engaged_buyer_pending_verification', 'seller_engaged_seller_pending_verification', or 'ready_for_admin_connection').
-    *   [ ] Set `engagement_timestamp` on the inquiry.
-    *   [ ] **Implement notification system:** Trigger notifications to the buyer (e.g., "Seller engaged, your verification required") and/or admin (if ready for connection).
-    *   [ ] Return updated inquiry data.
+    *   [ ] Authenticate seller. Verify ownership.
+    *   [ ] Update `inquiries.status` based on verification flow (e.g., `seller_engaged_buyer_pending_verification`, `ready_for_admin_connection`).
+    *   [ ] Notify relevant parties.
 
-## IV. Verification System (Supabase)
+## IV. Verification System (D1)
 
 1.  **Create Verification Request (`POST /api/verification-requests`):**
-    *   [ ] Authenticate user (`auth().userId`).
-    *   [ ] Validate request body: `type: 'profile_buyer' | 'profile_seller' | 'listing'`, optional `listingId`, `bestTimeToCall`, `notes`.
-    *   [ ] If `type === 'listing'`, ensure `listingId` is provided and belongs to the authenticated seller.
-    *   [ ] Store the request in Supabase `verification_requests` table: include `user_id`, `request_type`, `listing_id` (if applicable), `notes`, `best_time_to_call`, and set initial `status = 'New Request'`.
-    *   [ ] Update `user_profiles.verification_status = 'pending_verification'` or `listings.status = 'pending_verification'` as appropriate.
-    *   [ ] **Implement notification system:** Notify the admin team about the new verification request.
+    *   [ ] Authenticate user.
+    *   [ ] Store request in D1 `verification_requests`.
+    *   [ ] Update `user_profiles.verification_status = 'pending_verification'` or `listings.status = 'pending_verification'`.
+    *   [ ] Notify admin team.
 
-## V. Admin Panel APIs (Supabase & Clerk)
+## V. Admin Panel APIs (D1)
 
-*   **General for all Admin APIs:**
-    *   [ ] **Implement Admin Authentication/Authorization:** Ensure all admin routes are protected and only accessible by users with an 'admin' role (e.g., check Clerk custom claims or a role field in Supabase `user_profiles`).
-    *   [ ] **Implement Audit Logging:** For all significant write operations (updates, deletes, status changes), log the action, admin user ID, target entity ID, and timestamp in an `audit_logs` table in Supabase.
+*   **General:** Implement Admin Auth, Audit Logging.
 *   **User Management:**
-    *   `GET /api/admin/users`: Implement fetching all users with pagination and filtering (by role, verification status, paid status).
-    *   `GET /api/admin/users/[userId]`: Fetch specific user details from `user_profiles`.
-    *   `PUT /api/admin/users/[userId]/status`: Update `verification_status` and `is_paid` in `user_profiles`.
-    *   `PUT /api/admin/users/[userId]/profile`: Allow admin to edit basic user profile fields in `user_profiles` (and potentially sync name to Clerk).
-    *   `DELETE /api/admin/users/[userId]`: Implement soft or hard delete for users in Supabase and Clerk. Consider implications for associated listings/inquiries.
-    *   `POST /api/admin/users/[userId]/reset-password-link`: Use Clerk SDK to trigger a password reset email for the user.
+    *   `GET /api/admin/users`: Fetch users with filters, pagination.
+    *   `GET /api/admin/users/[userId]`: Fetch specific user.
+    *   `PUT /api/admin/users/[userId]/status`: Update `verification_status`, `is_paid`.
+    *   `PUT /api/admin/users/[userId]/profile`: Edit user profile.
+    *   `POST /api/admin/users/[userId]/send-reset-otp`: Trigger password reset OTP.
 *   **Listing Management:**
-    *   `GET /api/admin/listings`: Fetch all listings with pagination and filtering.
-    *   `GET /api/admin/listings/[listingId]`: Fetch complete listing details (including all seller-provided fields and document URLs) for admin view.
-    *   `PUT /api/admin/listings/[listingId]/status`: Update listing `status` in Supabase (e.g., to 'verified_public', 'verified_anonymous', 'rejected', 'inactive'). Notify seller.
+    *   `GET /api/admin/listings`: Fetch listings with filters, pagination.
+    *   `GET /api/admin/listings/[listingId]`: Fetch full listing details.
+    *   `PUT /api/admin/listings/[listingId]/status`: Update listing `status`.
 *   **Verification Queues:**
-    *   `GET /api/admin/verification-requests`: Fetch requests from `verification_requests`, allow filtering by type (buyer, seller_profile, listing).
-    *   `PUT /api/admin/verification-requests/[requestId]/status`: Update request `status`. If 'Approved':
-        *   Update `user_profiles.verification_status = 'verified'`.
-        *   Or update `listings.status` to 'verified_anonymous' or 'verified_public' and potentially `listings.is_seller_verified = true`.
-        *   Notify the user.
-*   **Engagement Queue:**
-    *   `GET /api/admin/engagements`: Fetch inquiries from Supabase where `status = 'ready_for_admin_connection'`.
-    *   `PUT /api/admin/engagements/[engagementId]/status`: Update `inquiries.status` to 'connection_facilitated'. Notify buyer and seller.
-*   **Analytics:**
-    *   Implement API endpoints (e.g., `/api/admin/analytics/summary`, `/api/admin/analytics/users-breakdown`, etc.) that perform aggregation queries on Supabase tables (`user_profiles`, `listings`, `inquiries`) to calculate and return the metrics needed for the admin dashboard and analytics page.
+    *   `GET /api/admin/verification-requests`: Fetch requests.
+    *   `PUT /api/admin/verification-requests/[requestId]/status`: Update request status and related entity status.
+*   **Engagement Queue & Conversation Creation (`POST /api/admin/engagements/[inquiryId]/facilitate-connection`):**
+    *   [ ] Fetch `inquiry` by `inquiryId`.
+    *   [ ] Verify `inquiry.status` is `ready_for_admin_connection`.
+    *   [ ] **Create `Conversation` record in D1** (set `status: 'ACTIVE'`).
+    *   [ ] **Update `inquiries.status` to `CONNECTION_FACILITATED_IN_APP_CHAT_OPENED'`.**
+    *   [ ] **Update `inquiries.conversationId` with the new `conversationId`.**
+    *   [ ] Notify buyer and seller.
+*   **Analytics (`GET /api/admin/analytics/...`):**
+    *   [ ] Implement aggregation queries for metrics including "Total Listings (All Statuses)" (e.g., `SELECT COUNT(*) FROM listings`) and "Closed/Deactivated Listings" (e.g., `SELECT COUNT(*) FROM listings WHERE status IN ('inactive', 'closed_deal', 'rejected_by_admin')`).
+*   **Conversation Oversight (NEW):**
+    *   `GET /api/admin/conversations`: List all conversations with filters.
+    *   `GET /api/admin/conversations/[conversationId]/messages`: Get messages for a specific conversation.
+    *   `PUT /api/admin/conversations/[conversationId]/status`: Update conversation status (e.g., 'ARCHIVED_BY_ADMIN').
 
-## VI. General Backend & Infrastructure
+## VI. Messaging System (D1 & Conceptual Real-time)
 
-1.  **Database Schema Design (Supabase):**
-    *   [ ] Finalize and implement all necessary table schemas in Supabase: `user_profiles`, `listings`, `inquiries`, `verification_requests`, `notifications`, `admin_users`, `audit_logs`.
-    *   [ ] Define primary keys, foreign keys, relationships, indexes for performance, and appropriate constraints.
-2.  **Notification System:**
-    *   [ ] Design and implement a robust notification system. This could involve:
-        *   A `notifications` table in Supabase.
-        *   Logic in relevant API routes to create notification records.
-        *   (Future) Integration with an email service (e.g., SendGrid, AWS SES via Supabase Edge Functions) for email notifications.
-3.  **Environment Variables:**
-    *   [ ] Ensure all secrets (Clerk keys, Supabase URL & anon/service keys, email service keys) are managed via environment variables (`.env.local` for development, platform-specific for production).
-4.  **Error Handling & Logging:**
-    *   [ ] Implement consistent, centralized error handling and logging mechanisms for all API routes.
-5.  **Security Best Practices:**
-    *   [ ] Apply input sanitization where necessary.
-    *   [ ] Implement CSRF protection if using traditional form submissions that aren't handled by Next.js Server Actions or pure JSON APIs.
-    *   [ ] Consider rate limiting for sensitive endpoints.
-    *   [ ] Ensure proper authorization checks (role-based, ownership-based) for all operations.
-6.  **Deployment:**
-    *   [ ] Plan and set up deployment pipelines (e.g., Vercel, Netlify, AWS Amplify).
-    *   [ ] Configure Supabase and Clerk for production environments (separate projects or settings).
-7.  **Payment Integration (Future - Stripe):**
-    *   [ ] Implement Stripe Checkout or Elements for subscription payments.
-    *   [ ] Create a secure webhook endpoint (`/api/stripe/webhook`) to listen for Stripe events (e.g., `checkout.session.completed`, `customer.subscription.updated`).
-    *   [ ] Update `user_profiles.is_paid = true` and store subscription details in Supabase upon successful payment/subscription creation via webhook.
-    *   [ ] Provide a mechanism for users to manage their subscriptions (e.g., link to Stripe Customer Portal).
+1.  **Get User's Conversations (`GET /api/conversations`):**
+    *   [ ] Authenticate user.
+    *   [ ] Query D1 `conversations` table (joined with `listings`, `user_profiles`) for conversations where user is `buyer_id` or `seller_id` and `status = 'ACTIVE'`.
+    *   [ ] Calculate unread counts for current user. Paginate.
+2.  **Get Messages for a Conversation (`GET /api/conversations/[conversationId]/messages`):**
+    *   [ ] Authenticate user and verify participation.
+    *   [ ] Fetch `messages` from D1 for `conversationId`.
+    *   [ ] Mark fetched messages as read in D1 for the current user.
+    *   [ ] Update user's unread count on the `Conversation` record to 0. Paginate.
+3.  **Send Message (`POST /api/conversations/[conversationId]/messages`):**
+    *   [ ] Authenticate user and verify participation.
+    *   [ ] Create new `Message` record in D1.
+    *   [ ] Update `Conversation` record (`updated_at`, `lastMessageSnippet`, increment receiver's unread count).
+    *   [ ] Implement real-time notification (MVP: client polls or simple push).
+
+## VII. General Backend & Infrastructure
+
+1.  **Database Schema Design (D1):**
+    *   [ ] Finalize and implement all table schemas including `user_profiles`, `listings`, `inquiries`, `otp_verifications`, `verification_requests`, `conversations`, `messages`, `notifications`, `audit_logs`.
+    *   [ ] Define keys, relationships, indexes.
+2.  **Notification System:** Design and implement `notifications` table and logic.
+3.  **Environment Variables & Security:** Manage secrets, input sanitization, rate limiting.
+4.  **Error Handling & Logging.**
+5.  **Deployment:** Plan for Cloudflare Workers.
 
 This checklist should guide the backend development process.
+
+    

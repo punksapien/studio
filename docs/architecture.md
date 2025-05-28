@@ -1,7 +1,7 @@
 
 # Project Architecture
 
-This document outlines the technical architecture of the BizMatch Asia platform.
+This document outlines the technical architecture of the Nobridge platform.
 
 ## 1. Frontend Technology Stack
 
@@ -29,18 +29,18 @@ This document outlines the technical architecture of the BizMatch Asia platform.
     *   Database interactions (CRUD operations for users, listings, inquiries, conversations, messages).
     *   Form submissions from the frontend.
     *   Integration with third-party services.
-*   **Current State:** The frontend forms (e.g., registration, login, listing creation) are built with the *intention* of submitting data to these API routes. However, the routes themselves are placeholders that need full backend implementation.
+    *   In-app messaging functionalities.
+*   **Current State:** The frontend forms (e.g., registration, login, listing creation) and messaging UI are built with the *intention* of submitting data to these API routes. However, the routes themselves are placeholders that need full backend implementation.
 
 ## 4. Intended Backend Services (Future Integrations)
 
 The project is designed with the following backend services in mind for future integration:
 
-*   **Authentication:** Clerk (Version 6.19.5)
+*   **Authentication:** Clerk (Version 6.19.5) or a custom OTP-based solution.
     *   Intended to handle user registration, login, session management, email verification, and password reset flows.
-    *   The frontend was prototyped with Clerk's components and middleware concepts, although this has been temporarily reverted in the UI to basic placeholders.
-*   **Database & Storage:** Supabase (or Cloudflare D1/R2)
-    *   Intended to serve as the primary SQL database for storing user profiles, business listings, inquiries, conversations, messages, and other application data.
-    *   Supabase Storage (or Cloudflare R2) is planned for handling uploaded documents (e.g., verification documents, financial statements, message attachments).
+*   **Database & Storage:** Cloudflare D1 (SQL Database) & Cloudflare R2 (Object Storage).
+    *   D1 is intended to serve as the primary SQL database for storing user profiles, business listings, inquiries, conversations, messages, and other application data.
+    *   R2 is planned for handling uploaded documents (e.g., verification documents, financial statements, message attachments).
 *   **AI Functionality (Genkit):** Genkit (Version 1.8.0)
     *   Integrated for potential AI-driven features. Configuration is in `src/ai/genkit.ts`.
     *   Development server script for Genkit is in `src/ai/dev.ts`.
@@ -75,7 +75,7 @@ The project is designed with the following backend services in mind for future i
     *   UI built with React, ShadCN UI, and Tailwind CSS.
     *   State management for message display and input primarily uses local component state (`useState`, `useEffect`).
     *   Placeholder data (`sampleConversations`, `sampleMessages`) drives the UI.
-    *   Simulated real-time updates (e.g., new messages appearing) would be handled client-side during prototyping.
+    *   Simulated real-time updates (e.g., new messages appearing) would be handled client-side during prototyping (e.g., by updating local state).
 *   **Intended Backend (Cloudflare Workers & D1):**
     *   `Conversation` and `Message` data stored in D1 tables.
     *   Next.js API routes (handled by Cloudflare Workers) for:
@@ -89,3 +89,5 @@ The project is designed with the following backend services in mind for future i
 
 ### 7.3. Alternative Approaches & Future Considerations
 *   **Third-Party Chat SDKs:** For a production-ready system, using a dedicated third-party chat SDK like TalkJS, Sendbird, or Stream could be considered. These services offer pre-built UIs, real-time infrastructure, scalability, and advanced features (typing indicators, read receipts, file attachments, moderation tools) out-of-the-box, potentially reducing development time and complexity for the core chat functionality. Integration would involve their client-side SDKs and backend webhooks.
+
+    

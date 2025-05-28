@@ -22,12 +22,12 @@ This document outlines the specifications for the Next.js API routes that are *i
     *   `investmentFocusDescription?: string`
     *   `preferredInvestmentSize?: PreferredInvestmentSize`
     *   `keyIndustriesOfInterest?: string`
-*   **Success Response (201 Created):**
+*   **Success Response (200 OK / 201 Created - Conceptual, OTP flow):**
     ```json
     {
       "success": true,
-      "message": "Buyer registered successfully. Please check your email to verify your account.",
-      "userId": "<clerk_user_id_or_internal_id>"
+      "message": "Registration initiated. Please check your email for an OTP to verify your account.",
+      "email": "<user_email>" // For OTP verification step
     }
     ```
 *   **Error Responses:**
@@ -47,9 +47,9 @@ This document outlines the specifications for the Next.js API routes that are *i
     1.  **Validation:** Parse and validate the request body using `BuyerRegisterSchema`. If invalid, return 400.
     2.  **Email Check (D1):** Query `user_profiles` table in D1 to check if `email` already exists. If so, return 409.
     3.  **Password Hashing:** Hash password.
-    4.  **Profile Creation (D1):** Insert a new record into `user_profiles` table.
-    5.  **OTP Generation & Email:** Generate OTP, store it (hashed) in `otp_verifications`, send OTP email.
-    6.  **Response:** Return 201 success with user ID/email for OTP page.
+    4.  **Profile Creation (D1):** Insert a new record into `user_profiles` (status `email_unverified`).
+    5.  **OTP Generation & Email:** Generate OTP, store it (hashed) in `otp_verifications`, send OTP email (type `REGISTRATION`).
+    6.  **Response:** Return success with email for OTP page.
 
 ### 1.2. Seller Registration
 *   **File Path (Intended):** `src/app/api/auth/register/seller/route.ts`
@@ -65,37 +65,53 @@ This document outlines the specifications for the Next.js API routes that are *i
 *   **Success/Error Responses:** Similar structure to Buyer Registration.
 *   **Intended Backend Logic (Conceptual for D1 & Workers):** Similar to buyer, but role is 'seller'.
 
-### 1.3. User Login
-*   **File Path (Intended):** `POST /api/auth/login/initiate` (for credential check & OTP trigger)
+### 1.3. User Login (Initiate OTP)
+*   **File Path (Intended):** `POST /api/auth/login/initiate`
 *   **HTTP Method:** `POST`
+*   **Purpose:** Validates credentials and triggers OTP for login.
 *   **Request Body Schema:** (Refers to `LoginSchema` from `/app/auth/login/page.tsx`)
     *   `email: string`
     *   `password: string`
 *   **Success Response (200 OK):**
     ```json
-    { "success": true, "message": "Credentials verified. OTP sent to your email." }
+    { "success": true, "message": "Credentials verified. OTP sent to your email.", "email": "<user_email>" }
     ```
+*   **Error Responses:** `401 Unauthorized` (invalid credentials), `403 Forbidden` (email not verified).
 *   **Intended Backend Logic (Conceptual for D1 & Workers):**
-    1.  Validate credentials against D1.
-    2.  If valid and email verified, generate and send Login OTP.
+    1.  Validate credentials against D1 (`user_profiles`).
+    2.  If valid and email verified, generate and send Login OTP (type `LOGIN`).
 
-### 1.4. OTP Verification
+### 1.4. OTP Verification (Unified Endpoint)
 *   **File Path (Intended):** `POST /api/auth/verify-otp`
 *   **Request Body:** `{ email: string, otp: string, type: 'register' | 'login' | 'password_reset' }`
 *   **Success Response (200 OK):**
     *   Register: `{ "success": true, "message": "Email verified. Please login." }`
     *   Login: `{ "success": true, "message": "Login successful.", "sessionToken": "...", "user": { ... } }`
+    *   Password Reset: `{ "success": true, "message": "OTP verified. Please proceed to reset your password." }`
 *   **Intended Backend Logic (Conceptual for D1 & Workers):**
-    1.  Verify OTP against stored hashed OTP in D1.
+    1.  Verify OTP against stored hashed OTP in D1 (`otp_verifications`).
     2.  If 'register', update `user_profiles.email_verified_at`.
     3.  If 'login', generate session, update `last_login`.
+    4.  If 'password_reset', mark OTP as used, allow password update step.
 
-### 1.5. Forgot Password
+### 1.5. Forgot Password (Initiate OTP)
 *   **File Path (Intended):** `POST /api/auth/forgot-password/initiate`
 *   **Request Body Schema:** (Refers to `ForgotPasswordSchema` from `/app/auth/forgot-password/page.tsx`)
     *   `email: string`
+*   **Success Response (200 OK):**
+    ```json
+    { "success": true, "message": "If an account with that email exists, an OTP for password reset has been sent.", "email": "<user_email>" }
+    ```
 *   **Intended Backend Logic (Conceptual for D1 & Workers):**
     1.  Validate email. If user exists and verified, generate and send 'PASSWORD_RESET' OTP.
+
+### 1.6. Reset Password (Complete with OTP)
+*   **File Path (Intended):** `POST /api/auth/reset-password/complete`
+*   **Request Body:** `{ email: string, otp: string, newPassword: string }`
+*   **Success Response (200 OK):** `{ "success": true, "message": "Password has been reset successfully." }`
+*   **Intended Backend Logic (Conceptual):**
+    1.  Verify OTP (type 'PASSWORD_RESET') via `/api/auth/verify-otp`.
+    2.  If OTP valid, hash `newPassword` and update in D1.
 
 ## 2. User Profile Routes (`/api/profile/*`)
 
@@ -113,10 +129,10 @@ This document outlines the specifications for the Next.js API routes that are *i
     2.  Validate request body.
     3.  Update corresponding fields in D1 `user_profiles` table.
 
-### 2.2. Change Password
+### 2.2. Change Password (From Settings Page)
 *   **File Path (Intended):** `PUT /api/auth/change-password`
 *   **HTTP Method:** `PUT`
-*   **Request Body Schema:** (Refers to `PasswordChangeSchema` from profile pages)
+*   **Request Body Schema:** (Refers to `PasswordChangeSchema` from profile/settings pages)
     *   `currentPassword: string`
     *   `newPassword: string`
 *   **Success Response (200 OK):**
@@ -133,15 +149,15 @@ This document outlines the specifications for the Next.js API routes that are *i
 *   **HTTP Method:** `POST`
 *   **Purpose:** Creates a new business listing for the authenticated seller.
 *   **Request Body Schema:** (Refers to `ListingSchema` from `/app/seller-dashboard/listings/create/page.tsx`)
-    * Includes `imageUrls` as `string[]`, `askingPrice` as `number`, `adjustedCashFlow` as `number`, `adjustedCashFlowExplanation` as `string`, `specificGrowthOpportunities` as string, and `dealStructureLookingFor` as `string[]`.
+    * Includes `imageUrls` as `string[]` (max 5), `askingPrice` as `number`, `adjustedCashFlow` as `number` (optional), `adjustedCashFlowExplanation` as `string` (optional), `specificGrowthOpportunities` as `string` (newline-separated points), and `dealStructureLookingFor` as `string[]` (multi-select).
 *   **Success Response (201 Created):**
     ```json
     { "success": true, "message": "Listing created successfully.", "listing": { /* created listing data */ } }
     ```
 *   **Intended Backend Logic (Conceptual for D1, R2 & Workers):**
     1.  Authenticate seller. Validate.
-    2.  Insert new listing into D1 `listings` table. Store `imageUrls` and `dealStructureLookingFor` as JSON string arrays.
-    3.  Handle file uploads (for document fields if any) to R2, store keys/URLs.
+    2.  Insert new listing into D1 `listings` table. Store `imageUrls` and `dealStructureLookingFor` as JSON string arrays. Store `askingPrice` and `adjustedCashFlow` as numbers.
+    3.  Handle file uploads (for document fields if any, via R2) to R2, store keys/URLs.
 
 ### 3.2. Get Listings (Marketplace)
 *   **File Path (Intended):** `GET /api/listings`
@@ -159,7 +175,9 @@ This document outlines the specifications for the Next.js API routes that are *i
     ```
 *   **Intended Backend Logic (Conceptual for D1 & Workers):**
     1.  Parse query parameters.
-    2.  Build D1 query: filter by `askingPrice >= minAskingPrice AND askingPrice <= maxAskingPrice`. For `keywords`, use multiple `OR columnName LIKE '%keyword%'` clauses.
+    2.  Build D1 query:
+        *   Filter by `askingPrice >= minAskingPrice AND askingPrice <= maxAskingPrice` (if `askingPrice` is numeric).
+        *   For `keywords` (array of strings), use multiple `OR columnName LIKE '%keyword%'` clauses for relevant text fields.
     3.  Implement sorting and pagination.
 
 ### 3.3. Get Single Listing (Public Detail)
@@ -176,7 +194,7 @@ This document outlines the specifications for the Next.js API routes that are *i
 ### 3.4. Update Listing (Seller)
 *   **File Path (Intended):** `PUT /api/listings/[listingId]`
 *   **Request Body Schema:** (Partial `ListingSchema`)
-    *   Includes `imageUrls` as `string[]`, `askingPrice` as `number`, `adjustedCashFlow` as `number`, `adjustedCashFlowExplanation` as `string`, `specificGrowthOpportunities` as string, and `dealStructureLookingFor` as `string[]`.
+    *   Includes `imageUrls` as `string[]`, `askingPrice` as `number`, `adjustedCashFlow` as `number` (optional), `adjustedCashFlowExplanation` as `string` (optional), `specificGrowthOpportunities` as `string`, and `dealStructureLookingFor` as `string[]`.
 *   **Intended Backend Logic (Conceptual for D1, R2 & Workers):**
     1.  Authenticate seller, verify ownership.
     2.  Update listing in D1. Handle file updates/deletions in R2.
@@ -192,7 +210,7 @@ This document outlines the specifications for the Next.js API routes that are *i
     { "success": true, "message": "Inquiry submitted.", "inquiry": { /* created inquiry data */ } }
     ```
 *   **Intended Backend Logic (Conceptual for D1 & Workers):**
-    1.  Authenticate buyer. Create record in D1 `inquiries`.
+    1.  Authenticate buyer. Create record in D1 `inquiries`. Set `conversationId` to NULL.
     2.  Trigger notification to seller.
 
 ### 4.2. Get Inquiries (for User Dashboards)
@@ -200,23 +218,21 @@ This document outlines the specifications for the Next.js API routes that are *i
 *   **Query Parameters:** `role: 'buyer' | 'seller'`, `listingId?: string`
 *   **Success Response (200 OK):**
     ```json
-    { "success": true, "inquiries": [ /* array of inquiry objects */ ] }
+    { "success": true, "inquiries": [ /* array of inquiry objects including conversationId */ ] }
     ```
 *   **Intended Backend Logic (Conceptual for D1 & Workers):**
-    1.  Authenticate user. Fetch inquiries based on role. Join with other tables for details.
+    1.  Authenticate user. Fetch inquiries based on role. Join with other tables for details. Include `conversationId`.
 
 ### 4.3. Seller Engages with Inquiry
 *   **File Path (Intended):** `POST /api/inquiries/[inquiryId]/engage`
 *   **HTTP Method:** `POST`
 *   **Success Response (200 OK):**
     ```json
-    { "success": true, "message": "Engagement status updated.", "inquiry": { /* updated inquiry data */ } }
+    { "success": true, "message": "Engagement status updated. Buyer/Seller verification may be required.", "inquiry": { /* updated inquiry data */ } }
     ```
 *   **Intended Backend Logic (Conceptual for D1 & Workers):**
-    1.  Authenticate seller. Update `inquiries.status` based on verification flow.
-    2.  If both parties are verified, this route *might* also trigger conversation creation in the future, but the primary conversation creation is now through admin action.
-    3.  Update `inquiry.status` to reflect engagement.
-    4.  Trigger notifications.
+    1.  Authenticate seller. Update `inquiries.status` based on verification flow (e.g., to `seller_engaged_buyer_pending_verification`, `seller_engaged_seller_pending_verification`, or `ready_for_admin_connection`).
+    2.  Trigger notifications.
 
 ## 5. Verification Request Routes (`/api/verification-requests/*`)
 
@@ -229,22 +245,15 @@ This document outlines the specifications for the Next.js API routes that are *i
 
 ## 6. Messaging Routes (`/api/conversations/*`) (NEW)
 
-### 6.1. Create Conversation (Admin Initiated)
-*   **File Path (Conceptual - part of Admin action):** `POST /api/admin/engagements/[inquiryId]/facilitate-connection` (This existing Admin route is expanded)
-*   **HTTP Method:** `POST`
-*   **Purpose:** Triggered by an Admin when they "Mark Connection as Facilitated" for an inquiry. This action now also creates the conversation.
-*   **Request Payload (from Admin Panel Frontend):** `{ inquiryId: string }` (Though `inquiryId` is usually from path parameter).
-*   **Success Response (200 OK):**
-    ```json
-    { "success": true, "message": "Connection facilitated and conversation created.", "conversationId": "<new_conversation_id>" }
-    ```
-*   **Intended Backend Logic (Conceptual for D1 & Workers):**
-    1.  Admin authentication.
-    2.  Fetch `inquiry` details using `inquiryId` (buyerId, sellerId, listingId).
-    3.  Create a new `Conversation` record in D1 (with `status: 'ACTIVE'`).
-    4.  Update `inquiries.status` to 'CONNECTION_FACILITATED_IN_APP_CHAT_OPENED'.
-    5.  Update `inquiries.conversationId` with the new conversation ID.
-    6.  Notify buyer and seller that chat is available.
+### 6.1. Create Conversation (Admin Initiated via Engagement Flow)
+*   **Conceptual Trigger:** Part of the `POST /api/admin/engagements/[inquiryId]/facilitate-connection` API call by an Admin.
+*   **Purpose:** Creates the actual conversation record in D1 when an admin facilitates a connection for an inquiry.
+*   **Intended Backend Logic (within `facilitate-connection`):**
+    1.  Fetch inquiry, extract buyerId, sellerId, listingId.
+    2.  Create a new `Conversation` record in D1 (with `status: 'ACTIVE'`).
+    3.  Update `inquiries.status` to `'CONNECTION_FACILITATED_IN_APP_CHAT_OPENED'`.
+    4.  Update `inquiries.conversationId` with the new conversation ID.
+    5.  Notify buyer and seller.
 
 ### 6.2. Get User's Conversations (List)
 *   **File Path (Intended):** `GET /api/conversations`
@@ -304,7 +313,7 @@ This document outlines the specifications for the Next.js API routes that are *i
     1.  Authenticate user and verify participation in `conversationId`.
     2.  Fetch `messages` from D1 for this `conversationId`, ordered by `timestamp` ASC (or DESC for pagination).
     3.  Mark fetched messages as read for the current user: `UPDATE messages SET is_read = true WHERE conversation_id = ? AND receiver_id = ? AND is_read = false`.
-    4.  Update `conversations.unreadCount` for the current user for this `conversationId` to 0.
+    4.  Update `conversations.[buyer/seller]_unread_count` for the current user for this `conversationId` to 0.
 
 ### 6.4. Send Message in Conversation
 *   **File Path (Intended):** `POST /api/conversations/[conversationId]/messages`
@@ -329,8 +338,8 @@ This document outlines the specifications for the Next.js API routes that are *i
     2.  Determine `receiverId` from conversation.
     3.  Create new `Message` record in D1.
     4.  Update `conversations.updatedAt` and `lastMessageSnippet`.
-    5.  Increment `unreadCount` for the `receiverId` on the `Conversation` record.
-    6.  Trigger real-time notification/event (e.g., push notification, or client polls).
+    5.  Increment `[buyer/seller]_unread_count` for the `receiverId` on the `Conversation` record.
+    6.  Trigger real-time notification/event.
 
 ## 7. Admin Panel API Routes (Conceptual - All require Admin Auth)
 
@@ -340,7 +349,7 @@ This document outlines the specifications for the Next.js API routes that are *i
 *   **`/api/admin/engagements`**:
     *   `GET`: Fetch engagements ready for connection (status `READY_FOR_ADMIN_CONNECTION`).
     *   `POST /[inquiryId]/facilitate-connection`: (Was PUT) This route is now responsible for:
-        1.  Updating `inquiries.status` to 'CONNECTION_FACILITATED_IN_APP_CHAT_OPENED'.
+        1.  Updating `inquiries.status` to `CONNECTION_FACILITATED_IN_APP_CHAT_OPENED`.
         2.  **Creating the `Conversation` record (with `status: 'ACTIVE'`).**
         3.  Updating `inquiries.conversationId` with the new conversation ID.
         4.  Notifying buyer and seller.
@@ -351,6 +360,8 @@ This document outlines the specifications for the Next.js API routes that are *i
 *   **`/api/admin/conversations/[conversationId]/status` (NEW)**
     *   `PUT`: Update conversation status (e.g., 'ARCHIVED_BY_ADMIN').
         *   Request Body: `{ newStatus: ConversationStatus }`
-*   **`/api/admin/analytics`**: (Existing - endpoints for various metrics)
+*   **`/api/admin/analytics`**: (Existing - endpoints for various metrics, ensure "Total Listings" and "Closed/Deactivated Listings" metrics are included).
 
 This outlines the intended API structure, including new messaging endpoints and admin oversight for conversations.
+
+    

@@ -20,220 +20,141 @@ This section details the core authentication mechanisms, focusing on an OTP (One
 ### A. User Registration (Seller)
 
 *   **Triggering UI:** Seller Registration Form submission (`src/app/auth/register/seller/page.tsx`).
-*   **Conceptual Next.js API Route:** `POST /api/auth/register/seller/initiate` (This route initiates registration and OTP sending).
-*   **Detailed Backend Worker Logic (for `POST /api/auth/register/seller/initiate`):**
-    1.  **Receive Request:** Worker receives a POST request containing seller data: `fullName`, `email`, `password` (plain text from form), `phoneNumber`, `country`, `initialCompanyName` (optional).
-    2.  **Validate Input:** Use the Zod schema (`SellerRegisterSchema` from the frontend or a shared API schema) to validate all received data. If validation fails, return a 400 Bad Request error with validation details.
-    3.  **Check Email Uniqueness (D1 Query):** Query the `user_profiles` table in D1: `SELECT user_id FROM user_profiles WHERE email = ?`. If a record is found (even if email is not yet verified), return a 409 Conflict error (e.g., "Email address already in use or pending verification.").
-    4.  **Password Hashing:** Generate a salt. Hash the received plain-text `password` using a strong hashing algorithm (e.g., Argon2id, scrypt, or bcrypt; Cloudflare Workers support Web Crypto API for hashing like SHA-256, but a dedicated password hashing library/method is preferred for password storage).
-    5.  **Store Provisional User Record (D1 Insert):** Insert a new record in `user_profiles` table with:
-        *   `user_id`: Generate a new unique ID (e.g., UUID).
-        *   `full_name`, `email` (consistent case, e.g., lowercase).
-        *   `hashed_password`, `password_salt`.
-        *   `phone_number`, `country`.
-        *   `role`: Set to `'SELLER'`.
-        *   `verification_status`: Set to `'ANONYMOUS'`.
-        *   `is_paid`: Set to `false`.
-        *   `initial_company_name` (if provided).
-        *   `email_verified_at`: `NULL` (until OTP verification).
-        *   Timestamps: `created_at`, `updated_at`.
-    6.  **Generate and Send OTP (for Email Verification):**
-        *   Call a shared OTP generation/sending function (see "I.G. OTP Logic").
-        *   This function will generate an OTP, hash it, store it in an `otp_verifications` table in D1 (linked to `email` or `user_id`, with `type='REGISTRATION'`, and expiry), and send the plain OTP to the user's email.
-    7.  **Return Success Response:** Return a 200 OK status with a success message (e.g., "Registration initiated. Please check your email for an OTP.") and the `email` (to be passed to the `/auth/verify-otp` page).
+*   **Conceptual Next.js API Route:** `POST /api/auth/register/seller` (Initiates registration and OTP sending).
+*   **Detailed Backend Worker Logic:**
+    1.  **Receive Request:** Worker receives POST with seller data: `fullName`, `email`, `password` (plain text), `phoneNumber`, `country`, `initialCompanyName` (optional).
+    2.  **Validate Input:** Use Zod schema (`SellerRegisterSchema`).
+    3.  **Check Email Uniqueness (D1 Query):** `SELECT user_id FROM user_profiles WHERE email = ?`. If found, return 409.
+    4.  **Password Hashing:** Hash `password`.
+    5.  **Store Provisional User Record (D1 Insert):** `user_profiles` table with `role='SELLER'`, `verification_status='ANONYMOUS'`, `email_verified_at=NULL`.
+    6.  **Generate and Send OTP:** Call OTP logic (type `REGISTRATION`).
+    7.  **Return Success Response:** 200 OK with `email` for OTP page.
 
 ### B. User Registration (Buyer)
 
-*   **Triggering UI:** Buyer Registration Form submission (`src/app/auth/register/buyer/page.tsx`).
-*   **Conceptual Next.js API Route:** `POST /api/auth/register/buyer/initiate`.
-*   **Detailed Backend Worker Logic (for `POST /api/auth/register/buyer/initiate`):**
-    1.  **Receive Request:** Worker receives buyer data: `fullName`, `email`, `password`, `phoneNumber`, `country`, `buyerPersonaType`, `buyerPersonaOther` (if applicable), `investmentFocusDescription`, `preferredInvestmentSize`, `keyIndustriesOfInterest`.
+*   **Triggering UI:** Buyer Registration Form (`src/app/auth/register/buyer/page.tsx`).
+*   **Conceptual Next.js API Route:** `POST /api/auth/register/buyer`.
+*   **Detailed Backend Worker Logic:**
+    1.  **Receive Request:** Worker receives buyer data including persona fields.
     2.  **Validate Input:** Use Zod schema (`BuyerRegisterSchema`).
-    3.  **Check Email Uniqueness (D1 Query):** (As per Seller registration).
-    4.  **Password Hashing:** (As per Seller registration).
-    5.  **Store Provisional User Record (D1 Insert):** Insert into `user_profiles` with all buyer-specific fields (e.g., `buyer_persona_type`, `investment_focus_description`), `role` set to `'BUYER'`, and `email_verified_at` set to `NULL`.
-    6.  **Generate and Send OTP (for Email Verification):** (As per Seller registration, type 'REGISTRATION').
+    3.  **Check Email Uniqueness (D1 Query).**
+    4.  **Password Hashing.**
+    5.  **Store Provisional User Record (D1 Insert):** `user_profiles` with buyer-specific fields, `role='BUYER'`, `email_verified_at=NULL`.
+    6.  **Generate and Send OTP:** (Type `REGISTRATION`).
     7.  **Return Success Response:** With `email`.
 
 ### C. User Login - Step 1: Credential Validation & OTP Trigger
 
-*   **Triggering UI:** Login Form submission (`src/app/auth/login/page.tsx`).
+*   **Triggering UI:** Login Form (`src/app/auth/login/page.tsx`).
 *   **Conceptual Next.js API Route:** `POST /api/auth/login/initiate`.
 *   **Detailed Backend Worker Logic:**
-    1.  **Receive Request:** Worker receives POST request with `email` and `password`.
+    1.  **Receive Request:** `email`, `password`.
     2.  **Validate Input:** Use Zod schema (`LoginSchema`).
-    3.  **Fetch User (D1 Query):** Query `user_profiles` table: `SELECT user_id, hashed_password, password_salt, role, verification_status, is_paid, full_name, email_verified_at FROM user_profiles WHERE email = ?`.
-    4.  **User Existence & Password Verification:** If no user found, or if re-hashing the provided `password` with the fetched `password_salt` does not match `hashed_password`, return 401 Unauthorized (e.g., "Invalid credentials.").
-    5.  **Check Email Verification Status:** If `email_verified_at` is `NULL`, the user hasn't completed their initial registration OTP. Return an error like "Email not verified. Please complete registration via OTP."
-    6.  **Generate and Send OTP (for Login 2FA):**
-        *   Call shared OTP generation/sending function (see "I.G. OTP Logic") with `type='LOGIN'`.
-    7.  **Return Success Response:** Return 200 OK with message "Credentials verified. Please check your email for an OTP to complete login." and `email`.
+    3.  **Fetch User (D1 Query):** From `user_profiles`.
+    4.  **Verify Password & Email Status:** If no user, password mismatch, or `email_verified_at` is `NULL`, return appropriate error.
+    5.  **Generate and Send OTP:** (Type `LOGIN`).
+    6.  **Return Success Response:** 200 OK with `email`.
 
 ### D. User Logout
 
-*   **Triggering UI:** Logout button (e.g., in user dashboards or main navbar if logged in).
+*   **Triggering UI:** Logout button.
 *   **Conceptual Next.js API Route:** `POST /api/auth/logout`.
-*   **Detailed Backend Worker Logic:**
-    1.  **Receive Request:** Authenticated request (valid session).
-    2.  **Clear Session Cookie:** Instruct client to clear the session cookie (e.g., by setting an expired cookie).
-    3.  **Invalidate Session (Backend):** If using server-side session storage (e.g., Cloudflare KV or D1 linked to a session ID), delete or mark the session as invalid.
-    4.  **Return Success Response:** 200 OK.
+*   **Detailed Backend Worker Logic:** Clear session cookie, invalidate server-side session if any.
 
 ### E. Forgot Password - Step 1: Request Reset OTP
 
-*   **Triggering UI:** Forgot Password Form submission (`src/app/auth/forgot-password/page.tsx`).
+*   **Triggering UI:** Forgot Password Form (`src/app/auth/forgot-password/page.tsx`).
 *   **Conceptual Next.js API Route:** `POST /api/auth/forgot-password/initiate`.
 *   **Detailed Backend Worker Logic:**
-    1.  **Receive Request:** Worker receives POST request with `email`.
-    2.  **Validate Input:** Use Zod schema.
-    3.  **Fetch User (D1 Query):** Query `user_profiles`: `SELECT user_id, email_verified_at FROM user_profiles WHERE email = ?`.
-    4.  **Process Request:** If user exists AND `email_verified_at` IS NOT NULL, generate and send OTP (type 'PASSWORD_RESET', see "I.G. OTP Logic").
-    5.  **Return Generic Success Response:** Always return 200 OK with "If an account with that email exists and is verified, an OTP for password reset has been sent." (Prevents email enumeration).
+    1.  **Receive Request:** `email`.
+    2.  **Validate Input.**
+    3.  **Fetch User (D1 Query):** If user exists and `email_verified_at` IS NOT NULL, generate and send OTP (type `PASSWORD_RESET`).
+    4.  **Return Generic Success Response:** To prevent email enumeration.
 
 ### F. Reset Password - Step 2: Verify OTP and Update Password
 
-*   **Triggering UI:** New Password Form (after user clicks link from reset email, conceptually landing on a page like `/auth/reset-password?token=...` which submits to this endpoint).
+*   **Triggering UI:** New Password Form (after OTP verification from reset email).
 *   **Conceptual Next.js API Route:** `POST /api/auth/reset-password/complete`.
 *   **Detailed Backend Worker Logic:**
-    1.  **Receive Request:** Worker receives POST with `token` (the OTP itself or a unique ID mapping to it), `newPassword`, `confirmNewPassword`.
-    2.  **Validate Input:** Zod schema for token format and new password rules (strength, match).
-    3.  **Verify Reset Token & Fetch User ID (D1 Query):**
-        *   Query `otp_verifications` table: `SELECT user_id, expires_at, used_at FROM otp_verifications WHERE (otp = HASH(?) OR unique_token_id = ?) AND type = 'PASSWORD_RESET'`. (Adjust based on whether token is the OTP or a mapper).
-        *   If no token found, or `expires_at` is past, or `used_at` IS NOT NULL, return 400 error ("Invalid or expired password reset token.").
-        *   Fetch the `user_id` associated with the valid token.
-    4.  **Mark Token as Used (D1 Update):** `UPDATE otp_verifications SET used_at = DATETIME('now') WHERE otp_id = ?` (or by token value).
-    5.  **Update Password (D1 Update):** Generate new salt, hash `newPassword`. Update `hashed_password` and `password_salt` in `user_profiles` for the fetched `user_id`.
-    6.  **Return Success Response:** 200 OK: "Password has been reset successfully. You can now login."
+    1.  **Receive Request:** `email`, `otp`, `newPassword`.
+    2.  **Validate Input.**
+    3.  **Verify Reset OTP:** Call generic OTP verification for type `PASSWORD_RESET`.
+    4.  **Update Password (D1 Update):** Hash `newPassword`, update `user_profiles`.
+    5.  **Return Success Response.**
 
-### G. OTP Logic (Shared Functionality - Conceptual Module/Worker)
+### G. OTP Logic (Shared Functionality)
 
-This outlines common logic for OTP generation, storage, and sending.
-*   **1. Generate OTP:** Create a cryptographically secure random numeric string (e.g., 6 digits).
-*   **2. Hash OTP:** Generate a salt for the OTP. Hash the plain OTP (e.g., SHA-256) before storing.
-*   **3. Store OTP in D1:**
-    *   Table: `otp_verifications`
-        *   `otp_id` (PK, UUID)
-        *   `email` (TEXT, Indexed) - Used to look up OTPs.
-        *   `user_id` (TEXT, FK to `user_profiles.user_id`, Nullable) - Link to user if known.
-        *   `hashed_otp` (TEXT)
-        *   `otp_salt` (TEXT)
-        *   `type` (TEXT - e.g., 'REGISTRATION', 'LOGIN', 'PASSWORD_RESET')
-        *   `expires_at` (DATETIME) - e.g., 5-10 minutes from creation.
-        *   `created_at` (DATETIME)
-        *   `used_at` (DATETIME, Nullable) - Timestamp when OTP was successfully used.
-    *   Store the hashed OTP, its salt, type, associated email/user_id, and expiry.
-*   **4. Send OTP via Email:** Integrate an email sending service (e.g., Mailgun, SendGrid, Cloudflare Email Workers). Compose an email template with the plain OTP and instructions based on OTP `type`.
+*   **1. Generate OTP:** Secure random numeric string.
+*   **2. Hash OTP:** Before storing.
+*   **3. Store OTP in D1:** `otp_verifications` table (`otp_id`, `email`, `user_id`, `hashed_otp`, `otp_salt`, `type`, `expires_at`, `used_at`).
+*   **4. Send OTP via Email:** Integrate email service.
 
-### H. OTP Verification (Generic Endpoint for Registration & Login OTPs)
+### H. OTP Verification (Generic Endpoint)
 
-*   **Triggering UI:** OTP Entry Form submission (`src/app/(auth)/verify-otp/page.tsx`).
+*   **Triggering UI:** OTP Entry Form (`src/app/(auth)/verify-otp/page.tsx`).
 *   **Conceptual Next.js API Route:** `POST /api/auth/verify-otp`.
 *   **Detailed Backend Worker Logic:**
-    1.  **Receive Request:** Worker receives POST with `email`, `otp` (plain text OTP from form), `type` ('register' or 'login').
-    2.  **Validate Input:** Zod schema for email and OTP format.
-    3.  **Fetch Stored OTP (D1 Query):** `SELECT otp_id, user_id, hashed_otp, otp_salt, expires_at, used_at FROM otp_verifications WHERE email = ? AND type = ? AND used_at IS NULL AND expires_at > DATETIME('now') ORDER BY created_at DESC LIMIT 1`.
-    4.  **OTP Record Check:** If no valid OTP record found, return 400 error ("Invalid or expired OTP.").
-    5.  **Verify OTP:** Re-hash received plain-text `otp` using fetched `otp_salt`. Compare with stored `hashed_otp`. If no match, return 400 error ("Invalid OTP."). (Optional: implement try counter for rate limiting).
-    6.  **Mark OTP as Used (D1 Update):** `UPDATE otp_verifications SET used_at = DATETIME('now') WHERE otp_id = ?`.
-    7.  **Perform Action Based on Type:**
-        *   **If `type` is 'register':**
-            *   Update `user_profiles` table: `SET email_verified_at = DATETIME('now') WHERE email = ?` (or `user_id = ?`). (User is now fully registered).
-            *   Return 200 OK: "Email verified successfully. Please login."
-        *   **If `type` is 'login':**
-            *   Fetch user details from `user_profiles` by `email` (or `user_id`).
-            *   Generate session token/JWT (e.g., using Cloudflare Worker secrets for signing).
-            *   Set an HTTP-only, secure session cookie with appropriate expiry.
-            *   Update `last_login` timestamp in `user_profiles`.
-            *   Return 200 OK with user data (role, name, etc.).
-    8.  **Error Handling:** Appropriate error messages for various failure scenarios.
-
-### I. Resend OTP (Conceptual)
-
-*   **Triggering UI:** "Resend OTP" button on `/auth/verify-otp/page.tsx`.
-*   **Conceptual Next.js API Route:** `POST /api/auth/resend-otp`.
-*   **Detailed Backend Worker Logic:**
-    1.  **Receive Request:** Worker receives POST with `email` and `type` ('register', 'login').
+    1.  **Receive Request:** `email`, `otp`, `type` ('register', 'login', 'password_reset').
     2.  **Validate Input.**
-    3.  **(Rate Limiting Check - D1 Query):** Query `otp_verifications` to check recent OTP sends for this email/type. If too many, return rate limit error.
-    4.  **Invalidate Old OTPs (Optional but Recommended - D1 Update):** `UPDATE otp_verifications SET expires_at = DATETIME('now') WHERE email = ? AND type = ? AND used_at IS NULL`.
-    5.  **Generate and Send New OTP:** Call shared OTP logic (see "I.G. OTP Logic") for the given `email` and `type`.
-    6.  **Return Success Response:** 200 OK ("A new OTP has been sent to your email address.").
+    3.  **Fetch & Verify Stored OTP (D1 Query):** Check `otp_verifications` for matching, unused, unexpired OTP.
+    4.  **Mark OTP as Used (D1 Update).**
+    5.  **Perform Action Based on Type:**
+        *   'register': Update `user_profiles.email_verified_at`.
+        *   'login': Generate session token/cookie, update `last_login`.
+        *   'password_reset': Allow password update step (client redirects to `/auth/reset-password/set-new` or similar).
+    6.  **Return Success/Error Response.**
+
+### I. Resend OTP
+
+*   **Triggering UI:** "Resend OTP" button.
+*   **Conceptual Next.js API Route:** `POST /api/auth/resend-otp`.
+*   **Detailed Backend Worker Logic:** Rate limit, invalidate old OTPs (optional), generate and send new OTP.
 
 ---
 
 ## II. Business Listing Management (Seller Actions)
 
-All actions require an authenticated 'SELLER' role. The `seller_id` (which is the `user_id` of the authenticated seller) from the authenticated session must be used to authorize actions and associate data.
+All actions require an authenticated 'SELLER' role.
 
 ### A. Create New Business Listing
 
-*   **Triggering UI:** Seller Dashboard -> "Create New Listing" form submission (`/app/seller-dashboard/listings/create/page.tsx`).
+*   **Triggering UI:** Seller Dashboard -> "Create New Listing" (`/app/seller-dashboard/listings/create/page.tsx`).
 *   **Conceptual Next.js API Route:** `POST /api/listings`.
 *   **Detailed Backend Worker Logic:**
-    1.  **Authenticate Seller & Authorize:**
-        *   Verify authenticated user (via session). Retrieve `user_id` (this is `seller_id`).
-        *   Query `user_profiles` (D1) to confirm `role` is 'SELLER'. If not, return 403 Forbidden.
-    2.  **Receive Request:** Worker receives POST with all listing data as per `ListingSchema`. This includes `imageUrls` as an array of strings, `askingPrice` as a number, `adjustedCashFlow` as a number, `adjustedCashFlowExplanation` as a string, `specificGrowthOpportunities` as a string, and `dealStructureLookingFor` as an array of strings.
-    3.  **Validate Input:** Use Zod `ListingSchema` (or an equivalent API schema) for comprehensive validation. If fails, return 400.
-    4.  **Conceptual File Handling (R2 - see Section VI for full flow):** For fields representing uploaded documents (e.g., `financialDocumentsUrl`, `keyMetricsReportUrl`), this section covers linking pre-uploaded file keys. The `imageUrls` array is expected to contain direct URLs provided by the user or URLs/keys to files previously uploaded via a separate mechanism.
+    1.  **Authenticate Seller & Authorize.**
+    2.  **Receive Request:** All listing data from `ListingSchema`. This includes `imageUrls` (array of up to 5 strings), `askingPrice` (number), `adjustedCashFlow` (number, optional), `adjustedCashFlowExplanation` (string, optional), `specificGrowthOpportunities` (string), `dealStructureLookingFor` (array of strings).
+    3.  **Validate Input:** Use Zod `ListingSchema`.
+    4.  **Conceptual File Handling (R2):** Handle document uploads (not image URLs themselves, which are provided as strings).
     5.  **Create Listing Record (D1 Insert):**
-        *   Generate a unique `listing_id` (e.g., UUID).
-        *   Fetch seller's current `verification_status` from their `user_profiles` (D1).
-        *   Insert into `listings` table (D1) with:
-            *   `listing_id`, `seller_id`.
-            *   All validated fields from the request (e.g., `listingTitleAnonymous`, `industry`, `askingPrice` (number), `adjustedCashFlow` (number), `adjustedCashFlowExplanation` (string), `specificGrowthOpportunities` (string)).
-            *   Store `imageUrls` and `dealStructureLookingFor` as JSON string arrays.
-            *   Placeholders for document URLs (e.g., `financial_documents_url`) set to `NULL` initially if not provided/handled yet via the R2 flow.
-            *   `status`: Default to `'ACTIVE_ANONYMOUS'`.
-            *   `is_seller_verified`: Set to `true` if seller profile `verification_status = 'VERIFIED'`, else `false`.
-            *   Timestamps: `created_at`, `updated_at`.
-    6.  **Return Success Response:** 201 Created with new `listing_id` and created listing data.
+        *   Generate `listing_id`. Fetch seller's `verification_status`.
+        *   Insert into `listings` table: Store `imageUrls` and `dealStructureLookingFor` as JSON string arrays. Store numeric fields like `askingPrice`, `adjustedCashFlow` directly.
+        *   `status`: Default to `'active'` (or `'pending_verification'` if admin approval is needed first).
+        *   `is_seller_verified`: Based on seller's profile status.
+    6.  **Return Success Response:** 201 Created.
 
 ### B. Edit Existing Business Listing
 
-*   **Triggering UI:** Seller Dashboard -> "My Listings" -> "Edit Listing" (`/app/seller-dashboard/listings/[listingId]/edit/page.tsx`).
+*   **Triggering UI:** Seller Dashboard -> "Edit Listing" (`/app/seller-dashboard/listings/[listingId]/edit/page.tsx`).
 *   **Conceptual Next.js API Route:** `PUT /api/listings/[listingId]`.
 *   **Detailed Backend Worker Logic:**
-    1.  **Authenticate Seller & Authorize:**
-        *   Verify authenticated seller and get `user_id`.
-        *   Retrieve `listingId` from path.
-        *   Query `listings` (D1): `SELECT seller_id, status FROM listings WHERE listing_id = ?`.
-        *   If not found, return 404. If `listings.seller_id !== user_id`, return 403.
-    2.  **Receive Request:** PUT request with `listingId` and updated listing data (partial `ListingSchema`). This includes `imageUrls` as an array, `askingPrice` as a number, `adjustedCashFlow` as a number, `adjustedCashFlowExplanation` as a string, `specificGrowthOpportunities` as a string, and `dealStructureLookingFor` as an array.
-    3.  **Validate Input:** Use a partial/update version of Zod `ListingSchema`.
-    4.  **Conceptual File Updates (R2 - see Section VI):** If new `imageUrls` are provided, update (if they are R2 keys). If document placeholders are updated with new file references, handle.
-    5.  **Update Listing Record (D1 Update):** Update specified fields for the `listingId` in `listings`. Store arrays like `imageUrls` and `dealStructureLookingFor` as JSON string arrays. Update `updated_at`.
-    6.  **Return Success Response:** 200 OK with updated listing data from D1.
+    1.  **Authenticate Seller & Authorize Ownership.**
+    2.  **Receive Request:** Updated listing data (partial `ListingSchema`, including array/numeric fields).
+    3.  **Validate Input.**
+    4.  **Conceptual File Updates (R2).**
+    5.  **Update Listing Record (D1 Update):** Update specified fields.
+    6.  **Return Success Response:** 200 OK.
 
 ### C. Deactivate/Reactivate Listing
 
-*   **Triggering UI:** Seller Dashboard -> "My Listings" -> "Deactivate/Reactivate" button.
+*   **Triggering UI:** Seller Dashboard buttons.
 *   **Conceptual Next.js API Route:** `PUT /api/listings/[listingId]/status`.
-*   **Detailed Backend Worker Logic:**
-    1.  **Authenticate Seller & Authorize:** (As in "Edit Listing").
-    2.  **Receive Request:** PUT request with `listingId` and desired `new_status` (e.g., `{ "new_status": "INACTIVE" }` or `{ "new_status": "ACTIVE_ANONYMOUS" }`).
-    3.  **Validate New Status Transition:** Fetch current `status` from D1. Ensure transition is valid based on business rules (e.g., seller can toggle active/inactive, but not bypass admin approval states like `PENDING_VERIFICATION`). If invalid, return 400.
-    4.  **Update Listing Status (D1 Update):** Update `status` field for the `listingId` in `listings`. Update `updated_at`.
-    5.  **Return Success Response:** 200 OK with updated listing data.
+*   **Detailed Backend Worker Logic:** Authenticate, authorize, validate status transition, update `listings.status`.
 
 ### D. Seller Requests Listing/Profile Verification
 
-*   **Triggering UI:** Seller Dashboard -> "Verification" page or "Request Verification Call for this Listing" button.
+*   **Triggering UI:** Seller Dashboard verification page/buttons.
 *   **Conceptual Next.js API Route:** `POST /api/verification-requests`.
-*   **Detailed Backend Worker Logic:**
-    1.  **Authenticate Seller:** Get authenticated `user_id`.
-    2.  **Receive Request:** POST with `verificationType`: 'PROFILE_SELLER' or 'LISTING', `listingId` (if 'LISTING'), `bestTimeToCall`, `notes`.
-    3.  **Validate Input:** Zod schema. If `verificationType` is 'LISTING', ensure `listingId` is valid and owned by seller.
-    4.  **Check Current Status & Prevent Redundant Requests (D1 Query):**
-        *   If 'PROFILE_SELLER': Check `user_profiles.verification_status`. If already 'PENDING_VERIFICATION' or 'VERIFIED', return 409.
-        *   If 'LISTING': Check `listings.status`. If already 'PENDING_VERIFICATION', 'VERIFIED_ANONYMOUS', or 'VERIFIED_PUBLIC', return 409.
-    5.  **Update Entity Status (D1 Update):**
-        *   If 'PROFILE_SELLER': `UPDATE user_profiles SET verification_status = 'PENDING_VERIFICATION', updated_at = DATETIME('now') WHERE user_id = ?`.
-        *   If 'LISTING': `UPDATE listings SET status = 'PENDING_VERIFICATION', updated_at = DATETIME('now') WHERE listing_id = ?`.
-    6.  **Create Verification Request Record (D1 Insert):**
-        *   Insert into `verification_requests` table: `request_id`, `user_id`, `listing_id` (if applicable), `request_type`, `best_time_to_call`, `notes`, `status = 'NEW_REQUEST'`, timestamps.
-    7.  **Conceptual: Notify Admin Team:** Effectively adds to Admin Panel's verification queue.
-    8.  **Return Success Response:** 201 Created ("Verification request submitted.").
+*   **Detailed Backend Worker Logic:** Authenticate, validate request, check current status, update entity status (`user_profiles.verification_status` or `listings.status` to `'pending_verification'`), create `verification_requests` record.
 
 ---
 
@@ -241,321 +162,123 @@ All actions require an authenticated 'SELLER' role. The `seller_id` (which is th
 
 ### A. Fetch All Listings (for `/marketplace`)
 
-*   **Triggering UI:** `/marketplace` page load, filter changes, sorting, pagination.
+*   **Triggering UI:** `/marketplace` page load, filter changes.
 *   **Conceptual Next.js API Route:** `GET /api/listings`.
 *   **Detailed Backend Worker Logic:**
-    1.  **Receive Request:** GET with optional query parameters: `page`, `limit`, `industry`, `country`, `revenueRange`, `minAskingPrice` (number), `maxAskingPrice` (number), `keywords[]` (array of strings from multi-select filter), `sortBy`, `sortOrder`.
+    1.  **Receive Request:** Optional query params: `page`, `limit`, `industry`, `country`, `revenueRange`, `minAskingPrice` (number), `maxAskingPrice` (number), `keywords[]` (array of strings), `sortBy`, `sortOrder`.
     2.  **Validate Query Parameters.**
-    3.  **Determine Requesting Buyer's Status (Conceptual):** Check auth. If authenticated, get `user_id`, query D1 `user_profiles` for `verification_status` and `is_paid`.
-    4.  **Construct SQL Query for D1 (`listings` table):**
-        *   **Base `SELECT`:** Public anonymous fields: `listing_id`, `listingTitleAnonymous`, `industry`, `locationCountry`, `SUBSTR(anonymousBusinessDescription, 1, 150) AS description_snippet`, `annualRevenueRange`, `askingPrice` (number), `imageUrls` (first URL or primary), `is_seller_verified`, `created_at`.
-        *   **Filtering (`WHERE` clauses):**
-            *   Always: `listings.status IN ('ACTIVE_ANONYMOUS', 'VERIFIED_ANONYMOUS', 'VERIFIED_PUBLIC')`.
-            *   Apply filters for `industry`, `country`, `revenueRange`.
-            *   For `minAskingPrice`: `AND askingPrice >= ?` (if provided).
-            *   For `maxAskingPrice`: `AND askingPrice <= ?` (if provided).
-            *   For `keywords` (array of strings): Build dynamic `OR` conditions for each keyword against relevant text fields (e.g., `( (listingTitleAnonymous LIKE '%key1%') OR (anonymousBusinessDescription LIKE '%key1%') OR (industry LIKE '%key1%') ) OR ( (listingTitleAnonymous LIKE '%key2%') OR (anonymousBusinessDescription LIKE '%key2%') OR (industry LIKE '%key2%') ) ...`). Consider D1's full-text search capabilities if available and more performant.
-        *   **Sorting (`ORDER BY`):** Based on `sortBy` and `sortOrder` (e.g., `listings.created_at DESC`, `listings.askingPrice ASC`).
-        *   **Pagination:** `LIMIT ? OFFSET ?`.
-    5.  **Execute Query & Fetch Total Count:** Main query and a `SELECT COUNT(*)` with same filters.
-    6.  **Return Success Response:** 200 OK with `{ listings: [...], currentPage, totalPages, totalListings }`.
+    3.  **Construct SQL Query for D1 (`listings` table):**
+        *   Base `SELECT`: Public anonymous fields + `askingPrice` (number), `imageUrls` (first URL).
+        *   Filtering (`WHERE` clauses):
+            *   `listings.status IN ('active', 'verified_anonymous', 'verified_public')`.
+            *   Apply standard filters.
+            *   For numeric `askingPrice`: `AND askingPrice >= ?` and `AND askingPrice <= ?`.
+            *   For `keywords[]`: Build dynamic `OR` conditions for each keyword against relevant text fields (e.g., `( (listingTitleAnonymous LIKE '%key1%') OR (anonymousBusinessDescription LIKE '%key1%') ) OR ...`).
+        *   **Sorting & Pagination.**
+    4.  **Execute Query & Fetch Total Count.**
+    5.  **Return Success Response.**
 
 ### B. Fetch Single Listing Details (`/app/listings/[listingId]`)
 
 *   **Triggering UI:** Navigating to a specific listing detail page.
 *   **Conceptual Next.js API Route:** `GET /api/listings/[listingId]`.
 *   **Detailed Backend Worker Logic:**
-    1.  **Receive Request:** Get `listingId`.
-    2.  **Determine Requesting Buyer's Status:** (As in "Fetch All Listings").
-    3.  **Fetch Listing and Seller Data (D1 Queries):**
-        *   `SELECT * FROM listings WHERE listing_id = ?`. If not found or not publicly visible (e.g., status is INACTIVE or REJECTED_BY_ADMIN), return 404.
-        *   If listing found, `SELECT user_id AS seller_user_id, verification_status AS seller_platform_verification_status, is_paid as seller_is_paid FROM user_profiles WHERE user_id = fetched_listing.seller_id`.
-    4.  **Construct Response Object (Conditional Data Exposure):**
-        *   **Always include:** Public/anonymous fields: `listing_id`, `listingTitleAnonymous`, `industry`, `locationCountry`, `locationCityRegionGeneral`, `anonymousBusinessDescription`, `keyStrengthsAnonymous` (array), `annualRevenueRange`, `netProfitMarginRange`, `askingPrice` (number), `dealStructureLookingFor` (array), `reasonForSellingAnonymous`, `imageUrls` (array), `is_seller_verified`, `created_at`, `specificGrowthOpportunities` (string), `adjustedCashFlow` (number, if seller provided), `adjustedCashFlowExplanation` (string, if seller provided).
-        *   **Conditionally Include Verified/Detailed Information:**
-            *   Condition: `listing.is_seller_verified === true` AND authenticated buyer has `verification_status === 'VERIFIED'` AND `is_paid === true`.
-            *   If met, additionally include: `actualCompanyName`, `registeredBusinessName`, `yearEstablished`, `fullBusinessAddress`, `businessWebsiteUrl`, `socialMediaLinks`, `numberOfEmployees`, `technologyStack`, `specificAnnualRevenueLastYear`, `specificNetProfitLastYear`, `detailedReasonForSelling`, `sellerRoleAndTimeCommitment`, `postSaleTransitionSupport`, and URLs/keys for uploaded documents (`financialDocumentsUrl`, `keyMetricsReportUrl`, `ownershipDocumentsUrl`, `financialSnapshotUrl`, `ownershipDetailsUrl`, `locationRealEstateInfoUrl`, `webPresenceInfoUrl`, `secureDataRoomLink`).
-            *   If not met, these fields are omitted or set to placeholder like "Access Restricted".
-    5.  **Return Success Response:** 200 OK with the constructed listing object.
+    1.  **Receive Request.**
+    2.  **Determine Requesting Buyer's Status.**
+    3.  **Fetch Listing and Seller Data (D1 Queries).**
+    4.  **Construct Response Object:**
+        *   **Always include:** Anonymous fields, `imageUrls` (array), `askingPrice` (number), `adjustedCashFlow` (number, if any), `adjustedCashFlowExplanation` (string, if any), `specificGrowthOpportunities` (string), `dealStructureLookingFor` (array).
+        *   **Conditionally Include Verified Information:** Based on listing, seller, and buyer verification/paid status. Remove "Operational Details," "Business Model," and "Technology Stack" as separate detailed sections if they are now covered by more general fields or not displayed.
+    5.  **Return Success Response.**
 
 ### C. Buyer Inquires About Business
 
 *   **Triggering UI:** "Inquire about business" button.
 *   **Conceptual Next.js API Route:** `POST /api/inquiries`.
-*   **Detailed Backend Worker Logic:**
-    1.  **Authenticate Buyer:** Verify session, get `user_id`. Query D1 `user_profiles` for `verification_status` and `is_paid`. If not 'BUYER', return 403.
-    2.  **Receive Request:** POST with `{ "listingId": "string", "message"?: "string" }`.
-    3.  **Validate Input:** Zod schema.
-    4.  **Fetch Listing & Seller Details (D1 Query):** `SELECT seller_id, status AS listing_status, is_seller_verified, listingTitleAnonymous FROM listings WHERE listing_id = ?`. If not found/visible, return error.
-    5.  **Create Inquiry Record (D1 Insert):**
-        *   Insert into `inquiries` table: `inquiry_id`, `listing_id`, `buyer_id`, `seller_id`, `message` (optional), `inquiry_timestamp`, `status = 'NEW_INQUIRY'`, snapshots of `buyer_verification_at_inquiry`, `seller_verification_at_inquiry`, `listing_is_seller_verified_at_inquiry`. Timestamps. `conversationId` set to `NULL`.
-    6.  **Trigger Notifications & Engagement Flow (Conceptual - see Section IV for Seller Dashboard handling):** Notify Seller (in-app/email). Admin queue/notification logic is primarily triggered when *seller engages*.
-    7.  **Return Success Response:** 201 Created.
+*   **Detailed Backend Worker Logic:** Authenticate buyer, validate, fetch listing/seller, create `inquiries` record (status `new_inquiry`, `conversationId = NULL`), notify seller.
 
 ### D. Buyer Requests Profile Verification
 
-*   **Triggering UI:** Buyer Dashboard -> "Verification" page -> "Request Verification Call".
-*   **Conceptual Next.js API Route:** `POST /api/verification-requests` (Shared endpoint).
-*   **Detailed Backend Worker Logic:**
-    1.  **Authenticate Buyer:** Get `user_id`.
-    2.  **Receive Request:** POST with `verificationType = 'PROFILE_BUYER'`, `bestTimeToCall`, `notes`.
-    3.  **Validate Input.**
-    4.  **Check Current User Status (D1 Query):** Check `user_profiles.verification_status`. If 'VERIFIED' or 'PENDING_VERIFICATION', return 409.
-    5.  **Update User Profile Status (D1 Update):** `UPDATE user_profiles SET verification_status = 'PENDING_VERIFICATION', updated_at = DATETIME('now') WHERE user_id = ?`.
-    6.  **Create Verification Request Record (D1 Insert):** Into `verification_requests`: `request_id`, `user_id`, `request_type = 'PROFILE_BUYER'`, `best_time_to_call`, `notes`, `status = 'NEW_REQUEST'`, timestamps.
-    7.  **Conceptual: Notify Admin Team.**
-    8.  **Return Success Response:** 201 Created.
+*   **Triggering UI:** Buyer Dashboard verification page.
+*   **Conceptual Next.js API Route:** `POST /api/verification-requests` (Shared).
+*   **Detailed Backend Worker Logic:** Authenticate, validate, check status, update `user_profiles.verification_status = 'pending_verification'`, create `verification_requests` record.
 
 ---
 
 ## IV. Dashboard Data Fetching & Actions (Buyer & Seller)
 
-All API endpoints require user authentication. `user_id` from session is key.
-
 ### A. Buyer Dashboard
 
-1.  **Overview Page (`/dashboard/page.tsx`)**
-    *   **Data Needed:** Buyer's full name, active inquiry count, `verification_status`, list of 2-3 recent inquiries (title, date, buyer-perspective status).
-    *   **Conceptual API Route:** `GET /api/dashboard/buyer/overview`
-    *   **Backend Logic (D1 Queries):**
-        1.  Authenticate buyer, get `user_id`.
-        2.  Fetch `user_profiles`: `SELECT full_name, verification_status FROM user_profiles WHERE user_id = ?`.
-        3.  Fetch active inquiry count: `SELECT COUNT(*) FROM inquiries WHERE buyer_id = ? AND status NOT IN ('archived', 'connection_facilitated_in_app_chat_opened')`.
-        4.  Fetch recent inquiries: `SELECT i.id, i.listing_id, i.inquiry_timestamp, i.status AS system_status, l.listingTitleAnonymous FROM inquiries i JOIN listings l ON i.listing_id = l.listing_id WHERE i.buyer_id = ? ORDER BY i.inquiry_timestamp DESC LIMIT 3`.
-        5.  Map `system_status` to `statusBuyerPerspective`.
-        6.  Return aggregated data.
+1.  **Overview, Profile, Notifications, Settings (Password Change from Settings):** Logic remains similar, ensure forms and data reflect current `User` type for buyers (including persona fields). "Change Password" UI is now in settings.
+2.  **My Inquiries (`/dashboard/inquiries/page.tsx`)**
+    *   **Data Needed:** List of buyer's inquiries, including `conversationId` (nullable).
+    *   **Conceptual API (GET):** `/api/inquiries?role=buyer`.
+    *   **Backend Logic (D1 Query):** Fetch inquiries, join with listings and seller profiles.
+    *   **UI Logic:** If `inquiry.status` is `CONNECTION_FACILITATED_IN_APP_CHAT_OPENED` and `inquiry.conversationId` exists, "Open Conversation" button links to `/dashboard/messages/[conversationId]`. If verification needed, prompt user.
 
-2.  **My Profile (`/dashboard/profile/page.tsx`)**
-    *   **Data Fetching API (GET):** `/api/profile` (Shared, returns based on authenticated user's role).
-        *   **Backend Logic (D1 Query for Buyer):** `SELECT full_name, email, phone_number, country, buyer_persona_type, buyer_persona_other, investment_focus_description, preferred_investment_size, key_industries_of_interest FROM user_profiles WHERE user_id = ? AND role = 'BUYER'`.
-    *   **Profile Update API (PUT):** `/api/profile`
-        *   **Backend Logic:**
-            1.  Authenticate buyer, get `user_id`.
-            2.  Receive updated profile data (all editable buyer fields including new persona fields).
-            3.  Validate against buyer-specific `ProfileSchema`.
-            4.  `UPDATE user_profiles SET ... WHERE user_id = ?`.
-            5.  Return 200 OK with updated profile.
-
-3.  **My Inquiries (`/dashboard/inquiries/page.tsx`)**
-    *   **Data Needed:** List of buyer's inquiries (listing title, seller's verification status, inquiry date, buyer-perspective status, `conversationId`).
-    *   **Conceptual API (GET):** `/api/inquiries?role=buyer` (or derive role from session).
-        *   **Backend Logic (D1 Query):** `SELECT i.id, i.listing_id, i.inquiry_timestamp, i.status AS system_status, i.conversationId, l.listingTitleAnonymous, l.is_seller_verified AS listing_seller_is_verified, seller_profile.verification_status AS seller_platform_verification_status FROM inquiries i JOIN listings l ON i.listing_id = l.listing_id JOIN user_profiles seller_profile ON l.seller_id = seller_profile.user_id WHERE i.buyer_id = ? ORDER BY i.inquiry_timestamp DESC`.
-        *   Map to `statusBuyerPerspective`. Return list.
-        *   **Action: "Proceed to Verification" Button:** UI navigation to `/dashboard/verification`. Backend interaction handled by verification request API.
-        *   **Action: "Open Conversation" Button:** If `inquiry.status` is `CONNECTION_FACILITATED_IN_APP_CHAT_OPENED` and `inquiry.conversationId` exists, button links to `/dashboard/messages/[conversationId]`.
-
-4.  **Verification (`/dashboard/verification/page.tsx`)**
-    *   **Data Needed:** Buyer's `verification_status` (via profile API).
-    *   **Action: Request Verification Call (POST):** Uses shared `/api/verification-requests` (see Section III.D).
-
-5.  **Notifications (`/dashboard/notifications/page.tsx`)**
-    *   **Data Fetching API (GET):** `/api/notifications` (filters by `user_id`).
-        *   **Backend Logic (D1 Query):** `SELECT notification_id, message, timestamp, link, is_read, type FROM notifications WHERE user_id = ? ORDER BY timestamp DESC`.
-    *   **Mark Notification as Read API (PUT):** `/api/notifications/[notificationId]/read`
-        *   **Backend Logic:** Authenticate. `UPDATE notifications SET is_read = true WHERE notification_id = ? AND user_id = ?`. Return 200 OK.
-
-6.  **Settings (`/dashboard/settings/page.tsx`)**
-    *   **Password Change API (PUT):** `/api/auth/change-password` (shared endpoint, UI trigger moved here).
-        *   **Backend Logic:**
-            1.  Authenticate user, get `user_id`.
-            2.  Receive `currentPassword`, `newPassword`. Validate.
-            3.  Fetch `hashed_password`, `password_salt` from `user_profiles` (D1).
-            4.  Verify `currentPassword`.
-            5.  If valid, hash `newPassword` with new salt, `UPDATE user_profiles SET hashed_password = ?, password_salt = ? WHERE user_id = ?`.
-            6.  Return 200 OK or error.
-    *   **Notification Preferences (Conceptual API):** `PUT /api/profile/notification-preferences`
-        *   **Backend Logic:** Authenticate user. Receive preference flags (e.g., `email_new_inquiry: boolean`, `email_listing_updates: boolean`). Update corresponding fields in `user_profiles` table. Return success.
+3.  **Messages (`/dashboard/messages/` and `/dashboard/messages/[conversationId]/`)**
+    *   Uses APIs from Section VI.
 
 ### B. Seller Dashboard
 
-1.  **Overview Page (`/seller-dashboard/page.tsx`)**
-    *   **Data Needed:** Seller's name, active listing count, total inquiries, inquiries awaiting engagement, `verification_status`, list of recent active listings with inquiry counts.
-    *   **Conceptual API:** `GET /api/seller-dashboard/overview`
-    *   **Backend Logic (D1 Queries):**
-        1.  Authenticate seller, get `user_id`.
-        2.  Fetch `user_profiles`: `SELECT full_name, verification_status FROM user_profiles WHERE user_id = ?`.
-        3.  Active listing count: `SELECT COUNT(*) FROM listings WHERE seller_id = ? AND status IN ('ACTIVE_ANONYMOUS', 'VERIFIED_ANONYMOUS', 'VERIFIED_PUBLIC')`.
-        4.  Total inquiries: `SELECT COUNT(*) FROM inquiries WHERE seller_id = ?`.
-        5.  Inquiries awaiting engagement: `SELECT COUNT(*) FROM inquiries WHERE seller_id = ? AND status = 'NEW_INQUIRY'`.
-        6.  Recent active listings: `SELECT l.listing_id, l.listingTitleAnonymous, l.status, l.is_seller_verified, (SELECT COUNT(*) FROM inquiries WHERE listing_id = l.listing_id) as inquiry_count FROM listings l WHERE l.seller_id = ? AND l.status IN ('ACTIVE_ANONYMOUS', 'VERIFIED_ANONYMOUS', 'VERIFIED_PUBLIC') ORDER BY l.created_at DESC LIMIT 3`.
-        7.  Return aggregated data.
-
-2.  **My Profile (`/seller-dashboard/profile/page.tsx`)**
-    *   **Data Fetching API (GET):** `/api/profile` (Shared).
-        *   **Backend Logic (D1 Query for Seller):** `SELECT full_name, email, phone_number, country, initial_company_name FROM user_profiles WHERE user_id = ? AND role = 'SELLER'`.
-    *   **Profile Update API (PUT):** `/api/profile`
-        *   **Backend Logic:** Authenticate seller. Receive data. Validate against seller `ProfileSchema`. `UPDATE user_profiles SET ... WHERE user_id = ?`. Return 200 OK.
-
-3.  **My Listings (`/seller-dashboard/listings/page.tsx`)**
-    *   **Data Fetching API (GET):** `/api/listings?seller_view=true` (or derive from session).
-        *   **Backend Logic (D1 Query):** `SELECT l.*, (SELECT COUNT(*) FROM inquiries WHERE listing_id = l.listing_id) as inquiry_count FROM listings l WHERE l.seller_id = ? ORDER BY l.created_at DESC`. Fetches all listing fields for seller.
-    *   **Actions:**
-        *   Deactivate/Reactivate: Uses `/api/listings/[listingId]/status` (Section II.C).
-        *   Request Listing Verification: Uses `/api/verification-requests` (Section II.D, with `type: 'LISTING'`).
-
-4.  **Edit Listing (`/seller-dashboard/listings/[listingId]/edit/page.tsx`)**
-    *   **Data Fetching API (GET):** `/api/listings/[listingId]?view=seller_edit`.
-        *   **Backend Logic:** Authenticate seller. `SELECT * FROM listings WHERE listing_id = ? AND seller_id = ?`. If not found/owned, 404/403. Return all fields.
-    *   **Update Listing API (PUT):** Uses `/api/listings/[listingId]` (Section II.B).
-
-5.  **My Inquiries (Seller Perspective) (`/seller-dashboard/inquiries/page.tsx`)**
+1.  **Overview, Profile, Listings Management, Verification, Notifications, Settings (Password Change from Settings):** Logic remains similar. Ensure forms and data reflect current `User` and `Listing` types.
+2.  **My Inquiries (Seller Perspective) (`/seller-dashboard/inquiries/page.tsx`)**
     *   **Data Fetching API (GET):** `/api/inquiries?role=seller`.
-    *   **Backend Logic (D1 Query):** `SELECT i.id, i.listing_id, i.inquiry_timestamp, i.status AS system_status, i.message, i.conversationId, l.listingTitleAnonymous, buyer_profile.full_name AS buyer_name, buyer_profile.verification_status AS buyer_verification_status FROM inquiries i JOIN listings l ON i.listing_id = l.listing_id JOIN user_profiles buyer_profile ON i.buyer_id = buyer_profile.user_id WHERE i.seller_id = ? ORDER BY i.inquiry_timestamp DESC`.
-    *   Map to `statusSellerPerspective`. Return list.
+    *   **Backend Logic (D1 Query):** Fetch inquiries for seller, join with listings and buyer profiles. Include `conversationId`.
     *   **Action: Seller Engages with Inquiry (POST):** `/api/inquiries/[inquiryId]/engage`
         *   **Detailed Backend Worker Logic:**
-            1.  Authenticate Seller, get `user_id`. Receive `inquiryId`.
-            2.  Fetch inquiry from D1. Verify ownership (`inquiry.seller_id === user_id`).
-            3.  If `inquiry.status` not 'NEW_INQUIRY', return error.
-            4.  Fetch buyer's profile (D1): `SELECT verification_status AS buyer_verification_status, is_paid AS buyer_is_paid FROM user_profiles WHERE user_id = inquiry.buyer_id`.
-            5.  Fetch seller's listing (D1): `SELECT is_seller_verified, status as listing_status FROM listings WHERE listing_id = inquiry.listing_id`. (Need listing_status for seller verification path).
-            6.  Fetch seller's profile (D1): `SELECT verification_status AS seller_verification_status FROM user_profiles WHERE user_id = inquiry.seller_id`.
-            7.  **Implement Engagement Flow Logic (from MVP document):**
-                *   Determine `next_inquiry_status`.
-                *   If buyer `verification_status` is 'ANONYMOUS' or 'PENDING_VERIFICATION': `next_inquiry_status = 'SELLER_ENGAGED_BUYER_PENDING_VERIFICATION'`. Notify Buyer to verify.
-                *   Else if seller's profile `verification_status` is NOT 'VERIFIED' OR listing `is_seller_verified` is false (and listing `status` isn't already `VERIFIED_ANONYMOUS` or `VERIFIED_PUBLIC`): `next_inquiry_status = 'SELLER_ENGAGED_SELLER_PENDING_VERIFICATION'`. Notify Seller to verify profile/listing.
-                *   Else (Both Buyer and Seller are effectively verified for this interaction): `next_inquiry_status = 'READY_FOR_ADMIN_CONNECTION'`. Notify Admin. Notify Buyer & Seller.
-            8.  Update `inquiries` table (D1): `SET status = ?, engagement_timestamp = DATETIME('now') WHERE inquiry_id = ?`.
-            9.  Trigger appropriate notifications.
-            10. Return 200 OK.
-    *   **Action: "Open Conversation" Button:** If `inquiry.status` is `CONNECTION_FACILITATED_IN_APP_CHAT_OPENED` and `inquiry.conversationId` exists, button links to `/seller-dashboard/messages/[conversationId]`.
+            1.  Authenticate Seller, fetch inquiry, verify ownership.
+            2.  If `inquiry.status` not 'new_inquiry', return error.
+            3.  Fetch buyer and seller profile/listing verification statuses.
+            4.  **Engagement Flow Logic:**
+                *   If buyer not verified: `next_inquiry_status = 'seller_engaged_buyer_pending_verification'`.
+                *   Else if seller/listing not verified: `next_inquiry_status = 'seller_engaged_seller_pending_verification'`.
+                *   Else (Both effectively verified): `next_inquiry_status = 'ready_for_admin_connection'`. Notify Admin.
+            5.  Update `inquiries.status` and `engagement_timestamp`. Trigger notifications.
+    *   **UI Logic:** If `inquiry.status` is `CONNECTION_FACILITATED_IN_APP_CHAT_OPENED` and `inquiry.conversationId` exists, "Open Conversation" button links to `/seller-dashboard/messages/[conversationId]`.
 
-6.  **Verification (`/seller-dashboard/verification/page.tsx`)**
-    *   **Data Fetching API (GET):** `/api/seller-dashboard/verification-data`.
-        *   **Backend Logic (D1 Queries):** Auth seller. Fetch `user_profiles.verification_status`. Fetch `listings WHERE seller_id = ? AND (status IN ('ACTIVE_ANONYMOUS', 'PENDING_VERIFICATION') OR is_seller_verified = false)`. Return data.
-    *   **Action: Request Verification (POST):** Uses `/api/verification-requests` (Section II.D, with `type: 'PROFILE_SELLER'` or `type: 'LISTING'`).
-
-7.  **Notifications (`/seller-dashboard/notifications/page.tsx`)**
-    *   **Data Fetching API (GET):** `/api/notifications` (Shared).
-    *   **Mark Notification as Read API (PUT):** `/api/notifications/[notificationId]/read` (Shared).
-
-8.  **Settings (`/seller-dashboard/settings/page.tsx`)**
-    *   **Password Change API (PUT):** `/api/auth/change-password` (shared endpoint).
-        *   (Same logic as Buyer's password change in Section IV.A.6).
-    *   **Notification Preferences (Conceptual API):** `PUT /api/profile/notification-preferences`
-        *   (Same logic as Buyer's notification preferences in Section IV.A.6).
+3.  **Messages (`/seller-dashboard/messages/` and `/seller-dashboard/messages/[conversationId]/`)**
+    *   Uses APIs from Section VI.
 
 ---
 
 ## V. Admin Panel Backend Logic
 
-All Admin APIs require ADMIN role authentication (e.g., check role in `user_profiles` or custom claim). Audit logging for significant actions is crucial.
-
 ### General for all Admin APIs:
-*   **Authentication/Authorization:** Verify authenticated admin.
-*   **Conceptual Audit Logging (D1 Insert):** For write operations, log to `audit_logs` table: `log_id, admin_user_id, action_type, target_entity_type, target_entity_id, timestamp, details_before (JSON), details_after (JSON)`.
+*   **Authentication/Authorization:** Verify admin role.
+*   **Conceptual Audit Logging.**
 
-### A. User Management
-
-1.  **List Users (`GET /api/admin/users`)**
-    *   **Backend Logic (D1 Query):** `SELECT user_id, full_name, email, role, verification_status, is_paid, created_at, last_login, (SELECT COUNT(*) FROM listings WHERE seller_id = up.user_id) AS listing_count, (SELECT COUNT(*) FROM inquiries WHERE buyer_id = up.user_id) AS inquiry_count FROM user_profiles up`. Apply filters (role, verification, paid, search) and pagination. Return list.
-
-2.  **View User Details (`GET /api/admin/users/[userId]`)**
-    *   **Backend Logic (D1 Query):** `SELECT * FROM user_profiles WHERE user_id = ?`. Returns all profile fields including buyer persona details.
-
-3.  **Update User Verification/Paid Status (`PUT /api/admin/users/[userId]/status`)**
-    *   **Request Body:** `{ new_verification_status?: VerificationStatus, new_is_paid?: boolean }`
-    *   **Backend Logic:** Receive `userId`, `new_verification_status`, `new_is_paid`. Validate. `UPDATE user_profiles SET verification_status = COALESCE(?, verification_status), is_paid = COALESCE(?, is_paid), updated_at = DATETIME('now') WHERE user_id = ?`. Log action. Notify user. Return updated profile.
-
-4.  **Admin Edit User Profile Details (`PUT /api/admin/users/[userId]/profile`)**
-    *   **Request Body:** Partial `UserProfileSchema`.
-    *   **Backend Logic:** Receive `userId` and fields. Validate. `UPDATE user_profiles SET ... WHERE user_id = ?`. Log. Return updated profile.
-
-5.  **Admin Send Password Reset OTP (`POST /api/admin/users/[userId]/send-reset-otp`)**
-    *   **Backend Logic:** Receive `userId`. Fetch user's email from D1. Call shared OTP logic (type 'PASSWORD_RESET'). Log. Return 200 OK.
-
-6.  **Delete User (`DELETE /api/admin/users/[userId]`)**
-    *   **Request Body:** `{ confirmation_phrase: string }` (e.g., "DELETE USER PERMANENTLY")
-    *   **Backend Logic:**
-        1.  Receive `userId` and `confirmation_phrase`. Validate confirmation.
-        2.  (Soft Delete Recommended) Update `user_profiles`: `SET is_deleted = true, deleted_at = DATETIME('now'), email = original_email || '_deleted_' || uuid() WHERE user_id = ?`.
-        3.  (Consider implications): Deactivate/anonymize associated listings. Mark associated inquiries as archived/system_closed.
-        4.  Log action. Return 200 OK/204.
-
-### B. Listing Management
-
-1.  **List All Listings (`GET /api/admin/listings`)**
-    *   **Backend Logic (D1 Query):** `SELECT l.*, u.full_name as seller_name, u.is_paid as seller_is_paid, u.verification_status as seller_verification_status FROM listings l JOIN user_profiles u ON l.seller_id = u.user_id`. Apply filters (status, seller verification, industry, search) and pagination. Return list.
-
-2.  **View Full Listing Details (Admin) (`GET /api/admin/listings/[listingId]`)**
-    *   **Backend Logic (D1 Query):** `SELECT * FROM listings WHERE listing_id = ?`. Join with `user_profiles` for seller details. Return ALL fields including document placeholders.
-
-3.  **Update Listing Status (Admin) (`PUT /api/admin/listings/[listingId]/status`)**
-    *   **Request Body:** `{ new_status: ListingStatus, admin_notes?: string }`.
-    *   **Backend Logic:** Receive `listingId`, `new_status`, `admin_notes`. Validate. Fetch listing.
-        *   D1 Transaction: `UPDATE listings SET status = ?, admin_notes = COALESCE(?, admin_notes), updated_at = DATETIME('now') WHERE listing_id = ?`.
-        *   Conditional: If `new_status` is 'VERIFIED_PUBLIC' or 'VERIFIED_ANONYMOUS', also `SET is_seller_verified = true`. If approving from `PENDING_VERIFICATION`, potentially update associated `verification_requests` status.
-        *   Log action. Notify seller. Commit. Return 200 OK.
-
-4.  **Admin Edit Listing Details (`PUT /api/admin/listings/[listingId]/details`)**
-    *   **Request Body:** Partial `ListingSchema` (subset of fields admin can edit, e.g., correct typos).
-    *   **Backend Logic:** Receive `listingId`, fields to update. Authenticate admin. Validate. Update `listings` table in D1. Log. Return updated listing.
-
-### C. Verification Queues
-
-1.  **Fetch Buyer Verification Queue (`GET /api/admin/verification-requests?type=PROFILE_BUYER`)**
-    *   **Backend Logic (D1 Query):** `SELECT vr.*, u.full_name AS user_name, u.email AS user_email, u.buyer_persona_type FROM verification_requests vr JOIN user_profiles u ON vr.user_id = u.user_id WHERE vr.request_type = 'PROFILE_BUYER' AND vr.status NOT IN ('Approved', 'Rejected') ORDER BY vr.created_at ASC`. Paginate. Return list.
-
-2.  **Fetch Seller/Listing Verification Queue (`GET /api/admin/verification-requests?type=PROFILE_SELLER` or `type=LISTING`)**
-    *   **Backend Logic (D1 Query):** Similar to buyer queue, joining `listings` if `type=LISTING`. Paginate. Return list.
-
-3.  **Update Verification Request Status (`PUT /api/admin/verification-requests/[requestId]/status`)**
-    *   **Request Body:** `{ new_queue_status: VerificationQueueStatus, admin_notes?: string }`.
-    *   **Backend Logic:** Receive `requestId`, `new_queue_status`, `admin_notes`. Validate. Fetch request.
-        *   D1 Transaction: Update `verification_requests.status = new_queue_status`, `verification_requests.admin_notes = admin_notes`.
-        *   If `new_queue_status` is 'Approved':
-            *   Fetch associated `user_id` and `listing_id` (if any) from the `verification_requests` record.
-            *   If request was for 'PROFILE_BUYER' or 'PROFILE_SELLER', update `user_profiles.verification_status = 'VERIFIED'`.
-            *   If request was for 'LISTING', update `listings.status = 'VERIFIED_ANONYMOUS'` (or 'VERIFIED_PUBLIC' based on admin choice/listing content) and `listings.is_seller_verified = true`. Also, ensure associated seller's `user_profiles.verification_status` is 'VERIFIED'.
-        *   If `new_queue_status` is 'Rejected': Update `user_profiles.verification_status = 'REJECTED'` or `listings.status = 'REJECTED_BY_ADMIN'`.
-        *   Log. Notify user. Commit. Return 200 OK.
+### A. User Management (Existing - Review and Ensure Buyer Persona fields visible)
+### B. Listing Management (Existing - Review and Ensure All New `Listing` fields are manageable)
+### C. Verification Queues (Existing - Logic generally sound)
 
 ### D. Engagement Queue
 
-1.  **Fetch Engagements Ready for Connection (`GET /api/admin/engagements` or `/api/admin/inquiries?status=READY_FOR_ADMIN_CONNECTION`)**
-    *   **Backend Logic (D1 Query):** `SELECT i.id AS inquiry_id, i.listing_id, i.buyer_id, i.seller_id, i.engagement_timestamp, buyer.full_name AS buyer_name, buyer.email AS buyer_email, buyer.phone_number AS buyer_phone, seller.full_name AS seller_name, seller.email AS seller_email, seller.phone_number AS seller_phone, l.listingTitleAnonymous FROM inquiries i JOIN user_profiles buyer ON i.buyer_id = buyer.user_id JOIN user_profiles seller ON i.seller_id = seller.user_id JOIN listings l ON i.listing_id = l.listing_id WHERE i.status = 'READY_FOR_ADMIN_CONNECTION' ORDER BY i.engagement_timestamp ASC`. Paginate. Return list.
-
+1.  **Fetch Engagements Ready for Connection (`GET /api/admin/engagements` or `/api/admin/inquiries?status=ready_for_admin_connection`)**
+    *   **Backend Logic (D1 Query):** Fetch inquiries with status `ready_for_admin_connection`.
 2.  **Facilitate Connection & Create Conversation (`POST /api/admin/engagements/[inquiryId]/facilitate-connection`)**
     *   **Request Body:** `{ admin_notes?: string }`.
-    *   **Backend Logic:**
+    *   **Backend Logic (CRITICAL FOR MESSAGING):**
         1.  Authenticate Admin. Fetch `inquiry` by `inquiryId`.
-        2.  Verify `inquiry.status` is `READY_FOR_ADMIN_CONNECTION`.
-        3.  **Create `Conversation` record in D1** (See Section VII.A for details, status: 'ACTIVE').
-        4.  Update `inquiries.status` to `CONNECTION_FACILITATED_IN_APP_CHAT_OPENED`.
-        5.  Update `inquiries.conversationId` with the new conversation ID.
+        2.  Verify `inquiry.status` is `ready_for_admin_connection`.
+        3.  **Create `Conversation` record in D1** (See Section VII.A for details: `inquiry_id`, `listing_id`, `buyer_id`, `seller_id`, `status: 'ACTIVE'`).
+        4.  **Update `inquiries.status` to `CONNECTION_FACILITATED_IN_APP_CHAT_OPENED'`.**
+        5.  **Update `inquiries.conversationId` with the new conversation ID from the created `Conversation` record.**
         6.  Update `inquiries.admin_notes` with `admin_notes`.
-        7.  Log action. Notify buyer and seller about the new chat. Return 200 OK with `conversationId`.
+        7.  Log admin action. Notify buyer and seller about the new chat available.
+        8.  Return 200 OK with `conversationId`.
 
-### E. Analytics Data Aggregation (Conceptual for D1 Queries)
+### E. Analytics Data Aggregation
 
-*   **User Metrics:**
-    *   Total Users (Sellers vs Buyers): `SELECT role, COUNT(*) FROM user_profiles GROUP BY role`.
-    *   Paid/Free Breakdown: `SELECT role, is_paid, COUNT(*) FROM user_profiles GROUP BY role, is_paid`.
-    *   Verification Status Breakdown: `SELECT role, verification_status, COUNT(*) FROM user_profiles GROUP BY role, verification_status`.
-    *   New User Registrations (24h/7d): `SELECT COUNT(*) FROM user_profiles WHERE created_at >= DATETIME('now', '-X days')`. Split by role if needed.
-*   **Listing Metrics:**
-    *   Total Listings (All Statuses): `SELECT COUNT(*) FROM listings`.
-    *   Active Listings (Verified vs Anonymous): `SELECT status, COUNT(*) FROM listings WHERE status IN ('ACTIVE_ANONYMOUS', 'VERIFIED_ANONYMOUS', 'VERIFIED_PUBLIC') GROUP BY status`.
-    *   Closed/Deactivated Listings: `SELECT COUNT(*) FROM listings WHERE status IN ('INACTIVE', 'closed_deal', 'rejected_by_admin')`.
-    *   New Listings Created (24h/7d): `SELECT COUNT(*) FROM listings WHERE created_at >= DATETIME('now', '-X days')`.
-    *   Listings by Industry: `SELECT industry, COUNT(*) FROM listings WHERE status IN ('ACTIVE_ANONYMOUS', 'VERIFIED_ANONYMOUS', 'VERIFIED_PUBLIC') GROUP BY industry`.
-    *   Listings by Asking Price (Ranges): Requires bucketing `listings.askingPrice` (numeric) using CASE statements (if D1 supports this well, or multiple queries).
-*   **Engagement/Deal Flow Metrics:**
-    *   Total Inquiries by Status: `SELECT status, COUNT(*) FROM inquiries GROUP BY status`.
-    *   Successful Connections Facilitated MTD: `SELECT COUNT(*) FROM inquiries WHERE status = 'CONNECTION_FACILITATED_IN_APP_CHAT_OPENED' AND engagement_timestamp >= [start_of_month]`.
-    *   Active Successful Connections: `SELECT COUNT(*) FROM inquiries WHERE status = 'CONNECTION_FACILITATED_IN_APP_CHAT_OPENED' AND (deal_closed_timestamp IS NULL OR deal_status != 'CLOSED')` (assuming future deal tracking fields).
-    *   Closed Successful Connections/Deals Closed MTD: `SELECT COUNT(*) FROM inquiries WHERE status = 'CONNECTION_FACILITATED_IN_APP_CHAT_OPENED' AND deal_closed_timestamp >= [start_of_month] AND deal_status = 'CLOSED'` (assuming future deal tracking fields).
-*   **Revenue Metrics (Conceptual - assuming a `subscriptions` table):**
-    *   Total Revenue MTD: `SELECT SUM(amount) FROM subscriptions WHERE status = 'ACTIVE' AND transaction_date >= [start_of_month]`.
-    *   Revenue from Buyers/Sellers: Filter `subscriptions` by joining with `user_profiles.role`.
+*   Ensure queries for "Total Listings (All Statuses)" (e.g., `SELECT COUNT(*) FROM listings;`) and "Closed/Deactivated Listings" (e.g., `SELECT COUNT(*) FROM listings WHERE status IN ('inactive', 'closed_deal', 'rejected_by_admin');`) are noted.
 
 ### F. Conversation Oversight (Admin) (NEW)
 
 1.  **Fetch All Active Conversations (`GET /api/admin/conversations`)**
-    *   **Purpose:** Allow admins to view a list of all active conversations.
+    *   **Purpose:** Allow admins to view a list of all conversations.
     *   **Backend Worker Logic (D1 Query):**
         1.  Authenticate Admin.
-        2.  `SELECT c.*, buyer_profile.full_name AS buyer_name, seller_profile.full_name AS seller_name, l.listingTitleAnonymous FROM conversations c JOIN user_profiles buyer_profile ON c.buyer_id = buyer_profile.user_id JOIN user_profiles seller_profile ON c.seller_id = seller_profile.user_id JOIN listings l ON c.listing_id = l.listing_id ORDER BY c.updated_at DESC` (with pagination and filters for status, e.g., `WHERE c.status = 'ACTIVE'`).
+        2.  `SELECT c.*, buyer_profile.full_name AS buyer_name, seller_profile.full_name AS seller_name, l.listingTitleAnonymous FROM conversations c JOIN user_profiles buyer_profile ON c.buyer_id = buyer_profile.user_id JOIN user_profiles seller_profile ON c.seller_id = seller_profile.user_id JOIN listings l ON c.listing_id = l.listing_id ORDER BY c.updated_at DESC` (with pagination and filters for `c.status`).
         3.  Return paginated conversations.
 
 2.  **Fetch Messages for a Specific Conversation (Admin View - `GET /api/admin/conversations/[conversationId]/messages`)**
@@ -580,38 +303,7 @@ All Admin APIs require ADMIN role authentication (e.g., check role in `user_prof
 
 ## VI. File Upload Handling (Conceptual for R2)
 
-This outlines the intended multi-step process for handling file uploads (e.g., listing images, verification documents) from the frontend to Cloudflare R2, and linking them to Cloudflare D1 records.
-
-1.  **Step 1: Frontend Requests Pre-signed URL for Upload**
-    *   **Triggering UI:** User selects a file in an `<Input type="file">` (e.g., Create/Edit Listing form, Profile Verification form).
-    *   **Frontend Action:** Makes API request to (e.g., `POST /api/upload/generate-signed-url`).
-    *   **Request Body:** `{ filename: string, contentType: string, context: 'listing_image' | 'verification_document_buyer' | 'verification_document_seller_profile' | 'verification_document_listing', entityId?: string (e.g., listingId, userId), documentType?: string (e.g., 'financial_statement', 'id_proof') }`.
-2.  **Step 2: Backend Worker Generates Pre-signed R2 URL**
-    *   **Conceptual Next.js API Route:** `POST /api/upload/generate-signed-url`.
-    *   **Cloudflare Worker Logic:**
-        1.  **Authenticate User & Authorize:** Based on `context` and `entityId` (e.g., ensure seller owns listing if `context='listing_image'`).
-        2.  **Validate Request Body.**
-        3.  **Construct R2 Object Key:** Generate unique, secure key (e.g., `listings/${listingId}/images/${uuidv4()}-${sanitized_filename}` or `verification_docs/${userId}/${documentType}/${uuidv4()}-${sanitized_filename}`).
-        4.  **Use Cloudflare R2 SDK/API:** Call R2 method to generate a pre-signed URL for a `PUT` operation (specify bucket, key, expiry, contentType).
-        5.  **Return Success Response:** 200 OK with `{ signedUrl: string, objectKey: string }`.
-3.  **Step 3: Frontend Uploads File Directly to R2**
-    *   **Frontend Action:** Uses `fetch` API (`PUT`) to `signedUrl` with the file as body. `Content-Type` header must match.
-4.  **Step 4: Frontend Notifies Backend of Successful Upload & Links File to Entity**
-    *   **Triggering UI:** After successful R2 upload.
-    *   **Request Body:** `{ objectKey: string (R2 objectKey), originalFilename: string, context: 'listing_image' | ..., entityId: string (listingId or userId), documentType?: string, imageUrlIndex?: number (if for listing images array) }`.
-    *   **Conceptual Next.js API Route:** e.g., `POST /api/upload/confirm-and-link`.
-    *   **(Alternative for listing images from text inputs):** If image URLs are just text inputs in the form, the main "Create/Edit Listing" API (Section II.A/B) handles saving these string URLs. The pre-signed URL flow would be for direct file uploads for *documents* and potentially direct image uploads for listings/messages.
-5.  **Step 5: Backend Worker Updates D1 Database with File Reference**
-    *   **Conceptual Next.js API Route:** e.g., `POST /api/upload/confirm-and-link`.
-    *   **Cloudflare Worker Logic:**
-        1.  **Authenticate User & Authorize.**
-        2.  **Validate Request Body.**
-        3.  **Update D1 Database:**
-            *   **For listings (if `context='listing_document'`):** Update specific document URL field in `listings` table (e.g., `financial_documents_url = objectKey`).
-            *   **For profile verification (if `context='verification_document_...'`):** Update `user_profiles` (e.g., `id_proof_document_key = objectKey`) or insert into a separate `user_verification_documents` table linked to `user_id` and `verification_request_id`.
-            *   **Note on `imageUrls` for Listings:** If using direct file uploads for listing images, the array of `objectKey`s would be stored in `listings.imageUrls` (as JSON string). If sellers provide external URLs via text inputs, those strings are stored directly.
-            *   **For message attachments (Future):** Update `messages.attachmentUrl` and `messages.attachmentType`.
-        4.  **Return Success Response:** 200 OK.
+(Existing content generally sound, ensure it aligns with `Listing` doc fields)
 
 ---
 ## VII. In-App Messaging System
@@ -619,11 +311,11 @@ This outlines the intended multi-step process for handling file uploads (e.g., l
 ### A. Creating a Conversation (Admin Action)
 
 *   **Triggering Event:** Admin clicks "Facilitate Connection & Open Chat" for an inquiry in the Admin Engagement Queue (`/admin/engagement-queue`).
-*   **Conceptual API Route (Called by Admin Panel Frontend):** `POST /api/admin/engagements/[inquiryId]/facilitate-connection`.
+*   **Conceptual API Route (Called by Admin Panel Frontend):** `POST /api/admin/engagements/[inquiryId]/facilitate-connection`. (This expands the existing Admin route).
 *   **Detailed Backend Worker Logic:**
     1.  **Authenticate Admin:** Verify admin privileges.
     2.  **Fetch Inquiry Details (D1 Query):** Retrieve the `inquiry` record using `inquiryId` to get `buyer_id`, `seller_id`, and `listing_id`.
-    3.  **Verify Inquiry Status:** Ensure `inquiries.status` is `'READY_FOR_ADMIN_CONNECTION'`. If not, return an error.
+    3.  **Verify Inquiry Status:** Ensure `inquiries.status` is `'ready_for_admin_connection'`. If not, return an error.
     4.  **Create Conversation Record (D1 Insert):**
         *   Generate a new unique `conversation_id` (e.g., UUID).
         *   Insert a new record into the `conversations` table with:
@@ -637,21 +329,16 @@ This outlines the intended multi-step process for handling file uploads (e.g., l
             *   `last_message_snippet`: NULL or a system message like "Chat initiated by Admin."
             *   `buyer_unread_count`: 0
             *   `seller_unread_count`: 0
-            *   `status`: `'ACTIVE'`
+            *   `status`: `'ACTIVE'` (from `ConversationStatus` type)
     5.  **Update Inquiry Status (D1 Update):** Change `inquiries.status` to `'CONNECTION_FACILITATED_IN_APP_CHAT_OPENED'`.
     6.  **Update Inquiry Conversation ID (D1 Update):** Set `inquiries.conversationId = <new_conversation_id>` for the given `inquiryId`.
-    7.  **Trigger Notifications (Conceptual):**
-        *   Create notification records in D1 `notifications` table for both the buyer and the seller.
-        *   Message: "Your connection for listing '[Listing Title]' is now active. You can start messaging directly on Nobridge."
-        *   Link: `/dashboard/messages/[new_conversation_id]` or `/seller-dashboard/messages/[new_conversation_id]`.
-        *   Type: `'new_message'` or `'engagement'`.
-        *   (Future) Send email notifications.
+    7.  **Trigger Notifications (Conceptual):** Create notification records in D1 `notifications` table for both buyer and seller.
     8.  **Audit Log (D1 Insert):** Log the admin action.
     9.  **Return Success Response:** 200 OK with `{ success: true, message: "Connection facilitated and conversation created.", conversationId: new_conversation_id }`.
 
 ### B. Fetching User's Conversations (List View)
 
-*   **Triggering UI:** Buyer/Seller navigates to their "Messages" page (e.g., `/dashboard/messages` or `/seller-dashboard/messages`).
+*   **Triggering UI:** Buyer/Seller navigates to their "Messages" page.
 *   **Conceptual API Route:** `GET /api/conversations`
 *   **Detailed Backend Worker Logic:**
     1.  **Authenticate User:** Get `user_id` from session.
@@ -671,88 +358,42 @@ This outlines the intended multi-step process for handling file uploads (e.g., l
         FROM conversations c
         JOIN listings l ON c.listing_id = l.listing_id
         JOIN user_profiles other_user ON (CASE WHEN c.buyer_id = ?1 THEN c.seller_id ELSE c.buyer_id END) = other_user.user_id
-        WHERE (c.buyer_id = ?1 OR c.seller_id = ?1) AND c.status = 'ACTIVE'
+        WHERE (c.buyer_id = ?1 OR c.seller_id = ?1) AND c.status = 'ACTIVE' -- Or filter by other statuses
         ORDER BY c.updated_at DESC
         LIMIT ?2 OFFSET ?3;
         ```
-        (Bind `user_id` to `?1`, `limit` to `?2`, `offset` to `?3`).
-    4.  **Fetch Total Count:** A separate `COUNT(*)` query with the same `WHERE` clause for pagination.
-    5.  **Return Success Response:** 200 OK with paginated list of conversation summaries.
+    4.  **Fetch Total Count:** For pagination.
+    5.  **Return Success Response:** 200 OK with paginated list.
 
 ### C. Fetching Messages for a Conversation
 
-*   **Triggering UI:** User opens a specific conversation from their list.
+*   **Triggering UI:** User opens a specific conversation.
 *   **Conceptual API Route:** `GET /api/conversations/[conversationId]/messages`
 *   **Detailed Backend Worker Logic:**
-    1.  **Authenticate User:** Get `user_id` from session.
-    2.  **Receive Request:** `conversationId` from path. Optional query params for pagination (`beforeTimestamp?`, `limit`).
-    3.  **Verify Participation (D1 Query):** Fetch `conversations` record for `conversationId`. Check if `user_id` matches `buyer_id` or `seller_id`. If not, return 403 Forbidden.
-    4.  **Fetch Messages (D1 Query):**
-        ```sql
-        SELECT message_id, sender_id, content_text, timestamp, is_read, attachment_url, attachment_type
-        FROM messages
-        WHERE conversation_id = ?1
-        -- AND timestamp < ?2 -- Optional for "load older" pagination
-        ORDER BY timestamp ASC -- Or DESC if paginating from newest
-        LIMIT ?3;
-        ```
-        (Bind `conversationId` to `?1`, `beforeTimestamp` to `?2`, `limit` to `?3`).
-    5.  **Mark Messages as Read (D1 Update):**
-        ```sql
-        UPDATE messages
-        SET is_read = true
-        WHERE conversation_id = ?1 AND receiver_id = ?2 AND is_read = false;
-        ```
-        (Bind `conversationId` to `?1`, `user_id` to `?2`).
-    6.  **Update Unread Count on Conversation (D1 Update):**
-        *   If user is buyer: `UPDATE conversations SET buyer_unread_count = 0 WHERE conversation_id = ?1`.
-        *   If user is seller: `UPDATE conversations SET seller_unread_count = 0 WHERE conversation_id = ?1`.
-        (Bind `conversationId` to `?1`).
-    7.  **Return Success Response:** 200 OK with list of messages.
+    1.  **Authenticate User & Verify Participation.**
+    2.  **Fetch Messages (D1 Query):** `SELECT * FROM messages WHERE conversation_id = ? ORDER BY timestamp ASC` (with pagination).
+    3.  **Mark Messages as Read (D1 Update):** `UPDATE messages SET is_read = true WHERE conversation_id = ? AND receiver_id = ? AND is_read = false`.
+    4.  **Update Unread Count on Conversation (D1 Update):** Set user's specific unread count (e.g., `buyer_unread_count` or `seller_unread_count`) to 0.
+    5.  **Return Success Response.**
 
 ### D. Sending a New Message
 
-*   **Triggering UI:** User types and clicks "Send" in the chat interface.
+*   **Triggering UI:** User sends message.
 *   **Conceptual API Route:** `POST /api/conversations/[conversationId]/messages`
 *   **Detailed Backend Worker Logic:**
-    1.  **Authenticate User:** Get `user_id` (this is `senderId`).
-    2.  **Receive Request:** `conversationId` from path, `{ contentText: string, attachmentUrl?: string, attachmentType?: string }` in body.
-    3.  **Validate Input:** Ensure `contentText` is not empty (unless attachment present).
-    4.  **Verify Participation & Get Receiver ID (D1 Query):** Fetch `conversations` record for `conversationId`. Check if `user_id` matches `buyer_id` or `seller_id`. If not, 403. Determine `receiver_id` (the other participant). Ensure `conversation.status` is `'ACTIVE'`.
-    5.  **Create Message Record (D1 Insert):**
-        *   Generate new `message_id` (UUID).
-        *   Insert into `messages` table: `message_id`, `conversation_id`, `sender_id`, `receiver_id`, `content_text`, `timestamp` (current), `is_read = false`, `attachment_url`, `attachment_type`.
-    6.  **Update Conversation Record (D1 Update):**
-        *   `UPDATE conversations SET updated_at = DATETIME('now'), last_message_snippet = SUBSTR(?, 1, 100)` (bind `contentText`).
-        *   Increment `unread_count` for the `receiver_id`:
-            *   If receiver is buyer: `UPDATE conversations SET buyer_unread_count = buyer_unread_count + 1 WHERE conversation_id = ?`.
-            *   If receiver is seller: `UPDATE conversations SET seller_unread_count = seller_unread_count + 1 WHERE conversation_id = ?`.
-    7.  **Trigger Real-time Notification (Conceptual - See VII.E):** Notify `receiver_id`.
-    8.  **Return Success Response:** 201 Created with the newly created message object.
+    1.  **Authenticate User & Verify Participation.**
+    2.  **Determine `receiverId`.**
+    3.  **Create `Message` Record (D1 Insert).**
+    4.  **Update `Conversation` Record (D1 Update):** `updated_at`, `last_message_snippet`, increment receiver's `unread_count`.
+    5.  **Trigger Real-time Notification.**
+    6.  **Return Success Response.**
 
 ### E. Real-time Considerations (Cloudflare)
 
-*   **Polling (MVP):**
-    *   Client-side: `useEffect` hook in the conversation view polls `GET /api/conversations/[conversationId]/messages` (perhaps with a `sinceTimestamp` parameter) every few seconds (e.g., 5-10s).
-    *   Pros: Simple to implement.
-    *   Cons: Not truly real-time, can lead to delays and unnecessary requests.
-*   **Cloudflare Workers + Durable Objects + WebSockets (Advanced):**
-    *   A Durable Object per conversation could manage WebSocket connections for participants.
-    *   When a message is sent (via POST API), the Worker handling the POST forwards the message to the Durable Object.
-    *   The Durable Object then broadcasts the message to all connected WebSocket clients for that conversation.
-    *   Pros: True real-time, efficient.
-    *   Cons: Significantly more complex to set up and manage state/connections in Durable Objects. Requires careful handling of WebSocket lifecycles.
-*   **Third-Party Push Notification Services (e.g., Pusher, Ably, or custom via FCM/APNS):**
-    *   When a message is sent, the backend worker also sends a lightweight push notification to the receiver's registered devices/endpoints (if they are not active on the site).
-    *   The push notification itself might not contain the message content but rather an alert ("New message from X") and a payload to prompt the client app to fetch new messages or update the UI.
-    *   Pros: Good for notifying users who are not active on the site. Can be combined with polling for users who *are* active.
-    *   Cons: Adds dependency on third-party services or native push infrastructure.
-
-**For this plan, the conceptual implementation will initially assume Polling for simplicity, with a note that WebSockets/Push Notifications are future enhancements.**
-
----
-
-### F. Alternative Approaches & Future Considerations for Messaging
-*   **Third-Party Chat SDKs:** For a production-ready system, using a dedicated third-party chat SDK like TalkJS, Sendbird, or Stream could be considered. These services offer pre-built UIs, real-time infrastructure, scalability, and advanced features (typing indicators, read receipts, file attachments, moderation tools) out-of-the-box, potentially reducing development time and complexity for the core chat functionality. Integration would involve their client-side SDKs and backend webhooks.
+*   **Polling (MVP).**
+*   **Cloudflare Workers + Durable Objects + WebSockets (Advanced).**
+*   **Third-Party Push Notification Services.**
 
 This document provides a comprehensive plan for the backend implementation, including the new messaging system and admin oversight.
+
+    
