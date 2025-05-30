@@ -33,4 +33,5 @@ This documentation provides a comprehensive overview of the project's current st
 7.  [API Route Specifications (Intended) (`api-routes.md`)](api-routes.md)
 8.  [Styling and UI Conventions (`styling-conventions.md`)](styling-conventions.md)
 9.  [Consolidated Backend TODOs (`backend-todos.md`)](backend-todos.md)
+10. [Backend Development - Order of Operations (`backend-development-order.md`)](backend-development-order.md)
 
