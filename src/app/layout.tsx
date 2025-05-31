@@ -1,3 +1,4 @@
+
 import type { Metadata } from 'next';
 // Removed Inter font import
 import './globals.css';
@@ -10,7 +11,10 @@ export const metadata: Metadata = {
   title: 'Nobridge - Business Marketplace Platform',
   description: 'Connecting SME owners with investors and buyers in Asia.',
   icons: {
-    icon: '/favicon.ico',
+    icon: '/favicon.ico', // This will be the default favicon
+    // Ensure these paths match your actual icon files in /public/assets/
+    apple: '/assets/apple-touch-icon.png', // Example for Apple touch icon
+    shortcut: '/assets/favicon.ico', // Example for shortcut icon
   },
 };
 

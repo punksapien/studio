@@ -30,8 +30,9 @@ import { industries, asianCountries, revenueRanges, profitMarginRanges, dealStru
 import { useToast } from "@/hooks/use-toast";
 import { useTransition, useState } from "react";
 import { Separator } from "@/components/ui/separator";
-import { PlusCircle, Trash2, DollarSign, ImagePlus } from "lucide-react";
+import { PlusCircle, Trash2, ImagePlus } from "lucide-react";
 import { Label } from "@/components/ui/label";
+import { NobridgeIcon, NobridgeIconType } from '@/components/ui/nobridge-icon';
 
 const ListingSchema = z.object({
   listingTitleAnonymous: z.string().min(5, "Title must be at least 5 characters.").max(100, "Title too long."),
@@ -167,13 +168,13 @@ export default function CreateSellerListingPage() {
 
   return (
     <div className="space-y-8">
-      <h1 className="text-3xl font-bold tracking-tight text-brand-dark-blue">Create New Business Listing</h1>
+      <h1 className="text-3xl font-bold tracking-tight text-brand-dark-blue font-heading">Create New Business Listing</h1>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
           {/* Section 1: Basic Information */}
           <Card className="shadow-md bg-brand-white">
             <CardHeader>
-              <CardTitle className="text-brand-dark-blue">Section 1: Basic Information (Anonymous)</CardTitle>
+              <CardTitle className="text-brand-dark-blue font-heading">Section 1: Basic Information (Anonymous)</CardTitle>
               <CardDescription>Provide the essential details for your listing. This information will be displayed anonymously initially.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -224,7 +225,7 @@ export default function CreateSellerListingPage() {
 
           {/* Section 2: Business Profile & Operations */}
           <Card className="shadow-md bg-brand-white">
-            <CardHeader><CardTitle className="text-brand-dark-blue">Section 2: Business Profile &amp; Operations</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-brand-dark-blue font-heading">Section 2: Business Profile &amp; Operations</CardTitle></CardHeader>
             <CardContent className="space-y-6">
               <FormField control={form.control} name="anonymousBusinessDescription" render={({ field }) => (
                   <FormItem><FormLabel>Business Description</FormLabel><FormControl><Textarea {...field} rows={6} placeholder="Describe your business, products/services, market position, and growth potential without revealing identifying details." disabled={isPending} /></FormControl><FormDescription>Max 2000 characters.</FormDescription><FormMessage /></FormItem>
@@ -256,32 +257,32 @@ export default function CreateSellerListingPage() {
           </Card>
 
           <Card className="shadow-md bg-brand-white">
-            <CardHeader><CardTitle className="text-brand-dark-blue flex items-center gap-2"><ImagePlus className="h-5 w-5"/>Business Images</CardTitle><CardDescription>Provide up to 5 image URLs for your listing (e.g., logo, storefront, product shots). These will be shown to buyers.</CardDescription></CardHeader>
+            <CardHeader><CardTitle className="text-brand-dark-blue font-heading flex items-center gap-2"><ImagePlus className="h-5 w-5 text-primary"/>Business Images</CardTitle><CardDescription>Provide up to 5 image URLs for your listing (e.g., logo, storefront, product shots). These will be shown to buyers.</CardDescription></CardHeader>
             <CardContent className="space-y-4">
               {[1, 2, 3, 4, 5].map(i => (<FormField key={`imageUrl${i}`} control={form.control} name={`imageUrl${i}` as `imageUrl1`} render={({ field }) => (<FormItem><FormLabel>Image URL {i}</FormLabel><FormControl><Input {...field} value={field.value || ""} placeholder="https://example.com/image.jpg" disabled={isPending} /></FormControl><FormMessage /></FormItem>)}/>))}
             </CardContent>
           </Card>
 
           <Card className="shadow-md bg-brand-white">
-            <CardHeader><CardTitle className="text-brand-dark-blue">Section 3: Financial Performance</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-brand-dark-blue font-heading flex items-center gap-2"><NobridgeIcon icon="calculator" size="sm" />Financial Performance</CardTitle></CardHeader>
             <CardContent className="space-y-6">
                 <div className="grid md:grid-cols-2 gap-6">
                     <FormField control={form.control} name="annualRevenueRange" render={({ field }) => (<FormItem><FormLabel>Annual Revenue Range (Anonymous)</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={isPending}><FormControl><SelectTrigger><SelectValue placeholder="Select revenue range" /></SelectTrigger></FormControl><SelectContent>{revenueRanges.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)}/>
                     <FormField control={form.control} name="netProfitMarginRange" render={({ field }) => (<FormItem><FormLabel>Net Profit Margin Range (Anonymous, Optional)</FormLabel><Select onValueChange={field.onChange} value={field.value || ""} disabled={isPending}><FormControl><SelectTrigger><SelectValue placeholder="Select profit margin"/></SelectTrigger></FormControl><SelectContent>{profitMarginRanges.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)}/>
                 </div>
-                 <FormField control={form.control} name="askingPrice" render={({ field }) => (<FormItem><FormLabel className="flex items-center"><DollarSign className="h-4 w-4 mr-1 text-muted-foreground"/>Asking Price (USD)</FormLabel><FormControl><Input type="number" {...field} value={field.value === undefined ? '' : field.value} onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} placeholder="e.g., 750000" disabled={isPending} /></FormControl><FormDescription>Enter the specific asking price for your business.</FormDescription><FormMessage /></FormItem>)}/>
+                 <FormField control={form.control} name="askingPrice" render={({ field }) => (<FormItem><FormLabel className="flex items-center"><NobridgeIcon icon="revenue" size="sm" className="mr-1 opacity-80"/>Asking Price (USD)</FormLabel><FormControl><Input type="number" {...field} value={field.value === undefined ? '' : field.value} onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} placeholder="e.g., 750000" disabled={isPending} /></FormControl><FormDescription>Enter the specific asking price for your business.</FormDescription><FormMessage /></FormItem>)}/>
                  <FormField control={form.control} name="adjustedCashFlow" render={({ field }) => (<FormItem><FormLabel>Adjusted Cash Flow / SDE (TTM, USD)</FormLabel><FormControl><Input type="number" {...field} value={field.value === undefined ? '' : field.value} onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} placeholder="e.g., 220000" disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
                  <FormField control={form.control} name="adjustedCashFlowExplanation" render={({ field }) => (<FormItem><FormLabel>Brief Explanation of Adjusted Cash Flow (Optional)</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={3} placeholder="Explain any adjustments made (e.g., owner's salary, non-recurring expenses)." disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
                 <Separator/>
-                <h3 className="text-md font-medium text-muted-foreground">Specific Financials (For Verified View)</h3>
+                <h3 className="text-md font-medium text-muted-foreground font-heading">Specific Financials (For Verified View)</h3>
                  <FormField control={form.control} name="specificAnnualRevenueLastYear" render={({ field }) => (<FormItem><FormLabel>Actual Annual Revenue (TTM, in USD)</FormLabel><FormControl><Input type="number" {...field} value={field.value === undefined ? '' : field.value} onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} placeholder="e.g., 750000" disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
                   <FormField control={form.control} name="specificNetProfitLastYear" render={({ field }) => (<FormItem><FormLabel>Actual Net Profit (TTM, in USD)</FormLabel><FormControl><Input type="number" {...field} value={field.value === undefined ? '' : field.value} onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} placeholder="e.g., 180000" disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
-                <div className="space-y-2"><Label className="text-md font-medium text-muted-foreground">Supporting Financial Documents (For Verified Buyers Only)</Label><FormItem><Label htmlFor="financialStatements">Upload Financial Statements (e.g., P&amp;L, Balance Sheet)</Label><Input id="financialStatements" type="file" disabled={isPending} /><FormDescription>PDF, XLSX accepted.</FormDescription></FormItem><FormItem><Label htmlFor="keyMetricsReport">Upload Key Metrics Report (e.g., SaaS Metrics, Analytics Summary)</Label><Input id="keyMetricsReport" type="file" disabled={isPending} /><FormDescription>PDF, XLSX accepted.</FormDescription></FormItem></div>
+                <div className="space-y-2"><Label className="text-md font-medium text-muted-foreground flex items-center gap-2"><NobridgeIcon icon="documents" size="sm" />Supporting Financial Documents (For Verified Buyers Only)</Label><FormItem><Label htmlFor="financialStatements">Upload Financial Statements (e.g., P&amp;L, Balance Sheet)</Label><Input id="financialStatements" type="file" disabled={isPending} /><FormDescription>PDF, XLSX accepted.</FormDescription></FormItem><FormItem><Label htmlFor="keyMetricsReport">Upload Key Metrics Report (e.g., SaaS Metrics, Analytics Summary)</Label><Input id="keyMetricsReport" type="file" disabled={isPending} /><FormDescription>PDF, XLSX accepted.</FormDescription></FormItem></div>
             </CardContent>
           </Card>
 
           <Card className="shadow-md bg-brand-white">
-            <CardHeader><CardTitle className="text-brand-dark-blue">Section 4: Deal &amp; Seller Information</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-brand-dark-blue font-heading flex items-center gap-2"><NobridgeIcon icon="deal-structure" size="sm" />Deal &amp; Seller Information</CardTitle></CardHeader>
             <CardContent className="space-y-6">
                 <FormField
                     control={form.control}
@@ -289,16 +290,16 @@ export default function CreateSellerListingPage() {
                     render={() => (<FormItem><FormLabel>Looking for (Deal Structure):</FormLabel><FormDescription>Select all that apply.</FormDescription><div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 pt-2">{dealStructures.map((item) => (<FormField key={item} control={form.control} name="dealStructureLookingFor" render={({ field }) => (<FormItem className="flex flex-row items-start space-x-3 space-y-0"><FormControl><Checkbox checked={field.value?.includes(item)} onCheckedChange={(checked) => checked ? field.onChange([...(field.value || []), item]) : field.onChange(field.value?.filter(v => v !== item))} disabled={isPending}/></FormControl><FormLabel className="font-normal">{item}</FormLabel></FormItem>)}/>))}</div><FormMessage /></FormItem>)}/>
                 <FormField control={form.control} name="reasonForSellingAnonymous" render={({ field }) => (<FormItem><FormLabel>Reason for Selling (Public Summary, Optional)</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={3} placeholder="Briefly state your reason for selling (e.g., Retirement, Other ventures)." disabled={isPending} /></FormControl><FormDescription>Max 500 characters. This may be shown publicly.</FormDescription><FormMessage /></FormItem>)}/>
               <Separator />
-              <h3 className="text-md font-medium text-muted-foreground">Additional Seller Information (For Verified View)</h3>
+              <h3 className="text-md font-medium text-muted-foreground font-heading">Additional Seller Information (For Verified View)</h3>
                <FormField control={form.control} name="detailedReasonForSelling" render={({ field }) => (<FormItem><FormLabel>Detailed Reason for Selling</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={3} placeholder="Provide more context for verified buyers." disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
                <FormField control={form.control} name="sellerRoleAndTimeCommitment" render={({ field }) => (<FormItem><FormLabel>Seller&apos;s Current Role &amp; Time Commitment</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={3} placeholder="Describe your current day-to-day role and weekly time commitment to the business." disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
                <FormField control={form.control} name="postSaleTransitionSupport" render={({ field }) => (<FormItem><FormLabel>Post-Sale Transition Support Offered</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={3} placeholder="What level of training or transition support are you willing to provide the buyer?" disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
-              <div className="space-y-2"><Label className="text-md font-medium text-muted-foreground">Ownership &amp; Legal Documents (For Admin Verification &amp; Verified Buyers Only)</Label><FormItem><Label htmlFor="ownershipDocs">Upload Proof of Ownership / Incorporation Documents</Label><Input id="ownershipDocs" type="file" disabled={isPending} /><FormDescription>PDF accepted.</FormDescription></FormItem></div>
+              <div className="space-y-2"><Label className="text-md font-medium text-muted-foreground flex items-center gap-2"><NobridgeIcon icon="secure-docs" size="sm"/>Ownership &amp; Legal Documents (For Admin Verification &amp; Verified Buyers Only)</Label><FormItem><Label htmlFor="ownershipDocs">Upload Proof of Ownership / Incorporation Documents</Label><Input id="ownershipDocs" type="file" disabled={isPending} /><FormDescription>PDF accepted.</FormDescription></FormItem></div>
             </CardContent>
           </Card>
 
           <Card className="shadow-md bg-brand-white">
-            <CardHeader><CardTitle className="text-brand-dark-blue">Section 5: Growth &amp; Future Potential</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-brand-dark-blue font-heading flex items-center gap-2"><NobridgeIcon icon="growth" size="sm"/>Growth &amp; Future Potential</CardTitle></CardHeader>
             <CardContent className="space-y-6">
                 <FormField control={form.control} name="specificGrowthOpportunities" render={({ field }) => (<FormItem><FormLabel>Specific Growth Opportunities (Use bullet points)</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={5} placeholder="- Expand to new markets (e.g., Region X)\n- Launch new product line (e.g., Product Y)\n- Optimize marketing spend by Z%" disabled={isPending} /></FormControl><FormDescription>List 3-5 specific, actionable growth opportunities.</FormMessage><FormMessage /></FormItem>)} />
             </CardContent>

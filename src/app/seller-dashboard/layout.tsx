@@ -1,8 +1,9 @@
+
 'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import * as React from 'react'; // Ensure React is imported
+import * as React from 'react'; 
 import {
   SidebarProvider,
   Sidebar,
@@ -11,7 +12,6 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarInset,
   SidebarTrigger,
   SidebarSeparator,
   SidebarFooter
@@ -21,38 +21,38 @@ import { Button } from '@/components/ui/button';
 import {
   LayoutDashboard,
   UserCircle,
-  Briefcase,
-  MessageSquare, // Kept for inquiries
+  MessageSquare, 
   Settings,
   LogOut,
-  ShieldCheck,
   Bell,
   PlusCircle,
   HelpCircle,
   FileText,
   MessageSquareQuote, 
   Home,
-  Mail // Added Mail icon for Messages
+  Mail 
 } from 'lucide-react';
 import type { UserRole } from '@/lib/types';
+import { NobridgeIcon, NobridgeIconType } from '@/components/ui/nobridge-icon';
 
-const currentUserRole: UserRole | null = 'seller'; // Placeholder
+
+const currentUserRole: UserRole | null = 'seller'; 
 
 const sellerSidebarNavItems = [
   { title: 'Overview', href: '/seller-dashboard', icon: LayoutDashboard, tooltip: "Dashboard Overview" },
   { title: 'My Profile', href: '/seller-dashboard/profile', icon: UserCircle, tooltip: "Manage Profile" },
-  { title: 'My Listings', href: '/seller-dashboard/listings', icon: Briefcase, tooltip: "Manage Listings" },
+  { title: 'My Listings', href: '/seller-dashboard/listings', icon: NobridgeIcon, iconProps: { icon: 'business-listing' as NobridgeIconType }, tooltip: "Manage Listings" },
   { title: 'Create Listing', href: '/seller-dashboard/listings/create', icon: PlusCircle, tooltip: "Create New Listing" },
   { title: 'My Inquiries', href: '/seller-dashboard/inquiries', icon: MessageSquare, tooltip: "View Inquiries" },
   { title: 'Messages', href: '/seller-dashboard/messages', icon: Mail, tooltip: "My Conversations" }, 
-  { title: 'Verification', href: '/seller-dashboard/verification', icon: ShieldCheck, tooltip: "Account/Listing Verification" },
+  { title: 'Verification', href: '/seller-dashboard/verification', icon: NobridgeIcon, iconProps: { icon: 'verification' as NobridgeIconType }, tooltip: "Account/Listing Verification" },
   { title: 'Notifications', href: '/seller-dashboard/notifications', icon: Bell, tooltip: "My Notifications" },
   { title: 'Settings', href: '/seller-dashboard/settings', icon: Settings, tooltip: "Account Settings" },
 ];
 
 const utilityNavItems = [
   { title: 'Help', href: '/help', icon: HelpCircle, tooltip: "Get Help" },
-  { title: 'Refer Docs', href: '/docs', icon: FileText, tooltip: "View Documentation" },
+  { title: 'Refer Docs', href: '/docs', icon: NobridgeIcon, iconProps: {icon: 'documents' as NobridgeIconType}, tooltip: "View Documentation" },
   { title: 'FAQ', href: '/faq', icon: MessageSquareQuote, tooltip: "Frequently Asked Questions" },
   { title: 'Back to Homepage', href: '/', icon: Home, tooltip: "Go to Homepage" },
 ];
@@ -87,6 +87,9 @@ export default function SellerDashboardLayout({
           <SidebarContent>
             <SidebarMenu>
               {sellerSidebarNavItems.map((item) => {
+                const IconComponent = item.icon;
+                const iconProps = item.iconProps ? { ...item.iconProps, size: 'sm' as const, className:"mr-3 shrink-0" } : { className:"h-5 w-5 mr-3 shrink-0" };
+                
                 const overviewPath = '/seller-dashboard';
                 let itemIsActive = pathname === item.href;
                 if (item.href === overviewPath && pathname === overviewPath) {
@@ -102,7 +105,6 @@ export default function SellerDashboardLayout({
                     itemIsActive = pathname === "/seller-dashboard/listings/create";
                 }
 
-
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
@@ -111,8 +113,8 @@ export default function SellerDashboardLayout({
                       tooltip={{ children: item.tooltip, className: "bg-primary text-primary-foreground" }}
                     >
                       <Link href={item.href} className="flex items-center"> 
-                        <item.icon className="h-5 w-5 mr-3" /> 
-                        <span>{item.title}</span>
+                        <IconComponent {...iconProps} /> 
+                        <span className="truncate">{item.title}</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -121,7 +123,10 @@ export default function SellerDashboardLayout({
             </SidebarMenu>
             <SidebarSeparator className="my-4" />
             <SidebarMenu>
-              {utilityNavItems.map((item) => (
+              {utilityNavItems.map((item) => {
+                 const IconComponent = item.icon;
+                 const iconProps = item.iconProps ? { ...item.iconProps, size: 'sm' as const, className:"mr-3 shrink-0" } : { className:"h-5 w-5 mr-3 shrink-0" };
+                return (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
@@ -129,18 +134,18 @@ export default function SellerDashboardLayout({
                     tooltip={{ children: item.tooltip, className: "bg-primary text-primary-foreground" }}
                   >
                      <Link href={item.href} className="flex items-center">
-                      <item.icon className="h-5 w-5 mr-3" />
-                      <span>{item.title}</span>
+                      <IconComponent {...iconProps} />
+                      <span className="truncate">{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              ))}
+              )})}
             </SidebarMenu>
           </SidebarContent>
           <SidebarFooter className="p-4 border-t border-sidebar-border">
             <Button variant="outline" className="w-full text-destructive-foreground bg-destructive hover:bg-destructive/90 flex items-center justify-center"> 
               <LogOut className="h-5 w-5 mr-2" /> 
-              <span>Logout</span>
+              <span className="truncate">Logout</span>
             </Button>
           </SidebarFooter>
         </Sidebar>

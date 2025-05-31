@@ -1,3 +1,4 @@
+
 import * as React from 'react';
 import { sampleListings, sampleUsers } from "@/lib/placeholder-data";
 import type { Listing, User } from "@/lib/types";
@@ -10,6 +11,8 @@ import { MapPin, DollarSign, Briefcase, ShieldCheck, ShieldAlert, CalendarDays, 
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { NobridgeIcon, NobridgeIconType } from '@/components/ui/nobridge-icon';
+
 
 async function getListingDetails(id: string): Promise<Listing | undefined> {
   return sampleListings.find(listing => listing.id === id);
@@ -43,8 +46,8 @@ export default async function AdminListingDetailPage({ params }: { params: { lis
   return (
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
-        <h1 className="text-3xl font-bold tracking-tight flex items-center text-brand-dark-blue">
-            <Briefcase className="h-8 w-8 mr-3 text-primary" /> Listing Details: {listing.listingTitleAnonymous}
+        <h1 className="text-3xl font-bold tracking-tight flex items-center text-brand-dark-blue font-heading">
+            <NobridgeIcon icon="business-listing" size="lg" className="mr-3" /> Listing Details: {listing.listingTitleAnonymous}
         </h1>
         <div className="flex flex-wrap gap-2 mt-2 md:mt-0">
             <Button variant="outline"><Edit className="h-4 w-4 mr-2"/> Edit Listing</Button>
@@ -76,7 +79,7 @@ export default async function AdminListingDetailPage({ params }: { params: { lis
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
             <div className="absolute bottom-0 left-0 p-6 md:p-8">
-                <h2 className="text-2xl md:text-3xl font-semibold text-brand-white tracking-tight">{listing.listingTitleAnonymous}</h2>
+                <h2 className="text-2xl md:text-3xl font-semibold text-brand-white tracking-tight font-heading">{listing.listingTitleAnonymous}</h2>
                 <div className="mt-2 flex gap-2 flex-wrap">
                 {getListingStatusBadge(listing.status, listing.isSellerVerified)}
                 {seller && (
@@ -101,12 +104,12 @@ export default async function AdminListingDetailPage({ params }: { params: { lis
                 <TabsContent value="overview" className="grid md:grid-cols-3 gap-8">
                     <div className="md:col-span-2 space-y-6">
                         <section>
-                            <h3 className="text-xl font-semibold text-brand-dark-blue mb-2 flex items-center"><Info className="h-5 w-5 mr-2 text-primary"/>Business Overview</h3>
+                            <h3 className="text-xl font-semibold text-brand-dark-blue mb-2 flex items-center font-heading"><Info className="h-5 w-5 mr-2 text-primary"/>Business Overview</h3>
                             <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">{listing.anonymousBusinessDescription}</p>
                         </section>
                         <Separator />
                         <section>
-                            <h3 className="text-xl font-semibold text-brand-dark-blue mb-2 flex items-center"><TrendingUp className="h-5 w-5 mr-2 text-primary"/>Key Strengths</h3>
+                            <h3 className="text-xl font-semibold text-brand-dark-blue mb-2 flex items-center font-heading"><TrendingUp className="h-5 w-5 mr-2 text-primary"/>Key Strengths</h3>
                             <ul className="list-disc list-inside space-y-1 text-muted-foreground pl-5">
                                 {(listing.keyStrengthsAnonymous || []).map((strength, index) => (
                                 <li key={index}>{strength}</li>
@@ -115,14 +118,14 @@ export default async function AdminListingDetailPage({ params }: { params: { lis
                         </section>
                         {listing.reasonForSellingAnonymous && (
                             <><Separator /><section>
-                                <h3 className="text-xl font-semibold text-brand-dark-blue mb-2 flex items-center"><Tag className="h-5 w-5 mr-2 text-primary"/>Reason for Selling</h3>
+                                <h3 className="text-xl font-semibold text-brand-dark-blue mb-2 flex items-center font-heading"><Tag className="h-5 w-5 mr-2 text-primary"/>Reason for Selling</h3>
                                 <p className="text-muted-foreground leading-relaxed">{listing.reasonForSellingAnonymous}</p>
                             </section></>
                         )}
                     </div>
                     <aside className="space-y-6 md:sticky md:top-24 h-fit">
                         <Card className="shadow-md bg-brand-light-gray/50">
-                            <CardHeader><CardTitle className="text-lg text-brand-dark-blue">Listing Summary</CardTitle></CardHeader>
+                            <CardHeader><CardTitle className="text-lg text-brand-dark-blue font-heading">Listing Summary</CardTitle></CardHeader>
                             <CardContent className="space-y-3 text-sm">
                                 <p><span className="font-medium text-brand-dark-blue">Industry:</span> {listing.industry}</p>
                                 <p><span className="font-medium text-brand-dark-blue">Location:</span> {listing.locationCityRegionGeneral}, {listing.locationCountry}</p>
@@ -145,7 +148,7 @@ export default async function AdminListingDetailPage({ params }: { params: { lis
                 </TabsContent>
 
                 <TabsContent value="profileOps" className="space-y-6">
-                     <h3 className="text-xl font-semibold text-brand-dark-blue mb-2 flex items-center"><Building className="h-5 w-5 mr-2 text-primary"/>Business Profile &amp; Operations</h3>
+                     <h3 className="text-xl font-semibold text-brand-dark-blue mb-2 flex items-center font-heading"><Building className="h-5 w-5 mr-2 text-primary"/>Business Profile &amp; Operations</h3>
                      <div className="p-4 bg-brand-light-gray/30 rounded-lg border border-brand-light-gray space-y-3 text-sm">
                         <p><span className="font-medium text-brand-dark-blue">Business Model:</span> {listing.businessModel || 'N/A'}</p>
                         <p><span className="font-medium text-brand-dark-blue">Year Established:</span> {listing.yearEstablished || 'N/A'}</p>
@@ -160,7 +163,7 @@ export default async function AdminListingDetailPage({ params }: { params: { lis
                 </TabsContent>
 
                 <TabsContent value="financials" className="space-y-6">
-                    <h3 className="text-xl font-semibold text-brand-dark-blue mb-2 flex items-center"><DollarSign className="h-5 w-5 mr-2 text-primary"/>Financial Details</h3>
+                    <h3 className="text-xl font-semibold text-brand-dark-blue mb-2 flex items-center font-heading"><NobridgeIcon icon="calculator" size="md" className="mr-2"/>Financial Details</h3>
                     <div className="grid md:grid-cols-2 gap-4 p-4 bg-brand-light-gray/30 rounded-lg border border-brand-light-gray text-sm">
                         <p><span className="font-medium text-brand-dark-blue">Specific Annual Revenue (TTM):</span> {listing.specificAnnualRevenueLastYear ? `$${listing.specificAnnualRevenueLastYear.toLocaleString()} USD` : 'N/A'}</p>
                         <p><span className="font-medium text-brand-dark-blue">Specific Net Profit (TTM):</span> {listing.specificNetProfitLastYear ? `$${listing.specificNetProfitLastYear.toLocaleString()} USD` : 'N/A'}</p>
@@ -170,16 +173,16 @@ export default async function AdminListingDetailPage({ params }: { params: { lis
                 </TabsContent>
 
                 <TabsContent value="dealSeller" className="space-y-6">
-                     <h3 className="text-xl font-semibold text-brand-dark-blue mb-2 flex items-center"><HandCoins className="h-5 w-5 mr-2 text-primary"/>Deal &amp; Seller Information</h3>
+                     <h3 className="text-xl font-semibold text-brand-dark-blue mb-2 flex items-center font-heading"><NobridgeIcon icon="deal-structure" size="md" className="mr-2"/>Deal &amp; Seller Information</h3>
                      <div className="p-4 bg-brand-light-gray/30 rounded-lg border border-brand-light-gray space-y-3 text-sm">
-                        <div><h4 className="font-semibold text-brand-dark-blue">Detailed Reason for Selling:</h4> <p className="text-muted-foreground whitespace-pre-wrap text-xs">{listing.detailedReasonForSelling || 'N/A'}</p></div>
-                        <div><h4 className="font-semibold text-brand-dark-blue">Seller Role & Time Commitment:</h4> <p className="text-muted-foreground whitespace-pre-wrap text-xs">{listing.sellerRoleAndTimeCommitment || 'N/A'}</p></div>
-                        <div><h4 className="font-semibold text-brand-dark-blue">Post-Sale Transition Support:</h4> <p className="text-muted-foreground whitespace-pre-wrap text-xs">{listing.postSaleTransitionSupport || 'N/A'}</p></div>
+                        <div><h4 className="font-semibold text-brand-dark-blue font-heading">Detailed Reason for Selling:</h4> <p className="text-muted-foreground whitespace-pre-wrap text-xs">{listing.detailedReasonForSelling || 'N/A'}</p></div>
+                        <div><h4 className="font-semibold text-brand-dark-blue font-heading">Seller Role & Time Commitment:</h4> <p className="text-muted-foreground whitespace-pre-wrap text-xs">{listing.sellerRoleAndTimeCommitment || 'N/A'}</p></div>
+                        <div><h4 className="font-semibold text-brand-dark-blue font-heading">Post-Sale Transition Support:</h4> <p className="text-muted-foreground whitespace-pre-wrap text-xs">{listing.postSaleTransitionSupport || 'N/A'}</p></div>
                      </div>
                 </TabsContent>
 
                 <TabsContent value="growth" className="space-y-6">
-                    <h3 className="text-xl font-semibold text-brand-dark-blue mb-2 flex items-center"><Brain className="h-5 w-5 mr-2 text-primary"/>Specific Growth Opportunities</h3>
+                    <h3 className="text-xl font-semibold text-brand-dark-blue mb-2 flex items-center font-heading"><NobridgeIcon icon="growth" size="md" className="mr-2"/>Specific Growth Opportunities</h3>
                      <div className="p-4 bg-brand-light-gray/30 rounded-lg border border-brand-light-gray space-y-3 text-sm">
                         <ul className="list-disc list-inside text-muted-foreground leading-relaxed pl-1">
                           {(listing.specificGrowthOpportunities || "").split('\n').map((line, index) => (
@@ -191,7 +194,7 @@ export default async function AdminListingDetailPage({ params }: { params: { lis
                 </TabsContent>
 
                 <TabsContent value="docsImages" className="space-y-6">
-                    <h3 className="text-xl font-semibold text-brand-dark-blue mb-2 flex items-center"><ImagePlus className="h-5 w-5 mr-2 text-primary"/>Additional Images</h3>
+                    <h3 className="text-xl font-semibold text-brand-dark-blue mb-2 flex items-center font-heading"><ImagePlus className="h-5 w-5 mr-2 text-primary"/>Additional Images</h3>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-4 bg-brand-light-gray/30 rounded-lg border border-brand-light-gray">
                         {listing.imageUrls && listing.imageUrls.length > 1 ? (
                             listing.imageUrls.slice(1).map((url, index) => (
@@ -204,7 +207,7 @@ export default async function AdminListingDetailPage({ params }: { params: { lis
                         )}
                     </div>
                     <Separator />
-                    <h3 className="text-xl font-semibold text-brand-dark-blue mb-2 flex items-center"><FileText className="h-5 w-5 mr-2 text-primary"/>Uploaded Documents (Placeholders)</h3>
+                    <h3 className="text-xl font-semibold text-brand-dark-blue mb-2 flex items-center font-heading"><NobridgeIcon icon="documents" size="md" className="mr-2"/>Uploaded Documents (Placeholders)</h3>
                     <div className="p-4 bg-brand-light-gray/30 rounded-lg border border-brand-light-gray space-y-3">
                         <div className="flex justify-between items-center p-2 border-b">
                             <p className="font-medium text-brand-dark-blue">Financial Statements (e.g., P&L.pdf)</p>

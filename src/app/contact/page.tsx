@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -21,7 +22,7 @@ export default function ContactPage() {
     <div className="container py-12 md:py-16">
       <Card className="shadow-xl max-w-4xl mx-auto">
         <CardHeader>
-          <CardTitle className="text-3xl md:text-4xl font-bold text-center text-primary">Get In Touch</CardTitle>
+          <CardTitle className="text-3xl md:text-4xl font-bold text-center text-primary font-heading">Get In Touch</CardTitle>
           <p className="text-muted-foreground text-center mt-2">We&apos;d love to hear from you. Please fill out the form below or reach out via our contact details.</p>
         </CardHeader>
         <CardContent className="grid md:grid-cols-2 gap-12">
@@ -45,7 +46,7 @@ export default function ContactPage() {
             <Button type="submit" className="w-full">Send Message</Button>
           </form>
           <div className="space-y-6">
-            <h3 className="text-xl font-semibold text-foreground">Contact Information</h3>
+            <h3 className="text-xl font-semibold text-foreground font-heading">Contact Information</h3>
             <div className="flex items-start space-x-3">
               <Mail className="h-6 w-6 text-primary mt-1 flex-shrink-0" />
               <div>
@@ -68,7 +69,7 @@ export default function ContactPage() {
               </div>
             </div>
             <div>
-              <h4 className="font-semibold text-foreground mb-2">Business Hours</h4>
+              <h4 className="font-semibold text-foreground mb-2 font-heading">Business Hours</h4>
               <p className="text-muted-foreground">Monday - Friday: 9:00 AM - 6:00 PM (SGT)</p>
               <p className="text-muted-foreground">Saturday, Sunday & Public Holidays: Closed</p>
             </div>

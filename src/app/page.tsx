@@ -3,32 +3,13 @@ import * as React from "react";
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowRight, Star, CheckCircle, Shield, Zap, Briefcase, Users, MapPin, DollarSign, Search as SearchIcon, HandCoins, Brain, ListChecks, CircleDollarSign, ShieldCheck, Users2, Newspaper, Info, Phone, Home } from 'lucide-react';
+import { ArrowRight, Star, CheckCircle, Shield, Zap, ListChecks, CircleDollarSign, ShieldCheck, Users2, Newspaper, Info, Phone, Home } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { sampleListings, Listing } from '@/lib/placeholder-data'; // Assuming Listing type is exported from placeholder-data or types
+import { sampleListings, Listing } from '@/lib/placeholder-data';
+import { NobridgeIcon, NobridgeIconType } from '@/components/ui/nobridge-icon';
 
-// Placeholder components (can be moved to a separate file later)
-const PlaceholderImage = ({ className = "", text = "Placeholder Image", aiHint = "abstract business", width = 400, height = 250 }: { className?: string, text?: string, aiHint?: string, width?: number, height?: number }) => (
-  <div
-    className={cn("bg-brand-light-gray/30 flex items-center justify-center rounded-lg overflow-hidden aspect-video w-full", className)}
-    style={{
-      // Aspect ratio maintained by Tailwind's aspect-video, or by width/height if explicitly set
-    }}
-    data-ai-hint={aiHint}
-  >
-    <Image
-      src={`https://placehold.co/${width}x${height}.png`}
-      alt={text}
-      width={width}
-      height={height}
-      className="w-full h-full object-cover"
-    />
-    {/* Fallback text if image fails to load, though placehold.co usually works */}
-    {/* <span className="text-brand-dark-blue/50 text-xs p-2 text-center">{text}</span> */}
-  </div>
-);
 
 const PlaceholderLogo = ({ text = "Logo", className = "" }: { text?: string, className?: string }) => (
   <div
@@ -47,7 +28,7 @@ export default function HomePage() {
       {/* Hero Section */}
       <section className="w-full bg-brand-dark-blue text-brand-white">
         <div className="container mx-auto flex flex-col items-center justify-center text-center min-h-[calc(80vh-theme(spacing.20))] px-4 py-24 md:py-32 lg:py-40">
-          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight !leading-tight mb-6">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight !leading-tight mb-6 font-heading">
             Find Your Next Business Venture with Nobridge
           </h1>
           <p className="text-lg md:text-xl lg:text-2xl text-brand-light-gray max-w-3xl mx-auto mb-10">
@@ -55,7 +36,7 @@ export default function HomePage() {
           </p>
           <div className="mb-10 flex flex-col sm:flex-row items-center justify-center space-y-3 sm:space-y-0 sm:space-x-6 text-sm text-brand-light-gray">
             <div className="flex items-center">
-              <ShieldCheck className="h-5 w-5 mr-2 text-brand-light-gray" /> Verified Network
+              <NobridgeIcon icon="verification" size="sm" className="mr-2 opacity-80" /> Verified Network
             </div>
             <span className="hidden sm:inline text-brand-light-gray/50">|</span>
             <div className="flex items-center">
@@ -81,7 +62,7 @@ export default function HomePage() {
       <section id="marketplace-preview" className="py-16 md:py-24 bg-brand-light-gray">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12 md:mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-brand-dark-blue">Featured Opportunities</h2>
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-brand-dark-blue font-heading">Featured Opportunities</h2>
             <p className="text-muted-foreground mt-3 text-lg">A Glimpse into Our Curated Marketplace</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -98,7 +79,7 @@ export default function HomePage() {
                   />
                    {listing.isSellerVerified && (
                       <Badge variant="outline" className="absolute top-3 right-3 text-xs border-green-600 text-green-700 bg-green-100 dark:bg-green-700/20 dark:text-green-300 dark:border-green-500/50">
-                        <ShieldCheck className="h-3 w-3 mr-1" /> Verified
+                        <NobridgeIcon icon="verification" size="sm" className="mr-1 opacity-80" /> Verified
                       </Badge>
                     )}
                 </CardHeader>
@@ -106,17 +87,17 @@ export default function HomePage() {
                   <div className="flex justify-between items-start mb-2">
                     <Badge variant="secondary" className="bg-brand-dark-blue/5 text-brand-dark-blue text-xs">{listing.industry}</Badge>
                   </div>
-                  <CardTitle className="text-xl font-semibold text-brand-dark-blue mb-2 leading-tight hover:text-brand-sky-blue transition-colors">
-                    <Link href={`/app/listings/${listing.id}`}>{listing.listingTitleAnonymous}</Link>
+                  <CardTitle className="text-xl font-semibold text-brand-dark-blue mb-2 leading-tight hover:text-brand-sky-blue transition-colors font-heading">
+                    <Link href={`/listings/${listing.id}`}>{listing.listingTitleAnonymous}</Link>
                   </CardTitle>
                   <div className="space-y-1 text-sm text-muted-foreground">
                     <p className="flex items-center"><MapPin className="h-4 w-4 mr-2 text-brand-dark-blue/70" /> {listing.locationCityRegionGeneral}, {listing.locationCountry}</p>
-                    <p className="flex items-center"><DollarSign className="h-4 w-4 mr-2 text-brand-dark-blue/70" /> Asking: {listing.askingPrice ? `$${listing.askingPrice.toLocaleString()} USD` : 'Contact for Price'}</p>
+                    <p className="flex items-center"><NobridgeIcon icon="revenue" size="sm" className="mr-2 opacity-70" /> Asking: {listing.askingPrice ? `$${listing.askingPrice.toLocaleString()} USD` : 'Contact for Price'}</p>
                   </div>
                 </CardContent>
                 <CardFooter className="p-6 border-t border-brand-light-gray/80 mt-auto">
                   <Button asChild className="w-full bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90">
-                    <Link href={`/app/listings/${listing.id}`}>View Details <ArrowRight className="ml-2 h-4 w-4" /></Link>
+                    <Link href={`/listings/${listing.id}`}>View Details <ArrowRight className="ml-2 h-4 w-4" /></Link>
                   </Button>
                 </CardFooter>
               </Card>
@@ -134,22 +115,22 @@ export default function HomePage() {
       <section className="py-16 md:py-24 bg-brand-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12 md:mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-brand-dark-blue">Your Journey with Nobridge</h2>
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-brand-dark-blue font-heading">Your Journey with Nobridge</h2>
             <p className="text-muted-foreground mt-3 text-lg max-w-2xl mx-auto">Whether you're selling your life's work or seeking your next strategic investment, Nobridge provides the tools and network you need.</p>
           </div>
           <div className="grid md:grid-cols-2 gap-8 lg:gap-12 items-start">
             <Card className="bg-brand-light-gray/50 p-6 md:p-8 rounded-lg shadow-lg">
               <div className="p-3 bg-brand-dark-blue/10 rounded-full w-fit mb-4">
-                <HandCoins className="h-8 w-8 text-brand-dark-blue" />
+                 <NobridgeIcon icon="business-listing" size="md" />
               </div>
-              <h3 className="text-2xl font-semibold text-brand-dark-blue mb-3">List Your Business with Confidence</h3>
+              <h3 className="text-2xl font-semibold text-brand-dark-blue mb-3 font-heading">List Your Business with Confidence</h3>
               <p className="text-muted-foreground mb-4 leading-relaxed">
                 Nobridge provides a secure and efficient platform to connect with verified buyers across Asia, guiding you through every step.
               </p>
               <ul className="space-y-2 text-muted-foreground mb-6">
-                <li className="flex items-center"><CheckCircle className="h-5 w-5 mr-2 text-brand-sky-blue" /> Access to Verified Buyers</li>
+                <li className="flex items-center"><NobridgeIcon icon="secure-docs" size="sm" className="mr-2 opacity-80" /> Access to Verified Buyers</li>
                 <li className="flex items-center"><CheckCircle className="h-5 w-5 mr-2 text-brand-sky-blue" /> Step-by-Step Listing Guidance</li>
-                <li className="flex items-center"><CheckCircle className="h-5 w-5 mr-2 text-brand-sky-blue" /> Secure Inquiry Management</li>
+                <li className="flex items-center"><NobridgeIcon icon="interaction" size="sm" className="mr-2 opacity-80" /> Secure Inquiry Management</li>
               </ul>
               <Button asChild className="bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90">
                 <Link href="/seller-dashboard/listings/create">Learn More About Selling</Link>
@@ -157,16 +138,16 @@ export default function HomePage() {
             </Card>
             <Card className="bg-brand-light-gray/50 p-6 md:p-8 rounded-lg shadow-lg">
                <div className="p-3 bg-brand-dark-blue/10 rounded-full w-fit mb-4">
-                <SearchIcon className="h-8 w-8 text-brand-dark-blue" />
+                <NobridgeIcon icon="interaction" size="md" />
               </div>
-              <h3 className="text-2xl font-semibold text-brand-dark-blue mb-3">Discover Your Next Investment Opportunity</h3>
+              <h3 className="text-2xl font-semibold text-brand-dark-blue mb-3 font-heading">Discover Your Next Investment Opportunity</h3>
               <p className="text-muted-foreground mb-4 leading-relaxed">
                 Explore a curated marketplace of businesses for sale. Get access to detailed information on verified businesses and engage directly with sellers.
               </p>
               <ul className="space-y-2 text-muted-foreground mb-6">
-                <li className="flex items-center"><CheckCircle className="h-5 w-5 mr-2 text-brand-sky-blue" /> Vetted Business Listings</li>
+                <li className="flex items-center"><NobridgeIcon icon="core-details" size="sm" className="mr-2 opacity-80" /> Vetted Business Listings</li>
                 <li className="flex items-center"><CheckCircle className="h-5 w-5 mr-2 text-brand-sky-blue" /> Advanced Search & Filters</li>
-                <li className="flex items-center"><CheckCircle className="h-5 w-5 mr-2 text-brand-sky-blue" /> Direct Seller Engagement (Post-Verification)</li>
+                <li className="flex items-center"><NobridgeIcon icon="verification" size="sm" className="mr-2 opacity-80" /> Direct Seller Engagement (Post-Verification)</li>
               </ul>
               <Button asChild className="bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90">
                 <Link href="/marketplace">Learn More About Buying</Link>
@@ -179,7 +160,7 @@ export default function HomePage() {
       {/* Social Proof / Testimonials */}
       <section className="py-16 md:py-24 bg-brand-light-gray">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-brand-dark-blue text-center mb-4">Trusted by the Business Community</h2>
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-brand-dark-blue text-center mb-4 font-heading">Trusted by the Business Community</h2>
           <p className="text-center text-muted-foreground text-lg mb-12 md:mb-16">Hear from entrepreneurs and investors who have found success with Nobridge.</p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
@@ -205,7 +186,7 @@ export default function HomePage() {
       {/* "As Mentioned In" / Credibility Logos */}
       <section className="py-12 md:py-16 bg-brand-white">
         <div className="container mx-auto px-4 text-center">
-          <h3 className="text-sm font-semibold uppercase text-muted-foreground tracking-wider mb-8">Featured In</h3>
+          <h3 className="text-sm font-semibold uppercase text-muted-foreground tracking-wider mb-8 font-heading">Featured In</h3>
           <div className="flex flex-wrap justify-center items-center gap-x-12 gap-y-8 md:gap-x-16 lg:gap-x-20">
             <PlaceholderLogo text="TechJournal Asia" />
             <PlaceholderLogo text="Enterprise SG" />
@@ -220,20 +201,22 @@ export default function HomePage() {
       <section className="py-16 md:py-24 bg-brand-light-gray">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12 md:mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-brand-dark-blue">Insights & Success Stories</h2>
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-brand-dark-blue font-heading">Insights & Success Stories</h2>
             <p className="text-muted-foreground mt-3 text-lg">From Our Knowledge Hub</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[
-              { imageHint: "market analysis graph", category: "Market Trends", title: "Key Growth Sectors in Southeast Asia for 2025", excerpt: "Discover the industries poised for significant expansion and investment opportunities across the ASEAN region." },
-              { imageHint: "business negotiation handshake", category: "Seller Tips", title: "Preparing Your Business for a Successful Sale", excerpt: "Essential steps to maximize your business's value and attract the right buyers in the Asian market." },
-              { imageHint: "business team success", category: "Success Story", title: "How a Tech Startup Found its Strategic Acquirer via Nobridge", excerpt: "Read about the journey of 'Innovate Solutions' and their successful exit facilitated by our platform." },
+              { imageHint: "market analysis graph", category: "Market Trends", title: "Key Growth Sectors in Southeast Asia for 2025", excerpt: "Discover the industries poised for significant expansion and investment opportunities across the ASEAN region.", icon: "growth" as NobridgeIconType },
+              { imageHint: "business negotiation handshake", category: "Seller Tips", title: "Preparing Your Business for a Successful Sale", excerpt: "Essential steps to maximize your business's value and attract the right buyers in the Asian market.", icon: "due-diligence" as NobridgeIconType },
+              { imageHint: "business team success", category: "Success Story", title: "How a Tech Startup Found its Strategic Acquirer via Nobridge", excerpt: "Read about the journey of 'Innovate Solutions' and their successful exit facilitated by our platform.", icon: "featured" as NobridgeIconType },
             ].map((item, index) => (
               <Card key={index} className="bg-brand-white shadow-xl hover:shadow-2xl transition-shadow overflow-hidden flex flex-col rounded-lg">
-                <PlaceholderImage width={400} height={225} text={item.imageHint} aiHint={item.imageHint} />
+                <div className="w-full h-48 bg-brand-light-gray/50 flex items-center justify-center">
+                  <NobridgeIcon icon={item.icon} size="xl" className="opacity-50" />
+                </div>
                 <CardHeader className="p-6">
                   <Badge variant="outline" className="mb-2 w-fit border-brand-dark-blue/30 text-brand-dark-blue/80">{item.category}</Badge>
-                  <CardTitle className="text-xl font-semibold leading-tight text-brand-dark-blue hover:text-brand-sky-blue transition-colors">
+                  <CardTitle className="text-xl font-semibold leading-tight text-brand-dark-blue hover:text-brand-sky-blue transition-colors font-heading">
                     <Link href="#">{item.title}</Link>
                   </CardTitle>
                 </CardHeader>
@@ -260,7 +243,7 @@ export default function HomePage() {
       <section className="py-20 md:py-32 bg-brand-dark-blue text-brand-white">
         <div className="container mx-auto px-4 text-center">
           <p className="text-sm font-semibold uppercase tracking-wider text-brand-light-gray/70 mb-3">OUR COMMITMENT</p>
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight mb-6">Empowering SME Growth and Transitions Across Asia</h2>
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight mb-6 font-heading">Empowering SME Growth and Transitions Across Asia</h2>
           <p className="text-lg md:text-xl text-brand-light-gray/90 max-w-3xl mx-auto mb-10">
             At Nobridge, we believe in the power of small and medium-sized enterprises. Our mission is to provide a transparent, efficient, and supportive platform that connects business owners with the right investors and buyers, fostering growth and successful transitions throughout the continent.
           </p>
@@ -273,7 +256,7 @@ export default function HomePage() {
       {/* Final Call to Action Section */}
       <section className="py-16 md:py-24 bg-brand-white">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-brand-dark-blue mb-4">Ready to Begin Your Journey?</h2>
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-brand-dark-blue mb-4 font-heading">Ready to Begin Your Journey?</h2>
           <p className="text-muted-foreground text-lg max-w-xl mx-auto mb-10">
             Whether you&apos;re looking to sell your business, find your next investment, or simply learn more, our team is here to help.
           </p>
@@ -290,5 +273,3 @@ export default function HomePage() {
     </>
   );
 }
-
-    

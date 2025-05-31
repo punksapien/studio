@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from "react";
@@ -63,7 +64,7 @@ export default function AdminLoginPage() {
         <div className="flex justify-center mb-4">
           <Logo size="2xl" />
         </div>
-        <CardTitle className="text-2xl font-semibold">Admin Panel Login</CardTitle>
+        <CardTitle className="text-2xl font-semibold font-heading">Admin Panel Login</CardTitle>
         <CardDescription>Please enter your administrator credentials.</CardDescription>
       </CardHeader>
       <CardContent>
@@ -78,7 +79,7 @@ export default function AdminLoginPage() {
                   <FormControl>
                     <Input 
                       {...field} 
-                      placeholder="admin@example.com" 
+                      placeholder="admin@nobridge.asia" 
                       type="email" 
                       disabled={isPending}
                     />

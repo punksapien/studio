@@ -1,12 +1,14 @@
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import Image from "next/image";
+import { NobridgeIcon } from "@/components/ui/nobridge-icon";
 
 export default function AboutPage() {
   return (
     <div className="container py-12 md:py-16">
       <Card className="shadow-xl">
         <CardHeader>
-          <CardTitle className="text-3xl md:text-4xl font-bold text-center text-primary">About Nobridge</CardTitle>
+          <CardTitle className="text-3xl md:text-4xl font-bold text-center text-primary font-heading">About Nobridge</CardTitle>
           <CardDescription className="text-center text-lg">
             Connecting SME owners with motivated buyers across Asia
           </CardDescription>
@@ -17,25 +19,30 @@ export default function AboutPage() {
           </p>
 
           <div className="mx-auto max-w-2xl">
-            <img
-              src="/api/placeholder/600/300"
+            <Image
+              src="https://placehold.co/600x300.png"
               alt="Nobridge Team Meeting"
+              width={600}
+              height={300}
               className="rounded-lg shadow-lg w-full"
+              data-ai-hint="team meeting office"
             />
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6 text-left">
-            <div>
-              <h3 className="text-xl font-semibold mb-3">For Business Sellers</h3>
-              <p>We provide a secure, professional environment where you can showcase your business to qualified buyers while maintaining confidentiality throughout the process.</p>
+          <div className="grid md:grid-cols-2 gap-6 text-left pt-6">
+            <div className="flex flex-col items-center md:items-start p-4">
+              <NobridgeIcon icon="business-listing" size="xl" className="mb-3" />
+              <h3 className="text-xl font-semibold mb-3 font-heading">For Business Sellers</h3>
+              <p className="text-center md:text-left">We provide a secure, professional environment where you can showcase your business to qualified buyers while maintaining confidentiality throughout the process.</p>
             </div>
-            <div>
-              <h3 className="text-xl font-semibold mb-3">For Business Buyers</h3>
-              <p>Access vetted business opportunities, detailed financial information, and direct communication channels with verified sellers across Asia's dynamic markets.</p>
+            <div className="flex flex-col items-center md:items-start p-4">
+               <NobridgeIcon icon="investment" size="xl" className="mb-3" />
+              <h3 className="text-xl font-semibold mb-3 font-heading">For Business Buyers</h3>
+              <p className="text-center md:text-left">Access vetted business opportunities, detailed financial information, and direct communication channels with verified sellers across Asia&apos;s dynamic markets.</p>
             </div>
           </div>
 
-          <p className="text-lg font-medium">
+          <p className="text-lg font-medium pt-4">
             Whether you are an entrepreneur looking for your next chapter or an investor seeking promising ventures, Nobridge is your dedicated partner in navigating the Asian business marketplace.
           </p>
         </CardContent>

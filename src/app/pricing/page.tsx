@@ -1,12 +1,13 @@
 
-'use client'; // Ensure this is a client component if it uses hooks like useState for future interactivity
+'use client'; 
 
-import * as React from "react"; // Added React import
+import * as React from "react"; 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Check, X, ArrowRight, DollarSign, Briefcase, Users, FileText, Info, Phone, Newspaper, ShoppingCart } from "lucide-react";
+import { Check, X, ArrowRight, Info, Phone, Newspaper } from "lucide-react";
 import Link from "next/link";
+import { NobridgeIcon, NobridgeIconType } from '@/components/ui/nobridge-icon';
 
 const plans = [
   {
@@ -20,8 +21,9 @@ const plans = [
       "Buyer Interest Dashboard",
     ],
     cta: "Get Started Free",
-    ctaLink: "/auth/register/seller", // Example link
+    ctaLink: "/auth/register/seller", 
     variant: "secondary",
+    icon: "calculator" as NobridgeIconType,
   },
   {
     name: "Lite",
@@ -35,8 +37,9 @@ const plans = [
       "Negotiation support",
     ],
     cta: "Choose Lite",
-    ctaLink: "/auth/register/seller?plan=lite", // Example link
+    ctaLink: "/auth/register/seller?plan=lite", 
     variant: "secondary",
+    icon: "growth" as NobridgeIconType,
   },
   {
     name: "Pro",
@@ -50,9 +53,10 @@ const plans = [
       "Hands-on advisor support",
     ],
     cta: "Choose Pro",
-    ctaLink: "/auth/register/seller?plan=pro", // Example link
+    ctaLink: "/auth/register/seller?plan=pro", 
     variant: "default",
     popular: true,
+    icon: "featured" as NobridgeIconType,
   },
   {
     name: "Premium",
@@ -66,8 +70,9 @@ const plans = [
       "Legal services covered (up to X hours)",
     ],
     cta: "Choose Premium",
-    ctaLink: "/auth/register/seller?plan=premium", // Example link
+    ctaLink: "/auth/register/seller?plan=premium", 
     variant: "secondary",
+    icon: "investment" as NobridgeIconType,
   },
 ];
 
@@ -160,7 +165,7 @@ export default function PricingPage() {
       <section className="py-16 md:py-24 bg-brand-light-gray">
         <div className="container mx-auto px-4 text-center">
           <p className="text-sm font-semibold uppercase tracking-wider text-brand-sky-blue mb-3">PRICING PLANS FOR SELLERS</p>
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-brand-dark-blue mb-6">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-brand-dark-blue mb-6 font-heading">
             Select the Best Plan to Sell Your Business
           </h1>
           <p className="mt-4 text-lg md:text-xl text-brand-dark-blue/80 max-w-3xl mx-auto">
@@ -183,7 +188,10 @@ export default function PricingPage() {
                   </div>
                 )}
                 <CardHeader className={`p-6 text-center ${plan.popular ? 'pt-10' : 'pt-6'}`}>
-                  <CardTitle className="text-2xl font-bold text-brand-dark-blue mb-2">{plan.name}</CardTitle>
+                  <div className="mb-4 flex justify-center">
+                    <NobridgeIcon icon={plan.icon} size="xl" />
+                  </div>
+                  <CardTitle className="text-2xl font-bold text-brand-dark-blue mb-2 font-heading">{plan.name}</CardTitle>
                   <p className="text-4xl font-extrabold text-brand-dark-blue">
                     {plan.price}
                     {(plan.price !== "$0" && plan.priceDetails) && <span className="text-base font-normal text-brand-dark-blue/70">{plan.priceDetails.replace('/month', '').replace('Success Fee','').trim()}</span>}
@@ -228,18 +236,18 @@ export default function PricingPage() {
       {/* Detailed Feature Comparison Table */}
       <section className="py-16 md:py-24 bg-brand-light-gray">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl md:text-4xl font-bold text-brand-dark-blue text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold text-brand-dark-blue text-center mb-12 font-heading">
             Compare Our Seller Plans
           </h2>
           <div className="overflow-x-auto rounded-lg border border-brand-light-gray/70 shadow-lg">
             <table className="min-w-full divide-y divide-brand-light-gray/70 bg-brand-white">
               <thead className="bg-brand-light-gray/50">
                 <tr>
-                  <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-brand-dark-blue uppercase tracking-wider sticky left-0 bg-brand-light-gray/50 z-10">
+                  <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-brand-dark-blue uppercase tracking-wider sticky left-0 bg-brand-light-gray/50 z-10 font-heading">
                     Feature
                   </th>
                   {plans.map((plan) => (
-                    <th key={plan.name} scope="col" className={`px-6 py-4 text-center text-sm font-bold text-brand-dark-blue uppercase tracking-wider ${plan.popular ? 'bg-brand-sky-blue/10' : ''}`}>
+                    <th key={plan.name} scope="col" className={`px-6 py-4 text-center text-sm font-bold text-brand-dark-blue uppercase tracking-wider ${plan.popular ? 'bg-brand-sky-blue/10' : ''} font-heading`}>
                       {plan.name}
                       {plan.popular && <div className="text-xs font-normal text-brand-sky-blue normal-case">(Most Popular)</div>}
                     </th>
@@ -250,7 +258,7 @@ export default function PricingPage() {
                 {featureComparison.map((group) => (
                   <React.Fragment key={group.category}>
                     <tr>
-                      <th colSpan={plans.length + 1} className="px-6 py-3 text-left text-sm font-semibold text-brand-white bg-brand-dark-blue/90 tracking-wide sticky left-0 z-10">
+                      <th colSpan={plans.length + 1} className="px-6 py-3 text-left text-sm font-semibold text-brand-white bg-brand-dark-blue/90 tracking-wide sticky left-0 z-10 font-heading">
                         {group.category}
                       </th>
                     </tr>
@@ -296,13 +304,13 @@ export default function PricingPage() {
       {/* FAQ Section */}
       <section className="py-16 md:py-24 bg-brand-light-gray">
         <div className="container mx-auto px-4 max-w-3xl">
-          <h2 className="text-3xl md:text-4xl font-bold text-brand-dark-blue text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold text-brand-dark-blue text-center mb-12 font-heading">
             Frequently Asked Questions
           </h2>
           <Accordion type="single" collapsible className="w-full">
             {faqs.map((faq, index) => (
               <AccordionItem value={`item-${index + 1}`} key={index} className="border-b-brand-light-gray/70">
-                <AccordionTrigger className="py-5 text-left text-lg font-medium text-brand-dark-blue hover:text-brand-sky-blue hover:no-underline">
+                <AccordionTrigger className="py-5 text-left text-lg font-medium text-brand-dark-blue hover:text-brand-sky-blue hover:no-underline font-heading">
                   {faq.question}
                 </AccordionTrigger>
                 <AccordionContent className="pt-0 pb-5 text-base text-brand-dark-blue/80">
@@ -316,4 +324,3 @@ export default function PricingPage() {
     </>
   );
 }
-

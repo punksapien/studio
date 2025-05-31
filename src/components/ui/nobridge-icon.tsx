@@ -1,4 +1,6 @@
+
 import Image from 'next/image';
+import type { LucideProps } from 'lucide-react'; // For potential fallback or combined usage
 
 export type NobridgeIconType =
   | 'business-listing' // icon_01 - Complex Cube/Abstract Structure
@@ -37,29 +39,56 @@ const iconMap: Record<NobridgeIconType, string> = {
   'documents': '/assets/icon_16.png',
 };
 
+const iconAltMap: Record<NobridgeIconType, string> = {
+  'business-listing': 'Business Listing Icon',
+  'transactions': 'Transactions Icon',
+  'calculator': 'Calculator Icon',
+  'revenue': 'Revenue Icon',
+  'growth': 'Growth Chart Icon',
+  'featured': 'Featured Icon',
+  'verification': 'Verification Icon',
+  'secure-docs': 'Secure Documents Icon',
+  'deal-structure': 'Deal Structure Icon',
+  'digital-assets': 'Digital Assets Icon',
+  'core-details': 'Core Details Icon',
+  'investment': 'Investment Icon',
+  'financial-growth': 'Financial Growth Icon',
+  'due-diligence': 'Due Diligence Icon',
+  'interaction': 'Interaction Icon',
+  'documents': 'Documents Icon',
+};
+
 interface NobridgeIconProps {
   icon: NobridgeIconType;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | number; // Allow number for custom pixel size
   alt?: string;
   className?: string;
+  // Allow other Image props to be passed through
+  [key: string]: any;
 }
 
 export function NobridgeIcon({
   icon,
   size = 'md',
   alt,
-  className = ''
+  className = '',
+  ...rest
 }: NobridgeIconProps) {
-  const dimensions = {
+  const baseDimensions = {
     sm: 24,
     md: 32,
     lg: 48,
     xl: 64
   };
 
-  const iconSize = dimensions[size];
+  const iconSize = typeof size === 'number' ? size : baseDimensions[size];
   const iconSrc = iconMap[icon];
-  const iconAlt = alt || `${icon} icon`;
+  const iconAlt = alt || iconAltMap[icon] || `${icon.replace(/-/g, ' ')} icon`;
+
+  if (!iconSrc) {
+    console.warn(`NobridgeIcon: Icon type "${icon}" not found.`);
+    return null; // Or render a fallback
+  }
 
   return (
     <Image
@@ -68,6 +97,7 @@ export function NobridgeIcon({
       width={iconSize}
       height={iconSize}
       className={`object-contain ${className}`}
+      {...rest}
     />
   );
 }

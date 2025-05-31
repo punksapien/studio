@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -152,4 +153,3 @@
 .font-heading {
   font-family: 'Montserrat Arabic', 'Satoshi', sans-serif;
 }
-

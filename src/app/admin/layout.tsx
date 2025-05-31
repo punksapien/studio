@@ -12,7 +12,6 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarInset,
   SidebarTrigger,
   SidebarSeparator,
   SidebarFooter
@@ -22,38 +21,35 @@ import { Button } from '@/components/ui/button';
 import {
   LayoutDashboard,
   Users,
-  Briefcase,
+  MessageSquare,
   BellRing,
   LogOut,
-  LineChart,
-  UserCheck,
-  Building,
   HelpCircle,
   FileText,
   MessageSquareQuote,
   Home,
-  MessageSquare // Added for Conversations
 } from 'lucide-react';
+import { NobridgeIcon, NobridgeIconType } from '@/components/ui/nobridge-icon';
 
 const adminSidebarNavItems = [
   { title: 'Dashboard', href: '/admin', icon: LayoutDashboard, tooltip: "Admin Overview" },
   { title: 'User Management', href: '/admin/users', icon: Users, tooltip: "Manage Users" },
-  { title: 'Listing Management', href: '/admin/listings', icon: Briefcase, tooltip: "Manage Listings" },
-  { title: 'Buyer Verification', href: '/admin/verification-queue/buyers', icon: UserCheck, tooltip: "Buyer Verifications" },
-  { title: 'Seller/Listing Verification', href: '/admin/verification-queue/sellers', icon: Building, tooltip: "Seller/Listing Verifications" },
+  { title: 'Listing Management', href: '/admin/listings', icon: NobridgeIcon, iconProps: { icon: 'business-listing' as NobridgeIconType }, tooltip: "Manage Listings" },
+  { title: 'Buyer Verification', href: '/admin/verification-queue/buyers', icon: NobridgeIcon, iconProps: { icon: 'verification' as NobridgeIconType }, tooltip: "Buyer Verifications" },
+  { title: 'Seller/Listing Verification', href: '/admin/verification-queue/sellers', icon: NobridgeIcon, iconProps: {icon: 'due-diligence' as NobridgeIconType }, tooltip: "Seller/Listing Verifications" },
   { title: 'Engagement Queue', href: '/admin/engagement-queue', icon: BellRing, tooltip: "Engagement Queue" },
   { title: 'Conversations', href: '/admin/conversations', icon: MessageSquare, tooltip: "Platform Conversations" },
-  { title: 'Analytics', href: '/admin/analytics', icon: LineChart, tooltip: "Platform Analytics" },
+  { title: 'Analytics', href: '/admin/analytics', icon: NobridgeIcon, iconProps: { icon: 'growth' as NobridgeIconType }, tooltip: "Platform Analytics" },
 ];
 
 const utilityNavItems = [
   { title: 'Help', href: '/help', icon: HelpCircle, tooltip: "Get Help" },
-  { title: 'Refer Docs', href: '/docs', icon: FileText, tooltip: "View Documentation" },
+  { title: 'Refer Docs', href: '/docs', icon: NobridgeIcon, iconProps: {icon: 'documents' as NobridgeIconType}, tooltip: "View Documentation" },
   { title: 'FAQ', href: '/faq', icon: MessageSquareQuote, tooltip: "Frequently Asked Questions" },
   { title: 'Back to Homepage', href: '/', icon: Home, tooltip: "Go to Nobridge Homepage" },
 ];
 
-const isAdminAuthenticated = true; // Placeholder for actual auth check
+const isAdminAuthenticated = true; 
 
 export default function AdminLayout({
   children,
@@ -65,13 +61,11 @@ export default function AdminLayout({
   if (!isAdminAuthenticated && pathname !== '/admin/login') {
     if (typeof window !== 'undefined') {
       console.warn("Admin not authenticated, redirect to /admin/login would happen here via router.");
-      // router.replace('/admin/login'); // This would be the actual redirect
     }
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background">
         <Logo size="2xl" />
         <p className="mt-4 text-lg text-muted-foreground">Access Denied. Redirecting to login...</p>
-        {/* Client-side redirect might be needed here if router can't be used in this state */}
       </div>
     );
   }
@@ -96,7 +90,10 @@ export default function AdminLayout({
           </SidebarHeader>
           <SidebarContent className="flex-grow">
             <SidebarMenu>
-              {adminSidebarNavItems.map((item) => (
+              {adminSidebarNavItems.map((item) => {
+                const IconComponent = item.icon; // Lucide or NobridgeIcon
+                const iconProps = item.iconProps ? { ...item.iconProps, size: 'sm' as const, className:"mr-3 shrink-0" } : { className:"h-5 w-5 mr-3 shrink-0" };
+                return (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
@@ -104,16 +101,19 @@ export default function AdminLayout({
                     tooltip={{ children: item.tooltip, className: "bg-primary text-primary-foreground" }}
                   >
                     <Link href={item.href} className="flex items-center">
-                      <item.icon className="h-5 w-5 mr-3 shrink-0" />
+                      <IconComponent {...iconProps} />
                       <span className="truncate">{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              ))}
+              )})}
             </SidebarMenu>
             <SidebarSeparator className="my-4" />
             <SidebarMenu>
-              {utilityNavItems.map((item) => (
+              {utilityNavItems.map((item) => {
+                const IconComponent = item.icon;
+                const iconProps = item.iconProps ? { ...item.iconProps, size: 'sm' as const, className:"mr-3 shrink-0" } : { className:"h-5 w-5 mr-3 shrink-0" };
+                return (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
@@ -121,12 +121,12 @@ export default function AdminLayout({
                     tooltip={{ children: item.tooltip, className: "bg-primary text-primary-foreground" }}
                   >
                      <Link href={item.href} className="flex items-center">
-                      <item.icon className="h-5 w-5 mr-3 shrink-0" />
+                      <IconComponent {...iconProps} />
                       <span className="truncate">{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              ))}
+              )})}
             </SidebarMenu>
           </SidebarContent>
           <SidebarFooter className="p-4 border-t border-sidebar-border">
@@ -137,11 +137,11 @@ export default function AdminLayout({
           </SidebarFooter>
         </Sidebar>
         <SidebarInset className="flex-grow flex flex-col overflow-auto">
-           <header className="md:hidden flex items-center justify-between p-4 border-b bg-card sticky top-0 z-10"> {/* Added sticky top and z-index */}
+           <header className="md:hidden flex items-center justify-between p-4 border-b bg-card sticky top-0 z-10"> 
               <Logo size="lg" />
               <SidebarTrigger/>
            </header>
-           <div className="p-4 md:p-6 lg:p-8 flex-1 overflow-y-auto"> {/* Main content scroll */}
+           <div className="p-4 md:p-6 lg:p-8 flex-1 overflow-y-auto"> 
             {children}
            </div>
         </SidebarInset>
