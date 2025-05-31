@@ -51,7 +51,7 @@ export default function HomePage() {
             <Button size="lg" asChild className="bg-brand-white text-brand-dark-blue hover:bg-brand-light-gray/90 font-semibold py-3 px-8 rounded-md text-base">
               <Link href="/seller-dashboard/listings/create">List Your Business <ArrowRight className="ml-2 h-5 w-5" /></Link>
             </Button>
-            <Button size="lg" variant="outline" asChild className="border-brand-white text-brand-dark-blue hover:bg-brand-white/10 hover:text-brand-white font-semibold py-3 px-8 rounded-md text-base">
+            <Button size="lg" variant="outline" asChild className="border-brand-white text-brand-white hover:bg-brand-white/10 hover:text-brand-white font-semibold py-3 px-8 rounded-md text-base">
               <Link href="/marketplace">Browse Businesses</Link>
             </Button>
           </div>
@@ -118,10 +118,10 @@ export default function HomePage() {
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-brand-dark-blue font-heading">Your Journey with Nobridge</h2>
             <p className="text-muted-foreground mt-3 text-lg max-w-2xl mx-auto">Whether you're selling your life's work or seeking your next strategic investment, Nobridge provides the tools and network you need.</p>
           </div>
-          <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
-            <Card className="bg-brand-light-gray/50 p-6 md:p-8 rounded-lg shadow-lg">
+          <div className="grid md:grid-cols-2 gap-8 lg:gap-12 items-stretch">
+            <Card className="bg-brand-light-gray/50 p-6 md:p-8 rounded-lg shadow-lg flex flex-col">
               <NobridgeIcon icon="business-listing" size="lg" className="mb-4 text-brand-dark-blue" />
-              <div>
+              <div className="flex-grow">
                 <h3 className="text-2xl font-semibold text-brand-dark-blue mb-3 font-heading">List Your Business with Confidence</h3>
                 <p className="text-muted-foreground mb-4 leading-relaxed">
                   Nobridge provides a secure and efficient platform to connect with verified buyers across Asia, guiding you through every step.
@@ -132,13 +132,13 @@ export default function HomePage() {
                   <li className="flex items-center"><NobridgeIcon icon="interaction" size="sm" className="mr-2 opacity-80" /> Secure Inquiry Management</li>
                 </ul>
               </div>
-              <Button asChild className="bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90">
+              <Button asChild className="bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90 mt-auto">
                 <Link href="/seller-dashboard/listings/create">Learn More About Selling</Link>
               </Button>
             </Card>
-            <Card className="bg-brand-light-gray/50 p-6 md:p-8 rounded-lg shadow-lg">
+            <Card className="bg-brand-light-gray/50 p-6 md:p-8 rounded-lg shadow-lg flex flex-col">
               <NobridgeIcon icon="interaction" size="lg" className="mb-4 text-brand-dark-blue" />
-              <div>
+              <div className="flex-grow">
                 <h3 className="text-2xl font-semibold text-brand-dark-blue mb-3 font-heading">Discover Your Next Investment Opportunity</h3>
                 <p className="text-muted-foreground mb-4 leading-relaxed">
                   Explore a curated marketplace of businesses for sale. Get access to detailed information on verified businesses and engage directly with sellers.
@@ -149,7 +149,7 @@ export default function HomePage() {
                   <li className="flex items-center"><NobridgeIcon icon="verification" size="sm" className="mr-2 opacity-80" /> Direct Seller Engagement (Post-Verification)</li>
                 </ul>
               </div>
-              <Button asChild className="bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90">
+              <Button asChild className="bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90 mt-auto">
                 <Link href="/marketplace">Learn More About Buying</Link>
               </Button>
             </Card>
