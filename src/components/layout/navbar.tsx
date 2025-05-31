@@ -13,45 +13,48 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
-import { Menu, ChevronDown, UserCircle, LogIn, UserPlus, LogOut, FileText, Info, ShoppingCart, Phone, LayoutDashboard, Settings, Bell } from 'lucide-react';
+import { Menu, ChevronDown, UserCircle, LogIn, UserPlus, LogOut, LayoutDashboard, Settings, Bell, Briefcase, ShoppingCart, Building2, Phone, Info, FileText, Search, Users2, DollarSign } from 'lucide-react'; // Added DollarSign
 import { cn } from '@/lib/utils';
 import { usePathname, useRouter } from 'next/navigation';
 import { auth, type UserProfile } from '@/lib/auth';
 import { useToast } from '@/hooks/use-toast';
 import { Logo } from '@/components/shared/logo';
-// NobridgeIcon import is removed as it's no longer used for triggers
 
 interface NavLinkItem {
   href: string;
   label: string;
-  icon: React.ElementType; // Lucide icons
+  icon: React.ElementType;
 }
 
 interface NavLinkGroup {
   label: string;
+  triggerIcon: React.ElementType;
   items: NavLinkItem[];
 }
 
 const navLinkGroups: NavLinkGroup[] = [
   {
     label: "Sell Your Business",
+    triggerIcon: Briefcase,
     items: [
       { href: "/seller-dashboard/listings/create", label: "List Your Business", icon: FileText },
-      { href: "/pricing", label: "Pricing & Plans", icon: Info }, // Keeping pricing link here as per discussion
+      { href: "/pricing", label: "Pricing & Plans", icon: DollarSign },
       { href: "/how-selling-works", label: "How Selling Works", icon: Info },
     ],
   },
   {
     label: "Buy a Business",
+    triggerIcon: ShoppingCart,
     items: [
-      { href: "/marketplace", label: "Browse Listings", icon: ShoppingCart },
+      { href: "/marketplace", label: "Browse Listings", icon: Search },
       { href: "/how-buying-works", label: "How Buying Works", icon: Info },
     ],
   },
   {
     label: "Company",
+    triggerIcon: Building2,
     items: [
-      { href: "/about", label: "About Us", icon: Info },
+      { href: "/about", label: "About Us", icon: Users2 },
       { href: "/contact", label: "Contact Us", icon: Phone },
     ],
   },
@@ -65,7 +68,6 @@ export function Navbar() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // State for hover-activated dropdowns
   const [sellMenuOpen, setSellMenuOpen] = useState(false);
   const [buyMenuOpen, setBuyMenuOpen] = useState(false);
   const [companyMenuOpen, setCompanyMenuOpen] = useState(false);
@@ -175,14 +177,14 @@ export function Navbar() {
     if (label === "Sell Your Business") return setSellMenuOpen;
     if (label === "Buy a Business") return setBuyMenuOpen;
     if (label === "Company") return setCompanyMenuOpen;
-    return () => {}; // Should not happen
+    return () => {}; 
   }
   
   const getTimerRef = (label: string): React.MutableRefObject<NodeJS.Timeout | null> => {
      if (label === "Sell Your Business") return sellMenuTimerRef;
     if (label === "Buy a Business") return buyMenuTimerRef;
     if (label === "Company") return companyMenuTimerRef;
-    return { current: null }; // Should not happen
+    return { current: null }; 
   }
 
 
@@ -192,43 +194,47 @@ export function Navbar() {
         <div className="flex items-center gap-x-6 lg:gap-x-8">
           <Logo size="xl" forceTheme="light" />
           <nav className="hidden md:flex items-center space-x-1 lg:space-x-2">
-            {navLinkGroups.map((group) => (
-              <DropdownMenu 
-                key={group.label} 
-                open={getMenuOpenState(group.label)} 
-                onOpenChange={getSetMenuOpenFn(group.label)}
-              >
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className="px-3 py-2 text-sm font-semibold text-brand-dark-blue hover:bg-brand-light-gray/50 hover:text-brand-dark-blue/90 focus-visible:ring-brand-sky-blue"
+            {navLinkGroups.map((group) => {
+              const TriggerIcon = group.triggerIcon;
+              return (
+                <DropdownMenu 
+                  key={group.label} 
+                  open={getMenuOpenState(group.label)} 
+                  onOpenChange={getSetMenuOpenFn(group.label)}
+                >
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className="px-3 py-2 text-sm font-semibold text-brand-dark-blue hover:bg-brand-light-gray/50 hover:text-brand-dark-blue/90 focus-visible:ring-brand-sky-blue flex items-center"
+                      onMouseEnter={() => handleMouseEnter(getSetMenuOpenFn(group.label), getTimerRef(group.label))}
+                      onMouseLeave={() => handleMouseLeave(getSetMenuOpenFn(group.label), getTimerRef(group.label))}
+                    >
+                      <TriggerIcon className="mr-2 h-4 w-4 opacity-80" />
+                      {group.label}
+                      <ChevronDown className="ml-1 h-4 w-4 opacity-70" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    align="start"
+                    className="bg-brand-white text-brand-dark-blue border-brand-light-gray/80 shadow-lg rounded-md w-56"
                     onMouseEnter={() => handleMouseEnter(getSetMenuOpenFn(group.label), getTimerRef(group.label))}
                     onMouseLeave={() => handleMouseLeave(getSetMenuOpenFn(group.label), getTimerRef(group.label))}
                   >
-                    {group.label}
-                    <ChevronDown className="ml-1 h-4 w-4 opacity-70" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="start"
-                  className="bg-brand-white text-brand-dark-blue border-brand-light-gray/80 shadow-lg rounded-md w-56"
-                  onMouseEnter={() => handleMouseEnter(getSetMenuOpenFn(group.label), getTimerRef(group.label))}
-                  onMouseLeave={() => handleMouseLeave(getSetMenuOpenFn(group.label), getTimerRef(group.label))}
-                >
-                  {group.items.map((item) => {
-                    const IconComponent = item.icon;
-                    return (
-                      <DropdownMenuItem key={item.label} asChild className="text-sm hover:bg-brand-light-gray focus:bg-brand-light-gray cursor-pointer">
-                        <Link href={item.href} className="flex items-center text-brand-dark-blue hover:text-brand-dark-blue px-3 py-2">
-                          <IconComponent className="mr-2 h-4 w-4 opacity-80" />
-                          {item.label}
-                        </Link>
-                      </DropdownMenuItem>
-                    );
-                  })}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ))}
+                    {group.items.map((item) => {
+                      const ItemIcon = item.icon;
+                      return (
+                        <DropdownMenuItem key={item.label} asChild className="text-sm hover:bg-brand-light-gray focus:bg-brand-light-gray cursor-pointer">
+                          <Link href={item.href} className="flex items-center text-brand-dark-blue hover:text-brand-dark-blue px-3 py-2">
+                            <ItemIcon className="mr-2 h-4 w-4 opacity-80" />
+                            {item.label}
+                          </Link>
+                        </DropdownMenuItem>
+                      );
+                    })}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              );
+            })}
           </nav>
         </div>
 
@@ -301,28 +307,32 @@ export function Navbar() {
                 <Logo size="xl" forceTheme="light" />
               </div>
               <nav className="flex flex-col space-y-1 p-4">
-                {navLinkGroups.map((group) => (
-                  <div key={group.label} className="flex flex-col space-y-1">
-                     <h4 className="text-base font-semibold px-3 py-3 w-full text-brand-dark-blue flex items-center">
-                      {group.label}
-                    </h4>
-                    <div className="pl-4 flex flex-col space-y-1">
-                      {group.items.map((item) => {
-                        const IconComponent = item.icon;
-                        return (
-                          <SheetClose asChild key={item.label}>
-                           <Button variant="ghost" asChild className={cn("justify-start text-base font-normal px-3 py-2 text-brand-dark-blue/80 hover:text-brand-dark-blue hover:bg-brand-light-gray", pathname === item.href && "bg-brand-light-gray font-medium")}>
-                            <Link href={item.href} className="flex items-center">
-                               <IconComponent className="mr-2 h-4 w-4 opacity-80" />
-                              {item.label}
-                            </Link>
-                           </Button>
-                          </SheetClose>
-                        );
-                      })}
+                {navLinkGroups.map((group) => {
+                   const TriggerIcon = group.triggerIcon;
+                  return (
+                    <div key={group.label} className="flex flex-col space-y-1">
+                       <h4 className="text-base font-semibold px-3 py-3 w-full text-brand-dark-blue flex items-center">
+                        <TriggerIcon className="mr-2 h-4 w-4 opacity-80" />
+                        {group.label}
+                      </h4>
+                      <div className="pl-4 flex flex-col space-y-1">
+                        {group.items.map((item) => {
+                          const IconComponent = item.icon;
+                          return (
+                            <SheetClose asChild key={item.label}>
+                             <Button variant="ghost" asChild className={cn("justify-start text-base font-normal px-3 py-2 text-brand-dark-blue/80 hover:text-brand-dark-blue hover:bg-brand-light-gray", pathname === item.href && "bg-brand-light-gray font-medium")}>
+                              <Link href={item.href} className="flex items-center">
+                                 <IconComponent className="mr-2 h-4 w-4 opacity-80" />
+                                {item.label}
+                              </Link>
+                             </Button>
+                            </SheetClose>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
                 <DropdownMenuSeparator className="my-4 bg-brand-light-gray/80"/>
                 {isLoading ? (
                    <div className="px-3 py-2 text-sm text-brand-dark-blue/60">Loading user...</div>
@@ -370,4 +380,3 @@ export function Navbar() {
     </header>
   );
 }
-    

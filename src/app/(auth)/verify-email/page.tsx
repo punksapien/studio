@@ -39,17 +39,19 @@ function VerifyEmailContent() {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
+  const form = useForm<z.infer<typeof OTPSchema>>({
+    resolver: zodResolver(OTPSchema),
+    defaultValues: {
+      otp: "",
+    },
+  });
+  
   useEffect(() => {
-    // This useEffect was intended to prefill OTP if a token was in the URL.
-    // However, Supabase's magic link flow typically redirects to /auth/callback which handles token exchange.
-    // The OTP is meant for manual entry from the email.
-    // If a 'token' param is explicitly passed for OTP prefill (e.g. testing), this could be useful.
-    // For standard flow, it might not be necessary.
     const tokenFromUrl = searchParams.get("token");
-    if (tokenFromUrl && email && (type === 'register' || type === 'email')) { // 'email' type is for verifyOtp
+    if (tokenFromUrl && email && (type === 'register' || type === 'email')) { 
       form.setValue('otp', tokenFromUrl.substring(0, 6)); 
     }
-  }, [searchParams, email, type]); // form dependency added to satisfy linter
+  }, [searchParams, email, type, form]); 
 
   if (!email) {
     return (
@@ -69,7 +71,7 @@ function VerifyEmailContent() {
     );
   }
 
-  const validTypes = ['register', 'login', 'password-reset', 'email_change', 'recovery', 'email']; // Added 'email' as it's used by verifyOtp
+  const validTypes = ['register', 'login', 'password-reset', 'email_change', 'recovery', 'email']; 
   if (!validTypes.includes(type)) {
     return (
       <AuthCardWrapper
@@ -88,12 +90,6 @@ function VerifyEmailContent() {
     );
   }
 
-  const form = useForm<z.infer<typeof OTPSchema>>({
-    resolver: zodResolver(OTPSchema),
-    defaultValues: {
-      otp: "",
-    },
-  });
 
   const onSubmit = (values: z.infer<typeof OTPSchema>) => {
     setError("");
@@ -102,18 +98,14 @@ function VerifyEmailContent() {
 
     startTransition(async () => {
       try {
-        // The 'type' param from URL might be 'register' or 'login' (if coming from those flows).
-        // Supabase verifyOtp uses 'email' for general email OTPs (like signup).
-        // We ensure the correct type is passed to Supabase.
         const verificationTypeForSupabase = type === 'register' ? 'email' : type;
 
-        await auth.verifyEmailOtp(email, values.otp); // Supabase type for email verification is 'email'
+        await auth.verifyEmailOtp(email, values.otp); 
         setSuccess("Email verified successfully! Redirecting...");
         toast({
           title: "Email Verified!",
           description: "Your account has been activated. Redirecting to login..."
         });
-        // Redirect to login after success, or to a specific 'next' URL if provided
         const nextUrl = searchParams.get("next") || '/auth/login';
         setTimeout(() => router.push(nextUrl), 2000);
 
@@ -138,8 +130,7 @@ function VerifyEmailContent() {
 
     startTransition(async () => {
       try {
-        // resend expects the type of OTP, for signup it's 'signup'
-        await auth.resendVerificationForEmail(email); // This function in auth.ts should use type: 'signup'
+        await auth.resendVerificationForEmail(email); 
         toast({
           title: "Verification Email Resent",
           description: `A new verification email has been sent to ${email}. Please check your inbox and spam folder.`,
@@ -160,7 +151,7 @@ function VerifyEmailContent() {
 
   return (
     <AuthCardWrapper
-      headerLabel="Final Step: Verify Your Email"
+      headerLabel="Verify Your Email"
       backButtonLabel={type === 'login' ? "Back to Login" : "Back to Registration"}
       backButtonHref={type === 'login' ? "/auth/login" : (email ? `/auth/register?email=${encodeURIComponent(email)}` : "/auth/register")}
     >
@@ -206,7 +197,7 @@ function VerifyEmailContent() {
                           placeholder="123456"
                           disabled={isLoading || isPending}
                           maxLength={6}
-                          className="text-center text-2xl tracking-[0.3em] h-14 font-mono"
+                          className="text-center text-2xl tracking-[0.3em] h-14 font-mono border-2 border-input focus:border-primary"
                           autoComplete="one-time-code"
                         />
                       </FormControl>
@@ -265,5 +256,3 @@ export default function VerifyEmailPage() {
     </Suspense>
   );
 }
-
-    
