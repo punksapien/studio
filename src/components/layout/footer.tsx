@@ -10,7 +10,6 @@ export function Footer() {
       <div className="container mx-auto py-16 md:py-20 px-6 md:px-8">
         <div className="grid gap-10 row-gap-6 mb-8 sm:grid-cols-2 lg:grid-cols-5">
           <div className="sm:col-span-2 lg:col-span-1">
-            {/* Use forceTheme="dark" to ensure light logo on dark background */}
             <Logo size="xl" forceTheme="dark" />
             <p className="mt-4 text-sm ">
               Connecting SME owners with investors and buyers across Asia. Your trusted partner for business transitions.

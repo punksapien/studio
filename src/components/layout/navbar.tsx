@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils';
 import { usePathname, useRouter } from 'next/navigation';
 import { auth, type UserProfile } from '@/lib/auth';
 import { useToast } from '@/hooks/use-toast';
-import { Logo } from '@/components/shared/logo'; // Import the shared Logo component
+import { Logo } from '@/components/shared/logo';
 
 interface NavLinkItem {
   href: string;
@@ -150,7 +150,6 @@ export function Navbar() {
     <header className="sticky top-0 z-50 w-full border-b border-brand-light-gray/60 bg-brand-white text-brand-dark-blue shadow-sm">
       <div className="container mx-auto flex h-20 items-center justify-between px-6 md:px-8">
         <div className="flex items-center gap-x-6 lg:gap-x-8">
-          {/* Use the shared Logo component, forcing light theme for dark logo elements */}
           <Logo size="xl" forceTheme="light" />
           <nav className="hidden md:flex items-center space-x-1 lg:space-x-2">
             {navLinks.map((linkOrGroup) =>

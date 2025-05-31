@@ -7,7 +7,7 @@ import { useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';
 
 interface LogoProps {
-  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl'; // Added sm and md
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
   forceTheme?: 'light' | 'dark';
 }
 
@@ -20,19 +20,19 @@ export function Logo({ size = 'xl', forceTheme }: LogoProps) {
   }, []);
 
   const dimensions = {
-    sm: { width: 100, height: 33 }, // Smaller size
-    md: { width: 120, height: 40 }, // Medium size
-    lg: { width: 150, height: 50 }, // Larger than before
-    xl: { width: 180, height: 60 }, // Increased size for navbar/footer
-    '2xl': { width: 220, height: 73 } // Even larger
+    sm: { width: 100, height: 33 },
+    md: { width: 120, height: 40 },
+    lg: { width: 150, height: 50 },
+    xl: { width: 200, height: 67 }, // Increased size
+    '2xl': { width: 220, height: 73 }
   };
 
-  const { width, height } = dimensions[size] || dimensions.xl; // Fallback to xl if size is invalid
+  const { width, height } = dimensions[size] || dimensions.xl;
 
   let useDarkLogoElements: boolean;
 
   if (forceTheme) {
-    // If forceTheme is 'light', it means the background is light, so we need the dark logo elements.
+    // If forceTheme is 'light', it implies the background is light, so we need the dark logo elements.
     useDarkLogoElements = forceTheme === 'light';
   } else if (mounted) {
     // If no forceTheme and component is mounted, use the actual resolved theme.
@@ -44,12 +44,13 @@ export function Logo({ size = 'xl', forceTheme }: LogoProps) {
     useDarkLogoElements = true;
   }
 
+  // This logic assumes:
+  // - nobridge_logo_dark_no_bg.png = DARK elements (for light backgrounds)
+  // - nobridge_logo_light_no_bg.png = LIGHT elements (for dark backgrounds)
   const logoSrc = useDarkLogoElements
-    ? '/assets/nobridge_logo_dark_no_bg.png'  // Dark elements for LIGHT backgrounds
-    : '/assets/nobridge_logo_light_no_bg.png'; // Light elements for DARK backgrounds
+    ? '/assets/nobridge_logo_dark_no_bg.png'
+    : '/assets/nobridge_logo_light_no_bg.png';
 
-  // If not mounted and no forceTheme, render a placeholder to avoid hydration mismatch
-  // while theme is being resolved on the client.
   if (!mounted && !forceTheme) {
     return <div style={{ width: `${width}px`, height: `${height}px` }} aria-hidden="true" className="inline-block" />;
   }
@@ -61,8 +62,8 @@ export function Logo({ size = 'xl', forceTheme }: LogoProps) {
         alt="Nobridge"
         width={width}
         height={height}
-        className="object-contain" // Ensures image scales within bounds without cropping
-        priority // Good for LCP elements like logos
+        className="object-contain"
+        priority
       />
     </Link>
   );
