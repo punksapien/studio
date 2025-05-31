@@ -1,6 +1,6 @@
 
 import Link from 'next/link';
-import { Logo } from '@/components/shared/logo'; // Import the actual Logo component
+import { Logo } from '@/components/shared/logo';
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
@@ -10,7 +10,7 @@ export function Footer() {
       <div className="container mx-auto py-16 md:py-20 px-6 md:px-8">
         <div className="grid gap-10 row-gap-6 mb-8 sm:grid-cols-2 lg:grid-cols-5">
           <div className="sm:col-span-2 lg:col-span-1">
-            <Logo size="lg" /> {/* Use the Logo component here */}
+            <Logo size="xl" /> {/* Increased size to xl */}
             <p className="mt-4 text-sm ">
               Connecting SME owners with investors and buyers across Asia. Your trusted partner for business transitions.
             </p>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -17,12 +18,7 @@ import { cn } from '@/lib/utils';
 import { usePathname, useRouter } from 'next/navigation';
 import { auth, type UserProfile } from '@/lib/auth';
 import { useToast } from '@/hooks/use-toast';
-
-const NobridgeLogo = () => (
-  <Link href="/" className="flex items-center gap-2 text-3xl font-bold text-brand-dark-blue hover:opacity-80 transition-opacity tracking-tight">
-    Nobridge
-  </Link>
-);
+import { Logo } from '@/components/shared/logo'; // Import the shared Logo component
 
 interface NavLinkItem {
   href: string;
@@ -41,9 +37,8 @@ const navLinks: (NavLinkItem | NavLinkGroup)[] = [
     label: "Sell Your Business",
     triggerIcon: Briefcase,
     items: [
-      { href: "/seller-dashboard/listings/create", label: "List Your Business", icon: FileText }, // Using FileText or PlusCircle
+      { href: "/seller-dashboard/listings/create", label: "List Your Business", icon: FileText },
       { href: "/how-selling-works", label: "How Selling Works", icon: Info },
-      // { href: "/valuation-services", label: "Valuation Services [Future]", icon: DollarSign },
     ],
   },
   {
@@ -52,18 +47,15 @@ const navLinks: (NavLinkItem | NavLinkGroup)[] = [
     items: [
       { href: "/marketplace", label: "Browse Listings", icon: ShoppingCart },
       { href: "/how-buying-works", label: "How Buying Works", icon: Info },
-      // { href: "/buyer-resources", label: "Buyer Resources [Future]", icon: BookOpen },
     ],
   },
-  { href: "/pricing", label: "Pricing", icon: CircleDollarSign }, // Changed to CircleDollarSign
+  { href: "/pricing", label: "Pricing", icon: CircleDollarSign },
   {
     label: "Company",
     triggerIcon: Users,
     items: [
       { href: "/about", label: "About Us", icon: Info },
       { href: "/contact", label: "Contact Us", icon: Phone },
-      // { href: "/blog", label: "Blog [Future]", icon: Newspaper },
-      // { href: "/careers", label: "Careers [Future]", icon: Users },
     ],
   },
 ];
@@ -76,7 +68,6 @@ export function Navbar() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Check auth state on mount and listen for changes
   useEffect(() => {
     const checkAuthState = async () => {
       try {
@@ -100,9 +91,8 @@ export function Navbar() {
 
     checkAuthState();
 
-    // Listen for auth state changes
-    const { data: { subscription } } = auth.onAuthStateChange(async (user) => {
-      if (user) {
+    const { data: { subscription } } = auth.onAuthStateChange(async (_event, session) => { // _event can be used if needed
+      if (session?.user) {
         const profile = await auth.getCurrentUserProfile();
         setIsAuthenticated(true);
         setUserProfile(profile);
@@ -132,7 +122,6 @@ export function Navbar() {
     }
   };
 
-  // Get user's initials for avatar
   const getUserInitials = (profile: UserProfile | null) => {
     if (!profile?.full_name) return 'U';
     return profile.full_name
@@ -143,16 +132,15 @@ export function Navbar() {
       .slice(0, 2);
   };
 
-  // Get dashboard URL based on user role
   const getDashboardUrl = (profile: UserProfile | null) => {
-    if (!profile) return '/dashboard';
+    if (!profile) return '/dashboard'; // Default or redirect to login
     switch (profile.role) {
       case 'seller':
         return '/seller-dashboard';
       case 'buyer':
-        return '/buyer-dashboard';
+        return '/dashboard'; // Buyer dashboard is at /dashboard
       case 'admin':
-        return '/admin-dashboard';
+        return '/admin'; // Admin dashboard
       default:
         return '/dashboard';
     }
@@ -162,7 +150,7 @@ export function Navbar() {
     <header className="sticky top-0 z-50 w-full border-b border-brand-light-gray/60 bg-brand-white text-brand-dark-blue shadow-sm">
       <div className="container mx-auto flex h-20 items-center justify-between px-6 md:px-8">
         <div className="flex items-center gap-x-6 lg:gap-x-8">
-          <NobridgeLogo />
+          <Logo size="xl" /> {/* Use shared Logo component with increased size */}
           <nav className="hidden md:flex items-center space-x-1 lg:space-x-2">
             {navLinks.map((linkOrGroup) =>
               'items' in linkOrGroup ? (
@@ -209,14 +197,14 @@ export function Navbar() {
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="h-9 w-9 rounded-full bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90 text-sm font-semibold">
                       {getUserInitials(userProfile)}
-              </Button>
+                    </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="bg-brand-white text-brand-dark-blue border-brand-light-gray/80 shadow-lg rounded-md w-56">
                     <div className="px-3 py-2 text-sm">
                       <div className="font-medium">{userProfile?.full_name || 'User'}</div>
                       <div className="text-brand-dark-blue/60 text-xs">{userProfile?.email}</div>
                       <div className="text-brand-dark-blue/60 text-xs capitalize">{userProfile?.role}</div>
-              </div>
+                    </div>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild className="cursor-pointer">
                       <Link href={getDashboardUrl(userProfile)} className="flex items-center px-3 py-2">
@@ -258,7 +246,7 @@ export function Navbar() {
             </SheetTrigger>
             <SheetContent side="right" className="w-[300px] sm:w-[350px] p-0 bg-brand-white text-brand-dark-blue">
               <div className="p-6 border-b border-brand-light-gray">
-                <NobridgeLogo />
+                <Logo size="xl" /> {/* Use shared Logo component in sheet */}
               </div>
               <nav className="flex flex-col space-y-1 p-4">
                 {navLinks.map((linkOrGroup) =>
@@ -337,4 +325,3 @@ export function Navbar() {
     </header>
   );
 }
-
