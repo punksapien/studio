@@ -13,29 +13,36 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
-import { Menu, ChevronDown, Briefcase, Building, FileText, Phone, Users, UserCircle, LogIn, UserPlus, ArrowRight, Home, Info, MessageCircle, ShoppingCart, Newspaper, HandCoins, BarChart3, Search as SearchIcon, ListChecks, CircleDollarSign, LogOut } from 'lucide-react';
+import { Menu, ChevronDown, FileText, Phone, Info, ShoppingCart, UserCircle, LogIn, UserPlus, LogOut, Search as SearchIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePathname, useRouter } from 'next/navigation';
 import { auth, type UserProfile } from '@/lib/auth';
 import { useToast } from '@/hooks/use-toast';
 import { Logo } from '@/components/shared/logo';
+import { NobridgeIcon, NobridgeIconType } from '@/components/ui/nobridge-icon';
 
 interface NavLinkItem {
   href: string;
   label: string;
   icon?: React.ElementType;
+  iconProps?: any; // For NobridgeIcon specific props
+  isNobridgeIcon?: boolean;
 }
 
 interface NavLinkGroup {
   label: string;
   triggerIcon?: React.ElementType;
+  triggerIconProps?: any;
+  isNobridgeTriggerIcon?: boolean;
   items: NavLinkItem[];
 }
 
 const navLinks: (NavLinkItem | NavLinkGroup)[] = [
   {
     label: "Sell Your Business",
-    triggerIcon: Briefcase,
+    isNobridgeTriggerIcon: true,
+    triggerIcon: NobridgeIcon,
+    triggerIconProps: { icon: 'business-listing' as NobridgeIconType },
     items: [
       { href: "/seller-dashboard/listings/create", label: "List Your Business", icon: FileText },
       { href: "/how-selling-works", label: "How Selling Works", icon: Info },
@@ -43,16 +50,19 @@ const navLinks: (NavLinkItem | NavLinkGroup)[] = [
   },
   {
     label: "Buy a Business",
-    triggerIcon: Building,
+    isNobridgeTriggerIcon: true,
+    triggerIcon: NobridgeIcon,
+    triggerIconProps: { icon: 'core-details' as NobridgeIconType },
     items: [
       { href: "/marketplace", label: "Browse Listings", icon: ShoppingCart },
       { href: "/how-buying-works", label: "How Buying Works", icon: Info },
     ],
   },
-  // { href: "/pricing", label: "Pricing", icon: CircleDollarSign }, // Removed Pricing link
   {
     label: "Company",
-    triggerIcon: Users,
+    isNobridgeTriggerIcon: true,
+    triggerIcon: NobridgeIcon,
+    triggerIconProps: { icon: 'growth' as NobridgeIconType },
     items: [
       { href: "/about", label: "About Us", icon: Info },
       { href: "/contact", label: "Contact Us", icon: Phone },
@@ -157,7 +167,8 @@ export function Navbar() {
                 <DropdownMenu key={linkOrGroup.label}>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="px-3 py-2 text-sm font-medium text-brand-dark-blue hover:bg-brand-light-gray/50 hover:text-brand-dark-blue/90 focus-visible:ring-brand-sky-blue">
-                      {linkOrGroup.triggerIcon && React.createElement(linkOrGroup.triggerIcon, { className: "mr-1.5 h-4 w-4 opacity-80"})}
+                      {linkOrGroup.isNobridgeTriggerIcon && linkOrGroup.triggerIcon && React.createElement(linkOrGroup.triggerIcon, { ...(linkOrGroup.triggerIconProps || {}), size: "sm", className: "mr-1.5 opacity-80"})}
+                      {!linkOrGroup.isNobridgeTriggerIcon && linkOrGroup.triggerIcon && React.createElement(linkOrGroup.triggerIcon, { className: "mr-1.5 h-4 w-4 opacity-80"})}
                       {linkOrGroup.label}
                       <ChevronDown className="ml-1 h-4 w-4 opacity-70" />
                     </Button>
@@ -166,7 +177,8 @@ export function Navbar() {
                     {linkOrGroup.items.map((item) => (
                       <DropdownMenuItem key={item.label} asChild className="text-sm hover:bg-brand-light-gray focus:bg-brand-light-gray cursor-pointer">
                         <Link href={item.href} className="flex items-center text-brand-dark-blue hover:text-brand-dark-blue px-3 py-2">
-                          {item.icon && React.createElement(item.icon, { className: "mr-2 h-4 w-4 opacity-80"})}
+                          {item.isNobridgeIcon && item.icon && React.createElement(item.icon, { ...(item.iconProps || {}), size:"sm", className: "mr-2 opacity-80"})}
+                          {!item.isNobridgeIcon && item.icon && React.createElement(item.icon, { className: "mr-2 h-4 w-4 opacity-80"})}
                           {item.label}
                         </Link>
                       </DropdownMenuItem>
@@ -176,7 +188,8 @@ export function Navbar() {
               ) : (
                 <Button variant="ghost" asChild key={linkOrGroup.label} className={cn("px-3 py-2 text-sm font-medium text-brand-dark-blue hover:bg-brand-light-gray/50 hover:text-brand-dark-blue/90 focus-visible:ring-brand-sky-blue", pathname === linkOrGroup.href && "bg-brand-light-gray/70 font-semibold")}>
                   <Link href={linkOrGroup.href} className="flex items-center">
-                     {linkOrGroup.icon && React.createElement(linkOrGroup.icon, { className: "mr-1.5 h-4 w-4 opacity-80"})}
+                     {linkOrGroup.isNobridgeIcon && linkOrGroup.icon && React.createElement(linkOrGroup.icon, { ...(linkOrGroup.iconProps || {}), size:"sm", className: "mr-1.5 opacity-80"})}
+                     {!linkOrGroup.isNobridgeIcon && linkOrGroup.icon && React.createElement(linkOrGroup.icon, { className: "mr-1.5 h-4 w-4 opacity-80"})}
                     {linkOrGroup.label}
                   </Link>
                 </Button>
@@ -253,7 +266,8 @@ export function Navbar() {
                   'items' in linkOrGroup ? (
                     <div key={linkOrGroup.label} className="flex flex-col space-y-1">
                        <h4 className="text-base font-medium px-3 py-3 w-full text-brand-dark-blue flex items-center">
-                        {linkOrGroup.triggerIcon && React.createElement(linkOrGroup.triggerIcon, { className: "mr-2 h-5 w-5 opacity-80"})}
+                        {linkOrGroup.isNobridgeTriggerIcon && linkOrGroup.triggerIcon && React.createElement(linkOrGroup.triggerIcon, { ...(linkOrGroup.triggerIconProps || {}), size:"sm", className: "mr-2 opacity-80"})}
+                        {!linkOrGroup.isNobridgeTriggerIcon && linkOrGroup.triggerIcon && React.createElement(linkOrGroup.triggerIcon, { className: "mr-2 h-5 w-5 opacity-80"})}
                         {linkOrGroup.label}
                       </h4>
                       <div className="pl-4 flex flex-col space-y-1">
@@ -261,7 +275,8 @@ export function Navbar() {
                           <SheetClose asChild key={item.label}>
                            <Button variant="ghost" asChild className={cn("justify-start text-base font-normal px-3 py-2 text-brand-dark-blue/80 hover:text-brand-dark-blue hover:bg-brand-light-gray", pathname === item.href && "bg-brand-light-gray font-medium")}>
                             <Link href={item.href} className="flex items-center">
-                               {item.icon && React.createElement(item.icon, { className: "mr-2 h-4 w-4 opacity-80"})}
+                               {item.isNobridgeIcon && item.icon && React.createElement(item.icon, { ...(item.iconProps || {}), size:"sm", className: "mr-2 opacity-80"})}
+                               {!item.isNobridgeIcon && item.icon && React.createElement(item.icon, { className: "mr-2 h-4 w-4 opacity-80"})}
                               {item.label}
                             </Link>
                            </Button>
@@ -273,7 +288,8 @@ export function Navbar() {
                     <SheetClose asChild key={linkOrGroup.label}>
                      <Button variant="ghost" asChild className={cn("text-lg font-medium justify-start px-3 py-3 w-full text-brand-dark-blue hover:bg-brand-light-gray", pathname === linkOrGroup.href && "bg-brand-light-gray/70 font-semibold")}>
                        <Link href={linkOrGroup.href} className="flex items-center">
-                        {linkOrGroup.icon && React.createElement(linkOrGroup.icon, { className: "mr-2 h-5 w-5 opacity-80"})}
+                        {linkOrGroup.isNobridgeIcon && linkOrGroup.icon && React.createElement(linkOrGroup.icon, { ...(linkOrGroup.iconProps || {}), size:"sm", className: "mr-2 opacity-80"})}
+                        {!linkOrGroup.isNobridgeIcon && linkOrGroup.icon && React.createElement(linkOrGroup.icon, { className: "mr-2 h-5 w-5 opacity-80"})}
                         {linkOrGroup.label}
                       </Link>
                      </Button>

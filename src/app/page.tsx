@@ -3,7 +3,7 @@ import * as React from "react";
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowRight, Star, CheckCircle, Zap, UsersRound, MapPin, Briefcase, ListChecks, CircleDollarSign, ShieldCheck, FileText, MessageSquare, Info, Phone, Home, ExternalLink, Users2 as UsersIcon, Images as ImagesIcon, Banknote, BookOpen, Brain, HandCoins, Globe, Link as LinkIconLucide } from 'lucide-react';
+import { Star, CheckCircle, Search as SearchIcon, MapPin, Briefcase, ListChecks, DollarSign, ShieldCheck, FileText, MessageSquare, Info, Phone, Home, ExternalLink, Users2 as UsersIcon, Images as ImagesIcon, Banknote, BookOpen, Brain, HandCoins, Globe, Link as LinkIconLucide, ArrowRight, Zap, UsersRound } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -48,12 +48,12 @@ export default function HomePage() {
             </div>
           </div>
           <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
-            <Button size="lg" asChild className="bg-brand-white text-brand-dark-blue hover:bg-brand-light-gray/90 font-semibold py-3 px-8 rounded-md text-base">
-              <Link href="/seller-dashboard/listings/create">List Your Business <ArrowRight className="ml-2 h-5 w-5" /></Link>
-            </Button>
-            <Button size="lg" variant="outline" asChild className="border-brand-white text-brand-dark-blue hover:bg-brand-white/10 hover:text-brand-white font-semibold py-3 px-8 rounded-md text-base">
-              <Link href="/marketplace">Browse Businesses</Link>
-            </Button>
+            <Link href="/seller-dashboard/listings/create" className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-brand-white text-brand-dark-blue hover:bg-brand-light-gray/90 h-11 py-3 px-8 text-base">
+                List Your Business <ArrowRight className="ml-2 h-5 w-5" />
+            </Link>
+            <Link href="/marketplace" className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-brand-white text-brand-white hover:bg-brand-white/10 hover:text-brand-white h-11 py-3 px-8 text-base">
+                Browse Businesses <SearchIcon className="ml-2 h-5 w-5" />
+            </Link>
           </div>
         </div>
       </section>
@@ -96,17 +96,17 @@ export default function HomePage() {
                   </div>
                 </CardContent>
                 <CardFooter className="p-6 border-t border-brand-light-gray/80 mt-auto">
-                  <Button asChild className="w-full bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90">
-                    <Link href={`/listings/${listing.id}`}>View Details <ArrowRight className="ml-2 h-4 w-4" /></Link>
-                  </Button>
+                  <Link href={`/listings/${listing.id}`} className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 w-full bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90 h-10 px-4 py-2">
+                    View Details <SearchIcon className="ml-2 h-4 w-4" />
+                  </Link>
                 </CardFooter>
               </Card>
             ))}
           </div>
           <div className="mt-16 text-center">
-            <Button size="lg" variant="outline" asChild className="border-brand-dark-blue text-brand-dark-blue hover:bg-brand-dark-blue/5 font-semibold py-3 px-8 rounded-md text-base">
-              <Link href="/marketplace">Explore Full Marketplace</Link>
-            </Button>
+            <Link href="/marketplace" className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-brand-dark-blue text-brand-dark-blue hover:bg-brand-dark-blue/5 h-11 py-3 px-8 text-base">
+              Explore Full Marketplace
+            </Link>
           </div>
         </div>
       </section>
@@ -118,50 +118,56 @@ export default function HomePage() {
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-brand-dark-blue font-heading">Your Journey with Nobridge</h2>
             <p className="text-muted-foreground mt-3 text-lg max-w-2xl mx-auto">Whether you're selling your life's work or seeking your next strategic investment, Nobridge provides the tools and network you need.</p>
           </div>
-          <div className="grid md:grid-cols-2 gap-8 lg:gap-12 items-stretch">
-            <Card className="bg-brand-light-gray/50 rounded-lg shadow-lg flex flex-col">
-              <CardContent className="p-6 md:p-8 flex-grow flex flex-col">
+          <div className="grid md:grid-cols-2 gap-8 lg:gap-12 items-stretch"> {/* items-stretch retained */}
+            <Card className="bg-brand-light-gray/50 p-6 md:p-8 rounded-lg shadow-lg flex flex-col"> {/* flex flex-col retained */}
+              {/* Icon wrapper removed */}
+              <div className="flex-grow"> {/* flex-grow retained */}
                 <h3 className="text-2xl font-semibold text-brand-dark-blue mb-3 font-heading">List Your Business with Confidence</h3>
-                <p className="text-muted-foreground mb-4 leading-relaxed flex-grow">
+                <p className="text-muted-foreground mb-4 leading-relaxed">
                   Nobridge provides a secure and efficient platform to connect with verified buyers across Asia, guiding you through every step.
                 </p>
                 <ul className="space-y-2 text-muted-foreground mb-6">
                   <li className="flex items-center">
-                    <NobridgeIcon icon="secure-docs" size="sm" className="mr-2 opacity-80" /> Access to Verified Buyers
+                    {/* Icon wrapper removed */}
+                    Access to Verified Buyers
                   </li>
                   <li className="flex items-center">
                     <CheckCircle className="h-5 w-5 mr-2 text-brand-sky-blue" /> Step-by-Step Listing Guidance
                   </li>
                   <li className="flex items-center">
-                    <NobridgeIcon icon="interaction" size="sm" className="mr-2 opacity-80" /> Secure Inquiry Management
+                    {/* Icon wrapper removed */}
+                     Secure Inquiry Management
                   </li>
                 </ul>
-                <Button className="bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90 mt-auto">
-                  <Link href="/seller-dashboard/listings/create">Learn More About Selling</Link>
-                </Button>
-              </CardContent>
+              </div>
+              <Link href="/seller-dashboard/listings/create" className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90 h-10 px-4 py-2 mt-auto">
+                Learn More About Selling
+              </Link>
             </Card>
-            <Card className="bg-brand-light-gray/50 rounded-lg shadow-lg flex flex-col">
-              <CardContent className="p-6 md:p-8 flex-grow flex flex-col">
+            <Card className="bg-brand-light-gray/50 p-6 md:p-8 rounded-lg shadow-lg flex flex-col"> {/* flex flex-col retained */}
+              {/* Icon wrapper removed */}
+              <div className="flex-grow"> {/* flex-grow retained */}
                 <h3 className="text-2xl font-semibold text-brand-dark-blue mb-3 font-heading">Discover Your Next Investment Opportunity</h3>
-                <p className="text-muted-foreground mb-4 leading-relaxed flex-grow">
+                <p className="text-muted-foreground mb-4 leading-relaxed">
                   Explore a curated marketplace of businesses for sale. Get access to detailed information on verified businesses and engage directly with sellers.
                 </p>
                 <ul className="space-y-2 text-muted-foreground mb-6">
                   <li className="flex items-center">
-                    <NobridgeIcon icon="core-details" size="sm" className="mr-2 opacity-80" /> Vetted Business Listings
+                    {/* Icon wrapper removed */}
+                    Vetted Business Listings
                   </li>
                   <li className="flex items-center">
                     <CheckCircle className="h-5 w-5 mr-2 text-brand-sky-blue" /> Advanced Search & Filters
                   </li>
                   <li className="flex items-center">
-                    <NobridgeIcon icon="verification" size="sm" className="mr-2 opacity-80" /> Direct Seller Engagement (Post-Verification)
+                    {/* Icon wrapper removed */}
+                    Direct Seller Engagement (Post-Verification)
                   </li>
                 </ul>
-                <Button className="bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90 mt-auto">
-                  <Link href="/marketplace">Learn More About Buying</Link>
-                </Button>
-              </CardContent>
+              </div>
+              <Link href="/marketplace" className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90 h-10 px-4 py-2 mt-auto">
+                Learn More About Buying
+              </Link>
             </Card>
           </div>
         </div>
@@ -234,17 +240,17 @@ export default function HomePage() {
                   <p>{item.excerpt}</p>
                 </CardContent>
                 <CardFooter className="p-6 pt-0">
-                  <Button variant="link" asChild className="text-brand-dark-blue hover:text-brand-sky-blue p-0 font-medium">
-                    <Link href="#">Read More <ArrowRight className="ml-2 h-4 w-4" /></Link>
-                  </Button>
+                  <Link href="#" className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 text-brand-dark-blue hover:text-brand-sky-blue p-0 h-10">
+                    Read More <SearchIcon className="ml-2 h-4 w-4" />
+                  </Link>
                 </CardFooter>
               </Card>
             ))}
           </div>
           <div className="text-center mt-16">
-            <Button size="lg" variant="outline" asChild className="border-brand-dark-blue text-brand-dark-blue hover:bg-brand-dark-blue/5 font-semibold py-3 px-8 rounded-md text-base">
-              <Link href="#">Explore All Insights</Link>
-            </Button>
+            <Link href="#" className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-brand-dark-blue text-brand-dark-blue hover:bg-brand-dark-blue/5 h-11 py-3 px-8 text-base">
+              Explore All Insights
+            </Link>
           </div>
         </div>
       </section>
@@ -257,9 +263,9 @@ export default function HomePage() {
           <p className="text-lg md:text-xl text-brand-light-gray/90 max-w-3xl mx-auto mb-10">
             At Nobridge, we believe in the power of small and medium-sized enterprises. Our mission is to provide a transparent, efficient, and supportive platform that connects business owners with the right investors and buyers, fostering growth and successful transitions throughout the continent.
           </p>
-          <Button size="lg" variant="outline" className="border-brand-white text-brand-dark-blue bg-brand-white hover:bg-brand-light-gray font-semibold py-3 px-8 rounded-md text-base" asChild>
-            <Link href="/about">Learn More About Us</Link>
-          </Button>
+          <Link href="/about" className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border-brand-white text-brand-dark-blue bg-brand-white hover:bg-brand-light-gray h-11 py-3 px-8 text-base">
+            Learn More About Us
+          </Link>
         </div>
       </section>
 
@@ -271,17 +277,15 @@ export default function HomePage() {
             Whether you&apos;re looking to sell your business, find your next investment, or simply learn more, our team is here to help.
           </p>
           <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
-            <Button size="lg" asChild className="bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90 font-semibold py-3 px-8 rounded-md text-base">
-              <Link href="/auth/register">Register Now</Link>
-            </Button>
-            <Button size="lg" variant="outline" asChild className="border-brand-dark-blue text-brand-dark-blue hover:bg-brand-dark-blue/5 font-semibold py-3 px-8 rounded-md text-base">
-              <Link href="/contact">Contact Our Team</Link>
-            </Button>
+            <Link href="/auth/register" className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90 h-11 py-3 px-8 text-base">
+              Register Now
+            </Link>
+            <Link href="/contact" className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-brand-dark-blue text-brand-dark-blue hover:bg-brand-dark-blue/5 h-11 py-3 px-8 text-base">
+              Contact Our Team
+            </Link>
           </div>
         </div>
       </section>
     </>
   );
 }
-
-    
