@@ -61,6 +61,7 @@ const iconAltMap: Record<NobridgeIconType, string> = {
 interface NobridgeIconProps {
   icon: NobridgeIconType;
   size?: 'sm' | 'md' | 'lg' | 'xl' | number; // Allow number for custom pixel size
+  variant?: 'default' | 'blue';
   alt?: string;
   className?: string;
   // Allow other Image props to be passed through
@@ -70,6 +71,7 @@ interface NobridgeIconProps {
 export function NobridgeIcon({
   icon,
   size = 'md',
+  variant = 'default',
   alt,
   className = '',
   ...rest
@@ -82,7 +84,13 @@ export function NobridgeIcon({
   };
 
   const iconSize = typeof size === 'number' ? size : baseDimensions[size];
-  const iconSrc = iconMap[icon];
+  let iconFileName = iconMap[icon];
+  
+  if (variant === 'blue') {
+    iconFileName = iconFileName.replace('.png', '_blue.png');
+  }
+
+  const iconSrc = iconFileName;
   const iconAlt = alt || iconAltMap[icon] || `${icon.replace(/-/g, ' ')} icon`;
 
   if (!iconSrc) {

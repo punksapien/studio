@@ -42,7 +42,7 @@ const navLinks: (NavLinkItem | NavLinkGroup)[] = [
     label: "Sell Your Business",
     isNobridgeTriggerIcon: true,
     triggerIcon: NobridgeIcon,
-    triggerIconProps: { icon: 'business-listing' as NobridgeIconType },
+    triggerIconProps: { icon: 'business-listing' as NobridgeIconType, variant: 'blue' },
     items: [
       { href: "/seller-dashboard/listings/create", label: "List Your Business", icon: FileText },
       { href: "/how-selling-works", label: "How Selling Works", icon: Info },
@@ -52,7 +52,7 @@ const navLinks: (NavLinkItem | NavLinkGroup)[] = [
     label: "Buy a Business",
     isNobridgeTriggerIcon: true,
     triggerIcon: NobridgeIcon,
-    triggerIconProps: { icon: 'core-details' as NobridgeIconType },
+    triggerIconProps: { icon: 'core-details' as NobridgeIconType, variant: 'blue' },
     items: [
       { href: "/marketplace", label: "Browse Listings", icon: ShoppingCart },
       { href: "/how-buying-works", label: "How Buying Works", icon: Info },
@@ -62,7 +62,7 @@ const navLinks: (NavLinkItem | NavLinkGroup)[] = [
     label: "Company",
     isNobridgeTriggerIcon: true,
     triggerIcon: NobridgeIcon,
-    triggerIconProps: { icon: 'growth' as NobridgeIconType },
+    triggerIconProps: { icon: 'growth' as NobridgeIconType, variant: 'blue' },
     items: [
       { href: "/about", label: "About Us", icon: Info },
       { href: "/contact", label: "Contact Us", icon: Phone },
