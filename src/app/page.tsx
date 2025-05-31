@@ -3,7 +3,7 @@ import * as React from "react";
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowRight, Star, CheckCircle, Shield, Zap, ListChecks, CircleDollarSign, ShieldCheck, Users2, Newspaper, Info, Phone, Home } from 'lucide-react';
+import { ArrowRight, Star, CheckCircle, Shield, Zap, ListChecks, CircleDollarSign, ShieldCheck, Users2, Newspaper, Info, Phone, Home, MapPin, Briefcase } from 'lucide-react'; // Added MapPin and Briefcase
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
