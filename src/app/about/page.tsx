@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import Image from "next/image";
 
 export default function AboutPage() {
@@ -6,42 +6,37 @@ export default function AboutPage() {
     <div className="container py-12 md:py-16">
       <Card className="shadow-xl">
         <CardHeader>
-          <CardTitle className="text-3xl md:text-4xl font-bold text-center text-primary">About BizMatch Asia</CardTitle>
+          <CardTitle className="text-3xl md:text-4xl font-bold text-center text-primary">About Nobridge</CardTitle>
+          <CardDescription className="text-center text-lg">
+            Connecting SME owners with motivated buyers across Asia
+          </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-8 text-lg text-foreground">
-          <div className="grid md:grid-cols-2 gap-8 items-center">
+        <CardContent className="space-y-6 text-center">
+          <p className="text-lg">
+            Nobridge was founded with a clear vision: to create a trusted and efficient platform that bridges the gap between Small and Medium Enterprise (SME) owners looking to sell their businesses and motivated buyers seeking promising opportunities.
+          </p>
+
+          <div className="mx-auto max-w-2xl">
+            <img
+              src="/api/placeholder/600/300"
+              alt="Nobridge Team Meeting"
+              className="rounded-lg shadow-lg w-full"
+            />
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6 text-left">
             <div>
-              <p className="leading-relaxed">
-                BizMatch Asia was founded with a clear vision: to create a trusted and efficient platform that bridges the gap between Small and Medium Enterprise (SME) owners looking to sell their businesses and motivated investors or buyers across the dynamic Asian market.
-              </p>
-              <p className="mt-4 leading-relaxed">
-                We understand the unique challenges and opportunities within the Asian business landscape. Our mission is to simplify the complex process of business acquisition by providing a secure marketplace, robust verification processes, and fostering meaningful connections.
-              </p>
+              <h3 className="text-xl font-semibold mb-3">For Business Sellers</h3>
+              <p>We provide a secure, professional environment where you can showcase your business to qualified buyers while maintaining confidentiality throughout the process.</p>
             </div>
-            <div className="rounded-lg overflow-hidden shadow-md">
-              <Image 
-                src="https://placehold.co/600x400.png" 
-                alt="BizMatch Asia Team Meeting" 
-                width={600} 
-                height={400}
-                className="object-cover w-full h-full"
-                data-ai-hint="team meeting office" 
-              />
+            <div>
+              <h3 className="text-xl font-semibold mb-3">For Business Buyers</h3>
+              <p>Access vetted business opportunities, detailed financial information, and direct communication channels with verified sellers across Asia's dynamic markets.</p>
             </div>
           </div>
 
-          <div className="space-y-4">
-            <h2 className="text-2xl font-semibold text-primary">Our Values</h2>
-            <ul className="list-disc list-inside space-y-2 text-muted-foreground">
-              <li><span className="font-medium text-foreground">Trust & Transparency:</span> We prioritize building a secure environment through manual verification and clear communication.</li>
-              <li><span className="font-medium text-foreground">Connection & Opportunity:</span> We believe in the power of connecting the right people to unlock business potential.</li>
-              <li><span className="font-medium text-foreground">Simplicity & Efficiency:</span> We strive to make the process of buying or selling a business as straightforward as possible.</li>
-              <li><span className="font-medium text-foreground">Focus on Asia:</span> Our expertise is dedicated to the unique dynamics of the Asian SME market.</li>
-            </ul>
-          </div>
-          
-          <p className="leading-relaxed">
-            Whether you are an entrepreneur looking for your next chapter or an investor seeking promising ventures, BizMatch Asia is your dedicated partner in navigating the Asian business marketplace.
+          <p className="text-lg font-medium">
+            Whether you are an entrepreneur looking for your next chapter or an investor seeking promising ventures, Nobridge is your dedicated partner in navigating the Asian business marketplace.
           </p>
         </CardContent>
       </Card>

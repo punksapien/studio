@@ -50,7 +50,7 @@ export default function ContactPage() {
               <Mail className="h-6 w-6 text-primary mt-1 flex-shrink-0" />
               <div>
                 <p className="font-medium">Email</p>
-                <a href="mailto:support@bizmatch.asia" className="text-muted-foreground hover:text-primary">support@bizmatch.asia</a>
+                <a href="mailto:support@nobridge.asia" className="text-muted-foreground hover:text-primary">support@nobridge.asia</a>
               </div>
             </div>
             <div className="flex items-start space-x-3">

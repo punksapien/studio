@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -29,9 +28,9 @@ export default function DashboardPage() {
     );
   }
 
-  const activeInquiriesCount = sampleBuyerInquiries.filter(inq => 
-    inq.buyerId === currentUser.id && 
-    inq.statusBuyerPerspective !== 'Archived' && 
+  const activeInquiriesCount = sampleBuyerInquiries.filter(inq =>
+    inq.buyerId === currentUser.id &&
+    inq.statusBuyerPerspective !== 'Archived' &&
     inq.statusBuyerPerspective !== 'Connection Facilitated by Admin'
   ).length;
 
@@ -68,13 +67,13 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className={`text-2xl font-bold ${currentUser.verificationStatus === 'verified' ? 'text-green-700 dark:text-green-300' : 'text-amber-700 dark:text-amber-300'}`}>
-              {currentUser.verificationStatus === 'verified' ? 'Verified Buyer' : 
+              {currentUser.verificationStatus === 'verified' ? 'Verified Buyer' :
                currentUser.verificationStatus === 'pending_verification' ? 'Verification Pending' :
                'Anonymous Buyer'}
             </div>
             <p className="text-xs text-muted-foreground">
-              {currentUser.verificationStatus === 'verified' 
-                ? 'Access full details & engage with verified sellers.' 
+              {currentUser.verificationStatus === 'verified'
+                ? 'Access full details & engage with verified sellers.'
                 : 'Complete verification to unlock more features.'}
             </p>
             {currentUser.verificationStatus !== 'verified' && (
@@ -124,7 +123,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground mb-4">
-              Become a Verified Buyer to view detailed information on verified listings, engage directly with sellers, and build trust within the BizMatch Asia community.
+              Create an account, list your business for sale, get verified, engage with sellers, and build trust within the Nobridge community.
             </p>
             <Button asChild>
               <Link href="/dashboard/verification">Request Verification Call</Link>

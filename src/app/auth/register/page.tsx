@@ -11,7 +11,7 @@ export default function RegisterPage() {
         <div className="flex justify-center mb-4">
             <Logo size="2xl"/>
         </div>
-        <h1 className="text-3xl font-semibold tracking-tight">Join BizMatch Asia</h1>
+        <h1 className="text-3xl font-semibold tracking-tight">Join Nobridge</h1>
         <p className="text-muted-foreground mt-2">
           Connect with business opportunities across Asia. Choose your role to get started.
         </p>

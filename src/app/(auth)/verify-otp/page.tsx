@@ -1,4 +1,3 @@
-
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -15,11 +14,12 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { AuthCardWrapper } from "@/components/auth/auth-card-wrapper";
-import { useState, useTransition, Suspense } from "react"; 
+import { useState, useTransition, Suspense } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { useToast } from "@/hooks/use-toast"; // Correctly import useToast
+import { useToast } from "@/hooks/use-toast";
+import { auth } from "@/lib/auth";
 
 const OTPSchema = z.object({
   otp: z.string().min(6, { message: "OTP must be 6 digits." }).max(6, { message: "OTP must be 6 digits." }),
@@ -29,13 +29,52 @@ function VerifyOTPFormContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const email = searchParams.get("email");
-  const type = searchParams.get("type"); 
+  const type = searchParams.get("type");
 
   const [error, setError] = useState<string | undefined>("");
   const [success, setSuccess] = useState<string | undefined>("");
   const [isPending, startTransition] = useTransition();
   const [isResendPending, startResendTransition] = useTransition();
-  const { toast } = useToast(); 
+  const { toast } = useToast();
+
+  // Security check: ensure required parameters are present
+  if (!email || !type) {
+    return (
+      <AuthCardWrapper
+        headerLabel="Invalid Verification Link"
+        backButtonLabel="Go to Registration"
+        backButtonHref="/auth/register"
+      >
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Invalid Access</AlertTitle>
+          <AlertDescription>
+            This verification page requires an email and verification type.
+            Please register or request a password reset to get a proper verification link.
+          </AlertDescription>
+        </Alert>
+      </AuthCardWrapper>
+    );
+  }
+
+  // Validate verification type
+  if (type !== 'register' && type !== 'login' && type !== 'password-reset') {
+    return (
+      <AuthCardWrapper
+        headerLabel="Invalid Verification Type"
+        backButtonLabel="Go to Registration"
+        backButtonHref="/auth/register"
+      >
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Invalid Verification Type</AlertTitle>
+          <AlertDescription>
+            The verification type "{type}" is not supported. Please use a valid verification link.
+          </AlertDescription>
+        </Alert>
+      </AuthCardWrapper>
+    );
+  }
 
   const form = useForm<z.infer<typeof OTPSchema>>({
     resolver: zodResolver(OTPSchema),
@@ -48,23 +87,37 @@ function VerifyOTPFormContent() {
     setError("");
     setSuccess("");
 
+    if (!email) {
+      setError("Email is required for verification.");
+      return;
+    }
+
     startTransition(async () => {
-      console.log("Verify OTP values:", { ...values, email, type });
-      // Placeholder for actual OTP verification server action
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      if (values.otp === "000000") { 
-        setError("Invalid or expired OTP. Please try again or request a new one.");
-      } else { 
+      try {
         if (type === 'register') {
-          setSuccess("Account verified successfully! Redirecting to login...");
+          // For registration, verify the email OTP
+          await auth.verifyEmailOtp(email, values.otp);
+          setSuccess("Email verified successfully! You can now log in.");
+          toast({
+            title: "Email Verified!",
+            description: "Your account has been activated. Redirecting to login..."
+          });
           setTimeout(() => router.push('/auth/login'), 2000);
         } else if (type === 'login') {
-          setSuccess("Login successful! Redirecting to dashboard...");
-          // TODO: Determine redirect based on user role from actual auth response
-          setTimeout(() => router.push('/dashboard'), 2000); 
+          // For login, this would be handled differently (not typical for Supabase)
+          // Supabase typically handles login via direct email/password
+          setError("Direct OTP login is not supported. Please use email and password login.");
         } else {
-          setSuccess("OTP verified successfully!");
+          setError("Invalid verification type.");
         }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Verification failed';
+        setError(errorMessage);
+        toast({
+          variant: "destructive",
+          title: "Verification Failed",
+          description: errorMessage
+        });
       }
     });
   };
@@ -72,20 +125,34 @@ function VerifyOTPFormContent() {
   const handleResendOTP = () => {
     setError("");
     setSuccess("");
+
+    if (!email) {
+      setError("Email is required to resend verification.");
+      return;
+    }
+
     startResendTransition(async () => {
-      console.log("Resend OTP for:", email);
-      // Placeholder for actual resend OTP server action
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      try {
+        await auth.resendEmailVerification();
+        toast({
+          title: "Verification Email Resent",
+          description: `A new verification email has been sent to ${email}.`,
+        });
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to resend verification email';
+        setError(errorMessage);
       toast({
-        title: "OTP Resent",
-        description: `A new OTP has been sent to ${email}.`,
+          variant: "destructive",
+          title: "Resend Failed",
+          description: errorMessage
       });
+      }
     });
   };
-  
+
   return (
     <AuthCardWrapper
-      headerLabel={`An OTP has been sent to ${email || 'your email'}. Please enter it below to ${type === 'login' ? 'complete login' : 'verify your account'}.`}
+      headerLabel={`A verification code has been sent to ${email || 'your email'}. Please enter it below to ${type === 'login' ? 'complete login' : 'verify your account'}.`}
       backButtonLabel={type === 'login' ? "Back to Login" : "Back to Registration"}
       backButtonHref={type === 'login' ? "/auth/login" : (email ? `/auth/register/buyer?email=${email}` : "/auth/register")}
     >
@@ -96,11 +163,11 @@ function VerifyOTPFormContent() {
             name="otp"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>One-Time Password (OTP)</FormLabel>
+                <FormLabel>Verification Code</FormLabel>
                 <FormControl>
-                  <Input 
-                    {...field} 
-                    placeholder="Enter 6-digit OTP" 
+                  <Input
+                    {...field}
+                    placeholder="Enter 6-digit code"
                     disabled={isPending || isResendPending}
                     maxLength={6}
                   />
@@ -124,16 +191,16 @@ function VerifyOTPFormContent() {
             </Alert>
           )}
           <Button type="submit" className="w-full" disabled={isPending || isResendPending}>
-            {isPending ? "Verifying..." : "Verify OTP"}
+            {isPending ? "Verifying..." : "Verify Email"}
           </Button>
-           <Button 
-            type="button" 
-            variant="link" 
-            className="w-full" 
+           <Button
+            type="button"
+            variant="link"
+            className="w-full"
             onClick={handleResendOTP}
             disabled={isPending || isResendPending}
           >
-            {isResendPending ? "Sending..." : "Resend OTP"}
+            {isResendPending ? "Sending..." : "Resend Verification Email"}
           </Button>
         </form>
       </Form>
@@ -143,7 +210,7 @@ function VerifyOTPFormContent() {
 
 export default function VerifyOTPPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}> 
+    <Suspense fallback={<div>Loading...</div>}>
       <VerifyOTPFormContent />
     </Suspense>
   );

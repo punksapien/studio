@@ -1,4 +1,3 @@
-
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -28,10 +27,11 @@ import {
 } from "@/components/ui/select";
 import { AuthCardWrapper } from "@/components/auth/auth-card-wrapper";
 import { CommonRegistrationFields } from "@/components/auth/common-registration-fields";
-import { BuyerPersonaTypes, PreferredInvestmentSizes, asianCountries } from "@/lib/types"; 
+import { BuyerPersonaTypes, PreferredInvestmentSizes, asianCountries } from "@/lib/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { auth, type RegisterData } from "@/lib/auth";
 
 
 const BuyerRegisterSchema = z.object({
@@ -81,19 +81,117 @@ export default function BuyerRegisterPage() {
 
   const onSubmit = (values: z.infer<typeof BuyerRegisterSchema>) => {
     setError("");
-    
+
     startTransition(async () => {
       console.log("Buyer Register values:", values);
-      // Placeholder for actual registration server action (e.g., call to /api/auth/register/buyer)
-      // This action would then trigger OTP sending
-      await new Promise(resolve => setTimeout(resolve, 1000)); 
-      if (values.email === "existing@example.com") { // Simulate existing email
-         setError("Email already in use. Please use a different email or login.");
-         toast({ variant: "destructive", title: "Registration Failed", description: "Email already in use."});
-      } else {
-        // Simulate successful initiation of registration (OTP sent by backend)
-        toast({ title: "Registration Initiated", description: "Please check your email for an OTP to complete registration."});
-        router.push(`/auth/verify-otp?email=${encodeURIComponent(values.email)}&type=register`);
+
+      try {
+        // First check if email is already registered but unverified
+        const emailStatus = await auth.checkEmailStatus(values.email);
+
+        if (emailStatus.exists && !emailStatus.verified && emailStatus.canResend) {
+          // User exists but unverified - offer to resend verification
+          setError(
+            `An account with this email already exists but isn't verified. ` +
+            `Check your email for the verification link. If you need a new verification email, ` +
+            `click the "Resend Verification" button below.`
+          );
+
+          // Show resend option
+          toast({
+            title: "Account Already Exists",
+            description: "This email is already registered but unverified. Would you like to resend the verification email?",
+            action: (
+              <button
+                onClick={async () => {
+                  try {
+                    await auth.resendVerificationForEmail(values.email);
+                    toast({
+                      title: "Verification Email Sent",
+                      description: "Please check your email for the verification link."
+                    });
+                    router.push(`/verify-email?email=${encodeURIComponent(values.email)}&type=register`);
+                  } catch (error) {
+                    const errorMessage = error instanceof Error ? error.message : 'Failed to resend verification';
+                    toast({
+                      variant: "destructive",
+                      title: "Resend Failed",
+                      description: errorMessage
+                    });
+                  }
+                }}
+                className="bg-white text-black px-3 py-1 rounded text-sm hover:bg-gray-100"
+              >
+                Resend Verification
+              </button>
+            )
+          });
+          return;
+        }
+
+        if (emailStatus.exists && emailStatus.verified) {
+          setError("An account with this email already exists and is verified. Please try logging in instead.");
+          setTimeout(() => router.push('/auth/login'), 3000);
+          return;
+        }
+
+        // Create RegisterData object for our auth utility
+        const registerData: RegisterData = {
+          email: values.email,
+          password: values.password,
+          full_name: values.fullName,
+          phone_number: values.phoneNumber,
+          country: values.country,
+          role: 'buyer',
+          buyer_persona_type: values.buyerPersonaType,
+          buyer_persona_other: values.buyerPersonaOther || undefined,
+          investment_focus_description: values.investmentFocusDescription || undefined,
+          preferred_investment_size: values.preferredInvestmentSize || undefined,
+          key_industries_of_interest: values.keyIndustriesOfInterest || undefined,
+        };
+
+        // Call our Supabase auth utility
+        const result = await auth.signUp(registerData);
+
+        // Success - check if we can auto-login for development
+        if (result.user) {
+          try {
+            // For development: try to sign in immediately if email confirmation is disabled
+            console.log('Attempting auto-login for development...')
+            await auth.signIn(registerData.email, registerData.password);
+
+            toast({
+              title: "Registration & Login Successful!",
+              description: "Welcome! You've been automatically signed in."
+            });
+
+            // Redirect to buyer dashboard
+            router.push('/dashboard');
+            return;
+
+          } catch (signInError) {
+            console.log('Auto sign-in failed, proceeding with email verification:', signInError)
+            // Fall through to normal email verification flow
+          }
+        }
+
+        // Normal flow: redirect to email verification page
+        toast({
+          title: "Registration Successful!",
+          description: "Please check your email for a verification link."
+        });
+
+        router.push(`/verify-email?email=${encodeURIComponent(values.email)}&type=register`);
+
+      } catch (error) {
+        // Handle registration errors
+        const errorMessage = error instanceof Error ? error.message : 'Registration failed';
+        setError(errorMessage);
+        toast({
+          variant: "destructive",
+          title: "Registration Failed",
+          description: errorMessage
+        });
       }
     });
   };
@@ -107,7 +205,7 @@ export default function BuyerRegisterPage() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <CommonRegistrationFields control={form.control} isPending={isPending} />
-          
+
           <FormField
             control={form.control}
             name="buyerPersonaType"
@@ -156,10 +254,10 @@ export default function BuyerRegisterPage() {
               <FormItem>
                 <FormLabel>Investment Focus or What You&apos;re Looking For</FormLabel>
                 <FormControl>
-                  <Textarea 
-                    {...field} 
-                    placeholder="e.g., SaaS businesses in Southeast Asia with $100k-$1M ARR, turnarounds in manufacturing, e-commerce brands for scaling." 
-                    disabled={isPending} 
+                  <Textarea
+                    {...field}
+                    placeholder="e.g., SaaS businesses in Southeast Asia with $100k-$1M ARR, turnarounds in manufacturing, e-commerce brands for scaling."
+                    disabled={isPending}
                     rows={3}
                   />
                 </FormControl>
@@ -193,7 +291,7 @@ export default function BuyerRegisterPage() {
               </FormItem>
             )}
           />
-          
+
           <FormField
             control={form.control}
             name="keyIndustriesOfInterest"
@@ -201,9 +299,9 @@ export default function BuyerRegisterPage() {
               <FormItem>
                 <FormLabel>Key Industries of Interest</FormLabel>
                 <FormControl>
-                  <Textarea 
-                    {...field} 
-                    placeholder="e.g., Technology, E-commerce, Healthcare, Manufacturing, B2B Services. Please list a few." 
+                  <Textarea
+                    {...field}
+                    placeholder="e.g., Technology, E-commerce, Healthcare, Manufacturing, B2B Services. Please list a few."
                     disabled={isPending}
                     rows={3}
                   />
@@ -220,7 +318,7 @@ export default function BuyerRegisterPage() {
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
-          
+
           <Button type="submit" className="w-full" disabled={isPending}>
              {isPending ? "Processing..." : "Register as Buyer"}
           </Button>
@@ -230,4 +328,3 @@ export default function BuyerRegisterPage() {
   );
 }
 
-    

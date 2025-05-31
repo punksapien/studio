@@ -1,7 +1,15 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Custom Font - Montserrat Arabic Regular for Headings */
+@font-face {
+  font-family: 'Montserrat Arabic';
+  src: url('/assets/Montserrat-Arabic Regular 400.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
 
 @layer base {
   :root {
@@ -72,9 +80,9 @@
 
     --primary: var(--brand-sky-blue-hsl);                     /* Primary interactive: Sky Blue (more vibrant on dark) */
     --primary-foreground: var(--brand-dark-blue-hsl);         /* Text on primary: Dark Blue (for contrast with Sky Blue) */
-    
+
     /* If primary on dark is dark blue, text needs to be light */
-    /* --primary: var(--brand-dark-blue-hsl);                    
+    /* --primary: var(--brand-dark-blue-hsl);
        --primary-foreground: var(--brand-white-hsl); */
 
 
@@ -122,7 +130,8 @@
     font-family: 'Satoshi', sans-serif; /* Ensure Satoshi is primary */
   }
   h1, h2, h3, h4, h5, h6 {
-    @apply font-sans tracking-tight; /* Will use Satoshi or fallback */
+    font-family: 'Montserrat Arabic', 'Satoshi', sans-serif; /* Use Montserrat Arabic for headings */
+    @apply tracking-tight;
   }
 }
 
@@ -131,11 +140,16 @@
   background-color: hsl(var(--brand-dark-blue-hsl));
   color: hsl(var(--brand-white-hsl)); /* Default text on this dark bg */
 }
-.text-on-brand-dark-blue { 
+.text-on-brand-dark-blue {
   color: hsl(var(--brand-white-hsl));
 }
-.text-on-brand-dark-blue-muted { 
+.text-on-brand-dark-blue-muted {
   color: hsl(var(--brand-light-gray-hsl));
-  opacity: 0.9; 
+  opacity: 0.9;
+}
+
+/* Utility class to explicitly use Montserrat Arabic font for headings */
+.font-heading {
+  font-family: 'Montserrat Arabic', 'Satoshi', sans-serif;
 }
 

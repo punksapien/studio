@@ -9,7 +9,7 @@ export default function PrivacyPage() {
           <p className="text-muted-foreground text-center mt-2">Last Updated: {new Date().toLocaleDateString()}</p>
         </CardHeader>
         <CardContent className="prose prose-lg max-w-none dark:prose-invert">
-          <p>BizMatch Asia ("we," "us," or "our") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our website, platform, and services (collectively, "Services").</p>
+          <p>Nobridge ("we," "us," or "our") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our website, platform, and services (collectively, "Services").</p>
 
           <h2>1. Information We Collect</h2>
           <p>We may collect personal information that you provide directly to us, such as:</p>
@@ -50,7 +50,7 @@ export default function PrivacyPage() {
 
           <h2>5. Data Retention</h2>
           <p>We will retain your personal information for as long as necessary to fulfill the purposes outlined in this Privacy Policy, unless a longer retention period is required or permitted by law.</p>
-          
+
           <h2>6. Your Choices and Rights</h2>
           <p>You may have certain rights regarding your personal information, subject to local data protection laws. These may include the right to access, correct, update, or delete your information. You can typically manage your account information through your dashboard or by contacting us.</p>
 
@@ -67,7 +67,7 @@ export default function PrivacyPage() {
           <p>We may update this Privacy Policy from time to time. We will notify you of any significant changes by posting the new Privacy Policy on our platform and updating the "Last Updated" date.</p>
 
           <h2>11. Contact Us</h2>
-          <p>If you have any questions or concerns about this Privacy Policy or our data practices, please contact us at <a href="mailto:privacy@bizmatch.asia" className="text-primary hover:underline">privacy@bizmatch.asia</a>.</p>
+          <p>If you have any questions about this Privacy Policy, please contact us at <a href="mailto:privacy@nobridge.asia" className="text-primary hover:underline">privacy@nobridge.asia</a>.</p>
         </CardContent>
       </Card>
     </div>

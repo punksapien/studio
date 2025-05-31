@@ -1,4 +1,3 @@
-
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -21,6 +20,7 @@ import { useState, useTransition } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { auth, type RegisterData } from "@/lib/auth";
 
 const SellerRegisterSchema = z.object({
   fullName: z.string().min(1, { message: "Full name is required." }),
@@ -59,20 +59,65 @@ export default function SellerRegisterPage() {
 
     startTransition(async () => {
       console.log("Seller Register values:", values);
-      // Placeholder for actual registration server action (e.g., call to /api/auth/register/seller)
-      // This action would then trigger OTP sending
-      await new Promise(resolve => setTimeout(resolve, 1000)); 
-      if (values.email === "existing@example.com") { // Simulate existing email
-         setError("Email already in use. Please use a different email or login.");
-         toast({ variant: "destructive", title: "Registration Failed", description: "Email already in use."});
-      } else {
-        // Simulate successful initiation of registration (OTP sent by backend)
-        toast({ title: "Registration Initiated", description: "Please check your email for an OTP to complete registration."});
-        router.push(`/auth/verify-otp?email=${encodeURIComponent(values.email)}&type=register`);
+
+      try {
+        // Create RegisterData object for our auth utility
+        const registerData: RegisterData = {
+          email: values.email,
+          password: values.password,
+          full_name: values.fullName,
+          phone_number: values.phoneNumber,
+          country: values.country,
+          role: 'seller',
+          initial_company_name: values.initialCompanyName || undefined,
+        };
+
+        // Call our Supabase auth utility
+        const result = await auth.signUp(registerData);
+
+        // Success - check if we can auto-login for development
+        if (result.user) {
+          try {
+            // For development: try to sign in immediately if email confirmation is disabled
+            console.log('Attempting auto-login for development...')
+            await auth.signIn(registerData.email, registerData.password);
+
+            toast({
+              title: "Registration & Login Successful!",
+              description: "Welcome! You've been automatically signed in."
+            });
+
+            // Redirect to seller dashboard
+            router.push('/seller-dashboard');
+            return;
+
+          } catch (signInError) {
+            console.log('Auto sign-in failed, proceeding with email verification:', signInError)
+            // Fall through to normal email verification flow
+          }
+        }
+
+        // Normal flow: redirect to email verification page
+        toast({
+          title: "Registration Successful!",
+          description: "Please check your email for a verification link."
+        });
+
+        router.push(`/verify-email?email=${encodeURIComponent(values.email)}&type=register`);
+
+      } catch (error) {
+        // Handle registration errors
+        const errorMessage = error instanceof Error ? error.message : 'Registration failed';
+        setError(errorMessage);
+        toast({
+          variant: "destructive",
+          title: "Registration Failed",
+          description: errorMessage
+        });
       }
     });
   };
-  
+
   return (
     <AuthCardWrapper
       headerLabel="Create your Seller account to list your business."
@@ -103,7 +148,7 @@ export default function SellerRegisterPage() {
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
-          
+
           <Button type="submit" className="w-full" disabled={isPending}>
             {isPending ? "Processing..." : "Register as Seller"}
           </Button>
@@ -113,4 +158,3 @@ export default function SellerRegisterPage() {
   );
 }
 
-    

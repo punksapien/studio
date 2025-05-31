@@ -1,4 +1,3 @@
-
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -22,6 +21,7 @@ import { useState, useTransition } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { auth } from "@/lib/auth";
 
 const LoginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
@@ -47,16 +47,30 @@ export default function LoginPage() {
 
     startTransition(async () => {
       console.log("Login values:", values);
-      // Placeholder for actual primary login server action (e.g., call to /api/auth/login)
-      // This action would validate credentials and then trigger OTP sending
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      if (values.email === "error@example.com" || values.password === "wrong") { // Simulate incorrect primary credentials
-        setError("Invalid email or password.");
-        toast({ variant: "destructive", title: "Login Failed", description: "Invalid email or password."});
-      } else {
-        // Simulate successful primary credential check (OTP sent by backend)
-        toast({ title: "Credentials Verified", description: "Please check your email for an OTP to complete login."});
-        router.push(`/auth/verify-otp?email=${encodeURIComponent(values.email)}&type=login`);
+
+      try {
+        // Call our Supabase auth utility for direct login
+        const result = await auth.signIn(values.email, values.password);
+
+        // Success - redirect to dashboard
+        toast({
+          title: "Login Successful!",
+          description: "Welcome back!"
+        });
+
+        // Redirect to appropriate dashboard based on user role
+        // For now, redirect to home page - we'll implement role-based routing later
+        router.push('/');
+
+      } catch (error) {
+        // Handle login errors
+        const errorMessage = error instanceof Error ? error.message : 'Login failed';
+        setError(errorMessage);
+        toast({
+          variant: "destructive",
+          title: "Login Failed",
+          description: errorMessage
+        });
       }
     });
   };
@@ -66,7 +80,7 @@ export default function LoginPage() {
       headerLabel="Welcome back! Please login to your account."
       backButtonLabel="Don't have an account? Register here."
       backButtonHref="/auth/register"
-      showSocial 
+      showSocial
     >
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -77,10 +91,10 @@ export default function LoginPage() {
               <FormItem>
                 <FormLabel>Email Address</FormLabel>
                 <FormControl>
-                  <Input 
-                    {...field} 
-                    placeholder="you@example.com" 
-                    type="email" 
+                  <Input
+                    {...field}
+                    placeholder="you@example.com"
+                    type="email"
                     disabled={isPending}
                   />
                 </FormControl>
@@ -95,10 +109,10 @@ export default function LoginPage() {
               <FormItem>
                 <FormLabel>Password</FormLabel>
                 <FormControl>
-                  <Input 
-                    {...field} 
-                    placeholder="********" 
-                    type="password" 
+                  <Input
+                    {...field}
+                    placeholder="********"
+                    type="password"
                     disabled={isPending}
                   />
                 </FormControl>
@@ -117,7 +131,7 @@ export default function LoginPage() {
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
-          
+
           <Button type="submit" className="w-full" disabled={isPending}>
             {isPending ? "Processing..." : "Login"}
           </Button>
@@ -127,4 +141,3 @@ export default function LoginPage() {
   );
 }
 
-    
