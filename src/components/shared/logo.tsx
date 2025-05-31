@@ -20,10 +20,10 @@ export function Logo({ size = 'xl', forceTheme }: LogoProps) {
   }, []);
 
   const dimensions = {
-    sm: { width: 100, height: 33 }, // Kept original aspect ratio for sm/md for potentially smaller logo uses
+    sm: { width: 100, height: 33 },
     md: { width: 120, height: 40 },
     lg: { width: 150, height: 50 },
-    xl: { width: 200, height: 67 }, // Maintained larger size
+    xl: { width: 200, height: 67 },
     '2xl': { width: 220, height: 73 }
   };
 
@@ -32,26 +32,26 @@ export function Logo({ size = 'xl', forceTheme }: LogoProps) {
   let useDarkElementsLogoFile: boolean;
 
   if (forceTheme) {
-    // If forceTheme is 'light', it means the background is light, so we need the dark logo elements.
+    // If forceTheme is 'light', it means the background is light, so we need the logo with dark elements.
     useDarkElementsLogoFile = forceTheme === 'light';
   } else if (mounted) {
     // If no forceTheme and component is mounted, use the actual resolved theme.
     // If actualResolvedTheme is 'light', we need dark logo elements.
     useDarkElementsLogoFile = actualResolvedTheme === 'light';
   } else {
-    // Fallback for SSR or before mount if no forceTheme: assume light background by default.
+    // Fallback for SSR or before mount if no forceTheme: assume light background by default (safer for most headers).
     // So, we need the logo file that contains DARK elements.
     useDarkElementsLogoFile = true;
   }
 
-  // Updated paths based on user confirmation of which file contains which color elements
+  // Based on your confirmation:
+  // - Navbar (light bg) needs nobridge_logo_light_trimmed@2x.png (dark elements)
+  // - Footer (dark bg) needs nobridge_logo_dark_trimmed@2x.png (light elements)
   const logoSrc = useDarkElementsLogoFile
-    ? '/assets/nobridge_logo_light_trimmed@2x.png'  // This file has DARK elements (for light backgrounds)
-    : '/assets/nobridge_logo_dark_trimmed@2x.png';  // This file has LIGHT elements (for dark backgrounds)
+    ? '/assets/nobridge_logo_light_trimmed@2x.png'  // This file should contain DARK logo elements
+    : '/assets/nobridge_logo_dark_trimmed@2x.png';  // This file should contain LIGHT logo elements
 
   if (!mounted && !forceTheme) {
-    // Avoid hydration mismatch for SSR/initial render if theme isn't forced
-    // Render a placeholder or null to prevent flash of incorrect logo
     return <div style={{ width: `${width}px`, height: `${height}px` }} aria-hidden="true" className="inline-block" />;
   }
 
@@ -62,7 +62,7 @@ export function Logo({ size = 'xl', forceTheme }: LogoProps) {
         alt="Nobridge"
         width={width}
         height={height}
-        className="object-contain" // Ensure this class is present to respect aspect ratio and bounds
+        className="object-contain"
         priority
       />
     </Link>
