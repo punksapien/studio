@@ -51,7 +51,7 @@ export default function HomePage() {
             <Button size="lg" asChild className="bg-brand-white text-brand-dark-blue hover:bg-brand-light-gray/90 font-semibold py-3 px-8 rounded-md text-base">
               <Link href="/seller-dashboard/listings/create">List Your Business <ArrowRight className="ml-2 h-5 w-5" /></Link>
             </Button>
-            <Button size="lg" variant="outline" asChild className="border-brand-white text-brand-white hover:bg-brand-white/10 hover:text-brand-white font-semibold py-3 px-8 rounded-md text-base">
+            <Button size="lg" variant="outline" asChild className="border-brand-white text-brand-dark-blue hover:bg-brand-white/10 hover:text-brand-white font-semibold py-3 px-8 rounded-md text-base">
               <Link href="/marketplace">Browse Businesses</Link>
             </Button>
           </div>

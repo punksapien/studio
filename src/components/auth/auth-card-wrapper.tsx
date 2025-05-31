@@ -8,7 +8,7 @@ interface AuthCardWrapperProps {
   headerLabel: string;
   backButtonLabel: string;
   backButtonHref: string;
-  showSocial?: boolean; // Placeholder for social logins
+  showSocial?: boolean;
 }
 
 export const AuthCardWrapper = ({
@@ -22,7 +22,8 @@ export const AuthCardWrapper = ({
     <Card className="w-full max-w-md shadow-xl mx-auto">
       <CardHeader className="text-center">
         <div className="flex justify-center mb-4">
-          <Logo size="2xl" />
+          {/* Auth pages have light background, so force light theme for logo to pick dark elements */}
+          <Logo size="2xl" forceTheme="light" />
         </div>
         <p className="text-muted-foreground text-sm">{headerLabel}</p>
       </CardHeader>
@@ -31,7 +32,6 @@ export const AuthCardWrapper = ({
       </CardContent>
       {showSocial && (
         <CardFooter>
-          {/* Placeholder for Social Login Buttons */}
           <p className="text-xs text-muted-foreground text-center w-full">Or continue with social...</p>
         </CardFooter>
       )}

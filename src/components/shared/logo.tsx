@@ -23,7 +23,7 @@ export function Logo({ size = 'xl', forceTheme }: LogoProps) {
     sm: { width: 100, height: 33 },
     md: { width: 120, height: 40 },
     lg: { width: 150, height: 50 },
-    xl: { width: 200, height: 67 },
+    xl: { width: 200, height: 67 }, // Kept larger size
     '2xl': { width: 220, height: 73 }
   };
 
@@ -32,26 +32,26 @@ export function Logo({ size = 'xl', forceTheme }: LogoProps) {
   let useDarkElementsLogoFile: boolean;
 
   if (forceTheme) {
-    // If forceTheme is 'light', it means the background is light, so we need the logo with dark elements.
+    // If forceTheme is 'light', it means the background is light, so we need the dark elements logo.
     useDarkElementsLogoFile = forceTheme === 'light';
   } else if (mounted) {
     // If no forceTheme and component is mounted, use the actual resolved theme.
     // If actualResolvedTheme is 'light', we need dark logo elements.
     useDarkElementsLogoFile = actualResolvedTheme === 'light';
   } else {
-    // Fallback for SSR or before mount if no forceTheme: assume light background by default (safer for most headers).
-    // So, we need the logo file that contains DARK elements.
+    // Fallback for SSR or before mount if no forceTheme: assume light background by default.
     useDarkElementsLogoFile = true;
   }
 
-  // Based on your confirmation:
-  // - Navbar (light bg) needs nobridge_logo_light_trimmed@2x.png (dark elements)
-  // - Footer (dark bg) needs nobridge_logo_dark_trimmed@2x.png (light elements)
+  // Based on user confirmation:
+  // nobriage_logo_light_trimmed@2x.png = DARK elements (for light backgrounds)
+  // nobriage_logo_dark_trimmed@2x.png = LIGHT elements (for dark backgrounds)
   const logoSrc = useDarkElementsLogoFile
-    ? '/assets/nobridge_logo_light_trimmed@2x.png'  // This file should contain DARK logo elements
-    : '/assets/nobridge_logo_dark_trimmed@2x.png';  // This file should contain LIGHT logo elements
+    ? '/assets/nobridge_logo_light_trimmed@2x.png'
+    : '/assets/nobridge_logo_dark_trimmed@2x.png';
 
   if (!mounted && !forceTheme) {
+    // Avoid hydration mismatch during SSR if theme isn't forced
     return <div style={{ width: `${width}px`, height: `${height}px` }} aria-hidden="true" className="inline-block" />;
   }
 

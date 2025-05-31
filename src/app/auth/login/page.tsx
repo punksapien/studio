@@ -1,10 +1,11 @@
+
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import Link from "next/link";
-import { useRouter } from "next/navigation"; // Import useRouter
+import { useRouter } from "next/navigation"; 
 
 import { Button } from "@/components/ui/button";
 import {
@@ -19,7 +20,7 @@ import { Input } from "@/components/ui/input";
 import { AuthCardWrapper } from "@/components/auth/auth-card-wrapper";
 import { useState, useTransition } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertTriangle, CheckCircle2 } from "lucide-react";
+import { AlertTriangle } from "lucide-react"; // Removed CheckCircle2 as it's not used here
 import { useToast } from "@/hooks/use-toast";
 import { auth } from "@/lib/auth";
 
@@ -31,7 +32,7 @@ const LoginSchema = z.object({
 export default function LoginPage() {
   const [error, setError] = useState<string | undefined>("");
   const [isPending, startTransition] = useTransition();
-  const router = useRouter(); // Initialize useRouter
+  const router = useRouter(); 
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof LoginSchema>>({
@@ -49,21 +50,27 @@ export default function LoginPage() {
       console.log("Login values:", values);
 
       try {
-        // Call our Supabase auth utility for direct login
         const result = await auth.signIn(values.email, values.password);
 
-        // Success - redirect to dashboard
         toast({
           title: "Login Successful!",
           description: "Welcome back!"
         });
-
-        // Redirect to appropriate dashboard based on user role
-        // For now, redirect to home page - we'll implement role-based routing later
-        router.push('/');
+        
+        // Determine redirect based on role after successful login
+        const userProfile = await auth.getCurrentUserProfile();
+        if (userProfile?.role === 'seller') {
+            router.push('/seller-dashboard');
+        } else if (userProfile?.role === 'buyer') {
+            router.push('/dashboard');
+        } else if (userProfile?.role === 'admin') {
+             router.push('/admin');
+        }
+        else {
+            router.push('/'); // Fallback
+        }
 
       } catch (error) {
-        // Handle login errors
         const errorMessage = error instanceof Error ? error.message : 'Login failed';
         setError(errorMessage);
         toast({
@@ -80,7 +87,7 @@ export default function LoginPage() {
       headerLabel="Welcome back! Please login to your account."
       backButtonLabel="Don't have an account? Register here."
       backButtonHref="/auth/register"
-      showSocial
+      // showSocial prop is removed to hide the social login section
     >
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -140,4 +147,3 @@ export default function LoginPage() {
     </AuthCardWrapper>
   );
 }
-
