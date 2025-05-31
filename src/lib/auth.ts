@@ -62,7 +62,12 @@ export const auth = {
   // Get current user's profile
   async getCurrentUserProfile(): Promise<UserProfile | null> {
     const user = await this.getCurrentUser()
-    if (!user) return null
+    if (!user) {
+      console.log('No authenticated user found')
+      return null
+    }
+
+    console.log('Fetching profile for user:', user.id)
 
     const { data, error } = await supabase
       .from('user_profiles')
@@ -72,15 +77,20 @@ export const auth = {
 
     if (error) {
       console.error('Error fetching user profile:', error)
+      console.error('Profile fetch error details:', JSON.stringify(error, null, 2))
+      console.log('User ID being queried:', user.id)
       return null
     }
 
+    console.log('Profile fetched successfully:', data)
     return data
   },
 
   // Sign up new user
   async signUp(userData: RegisterData) {
     const { email, password, ...profileData } = userData
+
+    console.log('Starting registration for:', email)
 
     // For development, we'll bypass email confirmation
     const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -95,7 +105,10 @@ export const auth = {
       }
     })
 
+    console.log('Auth signup result:', { authData, authError })
+
     if (authError) {
+      console.error('Auth signup error:', authError)
       // Handle specific error cases
       if (authError.message.includes('User already registered')) {
         throw new Error('An account with this email already exists. Please try logging in instead.')
@@ -104,40 +117,56 @@ export const auth = {
     }
 
     if (!authData.user) {
+      console.error('No user data returned from auth signup')
       throw new Error('Registration failed: No user data returned')
     }
 
-    // Create user profile in our custom table
+    console.log('User created in auth, now creating profile:', authData.user.id)
+
+    // Create user profile via API endpoint (uses service role to bypass RLS)
     if (authData.user) {
       const profileData = {
-        id: authData.user.id,
         email,
         full_name: userData.full_name,
         phone_number: userData.phone_number || null,
-        location_country: userData.country || null,
+        country: userData.country || null,
         role: userData.role,
         verification_status: 'anonymous' as const,
         is_paid: false,
         // Seller-specific
         initial_company_name: userData.initial_company_name || null,
         // Buyer-specific
-        buying_persona: userData.buyer_persona_type || null,
+        buyer_persona_type: userData.buyer_persona_type || null,
         buyer_persona_other: userData.buyer_persona_other || null,
         investment_focus_description: userData.investment_focus_description || null,
         preferred_investment_size: userData.preferred_investment_size || null,
-        key_industries_of_interest: userData.key_industries_of_interest || null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        key_industries_of_interest: userData.key_industries_of_interest || null
       }
 
-      const { error: profileError } = await supabase
-        .from('user_profiles')
-        .insert(profileData)
+      console.log('About to create profile via API:', profileData)
 
-      if (profileError) {
-        console.error('Error creating user profile:', profileError)
-        // For now, we'll continue even if profile creation fails
-        // The user can complete their profile later
+      try {
+        const response = await fetch('/api/auth/create-profile', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId: authData.user.id,
+            profileData
+          })
+        })
+
+        const result = await response.json()
+
+        if (!response.ok) {
+          console.error('Profile creation API failed:', result)
+          console.warn('Profile creation failed, but user account was created. User can complete profile setup later.')
+        } else {
+          console.log('Profile created successfully via API:', result.profile)
+        }
+      } catch (error) {
+        console.error('Error calling profile creation API:', error)
         console.warn('Profile creation failed, but user account was created. User can complete profile setup later.')
       }
     }

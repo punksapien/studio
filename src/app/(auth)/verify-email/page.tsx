@@ -1,4 +1,3 @@
-
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -17,12 +16,11 @@ import { Input } from "@/components/ui/input";
 import { AuthCardWrapper } from "@/components/auth/auth-card-wrapper";
 import { useState, useTransition, Suspense, useEffect } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertTriangle, CheckCircle2, Mail, KeyRound, Loader2 } from "lucide-react"; // Changed Key to KeyRound
+import { AlertTriangle, CheckCircle2, Mail, KeyRound, Loader2, ArrowRight } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { auth } from "@/lib/auth";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 const OTPSchema = z.object({
   otp: z.string().min(6, { message: "OTP must be 6 digits." }).max(6, { message: "OTP must be 6 digits." }),
@@ -31,25 +29,22 @@ const OTPSchema = z.object({
 function VerifyEmailContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const email = searchParams.get("email");
-  const type = searchParams.get("type") || 'register'; // Default to register if type is missing
-
-  const [error, setError] = useState<string | undefined>("");
-  const [success, setSuccess] = useState<string | undefined>("");
+  const email = searchParams.get("email") || '';
+  const type = searchParams.get("type") || 'register';
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [resendLoading, setResendLoading] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const [isResendPending, startResendTransition] = useTransition();
   const { toast } = useToast();
 
   useEffect(() => {
     // Prefill OTP if provided in URL (for magic link auto-submit or testing)
     const tokenFromUrl = searchParams.get("token");
     if (tokenFromUrl && email && type === 'register') {
-      form.setValue("otp", tokenFromUrl.substring(0, 6)); // Supabase OTPs are 6 digits
-      // Optionally auto-submit if desired, or just prefill
-      // form.handleSubmit(onSubmit)(); 
+      form.setValue('otp', tokenFromUrl.substring(0, 6)); // Supabase OTPs are 6 digits
     }
   }, [searchParams, email, type]);
-
 
   // Security check: ensure email is present
   if (!email) {
@@ -100,11 +95,10 @@ function VerifyEmailContent() {
   const onSubmit = (values: z.infer<typeof OTPSchema>) => {
     setError("");
     setSuccess("");
+    setIsLoading(true);
 
     startTransition(async () => {
       try {
-        // Supabase uses verifyOtp for email confirmation links as well (type: 'email')
-        // and for OTPs sent to email.
         await auth.verifyEmailOtp(email, values.otp);
         setSuccess("Email verified successfully! Redirecting...");
         toast({
@@ -120,6 +114,8 @@ function VerifyEmailContent() {
           title: "Verification Failed",
           description: errorMessage
         });
+      } finally {
+        setIsLoading(false);
       }
     });
   };
@@ -127,13 +123,11 @@ function VerifyEmailContent() {
   const handleResendEmail = () => {
     setError("");
     setSuccess("");
+    setResendLoading(true);
 
-    startResendTransition(async () => {
+    startTransition(async () => {
       try {
-        // This method resends the confirmation email for the currently signed-up user
-        // If the user isn't "partially signed up" (i.e., email exists but not confirmed), this might need adjustment
-        // For a generic resend to a specific email if it's in an unconfirmed state:
-        await auth.resendVerificationForEmail(email); 
+        await auth.resendVerificationForEmail(email);
         toast({
           title: "Verification Email Resent",
           description: `A new verification email has been sent to ${email}. Please check your inbox and spam folder.`,
@@ -146,6 +140,8 @@ function VerifyEmailContent() {
           title: "Resend Failed",
           description: errorMessage
         });
+      } finally {
+        setResendLoading(false);
       }
     });
   };
@@ -157,106 +153,116 @@ function VerifyEmailContent() {
       backButtonHref={type === 'login' ? "/auth/login" : "/auth/register"}
     >
       <div className="space-y-6">
-        <p className="text-center text-sm text-muted-foreground">
-          We've sent a verification email to <strong className="text-foreground">{email}</strong>.
-          It includes a magic link and a 6-digit code.
-        </p>
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="text-6xl mb-4">📧</div>
+          <h1 className="text-3xl font-bold text-primary-900 mb-4">
+            Verify Your Email
+          </h1>
+          <p className="text-gray-600 mb-2">
+            We've sent a verification email to:
+          </p>
+          <p className="font-semibold text-primary-700 mb-6 text-lg">{email}</p>
+        </div>
 
-        <Tabs defaultValue="magic-link" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="magic-link">
-              <Mail className="w-4 h-4 mr-2" />
-              Use Magic Link
-            </TabsTrigger>
-            <TabsTrigger value="otp">
-              <KeyRound className="w-4 h-4 mr-2" />
-              Enter 6-Digit Code
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="magic-link" className="mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center">
-                  <Mail className="w-5 h-5 mr-2 text-primary" />
-                  Check Your Email Inbox
-                </CardTitle>
-                <CardDescription>
-                  The easiest way to verify is by clicking the magic link in the email we sent.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg">
-                  <p className="text-sm text-primary/90">
-                    💡 <strong>Click the link in the email</strong> from Nobridge to instantly verify your account. No typing needed!
-                  </p>
+        {/* Email Instructions Card */}
+        <Card className="border-primary/20 bg-primary/5">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center text-primary-800">
+              <Mail className="w-5 h-5 mr-2" />
+              📬 Check Your Email - Two Ways to Verify!
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid md:grid-cols-2 gap-4">
+              {/* Method 1: OTP Code */}
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center mb-2">
+                  <KeyRound className="w-4 h-4 mr-2 text-blue-600" />
+                  <span className="font-semibold text-blue-800">Option 1: Enter Code</span>
                 </div>
+                <p className="text-sm text-blue-700">
+                  Copy the <strong>6-digit code</strong> from the email and enter it below.
+                </p>
+              </div>
 
-                <ul className="text-xs text-muted-foreground space-y-1 list-disc pl-5">
-                  <li>If you don't see the email, please check your spam or junk folder.</li>
-                  <li>The verification link and code will expire in 1 hour.</li>
-                  <li>Still having trouble? Try the 6-digit code option or resend the email.</li>
-                </ul>
-              </CardContent>
-              <CardFooter>
-                <Button
-                  onClick={handleResendEmail}
-                  variant="outline"
-                  className="w-full"
-                  disabled={isResendPending}
-                >
-                  {isResendPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {isResendPending ? "Sending..." : "Resend Verification Email"}
-                </Button>
-              </CardFooter>
-            </Card>
-          </TabsContent>
+              {/* Method 2: Magic Link */}
+              <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center mb-2">
+                  <ArrowRight className="w-4 h-4 mr-2 text-green-600" />
+                  <span className="font-semibold text-green-800">Option 2: One Click</span>
+                </div>
+                <p className="text-sm text-green-700">
+                  Or simply <strong>click the verification button</strong> in the email.
+                </p>
+              </div>
+            </div>
 
-          <TabsContent value="otp" className="mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center">
-                  <KeyRound className="w-5 h-5 mr-2 text-primary" />
-                  Enter 6-Digit Code
-                </CardTitle>
-                <CardDescription>
-                  Alternatively, find the 6-digit code in the verification email and enter it below.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                    <FormField
-                      control={form.control}
-                      name="otp"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Verification Code</FormLabel>
-                          <FormControl>
-                            <Input
-                              {...field}
-                              placeholder="123456"
-                              disabled={isPending}
-                              maxLength={6}
-                              className="text-center text-lg tracking-[0.3em] h-12"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+            <div className="text-center text-sm text-gray-600 mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              💡 <strong>Tip:</strong> Can't find the email? Check your spam/junk folder or try resending below.
+            </div>
+          </CardContent>
+        </Card>
 
-                    <Button type="submit" className="w-full" disabled={isPending}>
-                      {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      {isPending ? "Verifying..." : "Verify Code"}
-                    </Button>
-                  </form>
-                </Form>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+        {/* OTP Form */}
+        <div className="space-y-4">
+          <div className="text-center">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Enter Your Verification Code
+            </h3>
+            <p className="text-gray-600 text-sm mb-4">
+              Type the 6-digit code from your email
+            </p>
+          </div>
 
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="otp"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Verification Code</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        placeholder="123456"
+                        disabled={isLoading}
+                        maxLength={6}
+                        className="text-center text-lg tracking-[0.3em] h-12"
+                        autoComplete="one-time-code"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isLoading ? "Verifying..." : "Verify Email"}
+              </Button>
+            </form>
+          </Form>
+        </div>
+
+        {/* Resend Option */}
+        <div className="text-center pt-4 border-t">
+          <p className="text-sm text-gray-600 mb-3">
+            Didn't receive the email?
+          </p>
+          <Button
+            onClick={handleResendEmail}
+            variant="outline"
+            className="w-full"
+            disabled={resendLoading}
+          >
+            {resendLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {resendLoading ? "Sending..." : "📤 Resend Verification Email"}
+          </Button>
+        </div>
+
+        {/* Status Messages */}
         {error && (
           <Alert variant="destructive" className="mt-6">
             <AlertTriangle className="h-4 w-4" />
@@ -279,10 +285,9 @@ function VerifyEmailContent() {
 
 export default function VerifyEmailPage() {
   return (
-    <Suspense fallback={<div className="flex h-screen items-center justify-center">Loading verification options...</div>}>
+    <Suspense fallback={<div className="flex h-screen items-center justify-center">Loading verification...</div>}>
       <VerifyEmailContent />
     </Suspense>
   );
 }
 
-    
