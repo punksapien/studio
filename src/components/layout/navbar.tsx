@@ -13,7 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
-import { Menu, ChevronDown, Briefcase, Building, FileText, Phone, Users, UserCircle, LogIn, UserPlus, ArrowRight, Home, Info, MessageCircle, DollarSign, ShoppingCart, Newspaper, HandCoins, BarChart3, Search as SearchIcon, ListChecks, CircleDollarSign, LogOut } from 'lucide-react';
+import { Menu, ChevronDown, Briefcase, Building, FileText, Phone, Users, UserCircle, LogIn, UserPlus, ArrowRight, Home, Info, MessageCircle, ShoppingCart, Newspaper, HandCoins, BarChart3, Search as SearchIcon, ListChecks, CircleDollarSign, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePathname, useRouter } from 'next/navigation';
 import { auth, type UserProfile } from '@/lib/auth';
@@ -49,7 +49,7 @@ const navLinks: (NavLinkItem | NavLinkGroup)[] = [
       { href: "/how-buying-works", label: "How Buying Works", icon: Info },
     ],
   },
-  { href: "/pricing", label: "Pricing", icon: CircleDollarSign },
+  // { href: "/pricing", label: "Pricing", icon: CircleDollarSign }, // Removed Pricing link
   {
     label: "Company",
     triggerIcon: Users,
