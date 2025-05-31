@@ -3,7 +3,7 @@ import * as React from "react";
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowRight, Star, CheckCircle, Shield, Zap, ListChecks, CircleDollarSign, ShieldCheck, Users2, Newspaper, Info, Phone, Home, MapPin, Briefcase } from 'lucide-react'; // Added MapPin and Briefcase
+import { ArrowRight, Star, CheckCircle, Shield, Zap, ListChecks, CircleDollarSign, ShieldCheck, Users2, Newspaper, Info, Phone, Home, MapPin, Briefcase, UsersRound, CircleCheckBig } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -44,7 +44,7 @@ export default function HomePage() {
             </div>
             <span className="hidden sm:inline text-brand-light-gray/50">|</span>
             <div className="flex items-center">
-              <Users2 className="h-5 w-5 mr-2 text-brand-light-gray" /> Expert Support
+              <UsersRound className="h-5 w-5 mr-2 text-brand-light-gray" /> Expert Support
             </div>
           </div>
           <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
@@ -118,38 +118,42 @@ export default function HomePage() {
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-brand-dark-blue font-heading">Your Journey with Nobridge</h2>
             <p className="text-muted-foreground mt-3 text-lg max-w-2xl mx-auto">Whether you're selling your life's work or seeking your next strategic investment, Nobridge provides the tools and network you need.</p>
           </div>
-          <div className="grid md:grid-cols-2 gap-8 lg:gap-12 items-start">
-            <Card className="bg-brand-light-gray/50 p-6 md:p-8 rounded-lg shadow-lg">
-              <div className="p-3 bg-brand-dark-blue/10 rounded-full w-fit mb-4">
+          <div className="grid md:grid-cols-2 gap-8 lg:gap-12 items-stretch"> {/* Added items-stretch */}
+            <Card className="bg-brand-light-gray/50 p-6 md:p-8 rounded-lg shadow-lg flex flex-col">
+              <div className="p-2 md:p-3 bg-brand-dark-blue rounded-md w-fit mb-4 inline-block">
                  <NobridgeIcon icon="business-listing" size="md" />
               </div>
-              <h3 className="text-2xl font-semibold text-brand-dark-blue mb-3 font-heading">List Your Business with Confidence</h3>
-              <p className="text-muted-foreground mb-4 leading-relaxed">
-                Nobridge provides a secure and efficient platform to connect with verified buyers across Asia, guiding you through every step.
-              </p>
-              <ul className="space-y-2 text-muted-foreground mb-6">
-                <li className="flex items-center"><NobridgeIcon icon="secure-docs" size="sm" className="mr-2 opacity-80" /> Access to Verified Buyers</li>
-                <li className="flex items-center"><CheckCircle className="h-5 w-5 mr-2 text-brand-sky-blue" /> Step-by-Step Listing Guidance</li>
-                <li className="flex items-center"><NobridgeIcon icon="interaction" size="sm" className="mr-2 opacity-80" /> Secure Inquiry Management</li>
-              </ul>
-              <Button asChild className="bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90">
+              <div className="flex-grow">
+                <h3 className="text-2xl font-semibold text-brand-dark-blue mb-3 font-heading">List Your Business with Confidence</h3>
+                <p className="text-muted-foreground mb-4 leading-relaxed">
+                  Nobridge provides a secure and efficient platform to connect with verified buyers across Asia, guiding you through every step.
+                </p>
+                <ul className="space-y-2 text-muted-foreground mb-6">
+                  <li className="flex items-center"><NobridgeIcon icon="secure-docs" size="sm" className="mr-2 opacity-80" /> Access to Verified Buyers</li>
+                  <li className="flex items-center"><CheckCircle className="h-5 w-5 mr-2 text-brand-sky-blue" /> Step-by-Step Listing Guidance</li>
+                  <li className="flex items-center"><NobridgeIcon icon="interaction" size="sm" className="mr-2 opacity-80" /> Secure Inquiry Management</li>
+                </ul>
+              </div>
+              <Button asChild className="bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90 mt-auto">
                 <Link href="/seller-dashboard/listings/create">Learn More About Selling</Link>
               </Button>
             </Card>
-            <Card className="bg-brand-light-gray/50 p-6 md:p-8 rounded-lg shadow-lg">
-               <div className="p-3 bg-brand-dark-blue/10 rounded-full w-fit mb-4">
+            <Card className="bg-brand-light-gray/50 p-6 md:p-8 rounded-lg shadow-lg flex flex-col">
+               <div className="p-2 md:p-3 bg-brand-dark-blue rounded-md w-fit mb-4 inline-block">
                 <NobridgeIcon icon="interaction" size="md" />
               </div>
-              <h3 className="text-2xl font-semibold text-brand-dark-blue mb-3 font-heading">Discover Your Next Investment Opportunity</h3>
-              <p className="text-muted-foreground mb-4 leading-relaxed">
-                Explore a curated marketplace of businesses for sale. Get access to detailed information on verified businesses and engage directly with sellers.
-              </p>
-              <ul className="space-y-2 text-muted-foreground mb-6">
-                <li className="flex items-center"><NobridgeIcon icon="core-details" size="sm" className="mr-2 opacity-80" /> Vetted Business Listings</li>
-                <li className="flex items-center"><CheckCircle className="h-5 w-5 mr-2 text-brand-sky-blue" /> Advanced Search & Filters</li>
-                <li className="flex items-center"><NobridgeIcon icon="verification" size="sm" className="mr-2 opacity-80" /> Direct Seller Engagement (Post-Verification)</li>
-              </ul>
-              <Button asChild className="bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90">
+              <div className="flex-grow">
+                <h3 className="text-2xl font-semibold text-brand-dark-blue mb-3 font-heading">Discover Your Next Investment Opportunity</h3>
+                <p className="text-muted-foreground mb-4 leading-relaxed">
+                  Explore a curated marketplace of businesses for sale. Get access to detailed information on verified businesses and engage directly with sellers.
+                </p>
+                <ul className="space-y-2 text-muted-foreground mb-6">
+                  <li className="flex items-center"><NobridgeIcon icon="core-details" size="sm" className="mr-2 opacity-80" /> Vetted Business Listings</li>
+                  <li className="flex items-center"><CheckCircle className="h-5 w-5 mr-2 text-brand-sky-blue" /> Advanced Search & Filters</li>
+                  <li className="flex items-center"><NobridgeIcon icon="verification" size="sm" className="mr-2 opacity-80" /> Direct Seller Engagement (Post-Verification)</li>
+                </ul>
+              </div>
+              <Button asChild className="bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90 mt-auto">
                 <Link href="/marketplace">Learn More About Buying</Link>
               </Button>
             </Card>
@@ -211,8 +215,8 @@ export default function HomePage() {
               { imageHint: "business team success", category: "Success Story", title: "How a Tech Startup Found its Strategic Acquirer via Nobridge", excerpt: "Read about the journey of 'Innovate Solutions' and their successful exit facilitated by our platform.", icon: "featured" as NobridgeIconType },
             ].map((item, index) => (
               <Card key={index} className="bg-brand-white shadow-xl hover:shadow-2xl transition-shadow overflow-hidden flex flex-col rounded-lg">
-                <div className="w-full h-48 bg-brand-light-gray/50 flex items-center justify-center">
-                  <NobridgeIcon icon={item.icon} size="xl" className="opacity-50" />
+                <div className="w-full h-48 bg-brand-dark-blue/10 flex items-center justify-center">
+                  <NobridgeIcon icon={item.icon} size="xl" />
                 </div>
                 <CardHeader className="p-6">
                   <Badge variant="outline" className="mb-2 w-fit border-brand-dark-blue/30 text-brand-dark-blue/80">{item.category}</Badge>

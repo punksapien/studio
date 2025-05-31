@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils';
 import { usePathname, useRouter } from 'next/navigation';
 import { auth, type UserProfile } from '@/lib/auth';
 import { useToast } from '@/hooks/use-toast';
-import { Logo } from '@/components/shared/logo'; // Import the shared Logo component
+import { Logo } from '@/components/shared/logo';
 
 interface NavLinkItem {
   href: string;
@@ -91,7 +91,7 @@ export function Navbar() {
 
     checkAuthState();
 
-    const { data: { subscription } } = auth.onAuthStateChange(async (_event, session) => { // _event can be used if needed
+    const { data: { subscription } } = auth.onAuthStateChange(async (_event, session) => { 
       if (session?.user) {
         const profile = await auth.getCurrentUserProfile();
         setIsAuthenticated(true);
@@ -133,14 +133,14 @@ export function Navbar() {
   };
 
   const getDashboardUrl = (profile: UserProfile | null) => {
-    if (!profile) return '/dashboard'; // Default or redirect to login
+    if (!profile) return '/dashboard'; 
     switch (profile.role) {
       case 'seller':
         return '/seller-dashboard';
       case 'buyer':
-        return '/dashboard'; // Buyer dashboard is at /dashboard
+        return '/dashboard'; 
       case 'admin':
-        return '/admin'; // Admin dashboard
+        return '/admin'; 
       default:
         return '/dashboard';
     }
@@ -150,7 +150,7 @@ export function Navbar() {
     <header className="sticky top-0 z-50 w-full border-b border-brand-light-gray/60 bg-brand-white text-brand-dark-blue shadow-sm">
       <div className="container mx-auto flex h-20 items-center justify-between px-6 md:px-8">
         <div className="flex items-center gap-x-6 lg:gap-x-8">
-          <Logo size="xl" /> {/* Use shared Logo component with increased size */}
+          <Logo size="xl" forceTheme="light" /> {/* Ensure dark logo on light navbar */}
           <nav className="hidden md:flex items-center space-x-1 lg:space-x-2">
             {navLinks.map((linkOrGroup) =>
               'items' in linkOrGroup ? (
@@ -246,7 +246,7 @@ export function Navbar() {
             </SheetTrigger>
             <SheetContent side="right" className="w-[300px] sm:w-[350px] p-0 bg-brand-white text-brand-dark-blue">
               <div className="p-6 border-b border-brand-light-gray">
-                <Logo size="xl" /> {/* Use shared Logo component in sheet */}
+                <Logo size="xl" forceTheme="light" /> {/* Ensure dark logo on light navbar */}
               </div>
               <nav className="flex flex-col space-y-1 p-4">
                 {navLinks.map((linkOrGroup) =>
