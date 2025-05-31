@@ -3,11 +3,11 @@ import * as React from "react";
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowRight, Star, CheckCircle, Shield, Zap, ListChecks, CircleDollarSign, ShieldCheck, Users2, Newspaper, Info, Phone, Home, MapPin, Briefcase, UsersRound, CircleCheckBig } from 'lucide-react';
+import { ArrowRight, Star, CheckCircle, Zap, UsersRound, MapPin, Briefcase, ListChecks, CircleDollarSign, ShieldCheck, FileText, MessageSquare, Info, Phone, Home, ExternalLink, Users2 as UsersIcon, Images as ImagesIcon, Banknote, BookOpen, Brain, HandCoins, Globe, Link as LinkIconLucide } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { sampleListings, Listing } from '@/lib/placeholder-data';
+import { sampleListings } from '@/lib/placeholder-data';
 import { NobridgeIcon, NobridgeIconType } from '@/components/ui/nobridge-icon';
 
 
@@ -118,40 +118,52 @@ export default function HomePage() {
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-brand-dark-blue font-heading">Your Journey with Nobridge</h2>
             <p className="text-muted-foreground mt-3 text-lg max-w-2xl mx-auto">Whether you're selling your life's work or seeking your next strategic investment, Nobridge provides the tools and network you need.</p>
           </div>
-          <div className="grid md:grid-cols-2 gap-8 lg:gap-12 items-stretch">
-            <Card className="bg-brand-light-gray/50 p-6 md:p-8 rounded-lg shadow-lg flex flex-col">
-              <NobridgeIcon icon="business-listing" size="lg" className="mb-4 text-brand-dark-blue" />
-              <div className="flex-grow">
+          <div className="grid md:grid-cols-2 gap-8 lg:gap-12 items-stretch"> {/* items-stretch retained */}
+            <Card className="bg-brand-light-gray/50 p-6 md:p-8 rounded-lg shadow-lg flex flex-col"> {/* flex flex-col retained */}
+              {/* Icon wrapper removed */}
+              <div className="flex-grow"> {/* flex-grow retained */}
                 <h3 className="text-2xl font-semibold text-brand-dark-blue mb-3 font-heading">List Your Business with Confidence</h3>
                 <p className="text-muted-foreground mb-4 leading-relaxed">
                   Nobridge provides a secure and efficient platform to connect with verified buyers across Asia, guiding you through every step.
                 </p>
                 <ul className="space-y-2 text-muted-foreground mb-6">
-                  <li className="flex items-center"><NobridgeIcon icon="secure-docs" size="sm" className="mr-2 opacity-80" /> Access to Verified Buyers</li>
-                  <li className="flex items-center"><CheckCircle className="h-5 w-5 mr-2 text-brand-sky-blue" /> Step-by-Step Listing Guidance</li>
-                  <li className="flex items-center"><NobridgeIcon icon="interaction" size="sm" className="mr-2 opacity-80" /> Secure Inquiry Management</li>
+                  <li className="flex items-center">
+                    <NobridgeIcon icon="secure-docs" size="sm" className="mr-2 opacity-80" /> Access to Verified Buyers
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="h-5 w-5 mr-2 text-brand-sky-blue" /> Step-by-Step Listing Guidance
+                  </li>
+                  <li className="flex items-center">
+                    <NobridgeIcon icon="interaction" size="sm" className="mr-2 opacity-80" /> Secure Inquiry Management
+                  </li>
                 </ul>
               </div>
-              <Button asChild className="bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90 mt-auto">
-                <Link href="/seller-dashboard/listings/create">Learn More About Selling</Link>
-              </Button>
+              <Link href="/seller-dashboard/listings/create" className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90 h-10 px-4 py-2 mt-auto">
+                Learn More About Selling
+              </Link>
             </Card>
-            <Card className="bg-brand-light-gray/50 p-6 md:p-8 rounded-lg shadow-lg flex flex-col">
-              <NobridgeIcon icon="interaction" size="lg" className="mb-4 text-brand-dark-blue" />
-              <div className="flex-grow">
+            <Card className="bg-brand-light-gray/50 p-6 md:p-8 rounded-lg shadow-lg flex flex-col"> {/* flex flex-col retained */}
+              {/* Icon wrapper removed */}
+              <div className="flex-grow"> {/* flex-grow retained */}
                 <h3 className="text-2xl font-semibold text-brand-dark-blue mb-3 font-heading">Discover Your Next Investment Opportunity</h3>
                 <p className="text-muted-foreground mb-4 leading-relaxed">
                   Explore a curated marketplace of businesses for sale. Get access to detailed information on verified businesses and engage directly with sellers.
                 </p>
                 <ul className="space-y-2 text-muted-foreground mb-6">
-                  <li className="flex items-center"><NobridgeIcon icon="core-details" size="sm" className="mr-2 opacity-80" /> Vetted Business Listings</li>
-                  <li className="flex items-center"><CheckCircle className="h-5 w-5 mr-2 text-brand-sky-blue" /> Advanced Search & Filters</li>
-                  <li className="flex items-center"><NobridgeIcon icon="verification" size="sm" className="mr-2 opacity-80" /> Direct Seller Engagement (Post-Verification)</li>
+                  <li className="flex items-center">
+                    <NobridgeIcon icon="core-details" size="sm" className="mr-2 opacity-80" /> Vetted Business Listings
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="h-5 w-5 mr-2 text-brand-sky-blue" /> Advanced Search & Filters
+                  </li>
+                  <li className="flex items-center">
+                    <NobridgeIcon icon="verification" size="sm" className="mr-2 opacity-80" /> Direct Seller Engagement (Post-Verification)
+                  </li>
                 </ul>
               </div>
-              <Button asChild className="bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90 mt-auto">
-                <Link href="/marketplace">Learn More About Buying</Link>
-              </Button>
+              <Link href="/marketplace" className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90 h-10 px-4 py-2 mt-auto">
+                Learn More About Buying
+              </Link>
             </Card>
           </div>
         </div>
