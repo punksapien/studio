@@ -88,7 +88,7 @@ export const auth = {
 
   // Sign up new user
   async signUp(userData: RegisterData) {
-    const { email, password, ...profileData } = userData
+    const { email, password, ...profileDataRest } = userData
 
     console.log('Starting registration for:', email)
 
@@ -100,7 +100,7 @@ export const auth = {
         emailRedirectTo: `${window.location.origin}/auth/callback`,
         data: {
           // Include additional metadata for the user
-          ...profileData
+          ...profileDataRest
         }
       }
     })
@@ -125,7 +125,7 @@ export const auth = {
 
     // Create user profile via API endpoint (uses service role to bypass RLS)
     if (authData.user) {
-      const profileData = {
+      const profileInsertData = {
         email,
         full_name: userData.full_name,
         phone_number: userData.phone_number || null,
@@ -143,7 +143,7 @@ export const auth = {
         key_industries_of_interest: userData.key_industries_of_interest || null
       }
 
-      console.log('About to create profile via API:', profileData)
+      console.log('About to create profile via API:', profileInsertData)
 
       try {
         const response = await fetch('/api/auth/create-profile', {
@@ -153,7 +153,7 @@ export const auth = {
           },
           body: JSON.stringify({
             userId: authData.user.id,
-            profileData
+            profileData: profileInsertData
           })
         })
 
@@ -204,18 +204,18 @@ export const auth = {
     }
   },
 
-  // Reset password
-  async resetPassword(email: string) {
+  // Request password reset
+  async requestPasswordReset(email: string) {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/reset-password`,
+      redirectTo: `${window.location.origin}/auth/update-password`, // Redirect to the new page
     })
 
     if (error) {
-      throw new Error(`Password reset failed: ${error.message}`)
+      throw new Error(`Password reset request failed: ${error.message}`)
     }
   },
 
-  // Update password
+  // Update password (usually after reset or when logged in)
   async updatePassword(newPassword: string) {
     const { error } = await supabase.auth.updateUser({
       password: newPassword,
@@ -266,7 +266,7 @@ export const auth = {
 
   // Listen to auth state changes
   onAuthStateChange(callback: (user: User | null) => void) {
-    return supabase.auth.onAuthStateChange((event, session) => {
+    return supabase.auth.onAuthStateChange((_event, session) => {
       callback(session?.user ?? null)
     })
   },
@@ -274,21 +274,15 @@ export const auth = {
   // Check if email is already registered but unverified
   async checkEmailStatus(email: string): Promise<{ exists: boolean; verified: boolean; canResend: boolean }> {
     try {
-      const { data, error } = await supabase.auth.admin.getUserByEmail(email)
-
-      if (error || !data) {
-        return { exists: false, verified: false, canResend: false }
-      }
-
-      const verified = !!data.email_confirmed_at
-      return {
-        exists: true,
-        verified,
-        canResend: !verified
-      }
+      // This would ideally be a server-side call if RLS prevents direct user table access or admin API is preferred
+      // For client-side, this approach assumes broader access or relies on Supabase specific errors from signUp.
+      // A more secure way is to attempt signup and interpret the error, or have a dedicated backend endpoint.
+      // For now, we'll rely on the error handling in signUp.
+      // Placeholder for if a direct admin-like check was available client-side (it's not for users table typically).
+      // const { data, error } = await supabase.from('users').select('email_confirmed_at').eq('email', email).single();
+      return { exists: false, verified: false, canResend: true }; // Defaulting to allow signup attempt
     } catch (error) {
-      // If we can't check, assume email is available
-      return { exists: false, verified: false, canResend: false }
+      return { exists: false, verified: false, canResend: false };
     }
   },
 
