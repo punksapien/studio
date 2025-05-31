@@ -1,13 +1,6 @@
 
 import Link from 'next/link';
-import { Briefcase } from 'lucide-react'; // Using Briefcase for generic Nobridge logo
-
-const NobridgeLogoFooter = () => (
-  <Link href="/" className="flex items-center gap-2 text-xl font-bold text-brand-light-gray hover:opacity-80 transition-opacity">
-    <Briefcase className="h-6 w-6" />
-    <span>Nobridge</span>
-  </Link>
-);
+import { Logo } from '@/components/shared/logo'; // Import the actual Logo component
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
@@ -15,9 +8,9 @@ export function Footer() {
   return (
     <footer className="bg-brand-dark-blue text-brand-light-gray/80">
       <div className="container mx-auto py-16 md:py-20 px-6 md:px-8">
-        <div className="grid gap-10 row-gap-6 mb-8 sm:grid-cols-2 lg:grid-cols-5"> {/* Adjusted to 5 columns for better balance */}
-          <div className="sm:col-span-2 lg:col-span-1"> {/* Logo takes 1 full col on lg */}
-            <NobridgeLogoFooter />
+        <div className="grid gap-10 row-gap-6 mb-8 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="sm:col-span-2 lg:col-span-1">
+            <Logo size="lg" /> {/* Use the Logo component here */}
             <p className="mt-4 text-sm ">
               Connecting SME owners with investors and buyers across Asia. Your trusted partner for business transitions.
             </p>
@@ -96,17 +89,8 @@ export function Footer() {
           <p className="text-sm">
             © {currentYear} Nobridge. All rights reserved.
           </p>
-          {/* Optional: Social media icons 
-          <div className="flex items-center space-x-4">
-            <Link href="#" className="hover:text-brand-white"><Twitter className="h-5 w-5" /></Link>
-            <Link href="#" className="hover:text-brand-white"><Linkedin className="h-5 w-5" /></Link>
-            <Link href="#" className="hover:text-brand-white"><Facebook className="h-5 w-5" /></Link>
-          </div>
-          */}
         </div>
       </div>
     </footer>
   );
 }
-
-    

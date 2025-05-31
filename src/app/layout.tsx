@@ -1,20 +1,19 @@
 
 import type { Metadata } from 'next';
-// Removed Inter font import
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import GlobalLayoutWrapper from '@/components/layout/GlobalLayoutWrapper';
-
-// Satoshi font will be applied via globals.css and tailwind.config.ts
 
 export const metadata: Metadata = {
   title: 'Nobridge - Business Marketplace Platform',
   description: 'Connecting SME owners with investors and buyers in Asia.',
   icons: {
-    icon: '/favicon.ico', // This will be the default favicon
-    // Ensure these paths match your actual icon files in /public/assets/
-    apple: '/assets/apple-touch-icon.png', // Example for Apple touch icon
-    shortcut: '/assets/favicon.ico', // Example for shortcut icon
+    icon: [
+      { url: '/favicon.ico', sizes: 'any', type: 'image/x-icon' }, // Standard .ico
+      { url: '/assets/nobridge_app_icon.png', type: 'image/png', sizes: 'any' }, // PNG icon
+    ],
+    apple: '/assets/apple-touch-icon.png', // Ensure this file exists at public/assets/apple-touch-icon.png
+    shortcut: '/assets/nobridge_app_icon.png', // Shortcut icon using the png
   },
 };
 
