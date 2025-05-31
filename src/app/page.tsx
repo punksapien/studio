@@ -118,12 +118,11 @@ export default function HomePage() {
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-brand-dark-blue font-heading">Your Journey with Nobridge</h2>
             <p className="text-muted-foreground mt-3 text-lg max-w-2xl mx-auto">Whether you're selling your life's work or seeking your next strategic investment, Nobridge provides the tools and network you need.</p>
           </div>
-          <div className="grid md:grid-cols-2 gap-8 lg:gap-12 items-stretch"> {/* items-stretch retained */}
-            <Card className="bg-brand-light-gray/50 p-6 md:p-8 rounded-lg shadow-lg flex flex-col"> {/* flex flex-col retained */}
-              {/* Icon wrapper removed */}
-              <div className="flex-grow"> {/* flex-grow retained */}
+          <div className="grid md:grid-cols-2 gap-8 lg:gap-12 items-stretch">
+            <Card className="bg-brand-light-gray/50 rounded-lg shadow-lg flex flex-col">
+              <CardContent className="p-6 md:p-8 flex-grow flex flex-col">
                 <h3 className="text-2xl font-semibold text-brand-dark-blue mb-3 font-heading">List Your Business with Confidence</h3>
-                <p className="text-muted-foreground mb-4 leading-relaxed">
+                <p className="text-muted-foreground mb-4 leading-relaxed flex-grow">
                   Nobridge provides a secure and efficient platform to connect with verified buyers across Asia, guiding you through every step.
                 </p>
                 <ul className="space-y-2 text-muted-foreground mb-6">
@@ -137,16 +136,15 @@ export default function HomePage() {
                     <NobridgeIcon icon="interaction" size="sm" className="mr-2 opacity-80" /> Secure Inquiry Management
                   </li>
                 </ul>
-              </div>
-              <Link href="/seller-dashboard/listings/create" className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90 h-10 px-4 py-2 mt-auto">
-                Learn More About Selling
-              </Link>
+                <Button className="bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90 mt-auto">
+                  <Link href="/seller-dashboard/listings/create">Learn More About Selling</Link>
+                </Button>
+              </CardContent>
             </Card>
-            <Card className="bg-brand-light-gray/50 p-6 md:p-8 rounded-lg shadow-lg flex flex-col"> {/* flex flex-col retained */}
-              {/* Icon wrapper removed */}
-              <div className="flex-grow"> {/* flex-grow retained */}
+            <Card className="bg-brand-light-gray/50 rounded-lg shadow-lg flex flex-col">
+              <CardContent className="p-6 md:p-8 flex-grow flex flex-col">
                 <h3 className="text-2xl font-semibold text-brand-dark-blue mb-3 font-heading">Discover Your Next Investment Opportunity</h3>
-                <p className="text-muted-foreground mb-4 leading-relaxed">
+                <p className="text-muted-foreground mb-4 leading-relaxed flex-grow">
                   Explore a curated marketplace of businesses for sale. Get access to detailed information on verified businesses and engage directly with sellers.
                 </p>
                 <ul className="space-y-2 text-muted-foreground mb-6">
@@ -160,10 +158,10 @@ export default function HomePage() {
                     <NobridgeIcon icon="verification" size="sm" className="mr-2 opacity-80" /> Direct Seller Engagement (Post-Verification)
                   </li>
                 </ul>
-              </div>
-              <Link href="/marketplace" className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90 h-10 px-4 py-2 mt-auto">
-                Learn More About Buying
-              </Link>
+                <Button className="bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90 mt-auto">
+                  <Link href="/marketplace">Learn More About Buying</Link>
+                </Button>
+              </CardContent>
             </Card>
           </div>
         </div>
@@ -223,9 +221,9 @@ export default function HomePage() {
               { imageHint: "business team success", category: "Success Story", title: "How a Tech Startup Found its Strategic Acquirer via Nobridge", excerpt: "Read about the journey of 'Innovate Solutions' and their successful exit facilitated by our platform.", icon: "featured" as NobridgeIconType },
             ].map((item, index) => (
               <Card key={index} className="bg-brand-white shadow-xl hover:shadow-2xl transition-shadow overflow-hidden flex flex-col rounded-lg">
-                <div className="w-full h-48 bg-brand-dark-blue/10 flex items-center justify-center">
+                <CardContent className="w-full h-48 bg-brand-dark-blue/10 flex items-center justify-center p-0">
                   <NobridgeIcon icon={item.icon} size="xl" />
-                </div>
+                </CardContent>
                 <CardHeader className="p-6">
                   <Badge variant="outline" className="mb-2 w-fit border-brand-dark-blue/30 text-brand-dark-blue/80">{item.category}</Badge>
                   <CardTitle className="text-xl font-semibold leading-tight text-brand-dark-blue hover:text-brand-sky-blue transition-colors font-heading">
@@ -285,3 +283,5 @@ export default function HomePage() {
     </>
   );
 }
+
+    

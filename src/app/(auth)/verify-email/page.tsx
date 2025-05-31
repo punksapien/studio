@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -16,11 +17,11 @@ import { Input } from "@/components/ui/input";
 import { AuthCardWrapper } from "@/components/auth/auth-card-wrapper";
 import { useState, useTransition, Suspense, useEffect } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertTriangle, CheckCircle2, Mail, Key } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Mail, KeyRound, Loader2 } from "lucide-react"; // Changed Key to KeyRound
 import { useSearchParams, useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { auth } from "@/lib/auth";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const OTPSchema = z.object({
@@ -31,17 +32,27 @@ function VerifyEmailContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const email = searchParams.get("email");
-  const type = searchParams.get("type");
+  const type = searchParams.get("type") || 'register'; // Default to register if type is missing
 
   const [error, setError] = useState<string | undefined>("");
   const [success, setSuccess] = useState<string | undefined>("");
   const [isPending, startTransition] = useTransition();
   const [isResendPending, startResendTransition] = useTransition();
-  const [showOtpForm, setShowOtpForm] = useState(false);
   const { toast } = useToast();
 
-  // Security check: ensure required parameters are present
-  if (!email || !type) {
+  useEffect(() => {
+    // Prefill OTP if provided in URL (for magic link auto-submit or testing)
+    const tokenFromUrl = searchParams.get("token");
+    if (tokenFromUrl && email && type === 'register') {
+      form.setValue("otp", tokenFromUrl.substring(0, 6)); // Supabase OTPs are 6 digits
+      // Optionally auto-submit if desired, or just prefill
+      // form.handleSubmit(onSubmit)(); 
+    }
+  }, [searchParams, email, type]);
+
+
+  // Security check: ensure email is present
+  if (!email) {
     return (
       <AuthCardWrapper
         headerLabel="Invalid Verification Link"
@@ -50,10 +61,9 @@ function VerifyEmailContent() {
       >
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Invalid Access</AlertTitle>
+          <AlertTitle>Email Missing</AlertTitle>
           <AlertDescription>
-            This verification page requires an email and verification type.
-            Please register or request a password reset to get a proper verification link.
+            An email address is required for verification. Please try the registration or password reset process again.
           </AlertDescription>
         </Alert>
       </AuthCardWrapper>
@@ -61,7 +71,8 @@ function VerifyEmailContent() {
   }
 
   // Validate verification type
-  if (type !== 'register' && type !== 'login' && type !== 'password-reset') {
+  const validTypes = ['register', 'login', 'password-reset', 'email_change', 'recovery'];
+  if (!validTypes.includes(type)) {
     return (
       <AuthCardWrapper
         headerLabel="Invalid Verification Type"
@@ -70,9 +81,9 @@ function VerifyEmailContent() {
       >
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Invalid Verification Type</AlertTitle>
+          <AlertTitle>Invalid Type</AlertTitle>
           <AlertDescription>
-            The verification type "{type}" is not supported. Please use a valid verification link.
+            The verification type "{type}" is not supported. Please use a valid link.
           </AlertDescription>
         </Alert>
       </AuthCardWrapper>
@@ -92,20 +103,17 @@ function VerifyEmailContent() {
 
     startTransition(async () => {
       try {
-        if (type === 'register') {
-          // For registration, verify the email OTP
-          await auth.verifyEmailOtp(email, values.otp);
-          setSuccess("Email verified successfully! You can now log in.");
-          toast({
-            title: "Email Verified!",
-            description: "Your account has been activated. Redirecting to login..."
-          });
-          setTimeout(() => router.push('/auth/login'), 2000);
-        } else {
-          setError("Invalid verification type.");
-        }
+        // Supabase uses verifyOtp for email confirmation links as well (type: 'email')
+        // and for OTPs sent to email.
+        await auth.verifyEmailOtp(email, values.otp);
+        setSuccess("Email verified successfully! Redirecting...");
+        toast({
+          title: "Email Verified!",
+          description: "Your account has been activated. Redirecting to login..."
+        });
+        setTimeout(() => router.push('/auth/login'), 2000);
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Verification failed';
+        const errorMessage = error instanceof Error ? error.message : 'Verification failed. The code may be invalid or expired.';
         setError(errorMessage);
         toast({
           variant: "destructive",
@@ -122,13 +130,16 @@ function VerifyEmailContent() {
 
     startResendTransition(async () => {
       try {
-        await auth.resendVerificationForEmail(email);
+        // This method resends the confirmation email for the currently signed-up user
+        // If the user isn't "partially signed up" (i.e., email exists but not confirmed), this might need adjustment
+        // For a generic resend to a specific email if it's in an unconfirmed state:
+        await auth.resendVerificationForEmail(email); 
         toast({
           title: "Verification Email Resent",
-          description: `A new verification email has been sent to ${email}.`,
+          description: `A new verification email has been sent to ${email}. Please check your inbox and spam folder.`,
         });
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Failed to resend verification email';
+        const errorMessage = error instanceof Error ? error.message : 'Failed to resend. Please ensure the email is correct or contact support.';
         setError(errorMessage);
         toast({
           variant: "destructive",
@@ -141,68 +152,75 @@ function VerifyEmailContent() {
 
   return (
     <AuthCardWrapper
-      headerLabel={`We've sent a verification email to ${email}`}
+      headerLabel={`Verify Your Email`}
       backButtonLabel={type === 'login' ? "Back to Login" : "Back to Registration"}
       backButtonHref={type === 'login' ? "/auth/login" : "/auth/register"}
     >
       <div className="space-y-6">
+        <p className="text-center text-sm text-muted-foreground">
+          We've sent a verification email to <strong className="text-foreground">{email}</strong>.
+          It includes a magic link and a 6-digit code.
+        </p>
+
         <Tabs defaultValue="magic-link" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="magic-link">
               <Mail className="w-4 h-4 mr-2" />
-              Magic Link
+              Use Magic Link
             </TabsTrigger>
             <TabsTrigger value="otp">
-              <Key className="w-4 h-4 mr-2" />
-              6-Digit Code
+              <KeyRound className="w-4 h-4 mr-2" />
+              Enter 6-Digit Code
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="magic-link" className="space-y-4">
+          <TabsContent value="magic-link" className="mt-4">
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg flex items-center">
-                  <Mail className="w-5 h-5 mr-2 text-blue-600" />
-                  Check Your Email
+                  <Mail className="w-5 h-5 mr-2 text-primary" />
+                  Check Your Email Inbox
                 </CardTitle>
                 <CardDescription>
-                  We've sent a verification email with a magic link to <strong>{email}</strong>
+                  The easiest way to verify is by clicking the magic link in the email we sent.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg dark:bg-blue-900/20 dark:border-blue-800">
-                  <p className="text-sm text-blue-700 dark:text-blue-300">
-                    💡 <strong>Simply click the link in your email</strong> - no typing required!
+                <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg">
+                  <p className="text-sm text-primary/90">
+                    💡 <strong>Click the link in the email</strong> from Nobridge to instantly verify your account. No typing needed!
                   </p>
                 </div>
 
-                <div className="text-sm text-gray-600 dark:text-gray-400">
-                  <p>• Check your spam/junk folder if you don't see it</p>
-                  <p>• The link will expire in 1 hour</p>
-                  <p>• Having trouble? Use the 6-digit code option instead</p>
-                </div>
-
+                <ul className="text-xs text-muted-foreground space-y-1 list-disc pl-5">
+                  <li>If you don't see the email, please check your spam or junk folder.</li>
+                  <li>The verification link and code will expire in 1 hour.</li>
+                  <li>Still having trouble? Try the 6-digit code option or resend the email.</li>
+                </ul>
+              </CardContent>
+              <CardFooter>
                 <Button
                   onClick={handleResendEmail}
                   variant="outline"
                   className="w-full"
                   disabled={isResendPending}
                 >
-                  {isResendPending ? "Sending..." : "Resend Email"}
+                  {isResendPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isResendPending ? "Sending..." : "Resend Verification Email"}
                 </Button>
-              </CardContent>
+              </CardFooter>
             </Card>
           </TabsContent>
 
-          <TabsContent value="otp" className="space-y-4">
+          <TabsContent value="otp" className="mt-4">
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg flex items-center">
-                  <Key className="w-5 h-5 mr-2 text-green-600" />
+                  <KeyRound className="w-5 h-5 mr-2 text-primary" />
                   Enter 6-Digit Code
                 </CardTitle>
                 <CardDescription>
-                  If the magic link doesn't work, look for a 6-digit code in your email
+                  Alternatively, find the 6-digit code in the verification email and enter it below.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -220,7 +238,7 @@ function VerifyEmailContent() {
                               placeholder="123456"
                               disabled={isPending}
                               maxLength={6}
-                              className="text-center text-lg tracking-widest"
+                              className="text-center text-lg tracking-[0.3em] h-12"
                             />
                           </FormControl>
                           <FormMessage />
@@ -229,6 +247,7 @@ function VerifyEmailContent() {
                     />
 
                     <Button type="submit" className="w-full" disabled={isPending}>
+                      {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       {isPending ? "Verifying..." : "Verify Code"}
                     </Button>
                   </form>
@@ -239,7 +258,7 @@ function VerifyEmailContent() {
         </Tabs>
 
         {error && (
-          <Alert variant="destructive">
+          <Alert variant="destructive" className="mt-6">
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>Verification Failed</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
@@ -247,9 +266,9 @@ function VerifyEmailContent() {
         )}
 
         {success && (
-          <Alert variant="default" className="bg-green-50 border-green-200 dark:bg-green-900 dark:border-green-700">
+          <Alert variant="default" className="mt-6 bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-700/50">
             <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
-            <AlertTitle className="text-green-700 dark:text-green-300">Success</AlertTitle>
+            <AlertTitle className="text-green-700 dark:text-green-300">Success!</AlertTitle>
             <AlertDescription className="text-green-600 dark:text-green-400">{success}</AlertDescription>
           </Alert>
         )}
@@ -260,8 +279,10 @@ function VerifyEmailContent() {
 
 export default function VerifyEmailPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<div className="flex h-screen items-center justify-center">Loading verification options...</div>}>
       <VerifyEmailContent />
     </Suspense>
   );
 }
+
+    
