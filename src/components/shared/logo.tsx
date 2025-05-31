@@ -8,11 +8,11 @@ import { useEffect, useState } from 'react';
 
 interface LogoProps {
   size?: 'xl' | '2xl' | 'lg';
-  forceTheme?: 'light' | 'dark'; // New prop
+  forceTheme?: 'light' | 'dark';
 }
 
 export function Logo({ size = 'xl', forceTheme }: LogoProps) {
-  const { theme: currentTheme, resolvedTheme: actualResolvedTheme } = useTheme();
+  const { resolvedTheme: actualResolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -27,16 +27,26 @@ export function Logo({ size = 'xl', forceTheme }: LogoProps) {
 
   const { width, height } = dimensions[size];
 
-  if (!mounted) {
-    return <div style={{ width: `${width}px`, height: `${height}px` }} aria-hidden="true" />;
+  let useDarkLogoElements: boolean;
+
+  if (forceTheme) {
+    // If forceTheme is 'light', it means the background is light, so we need dark logo elements.
+    useDarkLogoElements = forceTheme === 'light';
+  } else {
+    // Only rely on resolvedTheme if forceTheme is not provided
+    if (!mounted) {
+      // Fallback before mount if no forceTheme: show placeholder or default to dark elements
+      // This helps prevent hydration mismatch if actualResolvedTheme is initially undefined SSR vs Client
+      return <div style={{ width: `${width}px`, height: `${height}px` }} aria-hidden="true" />;
+    }
+    // If mounted and no forceTheme, use the actual resolved theme.
+    // If actualResolvedTheme is 'light', we need dark logo elements.
+    useDarkLogoElements = actualResolvedTheme === 'light';
   }
 
-  const effectiveTheme = forceTheme || actualResolvedTheme;
-  const isDark = effectiveTheme === 'dark';
-
-  const logoSrc = isDark
-    ? '/assets/nobridge_logo_light_no_bg.png' // Light logo for DARK backgrounds
-    : '/assets/nobridge_logo_dark_no_bg.png';  // Dark logo for LIGHT backgrounds
+  const logoSrc = useDarkLogoElements
+    ? '/assets/nobridge_logo_dark_no_bg.png'  // Dark elements for LIGHT backgrounds
+    : '/assets/nobridge_logo_light_no_bg.png'; // Light elements for DARK backgrounds
 
   return (
     <Link href="/" className="flex items-center" aria-label="Nobridge Home">
