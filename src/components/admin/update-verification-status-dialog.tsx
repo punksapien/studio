@@ -15,10 +15,11 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from "@/components/ui/input"; // Added this import
 import type { VerificationRequestItem, VerificationStatus, VerificationQueueStatus } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertTriangle } from "lucide-react";
+// import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"; // Not used directly, can be removed if only for confirmation which is internal
+// import { AlertTriangle } from "lucide-react"; // Not used directly
 
 interface UpdateVerificationStatusDialogProps {
   isOpen: boolean;
@@ -44,8 +45,14 @@ export function UpdateVerificationStatusDialog({
       setSelectedOperationalStatus(request.operationalStatus);
       setSelectedProfileStatus(request.profileStatus);
       setAdminNotes(request.adminNotes || '');
+    } else {
+      // Reset if request becomes null (dialog closed and reopened without a request object)
+      setSelectedOperationalStatus(undefined);
+      setSelectedProfileStatus(undefined);
+      setAdminNotes('');
     }
-  }, [request]);
+    setShowConfirmation(false); // Ensure confirmation is reset when request changes or dialog opens
+  }, [request, isOpen]); // Added isOpen to reset on reopen too
 
   if (!request) return null;
 
@@ -64,19 +71,18 @@ export function UpdateVerificationStatusDialog({
         setShowConfirmation(true);
     } else {
         toast({ title: "No Changes", description: "No changes were made to the statuses or notes." });
-        onOpenChange(false); // Close dialog if no changes
+        onOpenChange(false); 
     }
   };
 
   const handleConfirmSave = () => {
-    if (!selectedOperationalStatus || !selectedProfileStatus) return; // Should not happen if button enabled
+    if (!selectedOperationalStatus || !selectedProfileStatus) return; 
     onSave(request.id, selectedOperationalStatus, selectedProfileStatus, adminNotes);
     setShowConfirmation(false);
-    onOpenChange(false); // Close main dialog
+    onOpenChange(false); 
   };
   
   const handleCancel = () => {
-    // Reset state to original values when dialog is closed without saving
     if (request) {
         setSelectedOperationalStatus(request.operationalStatus);
         setSelectedProfileStatus(request.profileStatus);
@@ -188,5 +194,3 @@ export function UpdateVerificationStatusDialog({
     </Dialog>
   );
 }
-
-    
