@@ -15,7 +15,7 @@ import {
   SidebarTrigger,
   SidebarSeparator,
   SidebarFooter,
-  SidebarInset // Added SidebarInset here
+  SidebarInset
 } from '@/components/ui/sidebar';
 import { Logo } from '@/components/shared/logo';
 import { Button } from '@/components/ui/button';
@@ -32,11 +32,10 @@ import {
   MessageSquareQuote,
   Home,
   Mail,
-  Briefcase, // Added for My Listings
-  ShieldCheck // Added for Verification
+  Briefcase,
+  ShieldCheck
 } from 'lucide-react';
 import type { UserRole } from '@/lib/types';
-// NobridgeIcon import is removed as we are standardizing to Lucide icons
 
 const currentUserRole: UserRole | null = 'seller';
 
@@ -69,7 +68,7 @@ export default function SellerDashboardLayout({
   if (currentUserRole !== 'seller') {
      return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background">
-        <Logo size="2xl" />
+        <Logo size="2xl" forceTheme="light"/>
         <p className="mt-4 text-lg text-muted-foreground">Access Denied or incorrect role. This is the Seller Dashboard.</p>
         <Button asChild className="mt-4"><Link href="/">Go to Homepage</Link></Button>
       </div>
@@ -82,7 +81,7 @@ export default function SellerDashboardLayout({
         <Sidebar variant="sidebar" className="border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
           <SidebarHeader className="p-4 border-b border-sidebar-border">
             <div className="flex items-center justify-between">
-              <Logo size="lg" />
+              <Logo size="lg" forceTheme="light" />
               <SidebarTrigger className="md:hidden" />
             </div>
           </SidebarHeader>
@@ -90,7 +89,6 @@ export default function SellerDashboardLayout({
             <SidebarMenu>
               {sellerSidebarNavItems.map((item) => {
                 const IconComponent = item.icon;
-                // Simplified icon props handling, assuming Lucide icons directly
                 const iconProps = { className:"h-5 w-5 mr-3 shrink-0" };
 
                 const overviewPath = '/seller-dashboard';
@@ -154,10 +152,10 @@ export default function SellerDashboardLayout({
         </Sidebar>
         <SidebarInset className="flex-grow flex flex-col overflow-hidden">
            <header className="md:hidden flex items-center justify-between p-2 border-b bg-card sticky top-0 z-10">
-              <Logo size="lg" />
+              <Logo size="lg" forceTheme="light" />
               <SidebarTrigger/>
             </header>
-            <div className="flex-grow flex flex-col">
+            <div className="p-6 md:p-8 lg:p-10 flex-grow flex flex-col overflow-y-auto"> {/* Increased padding */}
               {children}
             </div>
         </SidebarInset>

@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation'; // Added useRouter
 import {
   SidebarProvider,
   Sidebar,
@@ -15,7 +15,7 @@ import {
   SidebarTrigger,
   SidebarSeparator,
   SidebarFooter,
-  SidebarInset // Added SidebarInset here
+  SidebarInset
 } from '@/components/ui/sidebar';
 import { Logo } from '@/components/shared/logo';
 import { Button } from '@/components/ui/button';
@@ -29,18 +29,17 @@ import {
   FileText,
   MessageSquareQuote,
   Home,
-  Briefcase, // For Listing Management
-  ShieldCheck, // For Verification
-  LineChart // For Analytics (instead of NobridgeIcon growth)
+  Briefcase,
+  ShieldCheck,
+  LineChart
 } from 'lucide-react';
-// NobridgeIcon imports removed
 
 const adminSidebarNavItems = [
   { title: 'Dashboard', href: '/admin', icon: LayoutDashboard, tooltip: "Admin Overview" },
   { title: 'User Management', href: '/admin/users', icon: Users, tooltip: "Manage Users" },
   { title: 'Listing Management', href: '/admin/listings', icon: Briefcase, tooltip: "Manage Listings" },
   { title: 'Buyer Verification', href: '/admin/verification-queue/buyers', icon: ShieldCheck, tooltip: "Buyer Verifications" },
-  { title: 'Seller/Listing Verification', href: '/admin/verification-queue/sellers', icon: ShieldCheck, tooltip: "Seller/Listing Verifications" }, // Reused ShieldCheck, could be specific if available
+  { title: 'Seller/Listing Verification', href: '/admin/verification-queue/sellers', icon: ShieldCheck, tooltip: "Seller/Listing Verifications" },
   { title: 'Engagement Queue', href: '/admin/engagement-queue', icon: BellRing, tooltip: "Engagement Queue" },
   { title: 'Conversations', href: '/admin/conversations', icon: MessageSquare, tooltip: "Platform Conversations" },
   { title: 'Analytics', href: '/admin/analytics', icon: LineChart, tooltip: "Platform Analytics" },
@@ -53,7 +52,8 @@ const utilityNavItems = [
   { title: 'Back to Homepage', href: '/', icon: Home, tooltip: "Go to Nobridge Homepage" },
 ];
 
-const isAdminAuthenticated = true;
+// Placeholder for authentication logic
+const isAdminAuthenticated = true; // In a real app, check session/token
 
 export default function AdminLayout({
   children,
@@ -61,14 +61,21 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter(); // Initialize router
+
+  // Placeholder authentication check
+  React.useEffect(() => {
+    if (!isAdminAuthenticated && pathname !== '/admin/login') {
+      // console.warn("Admin not authenticated, redirecting to /admin/login.");
+      router.push('/admin/login'); // Or replace for no back history
+    }
+  }, [pathname, router]);
+
 
   if (!isAdminAuthenticated && pathname !== '/admin/login') {
-    if (typeof window !== 'undefined') {
-      console.warn("Admin not authenticated, redirect to /admin/login would happen here via router.");
-    }
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background">
-        <Logo size="2xl" />
+        <Logo size="2xl" forceTheme="light" />
         <p className="mt-4 text-lg text-muted-foreground">Access Denied. Redirecting to login...</p>
       </div>
     );
@@ -82,13 +89,18 @@ export default function AdminLayout({
     );
   }
 
+  const handleAdminLogout = () => {
+    console.log("Admin logout triggered. Implement actual logout logic here.");
+    // Example: auth.signOut(); router.push('/admin/login');
+  };
+
   return (
     <SidebarProvider defaultOpen>
       <div className="flex min-h-screen">
         <Sidebar variant="sidebar" className="border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
           <SidebarHeader className="p-4 border-b border-sidebar-border">
             <div className="flex items-center justify-between">
-              <Logo size="lg" />
+              <Logo size="lg" forceTheme="light" />
               <SidebarTrigger className="md:hidden" />
             </div>
           </SidebarHeader>
@@ -96,7 +108,7 @@ export default function AdminLayout({
             <SidebarMenu>
               {adminSidebarNavItems.map((item) => {
                 const IconComponent = item.icon;
-                const iconProps = { className:"h-5 w-5 mr-3 shrink-0" }; // Standard props for Lucide icons
+                const iconProps = { className:"h-5 w-5 mr-3 shrink-0" };
                 return (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
@@ -134,18 +146,22 @@ export default function AdminLayout({
             </SidebarMenu>
           </SidebarContent>
           <SidebarFooter className="p-4 border-t border-sidebar-border">
-            <Button variant="outline" className="w-full text-destructive-foreground bg-destructive hover:bg-destructive/90">
+            <Button 
+              variant="outline" 
+              className="w-full text-destructive-foreground bg-destructive hover:bg-destructive/90"
+              onClick={handleAdminLogout}
+            >
               <LogOut className="h-5 w-5 mr-2 shrink-0" />
               <span className="truncate">Logout Admin</span>
             </Button>
           </SidebarFooter>
         </Sidebar>
-        <SidebarInset className="flex-grow flex flex-col overflow-auto">
+        <SidebarInset className="flex-grow flex flex-col overflow-hidden">
            <header className="md:hidden flex items-center justify-between p-4 border-b bg-card sticky top-0 z-10">
-              <Logo size="lg" />
+              <Logo size="lg" forceTheme="light" />
               <SidebarTrigger/>
            </header>
-           <div className="p-4 md:p-6 lg:p-8 flex-1 overflow-y-auto">
+           <div className="p-6 md:p-8 lg:p-10 flex-1 overflow-y-auto"> {/* Increased padding */}
             {children}
            </div>
         </SidebarInset>
