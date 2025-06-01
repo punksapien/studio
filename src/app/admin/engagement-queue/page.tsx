@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { sampleReadyToEngageItems, sampleConversations, sampleInquiries } from "@/lib/placeholder-data"; // Updated to sampleInquiries
+import { sampleReadyToEngageItems, sampleConversations, sampleInquiries, sampleUsers, sampleListings } from "@/lib/placeholder-data"; // Updated to sampleInquiries, added sampleUsers, sampleListings
 import type { Inquiry, User, VerificationStatus, ListingStatus } from "@/lib/types"; // Updated to Inquiry
 import Link from "next/link";
 import { Eye, Mail, Archive, ShieldCheck, AlertTriangle, CheckCircle2 } from "lucide-react";
@@ -179,3 +179,4 @@ export default function AdminEngagementQueuePage() {
     </div>
   );
 }
+
