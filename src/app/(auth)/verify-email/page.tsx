@@ -1,4 +1,3 @@
-
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -45,13 +44,13 @@ function VerifyEmailContent() {
       otp: "",
     },
   });
-  
+
   useEffect(() => {
     const tokenFromUrl = searchParams.get("token");
-    if (tokenFromUrl && email && (type === 'register' || type === 'email')) { 
-      form.setValue('otp', tokenFromUrl.substring(0, 6)); 
+    if (tokenFromUrl && email && (type === 'register' || type === 'email')) {
+      form.setValue('otp', tokenFromUrl.substring(0, 6));
     }
-  }, [searchParams, email, type, form]); 
+  }, [searchParams, email, type, form]);
 
   if (!email) {
     return (
@@ -71,7 +70,7 @@ function VerifyEmailContent() {
     );
   }
 
-  const validTypes = ['register', 'login', 'password-reset', 'email_change', 'recovery', 'email']; 
+  const validTypes = ['register', 'login', 'password-reset', 'email_change', 'recovery', 'email'];
   if (!validTypes.includes(type)) {
     return (
       <AuthCardWrapper
@@ -100,14 +99,39 @@ function VerifyEmailContent() {
       try {
         const verificationTypeForSupabase = type === 'register' ? 'email' : type;
 
-        await auth.verifyEmailOtp(email, values.otp); 
-        setSuccess("Email verified successfully! Redirecting...");
-        toast({
-          title: "Email Verified!",
-          description: "Your account has been activated. Redirecting to login..."
-        });
-        const nextUrl = searchParams.get("next") || '/auth/login';
-        setTimeout(() => router.push(nextUrl), 2000);
+        // Verify the OTP - this automatically logs the user in
+        const result = await auth.verifyEmailOtp(email, values.otp);
+
+        if (result.user) {
+          // Get the user's profile to determine their role and redirect appropriately
+          const profile = await auth.getCurrentUserProfile();
+
+          setSuccess("Email verified successfully! Logging you in...");
+          toast({
+            title: "Welcome to Nobridge!",
+            description: "Your email has been verified and you're now logged in."
+          });
+
+          // Redirect to appropriate dashboard based on role
+          let redirectUrl = '/';
+          if (profile?.role === 'seller') {
+            redirectUrl = '/seller-dashboard';
+          } else if (profile?.role === 'buyer') {
+            redirectUrl = '/dashboard';
+          } else if (profile?.role === 'admin') {
+            redirectUrl = '/admin';
+          }
+
+          // Check if there's a specific redirect URL
+          const nextUrl = searchParams.get("next");
+          if (nextUrl) {
+            redirectUrl = nextUrl;
+          }
+
+          setTimeout(() => router.push(redirectUrl), 1500);
+        } else {
+          throw new Error('Verification succeeded but no user session was created');
+        }
 
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Verification failed. The code may be invalid or expired.';
@@ -130,7 +154,7 @@ function VerifyEmailContent() {
 
     startTransition(async () => {
       try {
-        await auth.resendVerificationForEmail(email); 
+        await auth.resendVerificationForEmail(email);
         toast({
           title: "Verification Email Resent",
           description: `A new verification email has been sent to ${email}. Please check your inbox and spam folder.`,
@@ -171,13 +195,13 @@ function VerifyEmailContent() {
           <Info className="h-4 w-4 text-primary/80" />
           <AlertTitle className="text-primary/90 font-medium">Two Ways to Verify!</AlertTitle>
           <AlertDescription className="text-sm text-primary/80">
-            Your email contains a <strong>6-digit code</strong> to enter below, and a 
+            Your email contains a <strong>6-digit code</strong> to enter below, and a
             <strong> one-click link</strong> to verify instantly.
             <br/>
             Can&apos;t find it? Check your spam/junk folder or resend the email.
           </AlertDescription>
         </Alert>
-        
+
         <Card>
           <CardHeader>
             <CardTitle className="text-xl text-center">Enter Verification Code</CardTitle>
@@ -213,7 +237,7 @@ function VerifyEmailContent() {
             </Form>
           </CardContent>
         </Card>
-        
+
         <div className="text-center pt-4 border-t">
           <p className="text-sm text-muted-foreground mb-3">
             Didn&apos;t receive the email or need a new code?

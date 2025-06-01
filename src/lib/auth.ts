@@ -59,6 +59,11 @@ export const auth = {
     return user
   },
 
+  // Get current user session
+  async getCurrentUserAndSession() {
+    return supabase.auth.getSession()
+  },
+
   // Get current user's profile
   async getCurrentUserProfile(): Promise<UserProfile | null> {
     const user = await this.getCurrentUser()
@@ -157,11 +162,30 @@ export const auth = {
           })
         })
 
-        const result = await response.json()
+        let result
+        let rawText
+        try {
+          rawText = await response.text()
+          result = JSON.parse(rawText)
+        } catch (jsonError) {
+          console.error('Failed to parse API response as JSON:', jsonError)
+          console.error('Response status:', response.status)
+          console.error('Response statusText:', response.statusText)
+          console.error('Raw response body:', rawText)
+          console.warn('Profile creation failed due to invalid API response, but user account was created. User can complete profile setup later.')
+          return authData
+        }
 
         if (!response.ok) {
-          console.error('Profile creation API failed:', result)
-          console.warn('Profile creation failed, but user account was created. User can complete profile setup later.')
+          // HTTP 409 means profile already exists - this is fine, not an error
+          if (response.status === 409) {
+            console.log('Profile already exists for user - continuing with registration')
+          } else {
+            console.error('Profile creation API failed:', result)
+            console.error('Response status:', response.status)
+            console.error('Response statusText:', response.statusText)
+            console.warn('Profile creation failed, but user account was created. User can complete profile setup later.')
+          }
         } else {
           console.log('Profile created successfully via API:', result.profile)
         }
