@@ -14,7 +14,8 @@ import {
   SidebarMenuButton,
   SidebarTrigger,
   SidebarSeparator,
-  SidebarFooter
+  SidebarFooter,
+  SidebarInset // Added SidebarInset here
 } from '@/components/ui/sidebar';
 import { Logo } from '@/components/shared/logo';
 import { Button } from '@/components/ui/button';
@@ -28,28 +29,31 @@ import {
   FileText,
   MessageSquareQuote,
   Home,
+  Briefcase, // For Listing Management
+  ShieldCheck, // For Verification
+  LineChart // For Analytics (instead of NobridgeIcon growth)
 } from 'lucide-react';
-import { NobridgeIcon, NobridgeIconType } from '@/components/ui/nobridge-icon';
+// NobridgeIcon imports removed
 
 const adminSidebarNavItems = [
   { title: 'Dashboard', href: '/admin', icon: LayoutDashboard, tooltip: "Admin Overview" },
   { title: 'User Management', href: '/admin/users', icon: Users, tooltip: "Manage Users" },
-  { title: 'Listing Management', href: '/admin/listings', icon: NobridgeIcon, iconProps: { icon: 'business-listing' as NobridgeIconType }, tooltip: "Manage Listings" },
-  { title: 'Buyer Verification', href: '/admin/verification-queue/buyers', icon: NobridgeIcon, iconProps: { icon: 'verification' as NobridgeIconType }, tooltip: "Buyer Verifications" },
-  { title: 'Seller/Listing Verification', href: '/admin/verification-queue/sellers', icon: NobridgeIcon, iconProps: {icon: 'due-diligence' as NobridgeIconType }, tooltip: "Seller/Listing Verifications" },
+  { title: 'Listing Management', href: '/admin/listings', icon: Briefcase, tooltip: "Manage Listings" },
+  { title: 'Buyer Verification', href: '/admin/verification-queue/buyers', icon: ShieldCheck, tooltip: "Buyer Verifications" },
+  { title: 'Seller/Listing Verification', href: '/admin/verification-queue/sellers', icon: ShieldCheck, tooltip: "Seller/Listing Verifications" }, // Reused ShieldCheck, could be specific if available
   { title: 'Engagement Queue', href: '/admin/engagement-queue', icon: BellRing, tooltip: "Engagement Queue" },
   { title: 'Conversations', href: '/admin/conversations', icon: MessageSquare, tooltip: "Platform Conversations" },
-  { title: 'Analytics', href: '/admin/analytics', icon: NobridgeIcon, iconProps: { icon: 'growth' as NobridgeIconType }, tooltip: "Platform Analytics" },
+  { title: 'Analytics', href: '/admin/analytics', icon: LineChart, tooltip: "Platform Analytics" },
 ];
 
 const utilityNavItems = [
   { title: 'Help', href: '/help', icon: HelpCircle, tooltip: "Get Help" },
-  { title: 'Refer Docs', href: '/docs', icon: NobridgeIcon, iconProps: {icon: 'documents' as NobridgeIconType}, tooltip: "View Documentation" },
+  { title: 'Refer Docs', href: '/docs', icon: FileText, tooltip: "View Documentation" },
   { title: 'FAQ', href: '/faq', icon: MessageSquareQuote, tooltip: "Frequently Asked Questions" },
   { title: 'Back to Homepage', href: '/', icon: Home, tooltip: "Go to Nobridge Homepage" },
 ];
 
-const isAdminAuthenticated = true; 
+const isAdminAuthenticated = true;
 
 export default function AdminLayout({
   children,
@@ -91,8 +95,8 @@ export default function AdminLayout({
           <SidebarContent className="flex-grow">
             <SidebarMenu>
               {adminSidebarNavItems.map((item) => {
-                const IconComponent = item.icon; // Lucide or NobridgeIcon
-                const iconProps = item.iconProps ? { ...item.iconProps, size: 'sm' as const, className:"mr-3 shrink-0" } : { className:"h-5 w-5 mr-3 shrink-0" };
+                const IconComponent = item.icon;
+                const iconProps = { className:"h-5 w-5 mr-3 shrink-0" }; // Standard props for Lucide icons
                 return (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
@@ -112,7 +116,7 @@ export default function AdminLayout({
             <SidebarMenu>
               {utilityNavItems.map((item) => {
                 const IconComponent = item.icon;
-                const iconProps = item.iconProps ? { ...item.iconProps, size: 'sm' as const, className:"mr-3 shrink-0" } : { className:"h-5 w-5 mr-3 shrink-0" };
+                const iconProps = { className:"h-5 w-5 mr-3 shrink-0" };
                 return (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
@@ -137,11 +141,11 @@ export default function AdminLayout({
           </SidebarFooter>
         </Sidebar>
         <SidebarInset className="flex-grow flex flex-col overflow-auto">
-           <header className="md:hidden flex items-center justify-between p-4 border-b bg-card sticky top-0 z-10"> 
+           <header className="md:hidden flex items-center justify-between p-4 border-b bg-card sticky top-0 z-10">
               <Logo size="lg" />
               <SidebarTrigger/>
            </header>
-           <div className="p-4 md:p-6 lg:p-8 flex-1 overflow-y-auto"> 
+           <div className="p-4 md:p-6 lg:p-8 flex-1 overflow-y-auto">
             {children}
            </div>
         </SidebarInset>

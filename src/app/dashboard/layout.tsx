@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import * as React from 'react'; 
+import * as React from 'react';
 import {
   SidebarProvider,
   Sidebar,
@@ -14,14 +14,15 @@ import {
   SidebarMenuButton,
   SidebarTrigger,
   SidebarSeparator,
-  SidebarFooter
+  SidebarFooter,
+  SidebarInset // Added SidebarInset here
 } from '@/components/ui/sidebar';
 import { Logo } from '@/components/shared/logo';
 import { Button } from '@/components/ui/button';
 import {
   LayoutDashboard,
   UserCircle,
-  MessageSquare, 
+  MessageSquare,
   Settings,
   LogOut,
   Bell,
@@ -30,19 +31,20 @@ import {
   FileText,
   MessageSquareQuote,
   Home,
-  Mail 
+  Mail,
+  ShieldCheck // Added for Verification
 } from 'lucide-react';
 import type { UserRole } from '@/lib/types';
-import { NobridgeIcon, NobridgeIconType } from '@/components/ui/nobridge-icon';
+// NobridgeIcon import is removed
 
-const currentUserRole: UserRole | null = 'buyer'; 
+const currentUserRole: UserRole | null = 'buyer';
 
 const buyerSidebarNavItems = [
   { title: 'Overview', href: '/dashboard', icon: LayoutDashboard, tooltip: "Dashboard Overview" },
   { title: 'My Profile', href: '/dashboard/profile', icon: UserCircle, tooltip: "Manage Profile" },
   { title: 'My Inquiries', href: '/dashboard/inquiries', icon: MessageSquare, tooltip: "View Inquiries" },
-  { title: 'Messages', href: '/dashboard/messages', icon: Mail, tooltip: "My Conversations" }, 
-  { title: 'Verification', href: '/dashboard/verification', icon: NobridgeIcon, iconProps: { icon: 'verification' as NobridgeIconType }, tooltip: "Account Verification" },
+  { title: 'Messages', href: '/dashboard/messages', icon: Mail, tooltip: "My Conversations" },
+  { title: 'Verification', href: '/dashboard/verification', icon: ShieldCheck, tooltip: "Account Verification" },
   { title: 'Notifications', href: '/dashboard/notifications', icon: Bell, tooltip: "My Notifications" },
   { title: 'Settings', href: '/dashboard/settings', icon: Settings, tooltip: "Account Settings" },
 ];
@@ -50,7 +52,7 @@ const buyerSidebarNavItems = [
 const utilityNavItems = [
   { title: 'Marketplace', href: '/marketplace', icon: ShoppingCart, tooltip: "Browse Marketplace" },
   { title: 'Help', href: '/help', icon: HelpCircle, tooltip: "Get Help" },
-  { title: 'Refer Docs', href: '/docs', icon: NobridgeIcon, iconProps: { icon: 'documents' as NobridgeIconType}, tooltip: "View Documentation" },
+  { title: 'Refer Docs', href: '/docs', icon: FileText, tooltip: "View Documentation" },
   { title: 'FAQ', href: '/faq', icon: MessageSquareQuote, tooltip: "Frequently Asked Questions" },
   { title: 'Back to Homepage', href: '/', icon: Home, tooltip: "Go to Homepage" },
 ];
@@ -73,9 +75,9 @@ export default function DashboardLayout({
   }
 
   return (
-    <SidebarProvider defaultOpen> 
-      <div className="flex min-h-screen"> 
-        <Sidebar variant="sidebar" className="border-r border-sidebar-border bg-sidebar text-sidebar-foreground"> 
+    <SidebarProvider defaultOpen>
+      <div className="flex min-h-screen">
+        <Sidebar variant="sidebar" className="border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
           <SidebarHeader className="p-4 border-b border-sidebar-border">
             <div className="flex items-center justify-between">
               <Logo size="lg" />
@@ -86,7 +88,7 @@ export default function DashboardLayout({
             <SidebarMenu>
               {buyerSidebarNavItems.map((item) => {
                  const IconComponent = item.icon;
-                 const iconProps = item.iconProps ? { ...item.iconProps, size: 'sm' as const, className:"mr-3 shrink-0" } : { className:"h-5 w-5 mr-3 shrink-0" };
+                 const iconProps = { className:"h-5 w-5 mr-3 shrink-0" };
                 return (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
@@ -94,8 +96,8 @@ export default function DashboardLayout({
                     isActive={pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))}
                     tooltip={{ children: item.tooltip, className: "bg-primary text-primary-foreground" }}
                   >
-                    <Link href={item.href} className="flex items-center"> 
-                      <IconComponent {...iconProps} /> 
+                    <Link href={item.href} className="flex items-center">
+                      <IconComponent {...iconProps} />
                       <span className="truncate">{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
@@ -106,7 +108,7 @@ export default function DashboardLayout({
             <SidebarMenu>
               {utilityNavItems.map((item) => {
                  const IconComponent = item.icon;
-                 const iconProps = item.iconProps ? { ...item.iconProps, size: 'sm' as const, className:"mr-3 shrink-0" } : { className:"h-5 w-5 mr-3 shrink-0" };
+                 const iconProps = { className:"h-5 w-5 mr-3 shrink-0" };
                 return (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
@@ -124,8 +126,8 @@ export default function DashboardLayout({
             </SidebarMenu>
           </SidebarContent>
           <SidebarFooter className="p-4 border-t border-sidebar-border">
-            <Button variant="outline" className="w-full text-destructive-foreground bg-destructive hover:bg-destructive/90 flex items-center justify-center"> 
-              <LogOut className="h-5 w-5 mr-2" /> 
+            <Button variant="outline" className="w-full text-destructive-foreground bg-destructive hover:bg-destructive/90 flex items-center justify-center">
+              <LogOut className="h-5 w-5 mr-2" />
               <span className="truncate">Logout</span>
             </Button>
           </SidebarFooter>
