@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation'; // Added useRouter
+import { usePathname, useRouter } from 'next/navigation';
 import {
   SidebarProvider,
   Sidebar,
@@ -23,7 +23,6 @@ import {
   LayoutDashboard,
   Users,
   MessageSquare,
-  BellRing,
   LogOut,
   HelpCircle,
   FileText,
@@ -31,7 +30,8 @@ import {
   Home,
   Briefcase,
   ShieldCheck,
-  LineChart
+  LineChart,
+  BellRing
 } from 'lucide-react';
 
 const adminSidebarNavItems = [
@@ -52,8 +52,7 @@ const utilityNavItems = [
   { title: 'Back to Homepage', href: '/', icon: Home, tooltip: "Go to Nobridge Homepage" },
 ];
 
-// Placeholder for authentication logic
-const isAdminAuthenticated = true; // In a real app, check session/token
+const isAdminAuthenticated = true; // Placeholder for actual auth check
 
 export default function AdminLayout({
   children,
@@ -61,13 +60,12 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const router = useRouter(); // Initialize router
+  const router = useRouter();
 
-  // Placeholder authentication check
   React.useEffect(() => {
     if (!isAdminAuthenticated && pathname !== '/admin/login') {
       // console.warn("Admin not authenticated, redirecting to /admin/login.");
-      router.push('/admin/login'); // Or replace for no back history
+      router.push('/admin/login');
     }
   }, [pathname, router]);
 
@@ -91,13 +89,13 @@ export default function AdminLayout({
 
   const handleAdminLogout = () => {
     console.log("Admin logout triggered. Implement actual logout logic here.");
-    // Example: auth.signOut(); router.push('/admin/login');
+    // Example: await auth.signOut(); router.push('/admin/login');
   };
 
   return (
     <SidebarProvider defaultOpen>
       <div className="flex min-h-screen">
-        <Sidebar variant="sidebar" className="border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
+        <Sidebar variant="sidebar" className="h-screen sticky top-0 border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
           <SidebarHeader className="p-4 border-b border-sidebar-border">
             <div className="flex items-center justify-between">
               <Logo size="lg" forceTheme="light" />
@@ -161,7 +159,7 @@ export default function AdminLayout({
               <Logo size="lg" forceTheme="light" />
               <SidebarTrigger/>
            </header>
-           <div className="p-6 md:p-8 lg:p-10 flex-1 overflow-y-auto"> {/* Increased padding */}
+           <div className="p-6 md:p-8 lg:p-10 flex-1 overflow-y-auto">
             {children}
            </div>
         </SidebarInset>

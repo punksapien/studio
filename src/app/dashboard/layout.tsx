@@ -76,7 +76,7 @@ export default function DashboardLayout({
   return (
     <SidebarProvider defaultOpen>
       <div className="flex min-h-screen">
-        <Sidebar variant="sidebar" className="border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
+        <Sidebar variant="sidebar" className="h-screen sticky top-0 border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
           <SidebarHeader className="p-4 border-b border-sidebar-border">
             <div className="flex items-center justify-between">
               <Logo size="lg" forceTheme="light" />
@@ -136,7 +136,7 @@ export default function DashboardLayout({
               <Logo size="lg" forceTheme="light" />
               <SidebarTrigger/>
             </header>
-            <div className="p-6 md:p-8 lg:p-10 flex-grow flex flex-col overflow-y-auto"> {/* Increased padding */}
+            <div className="p-6 md:p-8 lg:p-10 flex-grow flex flex-col overflow-y-auto">
              {children}
             </div>
         </SidebarInset>
