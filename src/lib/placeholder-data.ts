@@ -1,5 +1,5 @@
 
-import type { Listing, User, AdminDashboardMetrics, VerificationRequestItem, Inquiry, NotificationItem, ListingStatus, Conversation, Message } from './types';
+import type { Listing, User, AdminDashboardMetrics, VerificationRequestItem, Inquiry, NotificationItem, ListingStatus, Conversation, Message, VerificationStatus } from './types';
 import { BuyerPersonaTypes, PreferredInvestmentSizes, industries, asianCountries, revenueRanges, profitMarginRanges, dealStructures, employeeCountRanges, placeholderKeywords } from './types';
 
 
@@ -12,13 +12,14 @@ export const sampleUsers: User[] = [
     country: 'Singapore',
     role: 'seller',
     isEmailVerified: true,
-    verificationStatus: 'verified',
+    verificationStatus: 'verified', // Profile Status
     isPaid: true,
     initialCompanyName: 'JD Web Solutions Pte Ltd',
     createdAt: new Date('2023-01-10T09:00:00Z'),
     updatedAt: new Date('2023-01-15T14:30:00Z'),
     lastLogin: new Date('2024-05-20T10:00:00Z'),
     listingCount: 2,
+    inquiryCount: 0,
   },
   {
     id: 'user2',
@@ -28,7 +29,7 @@ export const sampleUsers: User[] = [
     country: 'Malaysia',
     role: 'buyer',
     isEmailVerified: true,
-    verificationStatus: 'verified',
+    verificationStatus: 'verified', // Profile Status
     isPaid: true,
     buyerPersonaType: BuyerPersonaTypes[0],
     investmentFocusDescription: "Early-stage SaaS and e-commerce businesses in Southeast Asia with strong growth potential.",
@@ -47,13 +48,14 @@ export const sampleUsers: User[] = [
     country: 'Vietnam',
     role: 'seller',
     isEmailVerified: true,
-    verificationStatus: 'anonymous',
+    verificationStatus: 'anonymous', // Profile Status
     isPaid: false,
     initialCompanyName: 'Anonymous SaaS Co.',
     createdAt: new Date('2023-03-20T16:00:00Z'),
     updatedAt: new Date('2023-03-20T16:00:00Z'),
     lastLogin: new Date('2024-05-19T09:00:00Z'),
     listingCount: 1,
+    inquiryCount: 0,
   },
    {
     id: 'user4',
@@ -63,7 +65,7 @@ export const sampleUsers: User[] = [
     country: 'Thailand',
     role: 'buyer',
     isEmailVerified: true,
-    verificationStatus: 'pending_verification',
+    verificationStatus: 'pending_verification', // Profile Status
     isPaid: false,
     buyerPersonaType: BuyerPersonaTypes[1],
     investmentFocusDescription: "Mid-market companies in consumer goods and services with established revenue streams. Looking for majority stakes.",
@@ -82,7 +84,7 @@ export const sampleUsers: User[] = [
     country: 'Indonesia',
     role: 'buyer',
     isEmailVerified: true,
-    verificationStatus: 'verified',
+    verificationStatus: 'verified', // Profile Status
     isPaid: false,
     buyerPersonaType: BuyerPersonaTypes[2],
     investmentFocusDescription: "Acquiring businesses to integrate into our existing portfolio, primarily in logistics and supply chain.",
@@ -101,7 +103,7 @@ export const sampleUsers: User[] = [
     country: 'Philippines',
     role: 'buyer',
     isEmailVerified: true,
-    verificationStatus: 'anonymous',
+    verificationStatus: 'anonymous', // Profile Status
     isPaid: false,
     buyerPersonaType: BuyerPersonaTypes[0],
     investmentFocusDescription: "Looking for small, profitable online businesses to operate and grow.",
@@ -110,7 +112,7 @@ export const sampleUsers: User[] = [
     createdAt: new Date('2023-06-15T09:00:00Z'),
     updatedAt: new Date('2023-06-15T09:00:00Z'),
     lastLogin: new Date('2024-05-17T10:00:00Z'),
-    inquiryCount: 2, // Updated from 1 to 2 for new inquiry
+    inquiryCount: 2,
   },
 ];
 
@@ -221,7 +223,7 @@ export const sampleListings: Listing[] = [
   },
    {
     id: '4',
-    sellerId: 'user3', // Changed to user3 to have an unverified seller with a listing for engagement queue
+    sellerId: 'user3',
     listingTitleAnonymous: 'Modern Cafe in Tourist Hotspot',
     industry: 'Retail',
     locationCountry: 'Thailand',
@@ -232,20 +234,20 @@ export const sampleListings: Listing[] = [
     netProfitMarginRange: '15% - 25%',
     askingPrice: 220000,
     adjustedCashFlow: 65000,
-    status: 'pending_verification', // This listing is pending verification.
-    isSellerVerified: false, // Seller is not yet verified.
+    status: 'pending_verification',
+    isSellerVerified: false,
     businessModel: "Brick-and-mortar retail cafe",
     yearEstablished: 2021,
     createdAt: new Date('2023-12-01T09:00:00Z'),
     updatedAt: new Date('2023-12-01T09:00:00Z'),
     imageUrls: ['https://placehold.co/800x600.png'],
-    inquiryCount: 1, // One inquiry made to this
+    inquiryCount: 1,
   },
 ];
 
-export let sampleInquiries: Inquiry[] = [ // Changed from const to let
+export let sampleInquiries: Inquiry[] = [
   {
-    id: 'inq_b1', // Buyer Jane (user2, verified) inquires Seller John (user1, verified) for Listing 1
+    id: 'inq_b1',
     listingId: '1',
     listingTitleAnonymous: 'Profitable E-commerce Store in SEA',
     sellerId: 'user1',
@@ -254,25 +256,25 @@ export let sampleInquiries: Inquiry[] = [ // Changed from const to let
     buyerVerificationStatus: 'verified',
     inquiryTimestamp: new Date('2023-11-10T10:00:00Z'),
     sellerStatus: 'Platform Verified Seller',
-    status: 'connection_facilitated_in_app_chat_opened', // Admin already facilitated
+    status: 'connection_facilitated_in_app_chat_opened',
     statusBuyerPerspective: 'Connection Facilitated - Chat Open',
     statusSellerPerspective: 'Connection Facilitated - Chat Open',
-    conversationId: 'conv1', // Has an active conversation
+    conversationId: 'conv1',
     createdAt: new Date('2023-11-10T10:00:00Z'),
     updatedAt: new Date('2023-11-11T10:00:00Z'),
     engagementTimestamp: new Date('2023-11-10T10:30:00Z'),
   },
   {
-    id: 'inq_b2', // Buyer Jane (user2, verified) inquires Seller Alex (user3, anonymous) for Listing 2
+    id: 'inq_b2',
     listingId: '2',
     listingTitleAnonymous: 'Established SaaS Platform - B2B Niche',
-    sellerId: 'user3', // Alex Tan (anonymous seller)
-    buyerId: 'user2', // Jane Smith (verified buyer)
+    sellerId: 'user3',
+    buyerId: 'user2',
     buyerName: 'Jane Smith (Buyer)',
     buyerVerificationStatus: 'verified',
     inquiryTimestamp: new Date('2023-11-08T15:30:00Z'),
     sellerStatus: 'Anonymous Seller',
-    status: 'ready_for_admin_connection', // Seller Alex needs to verify profile, buyer Jane is verified. Now ready for admin.
+    status: 'ready_for_admin_connection',
     statusBuyerPerspective: 'Ready for Admin Connection',
     statusSellerPerspective: 'Ready for Admin Connection',
     createdAt: new Date('2023-11-08T15:30:00Z'),
@@ -280,33 +282,33 @@ export let sampleInquiries: Inquiry[] = [ // Changed from const to let
     engagementTimestamp: new Date('2023-11-09T15:30:00Z'),
   },
   {
-    id: 'inq_b3', // Buyer Anna (user6, anonymous) inquires Seller John (user1, verified) for Listing 1
+    id: 'inq_b3',
     listingId: '1',
     listingTitleAnonymous: 'Profitable E-commerce Store in SEA',
     sellerId: 'user1',
-    buyerId: 'user6', // Anna Tay (anonymous buyer)
+    buyerId: 'user6',
     buyerName: 'Anna Tay (Buyer - Anonymous)',
     buyerVerificationStatus: 'anonymous',
     inquiryTimestamp: new Date('2023-11-12T09:00:00Z'),
     sellerStatus: 'Platform Verified Seller',
-    status: 'seller_engaged_buyer_pending_verification', // Seller John engaged, but buyer Anna needs verification
+    status: 'seller_engaged_buyer_pending_verification',
     statusBuyerPerspective: 'Seller Engaged - Your Verification Required',
     statusSellerPerspective: 'You Engaged - Buyer Verification Pending',
     createdAt: new Date('2023-11-12T09:00:00Z'),
     updatedAt: new Date('2023-11-12T10:00:00Z'),
     engagementTimestamp: new Date('2023-11-12T09:30:00Z'),
   },
-  { // New Inquiry: Buyer Michael (user5, verified) inquires Seller Alex (user3, anonymous) for Listing 4 (pending verification)
+  {
     id: 'inq_b4',
     listingId: '4',
     listingTitleAnonymous: 'Modern Cafe in Tourist Hotspot',
-    sellerId: 'user3', // Alex Tan (anonymous seller)
-    buyerId: 'user5', // Michael Lee (verified buyer)
+    sellerId: 'user3',
+    buyerId: 'user5',
     buyerName: 'Michael Lee (Buyer - Free)',
     buyerVerificationStatus: 'verified',
     inquiryTimestamp: new Date('2024-05-22T14:00:00Z'),
-    sellerStatus: 'Anonymous Seller', // Listing 4's seller is user3 (Alex Tan) who is anonymous
-    status: 'new_inquiry', // New inquiry, seller needs to engage
+    sellerStatus: 'Anonymous Seller',
+    status: 'new_inquiry',
     statusBuyerPerspective: 'Inquiry Sent',
     statusSellerPerspective: 'New Inquiry',
     createdAt: new Date('2024-05-22T14:00:00Z'),
@@ -314,15 +316,14 @@ export let sampleInquiries: Inquiry[] = [ // Changed from const to let
   },
 ];
 
-// Update sampleBuyerInquiries and sampleSellerInquiries based on sampleInquiries
 export const sampleBuyerInquiries: Inquiry[] = sampleInquiries.filter(i => sampleUsers.find(u => u.id === i.buyerId));
 export const sampleSellerInquiries: Inquiry[] = sampleInquiries.filter(i => sampleUsers.find(u => u.id === i.sellerId));
 
 
 const revenueFromBuyersPlaceholder = 5600;
 const revenueFromSellersPlaceholder = 7850;
-const activeSuccessfulConnectionsPlaceholder = sampleInquiries.filter(i => i.status === 'connection_facilitated_in_app_chat_opened').length; // Live count
-const closedSuccessfulConnectionsPlaceholder = 0; // Assuming none are "deal_closed" yet
+const activeSuccessfulConnectionsPlaceholder = sampleInquiries.filter(i => i.status === 'connection_facilitated_in_app_chat_opened').length;
+const closedSuccessfulConnectionsPlaceholder = 0;
 
 export const sampleAdminDashboardMetrics: AdminDashboardMetrics = {
   newUserRegistrations24hSellers: 2,
@@ -353,40 +354,45 @@ export const sampleAdminDashboardMetrics: AdminDashboardMetrics = {
   totalRevenueMTD: revenueFromBuyersPlaceholder + revenueFromSellersPlaceholder,
 };
 
-export const sampleVerificationRequests: VerificationRequestItem[] = [
+export let sampleVerificationRequests: VerificationRequestItem[] = [
   {
-    id: 'vr1',
-    timestamp: new Date('2023-11-10T10:00:00Z'),
+    id: 'vr_user4_profile',
+    timestamp: new Date('2023-04-10T10:05:00Z'), // Corresponds to Sarah Chen's registration
     userId: 'user4',
     userName: 'Sarah Chen (Buyer - Pending)',
     userRole: 'buyer',
     reason: 'New buyer registration, requires profile verification.',
-    status: 'New Request',
-    documentsSubmitted: [{name: 'ID_Proof_Sarah.pdf', type: 'id_proof'}]
+    operationalStatus: 'New Request',
+    profileStatus: 'pending_verification', // User's profile status is pending
+    documentsSubmitted: [{name: 'ID_Proof_Sarah.pdf', type: 'id_proof'}],
+    adminNotes: "Initial request from signup."
   },
   {
-    id: 'vr2',
-    timestamp: new Date('2023-11-09T15:30:00Z'),
+    id: 'vr_user3_listing2',
+    timestamp: new Date('2023-11-02T09:00:00Z'), // After listing 2 was created
     userId: 'user3',
     userName: 'Alex Tan (Seller - Anonymous)',
     userRole: 'seller',
     listingId: '2',
     listingTitle: 'Established SaaS Platform - B2B Niche',
     reason: 'Seller submitted new listing, requires seller and listing verification.',
-    status: 'Contacted',
-    documentsSubmitted: [{name: 'BusinessReg_Alex.pdf', type: 'business_reg'}]
+    operationalStatus: 'Contacted',
+    profileStatus: 'pending_verification', // Assume seller also goes to pending for their profile
+    adminNotes: "Contacted seller on 2023-11-03 for more info."
   },
   {
-    id: 'vr3',
-    timestamp: new Date('2023-11-11T11:00:00Z'),
+    id: 'vr_user5_profile',
+    timestamp: new Date('2023-05-02T11:00:00Z'),
     userId: 'user5',
     userName: 'Michael Lee (Buyer - Free)',
     userRole: 'buyer',
     reason: 'Buyer requested manual verification upgrade.',
-    status: 'Docs Under Review',
+    operationalStatus: 'Docs Under Review',
+    profileStatus: 'pending_verification', // User's profile status is pending
+    adminNotes: "Received ID and proof of funds. Reviewing."
   },
    {
-    id: 'vr4',
+    id: 'vr_user1_profile_reverify',
     timestamp: new Date('2023-11-12T09:00:00Z'),
     userId: 'user1',
     userName: 'John Doe (Seller)',
@@ -394,73 +400,27 @@ export const sampleVerificationRequests: VerificationRequestItem[] = [
     reason: 'Seller requested profile re-verification after significant update.',
     listingId: undefined,
     listingTitle: undefined,
-    status: 'New Request',
-  },
-];
-
-// This variable is no longer needed as Admin Engagement Queue directly filters `sampleInquiries`
-// export const sampleReadyToEngageItems: Inquiry[] = sampleInquiries.filter(i => i.status === 'ready_for_admin_connection');
-
-export const sampleBuyerNotifications: NotificationItem[] = [
-  {
-    id: 'notif1_buyer2',
-    userId: 'user2',
-    timestamp: new Date('2023-11-11T10:05:00Z'),
-    message: "Your connection for listing 'Profitable E-commerce Store in SEA' is now active. You can start messaging directly.",
-    link: '/dashboard/messages/conv1',
-    isRead: false,
-    type: 'new_message'
+    operationalStatus: 'Approved',
+    profileStatus: 'verified', // User's profile is already verified
+    adminNotes: "Reviewed updates, all good. Maintained verified status."
   },
   {
-    id: 'notif2_buyer6',
-    userId: 'user6',
-    timestamp: new Date('2023-11-12T10:05:00Z'),
-    message: "The seller of 'Profitable E-commerce Store in SEA' is ready to engage! To proceed, your profile needs to be verified.",
-    link: '/dashboard/verification',
-    isRead: false,
-    type: 'verification'
-  },
-  {
-    id: 'notif3_buyer2',
-    userId: 'user2',
-    timestamp: new Date('2023-11-09T08:00:00Z'),
-    message: "Your profile information was successfully updated.",
-    isRead: true,
-    type: 'system'
+    id: 'vr_listing4_pending',
+    timestamp: new Date('2023-12-01T09:05:00Z'), // After listing 4 creation
+    userId: 'user3', // Seller Alex Tan
+    userName: 'Alex Tan (Seller - Anonymous)',
+    userRole: 'seller',
+    listingId: '4',
+    listingTitle: 'Modern Cafe in Tourist Hotspot',
+    reason: 'New listing submitted, needs verification.',
+    operationalStatus: 'New Request',
+    profileStatus: 'pending_verification', // Listing and associated seller profile need checking
+    adminNotes: "New listing, follow up with seller."
   }
 ];
 
-export const sampleSellerNotifications: NotificationItem[] = [
-  {
-    id: 'notif1_seller1',
-    userId: 'user1',
-    timestamp: new Date('2023-11-12T09:05:00Z'),
-    message: "You have a new inquiry for your listing 'Profitable E-commerce Store in SEA' from Anna Tay (Buyer - Anonymous).",
-    link: '/seller-dashboard/inquiries#inq_b3', // Link to the specific inquiry item
-    isRead: false,
-    type: 'inquiry'
-  },
-  {
-    id: 'notif2_seller3',
-    userId: 'user3',
-    timestamp: new Date('2023-11-13T11:00:00Z'),
-    message: "You've chosen to engage with Jane Smith regarding 'Established SaaS Platform - B2B Niche'. To proceed, your listing and profile needs to be verified.",
-    link: '/seller-dashboard/verification?listingId=2',
-    isRead: false,
-    type: 'verification'
-  },
-  {
-    id: 'notif3_seller1',
-    userId: 'user1',
-    timestamp: new Date('2023-11-11T10:05:00Z'),
-    message: "Your connection for listing 'Profitable E-commerce Store in SEA' with buyer Jane Smith is now active. You can start messaging directly.",
-    link: '/seller-dashboard/messages/conv1',
-    isRead: true,
-    type: 'new_message'
-  }
-];
 
-export let sampleConversations: Conversation[] = [ // Changed to let
+export let sampleConversations: Conversation[] = [
   {
     conversationId: "conv1",
     inquiryId: "inq_b1",
@@ -476,7 +436,7 @@ export let sampleConversations: Conversation[] = [ // Changed to let
   }
 ];
 
-export let sampleMessages: Message[] = [ // Changed to let
+export let sampleMessages: Message[] = [
   {
     messageId: "msg1_conv1",
     conversationId: "conv1",
@@ -514,3 +474,86 @@ export let sampleMessages: Message[] = [ // Changed to let
     isRead: false,
   },
 ];
+
+export const sampleBuyerNotifications: NotificationItem[] = [
+  {
+    id: 'notif1_buyer2',
+    userId: 'user2',
+    timestamp: new Date('2023-11-11T10:05:00Z'),
+    message: "Your connection for listing 'Profitable E-commerce Store in SEA' is now active. You can start messaging directly.",
+    link: '/dashboard/messages/conv1',
+    isRead: false,
+    type: 'new_message'
+  },
+  {
+    id: 'notif2_buyer6',
+    userId: 'user6',
+    timestamp: new Date('2023-11-12T10:05:00Z'),
+    message: "The seller of 'Profitable E-commerce Store in SEA' is ready to engage! To proceed, your profile needs to be verified.",
+    link: '/dashboard/verification',
+    isRead: false,
+    type: 'verification'
+  },
+  {
+    id: 'notif3_buyer2',
+    userId: 'user2',
+    timestamp: new Date('2023-11-09T08:00:00Z'),
+    message: "Your profile information was successfully updated.",
+    isRead: true,
+    type: 'system'
+  },
+  { // Example for user4 who is pending verification
+    id: 'notif4_buyer4',
+    userId: 'user4',
+    timestamp: new Date('2023-04-11T10:00:00Z'),
+    message: "Your verification request is being processed. We will contact you soon.",
+    link: '/dashboard/verification',
+    isRead: false,
+    type: 'verification'
+  }
+];
+
+export const sampleSellerNotifications: NotificationItem[] = [
+  {
+    id: 'notif1_seller1',
+    userId: 'user1',
+    timestamp: new Date('2023-11-12T09:05:00Z'),
+    message: "You have a new inquiry for your listing 'Profitable E-commerce Store in SEA' from Anna Tay (Buyer - Anonymous).",
+    link: '/seller-dashboard/inquiries#inq_b3',
+    isRead: false,
+    type: 'inquiry'
+  },
+  {
+    id: 'notif2_seller3',
+    userId: 'user3',
+    timestamp: new Date('2023-11-13T11:00:00Z'),
+    message: "You've chosen to engage with Jane Smith regarding 'Established SaaS Platform - B2B Niche'. Your profile and listing need verification to proceed with chat.",
+    link: '/seller-dashboard/verification?listingId=2',
+    isRead: false,
+    type: 'verification'
+  },
+  {
+    id: 'notif3_seller1',
+    userId: 'user1',
+    timestamp: new Date('2023-11-11T10:05:00Z'),
+    message: "Your connection for listing 'Profitable E-commerce Store in SEA' with buyer Jane Smith is now active. You can start messaging directly.",
+    link: '/seller-dashboard/messages/conv1',
+    isRead: true,
+    type: 'new_message'
+  },
+  { // Example for seller3 for listing 4
+    id: 'notif4_seller3_listing4',
+    userId: 'user3',
+    timestamp: new Date('2023-12-01T10:00:00Z'),
+    message: "Your new listing 'Modern Cafe in Tourist Hotspot' is awaiting verification by our team.",
+    link: '/seller-dashboard/verification?listingId=4',
+    isRead: false,
+    type: 'listing_update'
+  }
+];
+
+// Ensure sampleReadyToEngageItems is exported if it was previously used,
+// although it's better to filter sampleInquiries directly where needed.
+export const sampleReadyToEngageItems: Inquiry[] = sampleInquiries.filter(i => i.status === 'ready_for_admin_connection');
+
+    

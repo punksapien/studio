@@ -1,6 +1,7 @@
+
 import * as React from 'react';
 import { sampleUsers, sampleListings } from "@/lib/placeholder-data";
-import type { User, Listing } from "@/lib/types";
+import type { User, Listing, VerificationStatus } from "@/lib/types"; // Added VerificationStatus
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,7 +28,8 @@ export default async function AdminUserDetailPage({ params }: { params: { userId
 
   const userListings = user.role === 'seller' ? await getUserListings(user.id) : [];
   
-  const getVerificationBadge = (status: User["verificationStatus"], large: boolean = false) => {
+  // This badge reflects the user's public profile status
+  const getProfileVerificationBadge = (status: User["verificationStatus"], large: boolean = false) => {
     const iconSize = large ? "h-5 w-5 mr-2" : "h-3 w-3 mr-1";
     switch (status) {
       case 'verified':
@@ -50,10 +52,10 @@ export default async function AdminUserDetailPage({ params }: { params: { userId
             <UserCircle className="h-8 w-8 mr-3 text-primary" /> User Details: {user.fullName}
         </h1>
         <div className="flex flex-wrap gap-2 mt-2 md:mt-0">
-            <Button variant="outline"><Edit className="h-4 w-4 mr-2"/> Edit User Profile</Button>
-             <Button variant={user.verificationStatus !== 'verified' ? 'default' : 'secondary'}>
-                {user.verificationStatus !== 'verified' ? <ShieldCheck className="h-4 w-4 mr-2"/> : <ShieldAlert className="h-4 w-4 mr-2"/>}
-                Mark as {user.verificationStatus !== 'verified' ? 'Verified' : 'Pending'}
+            <Button variant="outline" asChild>
+              <Link href={`/admin/verification-queue/${user.role === 'buyer' ? 'buyers' : 'sellers'}?userId=${user.id}`}>
+                <Edit className="h-4 w-4 mr-2"/> Manage Verification
+              </Link>
             </Button>
              <Button variant="outline">
                 <DollarSign className="h-4 w-4 mr-2"/> Toggle Paid Status (is {user.isPaid ? 'Paid' : 'Free'})
@@ -68,7 +70,7 @@ export default async function AdminUserDetailPage({ params }: { params: { userId
                 <CardTitle className="text-2xl">{user.fullName}</CardTitle>
                 <CardDescription className="capitalize">{user.role} ({user.isPaid ? 'Paid User' : 'Free User'})</CardDescription>
             </div>
-            {getVerificationBadge(user.verificationStatus, true)}
+            {getProfileVerificationBadge(user.verificationStatus, true)}
           </div>
         </CardHeader>
         <CardContent className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 text-sm">
@@ -94,7 +96,7 @@ export default async function AdminUserDetailPage({ params }: { params: { userId
         <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
           <TabsTrigger value="profile_details">Profile & Activity</TabsTrigger>
           {user.role === 'buyer' && <TabsTrigger value="buyer_persona">Buyer Persona</TabsTrigger>}
-          <TabsTrigger value="verification_docs" disabled={user.verificationStatus === 'anonymous'}>Verification Data</TabsTrigger>
+          <TabsTrigger value="verification_history">Verification History</TabsTrigger>
           <TabsTrigger value="admin_actions">Admin Actions</TabsTrigger>
         </TabsList>
 
@@ -163,23 +165,12 @@ export default async function AdminUserDetailPage({ params }: { params: { userId
           </TabsContent>
         )}
 
-        <TabsContent value="verification_docs">
+        <TabsContent value="verification_history">
            <Card className="shadow-md mt-6">
-                <CardHeader><CardTitle>Verification Application Data</CardTitle></CardHeader>
+                <CardHeader><CardTitle>Verification History &amp; Data</CardTitle></CardHeader>
                 <CardContent>
-                    {user.verificationStatus !== 'anonymous' ? (
-                        <div className="space-y-2">
-                            <p><span className="font-medium">Registered Name (if provided):</span> {user.initialCompanyName || user.fullName}</p>
-                            {user.role === 'buyer' && user.buyerPersonaType && <p><span className="font-medium">Stated Buyer Persona:</span> {user.buyerPersonaType}</p>}
-                            <p className="font-medium mt-4">Uploaded Documents (Placeholders):</p>
-                            <ul className="list-disc list-inside pl-4 text-muted-foreground">
-                                <li><Link href="#" className="text-primary hover:underline flex items-center gap-1"><FileText size={16}/> ID_Proof_Document.pdf</Link></li>
-                                {user.role === 'seller' && <li><Link href="#" className="text-primary hover:underline flex items-center gap-1"><FileText size={16}/> Business_Registration.pdf</Link></li>}
-                            </ul>
-                        </div>
-                    ) : (
-                         <p className="text-muted-foreground text-center py-4">No verification data submitted as user is anonymous.</p>
-                    )}
+                  <p className="text-muted-foreground text-sm">Current Profile Verification Status: {getProfileVerificationBadge(user.verificationStatus)}</p>
+                  <p className="text-muted-foreground text-center py-4 mt-4">Placeholder: Table/List of verification requests associated with this user (ID, Date, Type (Profile/Listing), Operational Status, Admin Notes). This would show the history from `sampleVerificationRequests` filtered by `userId`.</p>
                 </CardContent>
             </Card>
         </TabsContent>
@@ -202,3 +193,5 @@ export default async function AdminUserDetailPage({ params }: { params: { userId
     </div>
   );
 }
+
+    

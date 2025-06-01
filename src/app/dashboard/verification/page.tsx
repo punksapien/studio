@@ -3,27 +3,41 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ShieldCheck, AlertTriangle, CheckCircle2, Mail } from "lucide-react";
-import { useState } from "react";
+import { ShieldCheck, AlertTriangle, CheckCircle2, Mail, FileText } from "lucide-react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import type { User, VerificationStatus } from "@/lib/types";
-import { sampleUsers } from "@/lib/placeholder-data";
+import type { User, VerificationStatus, VerificationRequestItem } from "@/lib/types";
+import { sampleUsers, sampleVerificationRequests } from "@/lib/placeholder-data";
 import Link from "next/link";
 
-// Placeholder for current user - in a real app, this would come from session/auth
-// For Buyer Dashboard V1, assuming current user is user6 (Anna Tay - Anonymous Buyer)
-// or user4 (Sarah Chen - Pending Verification)
-const currentBuyerId = 'user6'; 
-const currentUser: User | undefined = sampleUsers.find(u => u.id === currentBuyerId && u.role === 'buyer');
+// Placeholder for current user
+let currentBuyerId = 'user6'; // Can be 'user2' (verified), 'user4' (pending), 'user6' (anonymous)
+let currentUser: User | undefined = sampleUsers.find(u => u.id === currentBuyerId && u.role === 'buyer');
+
+export default function BuyerVerificationPage() {
+  const { toast } = useToast();
+  
+  // Local state to manage if the current user has just submitted a request
+  // This is to reflect immediate UI change before a full state refresh might occur
+  const [justSubmitted, setJustSubmitted] = useState(false);
+
+  // Simulate user update if needed for demo, e.g., after request.
+  const [userState, setUserState] = useState<User | undefined>(currentUser);
+
+  useEffect(() => {
+    // If a user makes a request, their sampleUser.verificationStatus would be updated
+    // to 'pending_verification'. This effect simulates re-fetching or state update.
+    if (justSubmitted && currentUser) {
+        const updatedUser = sampleUsers.find(u => u.id === currentUser.id);
+        setUserState(updatedUser);
+    }
+  }, [justSubmitted]);
 
 
-export default function VerificationPage() {
-  // If user is not found or not a buyer, show an error or redirect
-  // This check would typically be part of a higher-order component or middleware
-  if (!currentUser) {
+  if (!userState) {
     return (
         <div className="space-y-8 text-center">
             <h1 className="text-3xl font-bold tracking-tight">Access Denied</h1>
@@ -32,30 +46,48 @@ export default function VerificationPage() {
         </div>
     );
   }
-  
-  // Determine initial form submission state based on user's current verification status
-  const initialFormSubmitted = currentUser.verificationStatus === 'pending_verification';
-  const [formSubmitted, setFormSubmitted] = useState(initialFormSubmitted);
-  const { toast } = useToast();
-
 
   const handleRequestVerification = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!userState) return;
+
     const formData = new FormData(event.currentTarget);
     const bestTimeToCall = formData.get('bestTimeToCall') as string;
     const notes = formData.get('notes') as string;
 
     console.log("Buyer verification request submitted:", { 
-        buyerId: currentUser.id, 
-        buyerName: currentUser.fullName,
+        buyerId: userState.id, 
+        buyerName: userState.fullName,
         bestTimeToCall, 
         notes 
     });
-    // Simulate API call
+    
+    // Simulate API call & data update
     await new Promise(resolve => setTimeout(resolve, 1000));
-    setFormSubmitted(true); // Update state to show pending message
-    // In a real app, you'd also update the currentUser's verificationStatus in your backend/state management
-    // For demo, we'll assume this is 'pending_verification' after submission
+
+    // Update user's status in placeholder data
+    const userIndex = sampleUsers.findIndex(u => u.id === userState.id);
+    if (userIndex !== -1) {
+      sampleUsers[userIndex].verificationStatus = 'pending_verification';
+      sampleUsers[userIndex].updatedAt = new Date();
+    }
+    // Add to verification requests
+    sampleVerificationRequests.push({
+        id: `vr_new_${Date.now()}`,
+        timestamp: new Date(),
+        userId: userState.id,
+        userName: userState.fullName,
+        userRole: 'buyer',
+        reason: 'User requested profile verification.',
+        operationalStatus: 'New Request',
+        profileStatus: 'pending_verification',
+        adminNotes: notes,
+        documentsSubmitted: [], // Assuming no docs uploaded initially via this simple form
+    });
+    
+    setJustSubmitted(true); // Trigger re-render via useEffect or direct state update
+    setUserState(prev => prev ? {...prev, verificationStatus: 'pending_verification'} : undefined);
+
     toast({
       title: "Verification Request Sent",
       description: "Our team has received your request and will be in touch shortly to schedule a call.",
@@ -63,9 +95,9 @@ export default function VerificationPage() {
   };
 
   const renderStatusCard = () => {
-    const effectiveStatus = formSubmitted ? 'pending_verification' : currentUser.verificationStatus;
+    const currentProfileStatus = userState.verificationStatus;
 
-    switch (effectiveStatus) {
+    switch (currentProfileStatus) {
       case 'verified':
         return (
           <Card className="shadow-lg bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-700/50">
@@ -92,13 +124,13 @@ export default function VerificationPage() {
             </CardHeader>
             <CardContent>
               <p className="text-blue-600 dark:text-blue-400">
-                Your verification request has been submitted. Our team is reviewing your information and will contact you soon to complete the process. 
-                This usually involves a brief call. Please check your email for updates.
+                Your verification request has been submitted or is being processed. Our team is reviewing your information and will contact you soon. 
+                Please check your email for updates from our team.
               </p>
             </CardContent>
           </Card>
         );
-      case 'rejected': // Assuming 'rejected' means they can try again
+      case 'rejected':
         return (
           <Card className="shadow-lg border-destructive/50 bg-destructive/5">
             <CardHeader>
@@ -108,63 +140,53 @@ export default function VerificationPage() {
             </CardHeader>
             <CardContent>
               <p className="text-destructive/90 mb-4">
-                There was an issue with your previous verification attempt. Please check your email for details from our team, or contact support for assistance.
+                There was an issue with your previous verification attempt. Please check your email for details from our team, or contact support for assistance. You can submit a new request below.
               </p>
-              {/* Optionally, allow re-submission of the form here or direct to support */}
-               <h3 className="font-semibold mb-2">Request a New Verification Call:</h3>
-                <form onSubmit={handleRequestVerification} className="space-y-4">
-                <div>
-                  <Label htmlFor="bestTimeToCall">Best Time to Call (Optional)</Label>
-                  <Input id="bestTimeToCall" name="bestTimeToCall" defaultValue={currentUser.phoneNumber} placeholder="e.g., Weekdays 2-4 PM SGT" />
-                </div>
-                <div>
-                  <Label htmlFor="notes">Additional Notes (Optional)</Label>
-                  <Textarea id="notes" name="notes" placeholder="Any specific information or questions for our team?" />
-                </div>
-                <Button type="submit" className="w-full md:w-auto">Re-submit Verification Request</Button>
-              </form>
+              {renderVerificationFormContent()}
             </CardContent>
           </Card>
         );
       case 'anonymous':
       default:
-        return (
-          <Card className="shadow-lg">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <ShieldCheck className="h-7 w-7 text-primary" /> Become a Verified Buyer
-              </CardTitle>
-              <CardDescription>
-                Unlock full platform access by verifying your profile. 
-                Verified buyers gain trust and can view detailed information on verified listings and engage with verified sellers.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="mb-4 text-muted-foreground">
-                The verification process typically involves a short call with our team to confirm your details. 
-                Please provide some information to help us schedule this call.
-              </p>
-              <form onSubmit={handleRequestVerification} className="space-y-4">
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <FormItemDisabled label="Full Name" value={currentUser.fullName} />
-                  <FormItemDisabled label="Email" value={currentUser.email} />
-                </div>
-                 <FormItemDisabled label="Phone Number" value={currentUser.phoneNumber} />
-                <div>
-                  <Label htmlFor="bestTimeToCall">Best Time to Call (Optional)</Label>
-                  <Input id="bestTimeToCall" name="bestTimeToCall" placeholder="e.g., Weekdays 2-4 PM SGT" />
-                </div>
-                <div>
-                  <Label htmlFor="notes">Additional Notes (Optional)</Label>
-                  <Textarea id="notes" name="notes" placeholder="Any specific information or questions for our team?" />
-                </div>
-                <Button type="submit" className="w-full md:w-auto">Request Verification Call</Button>
-              </form>
-            </CardContent>
-          </Card>
-        );
+        return renderVerificationFormContent();
     }
   };
+
+  const renderVerificationFormContent = () => (
+    <Card className="shadow-lg">
+        <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+            <ShieldCheck className="h-7 w-7 text-primary" /> Become a Verified Buyer
+            </CardTitle>
+            <CardDescription>
+            Unlock full platform access by verifying your profile. 
+            Verified buyers gain trust and can view detailed information on verified listings and engage with verified sellers.
+            </CardDescription>
+        </CardHeader>
+        <CardContent>
+            <p className="mb-4 text-muted-foreground">
+            The verification process typically involves a short call with our team to confirm your details. 
+            Please provide some information to help us schedule this call.
+            </p>
+            <form onSubmit={handleRequestVerification} className="space-y-6">
+            <div className="grid sm:grid-cols-2 gap-4">
+                <FormItemDisabled label="Full Name" value={userState.fullName} />
+                <FormItemDisabled label="Email" value={userState.email} />
+            </div>
+            <FormItemDisabled label="Phone Number" value={userState.phoneNumber} />
+            <div>
+                <Label htmlFor="bestTimeToCall">Best Time to Call (Optional)</Label>
+                <Input id="bestTimeToCall" name="bestTimeToCall" placeholder="e.g., Weekdays 2-4 PM SGT" />
+            </div>
+            <div>
+                <Label htmlFor="notes">Additional Notes (Optional)</Label>
+                <Textarea id="notes" name="notes" placeholder="Any specific information or questions for our team?" />
+            </div>
+            <Button type="submit" className="w-full md:w-auto">Request Verification Call</Button>
+            </form>
+        </CardContent>
+    </Card>
+  );
 
   return (
     <div className="space-y-8">
@@ -183,3 +205,5 @@ function FormItemDisabled({ label, value }: { label: string; value?: string }) {
     </div>
   );
 }
+
+    

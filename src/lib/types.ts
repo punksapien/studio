@@ -58,7 +58,7 @@ export interface User {
   country: string;
   role: UserRole;
   isEmailVerified: boolean;
-  verificationStatus: VerificationStatus;
+  verificationStatus: VerificationStatus; // This now represents the user's overall profile status
   isPaid: boolean;
   initialCompanyName?: string;
   buyerType?: BuyerType;
@@ -143,7 +143,7 @@ export type InquiryStatusBuyerPerspective =
 export type InquiryStatusSellerPerspective =
   | 'New Inquiry'
   | 'You Engaged - Buyer Verification Pending'
-  | 'You Engaged - Your Listing Verification Pending' // Or Your Profile/Listing Verification Pending
+  | 'You Engaged - Your Listing Verification Pending'
   | 'Ready for Admin Connection'
   | 'Connection Facilitated - Chat Open'
   | 'Archived';
@@ -153,7 +153,7 @@ export type InquiryStatusSystem =
   | 'seller_engaged_buyer_pending_verification'
   | 'seller_engaged_seller_pending_verification'
   | 'ready_for_admin_connection'
-  | 'connection_facilitated_in_app_chat_opened' // Updated Status
+  | 'connection_facilitated_in_app_chat_opened'
   | 'archived';
 
 export interface Inquiry {
@@ -217,14 +217,16 @@ export interface VerificationRequestItem {
   listingTitle?: string;
   triggeringUserId?: string;
   reason: string;
-  status: VerificationQueueStatus;
+  operationalStatus: VerificationQueueStatus; // Renamed from 'status'
+  profileStatus: VerificationStatus; // NEW: Tracks user's public-facing verification status
+  adminNotes?: string;
   documentsSubmitted?: { name: string, type: 'id_proof' | 'business_reg' | 'financials' }[];
 }
 
-// This type might be redundant if Admin Engagement Queue directly uses Inquiry type
+
 export interface ReadyToEngageItem {
-  id: string; // Inquiry ID
-  timestamp: Date; // When it became ready
+  id: string;
+  timestamp: Date;
   buyerId: string;
   buyerName: string;
   buyerVerificationStatus: VerificationStatus;
@@ -261,7 +263,7 @@ export interface Conversation {
   lastMessageSnippet?: string;
   buyerUnreadCount?: number;
   sellerUnreadCount?: number;
-  status: ConversationStatus; // Added status
+  status: ConversationStatus;
 }
 
 export interface Message {
@@ -275,3 +277,5 @@ export interface Message {
   attachmentUrl?: string;
   attachmentType?: string;
 }
+
+    

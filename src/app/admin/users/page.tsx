@@ -1,3 +1,4 @@
+
 'use client';
 import * as React from "react"; 
 import {
@@ -20,14 +21,15 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { sampleUsers } from "@/lib/placeholder-data";
-import type { User } from "@/lib/types";
+import type { User, VerificationStatus } from "@/lib/types"; // Added VerificationStatus
 import Link from "next/link";
-import { Eye, ShieldCheck, ShieldAlert, Filter, Search, Trash2, KeyRound, Edit, DollarSign, Briefcase } from "lucide-react";
-
-const users: User[] = sampleUsers;
+import { Eye, ShieldCheck, ShieldAlert, Filter, Search, Edit } from "lucide-react"; // Removed Trash2, KeyRound
 
 export default function AdminUsersPage() {
-  const getVerificationBadge = (status: User["verificationStatus"]) => {
+  const users: User[] = sampleUsers;
+
+  // This badge reflects the user's public profile status
+  const getProfileVerificationBadge = (status: User["verificationStatus"]) => {
     switch (status) {
       case 'verified':
         return <Badge className="bg-green-100 text-green-700 dark:bg-green-800 dark:text-green-200 border-green-300 dark:border-green-600"><ShieldCheck className="h-3 w-3 mr-1" /> Verified</Badge>;
@@ -102,9 +104,8 @@ export default function AdminUsersPage() {
                   <TableHead>Role</TableHead>
                   <TableHead>Paid</TableHead>
                   <TableHead>Country</TableHead>
-                  <TableHead className="whitespace-nowrap">Verification Status</TableHead>
+                  <TableHead className="whitespace-nowrap">Profile Status</TableHead>
                   <TableHead className="whitespace-nowrap">Registered On</TableHead>
-                  <TableHead className="whitespace-nowrap">Listings/Inquiries</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -118,28 +119,18 @@ export default function AdminUsersPage() {
                         {user.isPaid ? <Badge className="bg-green-500 text-white">Paid</Badge> : <Badge variant="secondary">Free</Badge>}
                     </TableCell>
                     <TableCell>{user.country}</TableCell>
-                    <TableCell>{getVerificationBadge(user.verificationStatus)}</TableCell>
+                    <TableCell>{getProfileVerificationBadge(user.verificationStatus)}</TableCell>
                     <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
-                    <TableCell className="text-center">
-                      {user.role === 'seller' ? user.listingCount || 0 : user.inquiryCount || 0}
-                    </TableCell>
                     <TableCell className="text-right whitespace-nowrap">
                       <Button variant="ghost" size="icon" asChild title="View User Details">
                         <Link href={`/admin/users/${user.id}`}>
                           <Eye className="h-4 w-4" />
                         </Link>
                       </Button>
-                      <Button variant="ghost" size="icon" title="Edit User (Not Implemented)">
-                         <Edit className="h-4 w-4" />
-                      </Button>
-                       <Button variant="ghost" size="icon" title={`Mark as ${user.verificationStatus !== 'verified' ? 'Verified' : 'Pending'} (Not Implemented)`}>
-                         {user.verificationStatus !== 'verified' ? <ShieldCheck className="h-4 w-4 text-green-600" /> : <ShieldAlert className="h-4 w-4 text-yellow-600" />}
-                      </Button>
-                      <Button variant="ghost" size="icon" title={`Toggle Paid Status (Currently ${user.isPaid ? 'Paid' : 'Free'}) (Not Implemented)`}>
-                         <DollarSign className={`h-4 w-4 ${user.isPaid ? 'text-green-600' : 'text-gray-500'}`} />
-                      </Button>
-                      <Button variant="ghost" size="icon" title="Delete User (Not Implemented)">
-                         <Trash2 className="h-4 w-4 text-destructive" />
+                      <Button variant="ghost" size="icon" asChild title="Manage Verification">
+                         <Link href={`/admin/verification-queue/${user.role === 'buyer' ? 'buyers' : 'sellers'}?userId=${user.id}`}>
+                           <Edit className="h-4 w-4" />
+                         </Link>
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -147,7 +138,6 @@ export default function AdminUsersPage() {
               </TableBody>
             </Table>
           </div>
-          {/* Placeholder for PaginationControls */}
           <div className="mt-6 text-center text-muted-foreground">
             Pagination (10 users per page) - Total users: {users.length}
           </div>
@@ -156,3 +146,5 @@ export default function AdminUsersPage() {
     </div>
   );
 }
+
+    
