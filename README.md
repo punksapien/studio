@@ -1,4 +1,4 @@
-# Nobridge - Business Marketplace Platform
+# Nobridge - Business Marketplace Platform some edit
 
 Nobridge is a comprehensive marketplace platform connecting SME owners looking to sell their businesses with motivated buyers and investors across Asia. Built with modern web technologies for security, scalability, and excellent user experience.
 
