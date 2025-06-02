@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation"; // Import useRouter
+import { useRouter } from "next/navigation"; 
 
 import { Button } from "@/components/ui/button";
 import {
@@ -57,7 +57,7 @@ const BuyerRegisterSchema = z.object({
 export default function BuyerRegisterPage() {
   const [error, setError] = useState<string | undefined>("");
   const [isPending, startTransition] = useTransition();
-  const router = useRouter(); // Initialize useRouter
+  const router = useRouter(); 
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof BuyerRegisterSchema>>({
@@ -86,18 +86,14 @@ export default function BuyerRegisterPage() {
       console.log("Buyer Register values:", values);
 
       try {
-        // First check if email is already registered but unverified
         const emailStatus = await auth.checkEmailStatus(values.email);
 
         if (emailStatus.exists && !emailStatus.verified && emailStatus.canResend) {
-          // User exists but unverified - offer to resend verification
           setError(
             `An account with this email already exists but isn't verified. ` +
             `Check your email for the verification link. If you need a new verification email, ` +
             `click the "Resend Verification" button below.`
           );
-
-          // Show resend option
           toast({
             title: "Account Already Exists",
             description: "This email is already registered but unverified. Would you like to resend the verification email?",
@@ -135,7 +131,6 @@ export default function BuyerRegisterPage() {
           return;
         }
 
-        // Create RegisterData object for our auth utility
         const registerData: RegisterData = {
           email: values.email,
           password: values.password,
@@ -150,41 +145,25 @@ export default function BuyerRegisterPage() {
           key_industries_of_interest: values.keyIndustriesOfInterest || undefined,
         };
 
-        // Call our Supabase auth utility
         const result = await auth.signUp(registerData);
 
-        // Success - check if we can auto-login for development
         if (result.user) {
-          try {
-            // For development: try to sign in immediately if email confirmation is disabled
-            console.log('Attempting auto-login for development...')
-            await auth.signIn(registerData.email, registerData.password);
-
-            toast({
-              title: "Registration & Login Successful!",
-              description: "Welcome! You've been automatically signed in."
-            });
-
-            // Redirect to buyer dashboard
-            router.push('/dashboard');
-            return;
-
-          } catch (signInError) {
-            console.log('Auto sign-in failed, proceeding with email verification:', signInError)
-            // Fall through to normal email verification flow
-          }
+           toast({
+            title: "Registration Successful!",
+            description: "Please complete your onboarding to access all features."
+          });
+          router.push('/onboarding/buyer/1'); // Redirect to buyer onboarding
+        } else {
+          // Fallback to email verification if user somehow not created but no error
+          // This case should ideally be handled by auth.signUp throwing an error
+          toast({
+            title: "Registration Incomplete",
+            description: "Please check your email for a verification link."
+          });
+          router.push(`/verify-email?email=${encodeURIComponent(values.email)}&type=register`);
         }
 
-        // Normal flow: redirect to email verification page
-        toast({
-          title: "Registration Successful!",
-          description: "Please check your email for a verification link."
-        });
-
-        router.push(`/verify-email?email=${encodeURIComponent(values.email)}&type=register`);
-
       } catch (error) {
-        // Handle registration errors
         const errorMessage = error instanceof Error ? error.message : 'Registration failed';
         setError(errorMessage);
         toast({
@@ -327,4 +306,3 @@ export default function BuyerRegisterPage() {
     </AuthCardWrapper>
   );
 }
-

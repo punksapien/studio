@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { useRouter } from "next/navigation"; // Import useRouter
+import { useRouter } from "next/navigation"; 
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -38,7 +38,7 @@ const SellerRegisterSchema = z.object({
 export default function SellerRegisterPage() {
   const [error, setError] = useState<string | undefined>("");
   const [isPending, startTransition] = useTransition();
-  const router = useRouter(); // Initialize useRouter
+  const router = useRouter(); 
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof SellerRegisterSchema>>({
@@ -61,7 +61,6 @@ export default function SellerRegisterPage() {
       console.log("Seller Register values:", values);
 
       try {
-        // Create RegisterData object for our auth utility
         const registerData: RegisterData = {
           email: values.email,
           password: values.password,
@@ -72,41 +71,25 @@ export default function SellerRegisterPage() {
           initial_company_name: values.initialCompanyName || undefined,
         };
 
-        // Call our Supabase auth utility
         const result = await auth.signUp(registerData);
-
-        // Success - check if we can auto-login for development
+        
         if (result.user) {
-          try {
-            // For development: try to sign in immediately if email confirmation is disabled
-            console.log('Attempting auto-login for development...')
-            await auth.signIn(registerData.email, registerData.password);
-
-            toast({
-              title: "Registration & Login Successful!",
-              description: "Welcome! You've been automatically signed in."
-            });
-
-            // Redirect to seller dashboard
-            router.push('/seller-dashboard');
-            return;
-
-          } catch (signInError) {
-            console.log('Auto sign-in failed, proceeding with email verification:', signInError)
-            // Fall through to normal email verification flow
-          }
+          toast({
+            title: "Registration Successful!",
+            description: "Please complete your onboarding to list your business."
+          });
+          router.push('/onboarding/seller/1'); // Redirect to seller onboarding
+        } else {
+          // Fallback to email verification if user somehow not created but no error
+          // This case should ideally be handled by auth.signUp throwing an error
+           toast({
+            title: "Registration Incomplete",
+            description: "Please check your email for a verification link."
+          });
+          router.push(`/verify-email?email=${encodeURIComponent(values.email)}&type=register`);
         }
 
-        // Normal flow: redirect to email verification page
-        toast({
-          title: "Registration Successful!",
-          description: "Please check your email for a verification link."
-        });
-
-        router.push(`/verify-email?email=${encodeURIComponent(values.email)}&type=register`);
-
       } catch (error) {
-        // Handle registration errors
         const errorMessage = error instanceof Error ? error.message : 'Registration failed';
         setError(errorMessage);
         toast({
@@ -157,4 +140,3 @@ export default function SellerRegisterPage() {
     </AuthCardWrapper>
   );
 }
-

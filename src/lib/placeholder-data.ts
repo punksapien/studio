@@ -1,5 +1,5 @@
 
-import type { Listing, User, AdminDashboardMetrics, VerificationRequestItem, Inquiry, NotificationItem, ListingStatus, Conversation, Message, VerificationStatus } from './types';
+import type { Listing, User, AdminDashboardMetrics, VerificationRequestItem, Inquiry, NotificationItem, ListingStatus, Conversation, Message, VerificationStatus, AdminNote, VerificationQueueStatus } from './types';
 import { BuyerPersonaTypes, PreferredInvestmentSizes, industries, asianCountries, revenueRanges, profitMarginRanges, dealStructures, employeeCountRanges, placeholderKeywords } from './types';
 
 
@@ -12,7 +12,7 @@ export const sampleUsers: User[] = [
     country: 'Singapore',
     role: 'seller',
     isEmailVerified: true,
-    verificationStatus: 'verified', // Profile Status
+    verificationStatus: 'verified',
     isPaid: true,
     initialCompanyName: 'JD Web Solutions Pte Ltd',
     createdAt: new Date('2023-01-10T09:00:00Z'),
@@ -29,7 +29,7 @@ export const sampleUsers: User[] = [
     country: 'Malaysia',
     role: 'buyer',
     isEmailVerified: true,
-    verificationStatus: 'verified', // Profile Status
+    verificationStatus: 'verified',
     isPaid: true,
     buyerPersonaType: BuyerPersonaTypes[0],
     investmentFocusDescription: "Early-stage SaaS and e-commerce businesses in Southeast Asia with strong growth potential.",
@@ -48,7 +48,7 @@ export const sampleUsers: User[] = [
     country: 'Vietnam',
     role: 'seller',
     isEmailVerified: true,
-    verificationStatus: 'anonymous', // Profile Status
+    verificationStatus: 'anonymous',
     isPaid: false,
     initialCompanyName: 'Anonymous SaaS Co.',
     createdAt: new Date('2023-03-20T16:00:00Z'),
@@ -65,7 +65,7 @@ export const sampleUsers: User[] = [
     country: 'Thailand',
     role: 'buyer',
     isEmailVerified: true,
-    verificationStatus: 'pending_verification', // Profile Status
+    verificationStatus: 'pending_verification',
     isPaid: false,
     buyerPersonaType: BuyerPersonaTypes[1],
     investmentFocusDescription: "Mid-market companies in consumer goods and services with established revenue streams. Looking for majority stakes.",
@@ -84,7 +84,7 @@ export const sampleUsers: User[] = [
     country: 'Indonesia',
     role: 'buyer',
     isEmailVerified: true,
-    verificationStatus: 'verified', // Profile Status
+    verificationStatus: 'verified',
     isPaid: false,
     buyerPersonaType: BuyerPersonaTypes[2],
     investmentFocusDescription: "Acquiring businesses to integrate into our existing portfolio, primarily in logistics and supply chain.",
@@ -103,7 +103,7 @@ export const sampleUsers: User[] = [
     country: 'Philippines',
     role: 'buyer',
     isEmailVerified: true,
-    verificationStatus: 'anonymous', // Profile Status
+    verificationStatus: 'anonymous',
     isPaid: false,
     buyerPersonaType: BuyerPersonaTypes[0],
     investmentFocusDescription: "Looking for small, profitable online businesses to operate and grow.",
@@ -357,19 +357,27 @@ export const sampleAdminDashboardMetrics: AdminDashboardMetrics = {
 export let sampleVerificationRequests: VerificationRequestItem[] = [
   {
     id: 'vr_user4_profile',
-    timestamp: new Date('2023-04-10T10:05:00Z'), // Corresponds to Sarah Chen's registration
+    timestamp: new Date('2023-04-10T10:05:00Z'),
     userId: 'user4',
     userName: 'Sarah Chen (Buyer - Pending)',
     userRole: 'buyer',
     reason: 'New buyer registration, requires profile verification.',
     operationalStatus: 'New Request',
-    profileStatus: 'pending_verification', // User's profile status is pending
+    profileStatus: 'pending_verification',
     documentsSubmitted: [{name: 'ID_Proof_Sarah.pdf', type: 'id_proof'}],
-    adminNotes: "Initial request from signup."
+    adminNotes: [{
+      id: 'note_vr_user4_1',
+      note: "Initial request from signup.",
+      timestamp: new Date('2023-04-10T10:05:00Z'),
+      operationalStatusAtTimeOfNote: 'New Request',
+      profileStatusAtTimeOfNote: 'pending_verification',
+      adminId: 'system',
+      adminName: 'System',
+    }],
   },
   {
     id: 'vr_user3_listing2',
-    timestamp: new Date('2023-11-02T09:00:00Z'), // After listing 2 was created
+    timestamp: new Date('2023-11-02T09:00:00Z'),
     userId: 'user3',
     userName: 'Alex Tan (Seller - Anonymous)',
     userRole: 'seller',
@@ -377,8 +385,16 @@ export let sampleVerificationRequests: VerificationRequestItem[] = [
     listingTitle: 'Established SaaS Platform - B2B Niche',
     reason: 'Seller submitted new listing, requires seller and listing verification.',
     operationalStatus: 'Contacted',
-    profileStatus: 'pending_verification', // Assume seller also goes to pending for their profile
-    adminNotes: "Contacted seller on 2023-11-03 for more info."
+    profileStatus: 'pending_verification',
+    adminNotes: [{
+      id: 'note_vr_user3_listing2_1',
+      note: "Contacted seller on 2023-11-03 for more info regarding business registration docs.",
+      timestamp: new Date('2023-11-03T14:00:00Z'),
+      operationalStatusAtTimeOfNote: 'Contacted',
+      profileStatusAtTimeOfNote: 'pending_verification',
+      adminId: 'admin_user1',
+      adminName: 'Admin Alice',
+    }],
   },
   {
     id: 'vr_user5_profile',
@@ -388,8 +404,16 @@ export let sampleVerificationRequests: VerificationRequestItem[] = [
     userRole: 'buyer',
     reason: 'Buyer requested manual verification upgrade.',
     operationalStatus: 'Docs Under Review',
-    profileStatus: 'pending_verification', // User's profile status is pending
-    adminNotes: "Received ID and proof of funds. Reviewing."
+    profileStatus: 'pending_verification',
+    adminNotes: [{
+      id: 'note_vr_user5_1',
+      note: "Received ID and proof of funds. Reviewing financials.",
+      timestamp: new Date('2023-05-03T10:00:00Z'),
+      operationalStatusAtTimeOfNote: 'Docs Under Review',
+      profileStatusAtTimeOfNote: 'pending_verification',
+      adminId: 'admin_user2',
+      adminName: 'Admin Bob',
+    }],
   },
    {
     id: 'vr_user1_profile_reverify',
@@ -401,21 +425,37 @@ export let sampleVerificationRequests: VerificationRequestItem[] = [
     listingId: undefined,
     listingTitle: undefined,
     operationalStatus: 'Approved',
-    profileStatus: 'verified', // User's profile is already verified
-    adminNotes: "Reviewed updates, all good. Maintained verified status."
+    profileStatus: 'verified',
+    adminNotes: [{
+        id: 'note_vr_user1_1',
+        note: "Reviewed updates, all good. Maintained verified status.",
+        timestamp: new Date('2023-11-12T09:30:00Z'),
+        operationalStatusAtTimeOfNote: 'Approved',
+        profileStatusAtTimeOfNote: 'verified',
+        adminId: 'admin_user1',
+        adminName: 'Admin Alice',
+    }],
   },
   {
     id: 'vr_listing4_pending',
-    timestamp: new Date('2023-12-01T09:05:00Z'), // After listing 4 creation
-    userId: 'user3', // Seller Alex Tan
+    timestamp: new Date('2023-12-01T09:05:00Z'),
+    userId: 'user3',
     userName: 'Alex Tan (Seller - Anonymous)',
     userRole: 'seller',
     listingId: '4',
     listingTitle: 'Modern Cafe in Tourist Hotspot',
     reason: 'New listing submitted, needs verification.',
     operationalStatus: 'New Request',
-    profileStatus: 'pending_verification', // Listing and associated seller profile need checking
-    adminNotes: "New listing, follow up with seller."
+    profileStatus: 'pending_verification',
+    adminNotes: [{
+        id: 'note_vr_listing4_1',
+        note: "New listing, follow up with seller for menu and lease agreement.",
+        timestamp: new Date('2023-12-01T09:05:00Z'),
+        operationalStatusAtTimeOfNote: 'New Request',
+        profileStatusAtTimeOfNote: 'pending_verification',
+        adminId: 'system',
+        adminName: 'System',
+    }],
   }
 ];
 
@@ -502,7 +542,7 @@ export const sampleBuyerNotifications: NotificationItem[] = [
     isRead: true,
     type: 'system'
   },
-  { // Example for user4 who is pending verification
+  { 
     id: 'notif4_buyer4',
     userId: 'user4',
     timestamp: new Date('2023-04-11T10:00:00Z'),
@@ -541,7 +581,7 @@ export const sampleSellerNotifications: NotificationItem[] = [
     isRead: true,
     type: 'new_message'
   },
-  { // Example for seller3 for listing 4
+  { 
     id: 'notif4_seller3_listing4',
     userId: 'user3',
     timestamp: new Date('2023-12-01T10:00:00Z'),
@@ -552,8 +592,4 @@ export const sampleSellerNotifications: NotificationItem[] = [
   }
 ];
 
-// Ensure sampleReadyToEngageItems is exported if it was previously used,
-// although it's better to filter sampleInquiries directly where needed.
 export const sampleReadyToEngageItems: Inquiry[] = sampleInquiries.filter(i => i.status === 'ready_for_admin_connection');
-
-    

@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { sampleVerificationRequests, sampleUsers } from "@/lib/placeholder-data";
-import type { VerificationRequestItem, VerificationQueueStatus, User, VerificationStatus } from "@/lib/types";
+import type { VerificationRequestItem, VerificationQueueStatus, User, VerificationStatus, AdminNote } from "@/lib/types";
 import Link from "next/link";
 import { Eye, Edit, ShieldCheck, AlertTriangle } from "lucide-react";
 import { UpdateVerificationStatusDialog } from "@/components/admin/update-verification-status-dialog";
@@ -49,16 +49,19 @@ export default function AdminBuyerVerificationQueuePage() {
     requestId: string,
     newOperationalStatus: VerificationQueueStatus,
     newProfileStatus: VerificationStatus,
-    adminNotes: string
+    updatedAdminNotes: AdminNote[]
   ) => {
+    let userName = "User";
     setRequests(prev =>
-      prev.map(req =>
-        req.id === requestId
-          ? { ...req, operationalStatus: newOperationalStatus, profileStatus: newProfileStatus, adminNotes: adminNotes, updatedAt: new Date() }
-          : req
-      )
+      prev.map(req => {
+        if (req.id === requestId) {
+          userName = req.userName;
+          return { ...req, operationalStatus: newOperationalStatus, profileStatus: newProfileStatus, adminNotes: updatedAdminNotes, updatedAt: new Date() };
+        }
+        return req;
+      })
     );
-    // Also update the user's profile status in sampleUsers
+    
     const requestToUpdate = requests.find(r => r.id === requestId);
     if (requestToUpdate) {
         const userIndex = sampleUsers.findIndex(u => u.id === requestToUpdate.userId);
@@ -67,17 +70,17 @@ export default function AdminBuyerVerificationQueuePage() {
             sampleUsers[userIndex].updatedAt = new Date();
         }
     }
-    toast({ title: "Status Updated", description: `Verification request for ${requestToUpdate?.userName} updated.` });
+    toast({ title: "Status Updated", description: `Verification for ${userName} updated.` });
   };
 
   const getOperationalStatusBadge = (status: VerificationQueueStatus) => {
     switch (status) {
       case 'New Request': return <Badge variant="destructive" className="text-xs">New</Badge>;
-      case 'Contacted': return <Badge variant="secondary" className="text-xs">Contacted</Badge>;
-      case 'Docs Under Review': return <Badge className="bg-blue-500 text-white dark:bg-blue-700 dark:text-blue-100 text-xs">Docs Review</Badge>;
-      case 'More Info Requested': return <Badge className="bg-yellow-500 text-white dark:bg-yellow-600 dark:text-yellow-100 text-xs">More Info</Badge>;
-      case 'Approved': return <Badge className="bg-green-500 text-white dark:bg-green-600 dark:text-green-100 text-xs">Approved</Badge>;
-      case 'Rejected': return <Badge variant="destructive" className="bg-red-700 text-white dark:bg-red-800 dark:text-red-200 text-xs">Rejected</Badge>;
+      case 'Contacted': return <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700">Contacted</Badge>;
+      case 'Docs Under Review': return <Badge className="bg-purple-100 text-purple-700 text-xs">Docs Review</Badge>;
+      case 'More Info Requested': return <Badge className="bg-yellow-100 text-yellow-700 text-xs">More Info</Badge>;
+      case 'Approved': return <Badge className="bg-green-100 text-green-700 text-xs">Approved</Badge>;
+      case 'Rejected': return <Badge variant="destructive" className="text-xs bg-red-100 text-red-700">Rejected</Badge>;
       default: return <Badge className="text-xs">{status}</Badge>;
     }
   };
@@ -126,7 +129,7 @@ export default function AdminBuyerVerificationQueuePage() {
                     <TableCell>{getProfileStatusBadge(req.profileStatus)}</TableCell>
                     <TableCell className="text-right whitespace-nowrap">
                       <Button variant="outline" size="sm" onClick={() => handleManageStatus(req)}>
-                        <Edit className="h-3 w-3 mr-1.5"/> Manage
+                        <Edit className="h-3 w-3 mr-1.5"/> Manage Statuses
                       </Button>
                       <Button variant="ghost" size="icon" asChild title="View Buyer Details">
                         <Link href={`/admin/users/${req.userId}`}>
@@ -157,5 +160,3 @@ export default function AdminBuyerVerificationQueuePage() {
     </div>
   );
 }
-
-    
