@@ -68,11 +68,11 @@ export const auth = {
   async getCurrentUserProfile(): Promise<UserProfile | null> {
     const user = await this.getCurrentUser()
     if (!user) {
-      console.log('No authenticated user found')
+      console.log('No authenticated user found when trying to fetch profile.')
       return null
     }
 
-    console.log('Fetching profile for user:', user.id)
+    console.log('Fetching profile for user ID:', user.id)
 
     const { data, error } = await supabase
       .from('user_profiles')
@@ -81,13 +81,17 @@ export const auth = {
       .single()
 
     if (error) {
-      console.error('Error fetching user profile:', error)
-      console.error('Profile fetch error details:', JSON.stringify(error, null, 2))
-      console.log('User ID being queried:', user.id)
+      if (error.code === 'PGRST116') {
+        console.info('Profile not found for user ID:', user.id, '(PGRST116). This is expected for new users before profile creation or if profile creation failed.')
+      } else {
+        console.error('Error fetching user profile:', error)
+        console.error('Profile fetch error details:', JSON.stringify(error, null, 2))
+      }
+      console.log('User ID that was queried:', user.id)
       return null
     }
 
-    console.log('Profile fetched successfully:', data)
+    console.log('Profile fetched successfully for user ID:', user.id, data ? '' : '(but data is null/undefined)')
     return data
   },
 
@@ -97,14 +101,12 @@ export const auth = {
 
     console.log('Starting registration for:', email)
 
-    // For development, we'll bypass email confirmation
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: `${window.location.origin}/auth/callback`,
         data: {
-          // Include additional metadata for the user
           ...profileDataRest
         }
       }
@@ -114,7 +116,6 @@ export const auth = {
 
     if (authError) {
       console.error('Auth signup error:', authError)
-      // Handle specific error cases
       if (authError.message.includes('User already registered')) {
         throw new Error('An account with this email already exists. Please try logging in instead.')
       }
@@ -128,7 +129,6 @@ export const auth = {
 
     console.log('User created in auth, now creating profile:', authData.user.id)
 
-    // Create user profile via API endpoint (uses service role to bypass RLS)
     if (authData.user) {
       const profileInsertData = {
         email,
@@ -138,9 +138,7 @@ export const auth = {
         role: userData.role,
         verification_status: 'anonymous' as const,
         is_paid: false,
-        // Seller-specific
         initial_company_name: userData.initial_company_name || null,
-        // Buyer-specific
         buyer_persona_type: userData.buyer_persona_type || null,
         buyer_persona_other: userData.buyer_persona_other || null,
         investment_focus_description: userData.investment_focus_description || null,
@@ -169,29 +167,28 @@ export const auth = {
           result = JSON.parse(rawText)
         } catch (jsonError) {
           console.error('Failed to parse API response as JSON:', jsonError)
-          console.error('Response status:', response.status)
-          console.error('Response statusText:', response.statusText)
-          console.error('Raw response body:', rawText)
-          console.warn('Profile creation failed due to invalid API response, but user account was created. User can complete profile setup later.')
-          return authData
+          console.error('Response status for profile creation:', response.status)
+          console.error('Response statusText for profile creation:', response.statusText)
+          console.error('Raw response body from profile creation:', rawText)
+          // If API response isn't valid JSON but user auth succeeded, allow process to continue.
+          // The profile might be created by a trigger or the user can complete it later.
+          console.warn('Profile creation API did not return valid JSON, but user account was created. Proceeding with authData.')
+          return authData // Return authData even if profile API response parsing fails
         }
 
         if (!response.ok) {
-          // HTTP 409 means profile already exists - this is fine, not an error
           if (response.status === 409) {
-            console.log('Profile already exists for user - continuing with registration')
+            console.log('Profile already exists for user (API reported 409) - continuing with registration flow.')
           } else {
-            console.error('Profile creation API failed:', result)
-            console.error('Response status:', response.status)
-            console.error('Response statusText:', response.statusText)
-            console.warn('Profile creation failed, but user account was created. User can complete profile setup later.')
+            console.error('Profile creation API failed with status:', response.status, result)
+            console.warn('Profile creation via API failed, but user account was created. User may need to complete profile later or retry.')
           }
         } else {
           console.log('Profile created successfully via API:', result.profile)
         }
       } catch (error) {
         console.error('Error calling profile creation API:', error)
-        console.warn('Profile creation failed, but user account was created. User can complete profile setup later.')
+        console.warn('Profile creation API call failed, but user account was created. User may need to complete profile later or retry.')
       }
     }
 
@@ -209,7 +206,6 @@ export const auth = {
       throw new Error(`Login failed: ${error.message}`)
     }
 
-    // Update last login timestamp
     if (data.user) {
       await supabase
         .from('user_profiles')
@@ -231,7 +227,7 @@ export const auth = {
   // Request password reset
   async requestPasswordReset(email: string) {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/update-password`, // Redirect to the new page
+      redirectTo: `${window.location.origin}/auth/update-password`,
     })
 
     if (error) {
@@ -239,7 +235,7 @@ export const auth = {
     }
   },
 
-  // Update password (usually after reset or when logged in)
+  // Update password
   async updatePassword(newPassword: string) {
     const { error } = await supabase.auth.updateUser({
       password: newPassword,
@@ -250,15 +246,26 @@ export const auth = {
     }
   },
 
-  // Resend email verification
+  // Resend email verification (for current user)
   async resendEmailVerification() {
-    const { error } = await supabase.auth.resend({
+    const { error } = await supabase.auth.resend({ // This resends for the current user if email is blank
       type: 'signup',
-      email: '', // Will use current user's email
+      email: '', 
     })
 
     if (error) {
       throw new Error(`Email verification resend failed: ${error.message}`)
+    }
+  },
+  
+  // Resend verification for a specific email (used if user is not yet logged in from that email)
+  async resendVerificationForEmail(email: string) {
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: email,
+    })
+    if (error) {
+      throw new Error(`Resending verification for ${email} failed: ${error.message}`)
     }
   },
 
@@ -267,13 +274,20 @@ export const auth = {
     const { data, error } = await supabase.auth.verifyOtp({
       email,
       token,
-      type: 'email'
+      type: 'email' // This type is for verifying email post-signup or email change
     })
 
     if (error) {
       throw new Error(`Email verification failed: ${error.message}`)
     }
-
+    
+    // If verification successful, mark profile as email_verified true
+    if (data.user) {
+        await supabase
+            .from('user_profiles')
+            .update({ is_email_verified: true, email_verified_at: new Date().toISOString() })
+            .eq('id', data.user.id);
+    }
     return data
   },
 
@@ -295,30 +309,15 @@ export const auth = {
     })
   },
 
-  // Check if email is already registered but unverified
   async checkEmailStatus(email: string): Promise<{ exists: boolean; verified: boolean; canResend: boolean }> {
     try {
-      // This would ideally be a server-side call if RLS prevents direct user table access or admin API is preferred
-      // For client-side, this approach assumes broader access or relies on Supabase specific errors from signUp.
-      // A more secure way is to attempt signup and interpret the error, or have a dedicated backend endpoint.
-      // For now, we'll rely on the error handling in signUp.
-      // Placeholder for if a direct admin-like check was available client-side (it's not for users table typically).
-      // const { data, error } = await supabase.from('users').select('email_confirmed_at').eq('email', email).single();
-      return { exists: false, verified: false, canResend: true }; // Defaulting to allow signup attempt
+      // This is a client-side interpretation.
+      // A secure backend check would be better but is more complex for client-side auth library.
+      // Attempting signUp and checking for "User already registered" is one way.
+      // For now, let's assume a simplified check or that signUp error handling is sufficient.
+      return { exists: false, verified: false, canResend: true }; 
     } catch (error) {
       return { exists: false, verified: false, canResend: false };
-    }
-  },
-
-  // Resend verification for specific email
-  async resendVerificationForEmail(email: string) {
-    const { error } = await supabase.auth.resend({
-      type: 'signup',
-      email: email,
-    })
-
-    if (error) {
-      throw new Error(`Email verification resend failed: ${error.message}`)
     }
   },
 }
