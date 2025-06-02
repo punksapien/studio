@@ -43,7 +43,7 @@ export function SellerStepper({ currentStep, stepTitles }: SellerStepperProps) {
                   {isCompleted ? <Check className="h-5 w-5" /> : stepNumber}
                 </div>
                 <p className={cn(
-                    "mt-2 text-xs font-medium w-24 truncate", // Added w-24 and truncate
+                    "mt-2 text-xs font-medium w-28 truncate", // Adjusted width for potentially longer titles
                     isActive ? "text-brand-sky-blue" : "text-muted-foreground"
                 )}>
                   {title}

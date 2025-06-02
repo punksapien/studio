@@ -12,21 +12,21 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { asianCountries } from '@/lib/types';
+// Removed asianCountries as it's not used in the streamlined Step 1
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, ArrowRight, CheckCircle, FileText, Loader2 } from 'lucide-react';
 import { updateUserProfile, updateOnboardingStatus, uploadOnboardingDocument } from '@/hooks/use-current-user';
 
 // --- Schemas ---
+// Step 1: Welcome & Business Overview (Seller) - Streamlined
 const Step1SellerSchema = z.object({
-  registeredBusinessName: z.string().min(1, "Registered business name is required."),
   businessWebsiteUrl: z.string().url("Please enter a valid URL or leave blank.").optional().or(z.literal('')),
   yearEstablished: z.coerce.number().optional().refine(val => val === undefined || (val >= 1900 && val <= new Date().getFullYear()), "Invalid year."),
-  countryOfOperation: z.string().min(1, "Country of operation is required."),
   briefBusinessSummary: z.string().min(20, "Summary must be at least 20 characters.").max(300, "Summary too long (max 300 characters)."),
 });
 
 const Step2SellerSchema = z.object({
+  sellerIdentityFile: z.any().refine(file => file instanceof File || file === undefined, "File upload is required.").optional(),
   sellerIdentityFile: z.any().refine(file => file instanceof File || file === undefined, "File upload is required.").optional(),
 });
 
@@ -269,26 +269,14 @@ export default function SellerOnboardingStepPage() {
           sessionStorage.setItem('sellerOnboardingData', JSON.stringify(updatedData));
         }
 
-        toast({
-          title: "Financial Documents Uploaded",
-          description: "Your financial statements have been uploaded."
-        });
-
+    setTimeout(() => { 
+      setIsLoading(false);
+      if (currentStep < totalSteps) {
         router.push(`/onboarding/seller/${currentStep + 1}`);
-
-      } else if (currentStep === 5) {
-        // Step 5: Complete onboarding
-        await updateOnboardingStatus({
-          step_completed: currentStep,
-          complete_onboarding: true
-        });
-
-        toast({
-          title: "Onboarding Complete!",
-          description: "Your seller verification has been submitted. You now have access to the platform!"
-        });
-
-        sessionStorage.removeItem('sellerOnboardingData');
+      } else {
+        console.log("Seller Onboarding Submitted:", updatedData);
+        toast({ title: "Verification Submitted", description: "Your information is being reviewed." });
+        // sessionStorage.removeItem('sellerOnboardingData'); // Keep for success page if needed
         router.push('/onboarding/seller/success');
       }
 
@@ -317,13 +305,12 @@ export default function SellerOnboardingStepPage() {
           <>
             <CardHeader>
               <CardTitle className="font-heading">Welcome & Business Overview</CardTitle>
-              <CardDescription>Welcome to Nobridge, [Seller Name]! Let&apos;s get your business ready. Please provide key details.</CardDescription>
+              <CardDescription>Let&apos;s get your business ready. Please provide some key details.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <FormField control={methods.control} name="registeredBusinessName" render={({ field }) => (<FormItem><FormLabel>Registered Business Name</FormLabel><FormControl><Input {...field} placeholder="Your Company Pte. Ltd." /></FormControl><FormMessage /></FormItem>)} />
+              {/* Removed Registered Business Name and Country of Operation */}
               <FormField control={methods.control} name="businessWebsiteUrl" render={({ field }) => (<FormItem><FormLabel>Business Website URL (Optional)</FormLabel><FormControl><Input {...field} placeholder="https://yourbusiness.com" /></FormControl><FormMessage /></FormItem>)} />
               <FormField control={methods.control} name="yearEstablished" render={({ field }) => (<FormItem><FormLabel>Year Business Established</FormLabel><FormControl><Input type="number" {...field} placeholder="YYYY" /></FormControl><FormMessage /></FormItem>)} />
-              <FormField control={methods.control} name="countryOfOperation" render={({ field }) => (<FormItem><FormLabel>Country of Operation</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select country" /></SelectTrigger></FormControl><SelectContent>{asianCountries.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
               <FormField control={methods.control} name="briefBusinessSummary" render={({ field }) => (<FormItem><FormLabel>Brief Business Summary/Pitch (1-2 sentences)</FormLabel><FormControl><Textarea {...field} rows={3} placeholder="e.g., We are a leading SaaS provider in the logistics tech space for APAC." /></FormControl><FormMessage /></FormItem>)} />
             </CardContent>
           </>
@@ -434,10 +421,8 @@ export default function SellerOnboardingStepPage() {
             </CardHeader>
             <CardContent className="space-y-4 text-sm">
               <h3 className="font-semibold text-brand-dark-blue">Business Overview:</h3>
-              <p>Name: {formData.registeredBusinessName || 'N/A'}</p>
               <p>Website: {formData.businessWebsiteUrl || 'N/A'}</p>
               <p>Established: {formData.yearEstablished || 'N/A'}</p>
-              <p>Country: {formData.countryOfOperation || 'N/A'}</p>
               <p>Summary: {formData.briefBusinessSummary || 'N/A'}</p>
 
               <h3 className="font-semibold text-brand-dark-blue mt-4">Seller Identity:</h3>
@@ -472,9 +457,9 @@ export default function SellerOnboardingStepPage() {
   return (
     <FormProvider {...methods}>
       <form onSubmit={methods.handleSubmit(onSubmit)}>
-        <Card>
+        <Card className="bg-brand-white p-0"> {/* Removed card padding, will be in Header/Content */}
           {renderStepContent()}
-          <CardFooter className="flex justify-between pt-8 border-t">
+          <CardFooter className="flex justify-between pt-8 border-t mt-6 p-6 md:p-10"> {/* Standardized padding */}
             <Button type="button" variant="outline" onClick={handlePrevious} disabled={currentStep === 1 || isLoading}>
               <ArrowLeft className="mr-2 h-4 w-4" /> Previous
             </Button>
