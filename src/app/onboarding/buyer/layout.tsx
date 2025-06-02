@@ -16,15 +16,15 @@ export default function BuyerOnboardingLayout({
   const pathname = typeof window !== "undefined" ? window.location.pathname : "";
   const isSuccessPage = params.step === 'success' || pathname.endsWith('/onboarding/buyer/success');
 
-
+  // Updated and more concise step titles
   const buyerStepTitles = [
-    "Profile & Focus", // Renamed for clarity
-    "Identity Verification",
+    "Introduction",
+    "Identity Document",
   ];
 
   return (
     <div className="min-h-screen bg-brand-light-gray flex flex-col items-center py-8 md:py-12 px-4">
-      <div className="w-full max-w-3xl"> {/* Adjusted max-width */}
+      <div className="w-full max-w-3xl">
         <div className="mb-8 text-center">
           <Link href="/" aria-label="Back to homepage">
             <Logo size="xl" forceTheme="light" />
@@ -33,17 +33,17 @@ export default function BuyerOnboardingLayout({
             Become a Verified Nobridge Buyer
           </h1>
           <p className="text-muted-foreground">
-            Complete your profile to unlock full access.
+            Complete your verification to unlock full access to detailed business information.
           </p>
         </div>
 
         {!isSuccessPage && (
-          <div className="mb-10"> {/* Added margin-bottom for stepper */}
+          <div className="mb-10 max-w-3xl mx-auto"> {/* Ensure stepper container also respects max-width and is centered */}
             <BuyerStepper currentStep={currentStep} stepTitles={buyerStepTitles} />
           </div>
         )}
 
-        <main className="bg-brand-white p-6 md:p-10 rounded-xl shadow-xl"> {/* Standardized padding */}
+        <main className="bg-brand-white p-6 md:p-10 rounded-xl shadow-xl">
           {children}
         </main>
       </div>

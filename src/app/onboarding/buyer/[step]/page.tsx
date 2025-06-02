@@ -8,29 +8,20 @@ import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { BuyerPersonaTypes, PreferredInvestmentSizes } from '@/lib/types'; // Removed asianCountries
+// Input, Textarea, Select not needed for the simplified Step 1
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, ArrowRight, CheckCircle, FileText, Loader2 } from 'lucide-react';
-import { updateUserProfile, updateOnboardingStatus, uploadOnboardingDocument } from '@/hooks/use-current-user';
+import { ArrowLeft, ArrowRight, CheckCircle, FileText, Loader2, ShieldCheck } from 'lucide-react';
 
 // --- Schemas ---
-// Step 1: Buyer Profile & Investment Focus - Streamlined
+// Step 1: Simplified - Welcome/Information about verification
 const Step1BuyerSchema = z.object({
-  buyerPersonaType: z.enum(BuyerPersonaTypes, { required_error: "Buyer persona type is required."}),
-  buyerPersonaOther: z.string().optional(),
-  investmentFocusDescription: z.string().min(10, "Please describe your investment focus (min 10 characters)."),
-  preferredInvestmentSize: z.enum(PreferredInvestmentSizes).optional(),
-  keyIndustriesOfInterest: z.string().optional(),
-}).refine(data => data.buyerPersonaType !== "Other" || (data.buyerPersonaType === "Other" && data.buyerPersonaOther && data.buyerPersonaOther.trim() !== ""), {
-  message: "Please specify your role if 'Other' is selected.",
-  path: ["buyerPersonaOther"],
+  // No form fields needed for this informational step.
+  // Could add a confirmation checkbox if explicit consent to proceed is desired.
+  // confirmProceed: z.boolean().refine(val => val === true, { message: "Please confirm to proceed." })
 });
 
 const Step2BuyerSchema = z.object({
-  buyerIdentityFile: z.any().refine(file => file instanceof File || file === undefined, "File upload is required.").optional(),
+  buyerIdentityFile: z.any().refine(file => file instanceof File || file === undefined, "File upload is required for verification.").optional(),
 });
 
 type BuyerFormValues = Partial<z.infer<typeof Step1BuyerSchema>> &
@@ -38,6 +29,7 @@ type BuyerFormValues = Partial<z.infer<typeof Step1BuyerSchema>> &
 
 const buyerStepSchemas = [Step1BuyerSchema, Step2BuyerSchema];
 
+// Styled File Input (re-declared here for completeness, ideally in its own component file)
 interface FileInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label: string;
   helperText?: string;
@@ -66,7 +58,7 @@ const StyledFileInput: React.FC<FileInputProps> = ({ label, helperText, currentF
         <Button type="button" variant="outline" onClick={handleButtonClick}>
           <FileText className="mr-2 h-4 w-4" /> Choose File
         </Button>
-        <Input
+        <input // Corrected type attribute for input
           type="file"
           ref={fileInputRef}
           className="hidden"
@@ -88,7 +80,7 @@ export default function BuyerOnboardingStepPage() {
   const params = useParams();
   const { toast } = useToast();
   const currentStep = parseInt(params.step as string, 10);
-  const totalSteps = 2;
+  const totalSteps = 2; // Only 2 steps for buyer now
 
   const [isLoading, setIsLoading] = React.useState(false);
   const [formData, setFormData] = React.useState<BuyerFormValues>(() => {
@@ -117,16 +109,14 @@ export default function BuyerOnboardingStepPage() {
   const currentSchema = buyerStepSchemas[currentStep - 1] || z.object({});
   const methods = useForm<BuyerFormValues>({
     resolver: zodResolver(currentSchema),
-    defaultValues: formData, 
+    defaultValues: formData,
   });
 
   React.useEffect(() => {
     methods.reset(getDefaultValues(formData));
   }, [currentStep, formData, methods]);
 
-  const watchedBuyerPersonaType = methods.watch("buyerPersonaType");
-
-  const onSubmit = async (data: BuyerFormValues) => {
+  const onSubmit = (data: BuyerFormValues) => {
     setIsLoading(true);
     const updatedData = { ...formData, ...data };
     setFormData(updatedData);
@@ -154,14 +144,13 @@ export default function BuyerOnboardingStepPage() {
           sessionStorage.setItem('buyerOnboardingData', JSON.stringify(updatedData));
         }
 
-    setTimeout(() => { 
+    setTimeout(() => {
       setIsLoading(false);
       if (currentStep < totalSteps) {
         router.push(`/onboarding/buyer/${currentStep + 1}`);
       } else {
         console.log("Buyer Onboarding Submitted:", updatedData);
         toast({ title: "Verification Submitted", description: "Your information is being reviewed." });
-        // sessionStorage.removeItem('buyerOnboardingData'); // Keep for success page
         router.push('/onboarding/buyer/success');
       }
 
@@ -185,21 +174,26 @@ export default function BuyerOnboardingStepPage() {
 
   const renderStepContent = () => {
     switch (currentStep) {
-      case 1: // Welcome & Profile Completion
+      case 1: // Welcome & Verification Info
         return (
           <>
             <CardHeader>
-              <CardTitle className="font-heading">Buyer Profile & Investment Focus</CardTitle>
-              <CardDescription>Help us understand your investment preferences to connect you with the right opportunities.</CardDescription>
+              <CardTitle className="font-heading flex items-center gap-2"><ShieldCheck className="h-7 w-7 text-primary" /> Verification Required</CardTitle>
+              <CardDescription>To ensure a trusted marketplace and enable full access to detailed business information, please complete our simple verification process.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Removed Full Name, Country, Phone Number */}
-              <FormField control={methods.control} name="buyerPersonaType" render={({ field }) => (<FormItem><FormLabel>I am a/an: (Primary Role / Buyer Type)</FormLabel><Select onValueChange={field.onChange} value={field.value || ""}><FormControl><SelectTrigger><SelectValue placeholder="Select your primary role" /></SelectTrigger></FormControl><SelectContent>{BuyerPersonaTypes.map((type) => (<SelectItem key={type} value={type}>{type}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)} />
-              {watchedBuyerPersonaType === "Other" && (<FormField control={methods.control} name="buyerPersonaOther" render={({ field }) => (<FormItem><FormLabel>Please Specify Role</FormLabel><FormControl><Input {...field} placeholder="Your specific role" /></FormControl><FormMessage /></FormItem>)} />)}
-
-              <FormField control={methods.control} name="investmentFocusDescription" render={({ field }) => (<FormItem><FormLabel>Investment Focus or What You&apos;re Looking For</FormLabel><FormControl><Textarea {...field} rows={3} placeholder="e.g., SaaS businesses in Southeast Asia with $100k-$1M ARR." /></FormControl><FormMessage /></FormItem>)} />
-              <FormField control={methods.control} name="preferredInvestmentSize" render={({ field }) => (<FormItem><FormLabel>Preferred Investment Size (Optional)</FormLabel><Select onValueChange={field.onChange} value={field.value || ""}><FormControl><SelectTrigger><SelectValue placeholder="Select preferred investment size" /></SelectTrigger></FormControl><SelectContent>{PreferredInvestmentSizes.map((size) => (<SelectItem key={size} value={size}>{size}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)} />
-              <FormField control={methods.control} name="keyIndustriesOfInterest" render={({ field }) => (<FormItem><FormLabel>Key Industries of Interest (Optional)</FormLabel><FormControl><Textarea {...field} rows={2} placeholder="e.g., Technology, E-commerce, Healthcare" /></FormControl><FormMessage /></FormItem>)} />
+              <p className="text-muted-foreground">
+                Welcome to Nobridge! As a buyer, verifying your identity is a key step to:
+              </p>
+              <ul className="list-disc list-inside space-y-2 text-muted-foreground pl-5">
+                <li>Access detailed information and documents for verified business listings.</li>
+                <li>Engage in secure, direct communication with verified sellers once a connection is facilitated.</li>
+                <li>Build trust within the Nobridge community.</li>
+              </ul>
+              <p className="text-muted-foreground">
+                The next step involves uploading a clear copy of your government-issued photo ID. This information is handled securely and is solely for verification purposes.
+              </p>
+              {/* No form fields needed here for this simplified step */}
             </CardContent>
           </>
         );
@@ -207,8 +201,8 @@ export default function BuyerOnboardingStepPage() {
         return (
           <>
             <CardHeader>
-              <CardTitle className="font-heading">Buyer Identity Verification</CardTitle>
-              <CardDescription>To maintain a trusted community, please upload a clear copy of your government-issued photo ID.</CardDescription>
+              <CardTitle className="font-heading">Upload Identity Document</CardTitle>
+              <CardDescription>Please upload a clear copy of your government-issued photo ID (e.g., Passport, National ID).</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <FormField
@@ -243,7 +237,7 @@ export default function BuyerOnboardingStepPage() {
             </Button>
             <Button type="submit" disabled={isLoading} className="bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90">
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {currentStep < totalSteps ? 'Save & Next Step' : 'Submit for Verification'}
+              {currentStep < totalSteps ? 'Proceed to Document Upload' : 'Submit for Verification'}
               {currentStep < totalSteps && <ArrowRight className="ml-2 h-4 w-4" />}
               {currentStep === totalSteps && <CheckCircle className="ml-2 h-4 w-4" />}
             </Button>
