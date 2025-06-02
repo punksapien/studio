@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -33,7 +34,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { auth, type RegisterData } from "@/lib/auth";
-
 
 const BuyerRegisterSchema = z.object({
   fullName: z.string().min(1, { message: "Full name is required." }),
@@ -92,12 +92,11 @@ export default function BuyerRegisterPage() {
         if (emailStatus.exists && !emailStatus.verified && emailStatus.canResend) {
           setError(
             `An account with this email already exists but isn't verified. ` +
-            `Check your email for the verification link. If you need a new verification email, ` +
-            `click the "Resend Verification" button below.`
+            `Check your email for the verification link or click "Resend Verification".`
           );
           toast({
             title: "Account Already Exists",
-            description: "This email is already registered but unverified. Would you like to resend the verification email?",
+            description: "This email is already registered but unverified. A new verification email can be sent.",
             action: (
               <button
                 onClick={async () => {
@@ -151,15 +150,13 @@ export default function BuyerRegisterPage() {
         if (result.user) {
            toast({
             title: "Registration Successful!",
-            description: "Please complete your onboarding to access all features."
+            description: "Please check your email to verify your account and then complete onboarding."
           });
-          router.push('/onboarding/buyer/1'); // Redirect to buyer onboarding
+          router.push(`/verify-email?email=${encodeURIComponent(values.email)}&type=register`);
         } else {
-          // Fallback to email verification if user somehow not created but no error
-          // This case should ideally be handled by auth.signUp throwing an error
           toast({
             title: "Registration Incomplete",
-            description: "Please check your email for a verification link."
+            description: "Something went wrong, but please check your email for a verification link."
           });
           router.push(`/verify-email?email=${encodeURIComponent(values.email)}&type=register`);
         }

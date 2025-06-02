@@ -2,9 +2,9 @@
 
 import * as React from 'react';
 import { BuyerStepper } from '@/components/onboarding/buyer-stepper';
-import { Logo } from '@/components/shared/logo';
+// Removed Logo import
 import { useParams } from 'next/navigation';
-import Link from 'next/link';
+import Link from 'next/link'; // Keep Link
 
 export default function BuyerOnboardingLayout({
   children,
@@ -16,9 +16,8 @@ export default function BuyerOnboardingLayout({
   const pathname = typeof window !== "undefined" ? window.location.pathname : "";
   const isSuccessPage = params.step === 'success' || pathname.endsWith('/onboarding/buyer/success');
 
-  // Updated and more concise step titles
   const buyerStepTitles = [
-    "Introduction",
+    "Introduction", // Step 1 is now just an intro
     "Identity Document",
   ];
 
@@ -26,9 +25,7 @@ export default function BuyerOnboardingLayout({
     <div className="min-h-screen bg-brand-light-gray flex flex-col items-center py-8 md:py-12 px-4">
       <div className="w-full max-w-3xl">
         <div className="mb-8 text-center">
-          <Link href="/" aria-label="Back to homepage">
-            <Logo size="xl" forceTheme="light" />
-          </Link>
+          {/* Logo component removed from here */}
           <h1 className="text-3xl md:text-4xl font-bold text-brand-dark-blue mt-4 mb-2 font-heading">
             Become a Verified Nobridge Buyer
           </h1>
@@ -38,7 +35,7 @@ export default function BuyerOnboardingLayout({
         </div>
 
         {!isSuccessPage && (
-          <div className="mb-10 max-w-3xl mx-auto"> {/* Ensure stepper container also respects max-width and is centered */}
+          <div className="mb-10 max-w-3xl mx-auto">
             <BuyerStepper currentStep={currentStep} stepTitles={buyerStepTitles} />
           </div>
         )}
