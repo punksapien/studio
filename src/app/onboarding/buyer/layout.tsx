@@ -16,7 +16,6 @@ export default function BuyerOnboardingLayout({
   const pathname = typeof window !== "undefined" ? window.location.pathname : "";
   const isSuccessPage = params.step === 'success' || pathname.endsWith('/onboarding/buyer/success');
 
-  // Updated and more concise step titles
   const buyerStepTitles = [
     "Introduction", // Step 1 is now just an intro
     "Identity Document",

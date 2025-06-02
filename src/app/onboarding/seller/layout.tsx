@@ -18,7 +18,6 @@ export default function SellerOnboardingLayout({
   const isSuccessPage = params.step === 'success' || pathname.endsWith('/onboarding/seller/success');
   const isSuccessPage = params.step === 'success' || pathname.endsWith('/onboarding/seller/success');
 
-
   const sellerStepTitles = [
     "Business Overview",
     "Seller Identity",
@@ -33,7 +32,7 @@ export default function SellerOnboardingLayout({
 
   return (
     <div className="min-h-screen bg-brand-light-gray flex flex-col items-center py-8 md:py-12 px-4">
-      <div className="w-full max-w-3xl"> {/* Adjusted max-width */}
+      <div className="w-full max-w-3xl">
         <div className="mb-8 text-center">
           {/* Logo component removed from here */}
           <h1 className="text-3xl md:text-4xl font-bold text-brand-dark-blue mt-4 mb-2 font-heading">
@@ -46,12 +45,12 @@ export default function SellerOnboardingLayout({
         </div>
 
         {!isSuccessPage && (
-          <div className="mb-10"> {/* Added margin-bottom for stepper */}
+          <div className="mb-10 max-w-3xl mx-auto">
             <SellerStepper currentStep={currentStep} stepTitles={sellerStepTitles} />
           </div>
         )}
 
-        <main className="bg-brand-white p-6 md:p-10 rounded-xl shadow-xl"> {/* Standardized padding */}
+        <main className="bg-brand-white p-6 md:p-10 rounded-xl shadow-xl">
           {children}
         </main>
       </div>
