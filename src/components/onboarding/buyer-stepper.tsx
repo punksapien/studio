@@ -15,7 +15,8 @@ export function BuyerStepper({ currentStep, stepTitles }: BuyerStepperProps) {
 
   return (
     <nav aria-label="Progress">
-      <ol role="list" className="flex items-center justify-around"> {/* Changed to justify-around for fewer steps */}
+      {/* For 2 steps, justify-around makes them more centered than justify-between */}
+      <ol role="list" className="flex items-center justify-around">
         {stepTitles.map((title, index) => {
           const stepNumber = index + 1;
           const isCompleted = stepNumber < currentStep;
@@ -23,9 +24,9 @@ export function BuyerStepper({ currentStep, stepTitles }: BuyerStepperProps) {
 
           return (
             <li key={title} className={cn("relative", index < totalSteps - 1 ? "flex-1" : "")}>
-              {index < totalSteps - 1 && (
+              {index < totalSteps - 1 && ( // Only render connecting line if not the last step
                 <div
-                  className="absolute inset-0 top-4 left-0 flex w-full items-center"
+                  className="absolute inset-0 top-4 left-1/2 flex w-[calc(100%-2rem)] items-center" // Adjusted to roughly connect centers
                   aria-hidden="true"
                 >
                   <div className={cn("h-0.5 w-full", isCompleted ? "bg-brand-sky-blue" : "bg-brand-light-gray")} />
@@ -43,7 +44,7 @@ export function BuyerStepper({ currentStep, stepTitles }: BuyerStepperProps) {
                   {isCompleted ? <Check className="h-5 w-5" /> : stepNumber}
                 </div>
                 <p className={cn(
-                    "mt-2 text-xs font-medium w-28 truncate", // Adjusted width
+                    "mt-2 text-xs font-medium w-32 truncate", // Increased width for potentially longer titles
                     isActive ? "text-brand-sky-blue" : "text-muted-foreground"
                 )}>
                   {title}
