@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { sampleVerificationRequests, sampleUsers, sampleListings } from "@/lib/placeholder-data";
-import type { VerificationRequestItem, VerificationQueueStatus, User, VerificationStatus, Listing } from "@/lib/types";
+import type { VerificationRequestItem, VerificationQueueStatus, User, VerificationStatus, Listing, AdminNote } from "@/lib/types";
 import Link from "next/link";
 import { Eye, FileText, Edit, ShieldCheck, AlertTriangle } from "lucide-react";
 import { UpdateVerificationStatusDialog } from "@/components/admin/update-verification-status-dialog";
@@ -54,30 +54,32 @@ export default function AdminSellerVerificationQueuePage() {
     requestId: string,
     newOperationalStatus: VerificationQueueStatus,
     newProfileStatus: VerificationStatus,
-    adminNotes: string
+    updatedAdminNotes: AdminNote[]
   ) => {
+    let userName = "User";
     setRequests(prev =>
-      prev.map(req =>
-        req.id === requestId
-          ? { ...req, operationalStatus: newOperationalStatus, profileStatus: newProfileStatus, adminNotes: adminNotes, updatedAt: new Date() }
-          : req
-      )
+      prev.map(req => {
+        if (req.id === requestId) {
+          userName = req.userName;
+          return { ...req, operationalStatus: newOperationalStatus, profileStatus: newProfileStatus, adminNotes: updatedAdminNotes, updatedAt: new Date() };
+        }
+        return req;
+      })
     );
     
-    const requestToUpdate = requests.find(r => r.id === requestId);
+    const requestToUpdate = requests.find(r => r.id === requestId); // Use current requests state to find the one being updated
     if (requestToUpdate) {
-        // Update user's profile status in sampleUsers
         const userIndex = sampleUsers.findIndex(u => u.id === requestToUpdate.userId);
         if (userIndex !== -1) {
-            sampleUsers[userIndex].verificationStatus = newProfileStatus; // Update user's global status
+            sampleUsers[userIndex].verificationStatus = newProfileStatus;
             sampleUsers[userIndex].updatedAt = new Date();
         }
-        // If it's a listing verification and marked as verified, update listing status too
+        
         if (requestToUpdate.listingId && newProfileStatus === 'verified') {
             const listingIndex = sampleListings.findIndex(l => l.id === requestToUpdate.listingId);
             if (listingIndex !== -1) {
-                sampleListings[listingIndex].status = 'verified_anonymous'; // Or 'verified_public' based on your logic
-                sampleListings[listingIndex].isSellerVerified = true; // Assuming this means seller is verified for this listing
+                sampleListings[listingIndex].status = 'verified_anonymous';
+                sampleListings[listingIndex].isSellerVerified = true;
                 sampleListings[listingIndex].updatedAt = new Date();
             }
         } else if (requestToUpdate.listingId && newProfileStatus === 'rejected') {
@@ -88,17 +90,17 @@ export default function AdminSellerVerificationQueuePage() {
             }
         }
     }
-    toast({ title: "Status Updated", description: `Verification request for ${requestToUpdate?.userName} updated.` });
+    toast({ title: "Status Updated", description: `Verification for ${userName} updated.` });
   };
 
-  const getOperationalStatusBadge = (status: VerificationQueueStatus) => {
+ const getOperationalStatusBadge = (status: VerificationQueueStatus) => {
     switch (status) {
       case 'New Request': return <Badge variant="destructive" className="text-xs">New</Badge>;
-      case 'Contacted': return <Badge variant="secondary" className="text-xs">Contacted</Badge>;
-      case 'Docs Under Review': return <Badge className="bg-blue-500 text-white dark:bg-blue-700 dark:text-blue-100 text-xs">Docs Review</Badge>;
-      case 'More Info Requested': return <Badge className="bg-yellow-500 text-white dark:bg-yellow-600 dark:text-yellow-100 text-xs">More Info</Badge>;
-      case 'Approved': return <Badge className="bg-green-500 text-white dark:bg-green-600 dark:text-green-100 text-xs">Approved</Badge>;
-      case 'Rejected': return <Badge variant="destructive" className="bg-red-700 text-white dark:bg-red-800 dark:text-red-200 text-xs">Rejected</Badge>;
+      case 'Contacted': return <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700">Contacted</Badge>;
+      case 'Docs Under Review': return <Badge className="bg-purple-100 text-purple-700 text-xs">Docs Review</Badge>;
+      case 'More Info Requested': return <Badge className="bg-yellow-100 text-yellow-700 text-xs">More Info</Badge>;
+      case 'Approved': return <Badge className="bg-green-100 text-green-700 text-xs">Approved</Badge>;
+      case 'Rejected': return <Badge variant="destructive" className="text-xs bg-red-100 text-red-700">Rejected</Badge>;
       default: return <Badge className="text-xs">{status}</Badge>;
     }
   };
@@ -151,7 +153,7 @@ export default function AdminSellerVerificationQueuePage() {
                     <TableCell>{getProfileStatusBadge(req.profileStatus)}</TableCell>
                     <TableCell className="text-right whitespace-nowrap">
                        <Button variant="outline" size="sm" onClick={() => handleManageStatus(req)}>
-                         <Edit className="h-3 w-3 mr-1.5"/> Manage
+                         <Edit className="h-3 w-3 mr-1.5"/> Manage Statuses
                        </Button>
                       <Button variant="ghost" size="icon" asChild title="View User Details">
                         <Link href={`/admin/users/${req.userId}`}>
@@ -189,5 +191,3 @@ export default function AdminSellerVerificationQueuePage() {
     </div>
   );
 }
-
-    

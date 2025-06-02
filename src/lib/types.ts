@@ -58,7 +58,7 @@ export interface User {
   country: string;
   role: UserRole;
   isEmailVerified: boolean;
-  verificationStatus: VerificationStatus; // This now represents the user's overall profile status
+  verificationStatus: VerificationStatus;
   isPaid: boolean;
   initialCompanyName?: string;
   buyerType?: BuyerType;
@@ -207,6 +207,16 @@ export interface AdminDashboardMetrics {
 
 export type VerificationQueueStatus = "New Request" | "Contacted" | "Docs Under Review" | "More Info Requested" | "Approved" | "Rejected";
 
+export interface AdminNote {
+  id: string;
+  note: string;
+  timestamp: Date;
+  operationalStatusAtTimeOfNote: VerificationQueueStatus;
+  profileStatusAtTimeOfNote: VerificationStatus;
+  adminId: string;
+  adminName?: string;
+}
+
 export interface VerificationRequestItem {
   id: string;
   timestamp: Date;
@@ -215,11 +225,11 @@ export interface VerificationRequestItem {
   userRole: UserRole;
   listingId?: string;
   listingTitle?: string;
-  triggeringUserId?: string;
+  triggeringUserId?: string; // User who initiated (if different from subject user)
   reason: string;
-  operationalStatus: VerificationQueueStatus; // Renamed from 'status'
-  profileStatus: VerificationStatus; // NEW: Tracks user's public-facing verification status
-  adminNotes?: string;
+  operationalStatus: VerificationQueueStatus;
+  profileStatus: VerificationStatus;
+  adminNotes?: AdminNote[]; // Changed from string to AdminNote[]
   documentsSubmitted?: { name: string, type: 'id_proof' | 'business_reg' | 'financials' }[];
 }
 
@@ -235,7 +245,7 @@ export interface ReadyToEngageItem {
   sellerVerificationStatus: VerificationStatus;
   listingId: string;
   listingTitle: string;
-  listingVerificationStatus: ListingStatus;
+  listingVerificationStatus: ListingStatus; // This should be Listing's status e.g. 'verified_public'
 }
 
 export type NotificationType = 'inquiry' | 'verification' | 'system' | 'engagement' | 'listing_update' | 'new_message';
@@ -277,5 +287,3 @@ export interface Message {
   attachmentUrl?: string;
   attachmentType?: string;
 }
-
-    
