@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -15,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { asianCountries, BuyerPersonaTypes, PreferredInvestmentSizes } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, ArrowRight, CheckCircle, FileText, Loader2 } from 'lucide-react';
+import { updateUserProfile, updateOnboardingStatus, uploadOnboardingDocument } from '@/hooks/use-current-user';
 
 // --- Schemas ---
 const Step1BuyerSchema = z.object({
@@ -101,37 +101,105 @@ export default function BuyerOnboardingStepPage() {
     return {};
   });
 
+  // Ensure all form values are properly initialized to prevent controlled/uncontrolled issues
+  const getDefaultValues = (data: BuyerFormValues): BuyerFormValues => {
+    return {
+      fullName: data.fullName || "",
+      country: data.country || "",
+      phoneNumber: data.phoneNumber || "",
+      buyerPersonaType: data.buyerPersonaType || undefined,
+      buyerPersonaOther: data.buyerPersonaOther || "",
+      investmentFocusDescription: data.investmentFocusDescription || "",
+      preferredInvestmentSize: data.preferredInvestmentSize || undefined,
+      keyIndustriesOfInterest: data.keyIndustriesOfInterest || "",
+      buyerIdentityFile: data.buyerIdentityFile || undefined,
+    };
+  };
+
   const currentSchema = buyerStepSchemas[currentStep - 1] || z.object({});
   const methods = useForm<BuyerFormValues>({
     resolver: zodResolver(currentSchema),
-    defaultValues: formData, // Pre-fill with data from session storage or default
+    defaultValues: getDefaultValues(formData),
   });
 
   React.useEffect(() => {
-    methods.reset(formData);
+    methods.reset(getDefaultValues(formData));
   }, [currentStep, formData, methods]);
 
   const watchedBuyerPersonaType = methods.watch("buyerPersonaType");
 
-  const onSubmit = (data: BuyerFormValues) => {
+  const onSubmit = async (data: BuyerFormValues) => {
     setIsLoading(true);
     const updatedData = { ...formData, ...data };
     setFormData(updatedData);
-     if (typeof window !== 'undefined') {
-      sessionStorage.setItem('buyerOnboardingData', JSON.stringify(updatedData));
-    }
 
-    setTimeout(() => { // Simulate API call
-      setIsLoading(false);
-      if (currentStep < totalSteps) {
+    try {
+      if (currentStep === 1) {
+        // Step 1: Update profile information
+        await updateUserProfile({
+          full_name: updatedData.fullName!,
+          phone_number: updatedData.phoneNumber!,
+          country: updatedData.country!,
+          buyer_persona_type: updatedData.buyerPersonaType!,
+          buyer_persona_other: updatedData.buyerPersonaOther,
+          investment_focus_description: updatedData.investmentFocusDescription,
+          preferred_investment_size: updatedData.preferredInvestmentSize,
+          key_industries_of_interest: updatedData.keyIndustriesOfInterest,
+        });
+
+        // Update onboarding step
+        await updateOnboardingStatus({
+          step_completed: currentStep
+        });
+
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('buyerOnboardingData', JSON.stringify(updatedData));
+        }
+
+        toast({
+          title: "Profile Updated",
+          description: "Your profile information has been saved."
+        });
+
         router.push(`/onboarding/buyer/${currentStep + 1}`);
-      } else {
-        console.log("Buyer Onboarding Submitted:", updatedData);
-        toast({ title: "Verification Submitted", description: "Your information is being reviewed." });
+
+      } else if (currentStep === 2) {
+        // Step 2: Upload identity document and complete onboarding
+        let documentUploaded = false;
+
+        if (updatedData.buyerIdentityFile instanceof File) {
+          await uploadOnboardingDocument(updatedData.buyerIdentityFile, 'identity');
+          documentUploaded = true;
+        }
+
+        // Complete onboarding
+        await updateOnboardingStatus({
+          step_completed: currentStep,
+          complete_onboarding: true,
+          submitted_documents: {
+            identity: documentUploaded
+          }
+        });
+
+        toast({
+          title: "Verification Submitted",
+          description: "Your information is being reviewed. You now have access to the platform!"
+        });
+
         sessionStorage.removeItem('buyerOnboardingData');
         router.push('/onboarding/buyer/success');
       }
-    }, 700);
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred';
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: errorMessage
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handlePrevious = () => {
@@ -153,10 +221,10 @@ export default function BuyerOnboardingStepPage() {
               <FormField control={methods.control} name="fullName" render={({ field }) => (<FormItem><FormLabel>Full Name</FormLabel><FormControl><Input {...field} placeholder="Your Full Name" /></FormControl><FormMessage /></FormItem>)} />
               <FormField control={methods.control} name="country" render={({ field }) => (<FormItem><FormLabel>Country of Residence</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select country" /></SelectTrigger></FormControl><SelectContent>{asianCountries.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
               <FormField control={methods.control} name="phoneNumber" render={({ field }) => (<FormItem><FormLabel>Phone Number</FormLabel><FormControl><Input {...field} placeholder="+65 1234 5678" /></FormControl><FormMessage /></FormItem>)} />
-              
+
               <FormField control={methods.control} name="buyerPersonaType" render={({ field }) => (<FormItem><FormLabel>I am a/an: (Primary Role / Buyer Type)</FormLabel><Select onValueChange={field.onChange} value={field.value || ""}><FormControl><SelectTrigger><SelectValue placeholder="Select your primary role" /></SelectTrigger></FormControl><SelectContent>{BuyerPersonaTypes.map((type) => (<SelectItem key={type} value={type}>{type}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)} />
               {watchedBuyerPersonaType === "Other" && (<FormField control={methods.control} name="buyerPersonaOther" render={({ field }) => (<FormItem><FormLabel>Please Specify Role</FormLabel><FormControl><Input {...field} placeholder="Your specific role" /></FormControl><FormMessage /></FormItem>)} />)}
-              
+
               <FormField control={methods.control} name="investmentFocusDescription" render={({ field }) => (<FormItem><FormLabel>Investment Focus or What You&apos;re Looking For</FormLabel><FormControl><Textarea {...field} rows={3} placeholder="e.g., SaaS businesses in Southeast Asia with $100k-$1M ARR." /></FormControl><FormMessage /></FormItem>)} />
               <FormField control={methods.control} name="preferredInvestmentSize" render={({ field }) => (<FormItem><FormLabel>Preferred Investment Size (Optional)</FormLabel><Select onValueChange={field.onChange} value={field.value || ""}><FormControl><SelectTrigger><SelectValue placeholder="Select preferred investment size" /></SelectTrigger></FormControl><SelectContent>{PreferredInvestmentSizes.map((size) => (<SelectItem key={size} value={size}>{size}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)} />
               <FormField control={methods.control} name="keyIndustriesOfInterest" render={({ field }) => (<FormItem><FormLabel>Key Industries of Interest (Optional)</FormLabel><FormControl><Textarea {...field} rows={2} placeholder="e.g., Technology, E-commerce, Healthcare" /></FormControl><FormMessage /></FormItem>)} />

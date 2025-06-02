@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { useRouter } from "next/navigation"; 
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { AuthCardWrapper } from "@/components/auth/auth-card-wrapper";
+import { AuthPageGuard } from "@/components/auth/auth-page-guard";
 import { CommonRegistrationFields } from "@/components/auth/common-registration-fields";
 import { useState, useTransition } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -38,7 +39,7 @@ const SellerRegisterSchema = z.object({
 export default function SellerRegisterPage() {
   const [error, setError] = useState<string | undefined>("");
   const [isPending, startTransition] = useTransition();
-  const router = useRouter(); 
+  const router = useRouter();
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof SellerRegisterSchema>>({
@@ -72,7 +73,7 @@ export default function SellerRegisterPage() {
         };
 
         const result = await auth.signUp(registerData);
-        
+
         if (result.user) {
           toast({
             title: "Registration Successful!",
@@ -102,41 +103,43 @@ export default function SellerRegisterPage() {
   };
 
   return (
-    <AuthCardWrapper
-      headerLabel="Create your Seller account to list your business."
-      backButtonLabel="Already have an account? Login here."
-      backButtonHref="/auth/login"
-    >
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          <CommonRegistrationFields control={form.control} isPending={isPending} />
-          <FormField
-            control={form.control}
-            name="initialCompanyName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Initial Company Name (Optional)</FormLabel>
-                <FormControl>
-                  <Input {...field} placeholder="My Awesome Business" disabled={isPending} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
+    <AuthPageGuard>
+      <AuthCardWrapper
+        headerLabel="Create your Seller account to list your business."
+        backButtonLabel="Already have an account? Login here."
+        backButtonHref="/auth/login"
+      >
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <CommonRegistrationFields control={form.control} isPending={isPending} />
+            <FormField
+              control={form.control}
+              name="initialCompanyName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Initial Company Name (Optional)</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="My Awesome Business" disabled={isPending} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {error && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
             )}
-          />
 
-          {error && (
-            <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
-          <Button type="submit" className="w-full" disabled={isPending}>
-            {isPending ? "Processing..." : "Register as Seller"}
-          </Button>
-        </form>
-      </Form>
-    </AuthCardWrapper>
+            <Button type="submit" className="w-full" disabled={isPending}>
+              {isPending ? "Processing..." : "Register as Seller"}
+            </Button>
+          </form>
+        </Form>
+      </AuthCardWrapper>
+    </AuthPageGuard>
   );
 }

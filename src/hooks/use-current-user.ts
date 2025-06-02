@@ -16,6 +16,12 @@ export interface UserProfile {
   verification_status: 'anonymous' | 'pending_verification' | 'verified' | 'rejected'
   is_paid: boolean
 
+  // Onboarding fields
+  is_onboarding_completed: boolean
+  onboarding_completed_at?: string
+  onboarding_step_completed: number
+  submitted_documents?: Record<string, any>
+
   // Seller-specific fields
   initial_company_name?: string
 
@@ -152,4 +158,83 @@ export async function updateUserProfile(updateData: Partial<UserProfile>): Promi
 
   const { profile } = await response.json()
   return profile
+}
+
+// Onboarding utility functions
+export async function checkOnboardingStatus() {
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+
+  if (sessionError || !session?.access_token) {
+    throw new Error('Not authenticated')
+  }
+
+  const response = await fetch('/api/onboarding/status', {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    }
+  })
+
+  if (!response.ok) {
+    const errorData = await response.json()
+    throw new Error(errorData.error || 'Failed to check onboarding status')
+  }
+
+  return response.json()
+}
+
+export async function updateOnboardingStatus(updates: {
+  step_completed?: number
+  submitted_documents?: Record<string, any>
+  complete_onboarding?: boolean
+}) {
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+
+  if (sessionError || !session?.access_token) {
+    throw new Error('Not authenticated')
+  }
+
+  const response = await fetch('/api/onboarding/status', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(updates)
+  })
+
+  if (!response.ok) {
+    const errorData = await response.json()
+    throw new Error(errorData.error || 'Failed to update onboarding status')
+  }
+
+  return response.json()
+}
+
+export async function uploadOnboardingDocument(file: File, documentType: string) {
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+
+  if (sessionError || !session?.access_token) {
+    throw new Error('Not authenticated')
+  }
+
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('document_type', documentType)
+
+  const response = await fetch('/api/onboarding/upload', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+    },
+    body: formData
+  })
+
+  if (!response.ok) {
+    const errorData = await response.json()
+    throw new Error(errorData.error || 'Failed to upload document')
+  }
+
+  return response.json()
 }

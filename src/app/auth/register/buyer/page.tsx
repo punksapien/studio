@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation"; 
+import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -26,6 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AuthCardWrapper } from "@/components/auth/auth-card-wrapper";
+import { AuthPageGuard } from "@/components/auth/auth-page-guard";
 import { CommonRegistrationFields } from "@/components/auth/common-registration-fields";
 import { BuyerPersonaTypes, PreferredInvestmentSizes, asianCountries } from "@/lib/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -57,7 +58,7 @@ const BuyerRegisterSchema = z.object({
 export default function BuyerRegisterPage() {
   const [error, setError] = useState<string | undefined>("");
   const [isPending, startTransition] = useTransition();
-  const router = useRouter(); 
+  const router = useRouter();
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof BuyerRegisterSchema>>({
@@ -176,133 +177,135 @@ export default function BuyerRegisterPage() {
   };
 
   return (
-    <AuthCardWrapper
-      headerLabel="Create your Buyer account to discover opportunities."
-      backButtonLabel="Already have an account? Login here."
-      backButtonHref="/auth/login"
-    >
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          <CommonRegistrationFields control={form.control} isPending={isPending} />
+    <AuthPageGuard>
+      <AuthCardWrapper
+        headerLabel="Create your Buyer account to discover opportunities."
+        backButtonLabel="Already have an account? Login here."
+        backButtonHref="/auth/login"
+      >
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <CommonRegistrationFields control={form.control} isPending={isPending} />
 
-          <FormField
-            control={form.control}
-            name="buyerPersonaType"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>I am a/an: (Primary Role / Buyer Type)</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value || ""} disabled={isPending}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select your primary role" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {BuyerPersonaTypes.map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {type}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {watchedBuyerPersonaType === "Other" && (
             <FormField
               control={form.control}
-              name="buyerPersonaOther"
+              name="buyerPersonaType"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Please Specify Role</FormLabel>
+                  <FormLabel>I am a/an: (Primary Role / Buyer Type)</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value || ""} disabled={isPending}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select your primary role" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {BuyerPersonaTypes.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {type}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {watchedBuyerPersonaType === "Other" && (
+              <FormField
+                control={form.control}
+                name="buyerPersonaOther"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Please Specify Role</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="Your specific role" disabled={isPending} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            <FormField
+              control={form.control}
+              name="investmentFocusDescription"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Investment Focus or What You&apos;re Looking For</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="Your specific role" disabled={isPending} />
+                    <Textarea
+                      {...field}
+                      placeholder="e.g., SaaS businesses in Southeast Asia with $100k-$1M ARR, turnarounds in manufacturing, e-commerce brands for scaling."
+                      disabled={isPending}
+                      rows={3}
+                    />
+                  </FormControl>
+                  <FormDescription>Briefly describe your primary investment criteria or the types of businesses you are seeking.</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="preferredInvestmentSize"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Preferred Investment Size (Approximate)</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value || ""} disabled={isPending}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select preferred investment size" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {PreferredInvestmentSizes.map((size) => (
+                        <SelectItem key={size} value={size}>
+                          {size}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="keyIndustriesOfInterest"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Key Industries of Interest</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      {...field}
+                      placeholder="e.g., Technology, E-commerce, Healthcare, Manufacturing, B2B Services. Please list a few."
+                      disabled={isPending}
+                      rows={3}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-          )}
 
-          <FormField
-            control={form.control}
-            name="investmentFocusDescription"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Investment Focus or What You&apos;re Looking For</FormLabel>
-                <FormControl>
-                  <Textarea
-                    {...field}
-                    placeholder="e.g., SaaS businesses in Southeast Asia with $100k-$1M ARR, turnarounds in manufacturing, e-commerce brands for scaling."
-                    disabled={isPending}
-                    rows={3}
-                  />
-                </FormControl>
-                <FormDescription>Briefly describe your primary investment criteria or the types of businesses you are seeking.</FormDescription>
-                <FormMessage />
-              </FormItem>
+            {error && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
             )}
-          />
 
-          <FormField
-            control={form.control}
-            name="preferredInvestmentSize"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Preferred Investment Size (Approximate)</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value || ""} disabled={isPending}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select preferred investment size" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {PreferredInvestmentSizes.map((size) => (
-                      <SelectItem key={size} value={size}>
-                        {size}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="keyIndustriesOfInterest"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Key Industries of Interest</FormLabel>
-                <FormControl>
-                  <Textarea
-                    {...field}
-                    placeholder="e.g., Technology, E-commerce, Healthcare, Manufacturing, B2B Services. Please list a few."
-                    disabled={isPending}
-                    rows={3}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {error && (
-            <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
-          <Button type="submit" className="w-full" disabled={isPending}>
-             {isPending ? "Processing..." : "Register as Buyer"}
-          </Button>
-        </form>
-      </Form>
-    </AuthCardWrapper>
+            <Button type="submit" className="w-full" disabled={isPending}>
+               {isPending ? "Processing..." : "Register as Buyer"}
+            </Button>
+          </form>
+        </Form>
+      </AuthCardWrapper>
+    </AuthPageGuard>
   );
 }

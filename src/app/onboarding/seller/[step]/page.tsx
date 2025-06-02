@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -16,6 +15,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { asianCountries } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, ArrowRight, CheckCircle, FileText, Loader2 } from 'lucide-react';
+import { updateUserProfile, updateOnboardingStatus, uploadOnboardingDocument } from '@/hooks/use-current-user';
 
 // --- Schemas ---
 const Step1SellerSchema = z.object({
@@ -27,7 +27,7 @@ const Step1SellerSchema = z.object({
 });
 
 const Step2SellerSchema = z.object({
-  sellerIdentityFile: z.any().refine(file => file instanceof File || file === undefined, "File upload is required.").optional(), // Placeholder for file
+  sellerIdentityFile: z.any().refine(file => file instanceof File || file === undefined, "File upload is required.").optional(),
 });
 
 const Step3SellerSchema = z.object({
@@ -113,35 +113,195 @@ export default function SellerOnboardingStepPage() {
     return {};
   });
 
+  // Ensure all form values are properly initialized to prevent controlled/uncontrolled issues
+  const getDefaultValues = (data: FormValues): FormValues => {
+    return {
+      registeredBusinessName: data.registeredBusinessName || "",
+      businessWebsiteUrl: data.businessWebsiteUrl || "",
+      yearEstablished: data.yearEstablished || "",
+      countryOfOperation: data.countryOfOperation || "",
+      briefBusinessSummary: data.briefBusinessSummary || "",
+      sellerIdentityFile: data.sellerIdentityFile || undefined,
+      businessRegistrationFile: data.businessRegistrationFile || undefined,
+      proofOfOwnershipFile: data.proofOfOwnershipFile || undefined,
+      profitAndLossFile: data.profitAndLossFile || undefined,
+      balanceSheetFile: data.balanceSheetFile || undefined,
+      submitted_documents: data.submitted_documents || {},
+    };
+  };
+
   const currentSchema = stepSchemas[currentStep - 1] || z.object({});
   const methods = useForm<FormValues>({
     resolver: zodResolver(currentSchema),
-    defaultValues: formData,
+    defaultValues: getDefaultValues(formData),
   });
 
   React.useEffect(() => {
-    methods.reset(formData);
+    methods.reset(getDefaultValues(formData));
   }, [currentStep, formData, methods]);
 
-  const onSubmit = (data: FormValues) => {
+  const onSubmit = async (data: FormValues) => {
     setIsLoading(true);
     const updatedData = { ...formData, ...data };
     setFormData(updatedData);
-    if (typeof window !== 'undefined') {
-      sessionStorage.setItem('sellerOnboardingData', JSON.stringify(updatedData));
-    }
 
-    setTimeout(() => { // Simulate API call
-      setIsLoading(false);
-      if (currentStep < totalSteps) {
+    try {
+      if (currentStep === 1) {
+        // Step 1: Update basic business profile information
+        await updateUserProfile({
+          initial_company_name: updatedData.registeredBusinessName!,
+          country: updatedData.countryOfOperation!,
+        });
+
+        // Update onboarding step
+        await updateOnboardingStatus({
+          step_completed: currentStep,
+          submitted_documents: {
+            business_overview: {
+              registered_business_name: updatedData.registeredBusinessName,
+              business_website_url: updatedData.businessWebsiteUrl,
+              year_established: updatedData.yearEstablished,
+              country_of_operation: updatedData.countryOfOperation,
+              brief_business_summary: updatedData.briefBusinessSummary,
+            }
+          }
+        });
+
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('sellerOnboardingData', JSON.stringify(updatedData));
+        }
+
+        toast({
+          title: "Business Information Saved",
+          description: "Your business overview has been saved."
+        });
+
         router.push(`/onboarding/seller/${currentStep + 1}`);
-      } else {
-        console.log("Seller Onboarding Submitted:", updatedData);
-        toast({ title: "Verification Submitted", description: "Your information is being reviewed." });
+
+      } else if (currentStep === 2) {
+        // Step 2: Upload seller identity document
+        let documentUploaded = false;
+
+        if (updatedData.sellerIdentityFile instanceof File) {
+          await uploadOnboardingDocument(updatedData.sellerIdentityFile, 'identity');
+          documentUploaded = true;
+        }
+
+        await updateOnboardingStatus({
+          step_completed: currentStep,
+          submitted_documents: {
+            ...updatedData.submitted_documents,
+            identity: documentUploaded
+          }
+        });
+
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('sellerOnboardingData', JSON.stringify(updatedData));
+        }
+
+        toast({
+          title: "Identity Document Uploaded",
+          description: "Your identity verification document has been uploaded."
+        });
+
+        router.push(`/onboarding/seller/${currentStep + 1}`);
+
+      } else if (currentStep === 3) {
+        // Step 3: Upload business documents
+        let businessRegUploaded = false;
+        let ownershipUploaded = false;
+
+        if (updatedData.businessRegistrationFile instanceof File) {
+          await uploadOnboardingDocument(updatedData.businessRegistrationFile, 'business_registration');
+          businessRegUploaded = true;
+        }
+
+        if (updatedData.proofOfOwnershipFile instanceof File) {
+          await uploadOnboardingDocument(updatedData.proofOfOwnershipFile, 'ownership_proof');
+          ownershipUploaded = true;
+        }
+
+        await updateOnboardingStatus({
+          step_completed: currentStep,
+          submitted_documents: {
+            ...updatedData.submitted_documents,
+            business_registration: businessRegUploaded,
+            ownership_proof: ownershipUploaded
+          }
+        });
+
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('sellerOnboardingData', JSON.stringify(updatedData));
+        }
+
+        toast({
+          title: "Business Documents Uploaded",
+          description: "Your business registration and ownership documents have been uploaded."
+        });
+
+        router.push(`/onboarding/seller/${currentStep + 1}`);
+
+      } else if (currentStep === 4) {
+        // Step 4: Upload financial documents
+        let profitLossUploaded = false;
+        let balanceSheetUploaded = false;
+
+        if (updatedData.profitAndLossFile instanceof File) {
+          await uploadOnboardingDocument(updatedData.profitAndLossFile, 'financial_statement');
+          profitLossUploaded = true;
+        }
+
+        if (updatedData.balanceSheetFile instanceof File) {
+          await uploadOnboardingDocument(updatedData.balanceSheetFile, 'financial_statement');
+          balanceSheetUploaded = true;
+        }
+
+        await updateOnboardingStatus({
+          step_completed: currentStep,
+          submitted_documents: {
+            ...updatedData.submitted_documents,
+            profit_loss: profitLossUploaded,
+            balance_sheet: balanceSheetUploaded
+          }
+        });
+
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('sellerOnboardingData', JSON.stringify(updatedData));
+        }
+
+        toast({
+          title: "Financial Documents Uploaded",
+          description: "Your financial statements have been uploaded."
+        });
+
+        router.push(`/onboarding/seller/${currentStep + 1}`);
+
+      } else if (currentStep === 5) {
+        // Step 5: Complete onboarding
+        await updateOnboardingStatus({
+          step_completed: currentStep,
+          complete_onboarding: true
+        });
+
+        toast({
+          title: "Onboarding Complete!",
+          description: "Your seller verification has been submitted. You now have access to the platform!"
+        });
+
         sessionStorage.removeItem('sellerOnboardingData');
         router.push('/onboarding/seller/success');
       }
-    }, 700);
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred';
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: errorMessage
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handlePrevious = () => {
@@ -279,14 +439,14 @@ export default function SellerOnboardingStepPage() {
               <p>Established: {formData.yearEstablished || 'N/A'}</p>
               <p>Country: {formData.countryOfOperation || 'N/A'}</p>
               <p>Summary: {formData.briefBusinessSummary || 'N/A'}</p>
-              
+
               <h3 className="font-semibold text-brand-dark-blue mt-4">Seller Identity:</h3>
               <p>ID File: {formData.sellerIdentityFile instanceof File ? formData.sellerIdentityFile.name : 'Not Uploaded'}</p>
 
               <h3 className="font-semibold text-brand-dark-blue mt-4">Business Docs:</h3>
               <p>Registration File: {formData.businessRegistrationFile instanceof File ? formData.businessRegistrationFile.name : 'Not Uploaded'}</p>
               <p>Ownership File: {formData.proofOfOwnershipFile instanceof File ? formData.proofOfOwnershipFile.name : 'Not Uploaded'}</p>
-              
+
               <h3 className="font-semibold text-brand-dark-blue mt-4">Financial Snapshot:</h3>
               <p>P&L File: {formData.profitAndLossFile instanceof File ? formData.profitAndLossFile.name : 'Not Uploaded'}</p>
               <p>Balance Sheet File: {formData.balanceSheetFile instanceof File ? formData.balanceSheetFile.name : 'Not Uploaded'}</p>

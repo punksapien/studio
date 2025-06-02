@@ -372,264 +372,384 @@ Error Tracking: Sentry (free tier)
 
 ## Executor's Feedback or Assistance Requests
 
-### 🎉 RECENT SUCCESS: Profile Creation API Issues Resolved
+### ✅ COMPLETED - Fixed React Controlled vs Uncontrolled Input Error (December 2024)
 
-**Problem Summary**: The profile creation API was experiencing multiple types of errors:
-1. JSON parsing errors due to malformed request bodies
-2. Duplicate key constraint violations when trying to create existing profiles
-3. Foreign key constraint violations when using test UUIDs that didn't exist in auth.users
+**Issue**: React console error "A component is changing an uncontrolled input to be controlled" occurring in onboarding forms. This happened when input values changed from `undefined` to defined values, violating React's controlled component rules.
 
-**Solution Implemented**:
-- ✅ Enhanced error handling with specific HTTP status codes (409 for conflicts, 400 for bad requests)
-- ✅ Added pre-check logic to prevent duplicate profile creation
-- ✅ Implemented comprehensive JSON parsing error handling
-- ✅ Added user verification debugging for auth system integration
-- ✅ Created proper test scripts using real Supabase Auth users
+**Root Cause**: Form `defaultValues` from session storage or initial state could contain `undefined` values, but React expects controlled inputs to always have defined values (at least empty strings).
 
-**Test Results**:
-- ✅ Profile creation with real auth users: HTTP 200 ✅
-- ✅ Duplicate prevention: HTTP 409 ✅
-- ✅ JSON error handling: HTTP 400 ✅
-- ✅ Foreign key validation: Clear error messages ✅
+**Solution Applied**:
+1. **Created `getDefaultValues` helper function** in both onboarding flows:
+   - Ensures all string fields default to empty strings `""` instead of `undefined`
+   - Keeps optional fields (like file uploads and selects) as `undefined` when appropriate
+   - Prevents value type changes during component lifecycle
 
-### 📧 CRITICAL DISCOVERY: Email Testing Setup
+2. **Fixed Buyer Onboarding** (`src/app/onboarding/buyer/[step]/page.tsx`):
+   - Applied helper to `useForm` defaultValues and `methods.reset()`
+   - Ensured fields like `fullName`, `country`, `phoneNumber` always have string values
 
-**Issue Identified**: User not receiving confirmation emails during registration.
+3. **Fixed Seller Onboarding** (`src/app/onboarding/seller/[step]/page.tsx`):
+   - Applied same pattern for seller-specific fields
+   - Handled additional fields like `registeredBusinessName`, `businessWebsiteUrl`, etc.
 
-**Root Cause**: Local Supabase development uses **Inbucket** email testing server instead of real email delivery.
-
-**Solution**:
-- ✅ All emails are captured by Inbucket testing interface at `http://localhost:54324`
-- ✅ This is the standard and correct setup for local development
-- ✅ Emails are viewable through the web interface, not delivered to actual email addresses
-
-**Configuration Details**:
-- Inbucket enabled on port 54324 (supabase/config.toml line 72-80)
-- SMTP server disabled for local development
-- All signup confirmation emails are captured and viewable in browser
-
-**Status**: ✅ EMAIL SYSTEM WORKING CORRECTLY - User needs to check Inbucket interface
-
-**Next Action Required**: User should visit `http://localhost:54324` to view all captured emails from registration attempts.
-
-### 🔧 CRITICAL FIX: Email Verification Redirect Issue
-
-**Issue Identified**: After successful OTP verification, users were redirected to login page instead of being automatically logged in.
-
-**Root Cause**: The `verifyEmailOtp` function properly logs users in, but the verify-email page was ignoring the session and redirecting to `/auth/login`.
-
-**Solution Implemented**:
-- ✅ Updated OTP verification flow to check for successful user session
-- ✅ Added role-based redirect logic to send users to appropriate dashboard
-- ✅ Updated success messages to reflect automatic login
-- ✅ Reduced redirect delay from 2000ms to 1500ms for better UX
-- ✅ Enhanced error handling for edge cases
-
-**Code Changes**:
-- Modified `/src/app/(auth)/verify-email/page.tsx` onSubmit function
-- Added profile fetching to determine correct dashboard redirect
-- Improved user feedback messages
-
-**Status**: ✅ EMAIL VERIFICATION FLOW FIXED - Users now automatically login and go to dashboard
-
-**Expected Behavior**: Email verification → Auto-login → Dashboard redirect based on role (seller/buyer/admin)
-
-### 🔧 LATEST FIX: Profile Creation Duplicate Handling
-
-**Issue Identified**: Users attempting to register again with existing accounts were seeing "error" messages in console, even though the registration flow was working correctly.
-
-**Root Cause**: The auth.ts file was treating HTTP 409 (Conflict - profile already exists) as an error, when it should be treated as a success case.
-
-**Console Errors Before Fix**:
-```
-Profile creation API failed: {}
-Response status: 409
-Response statusText: "Conflict"
+**Technical Implementation**:
+```javascript
+const getDefaultValues = (data: FormValues): FormValues => {
+  return {
+    fullName: data.fullName || "",
+    country: data.country || "",
+    // ... other string fields with empty string fallbacks
+    buyerPersonaType: data.buyerPersonaType || undefined, // Select fields remain undefined
+    buyerIdentityFile: data.buyerIdentityFile || undefined, // File fields remain undefined
+  };
+};
 ```
 
-**Solution Implemented**:
-- ✅ Updated profile creation error handling in `src/lib/auth.ts`
-- ✅ HTTP 409 status now treated as success case ("Profile already exists - continuing")
-- ✅ Only genuine errors (4xx/5xx except 409) are logged as errors
-- ✅ Improved user experience with clearer messaging
+**Expected Results**:
+- No more React controlled vs uncontrolled input console errors
+- Form inputs maintain consistent value types throughout component lifecycle
+- Session storage data properly hydrates forms without type issues
+- Onboarding flows work smoothly without React warnings
+
+**Files Modified**:
+- `src/app/onboarding/buyer/[step]/page.tsx`
+- `src/app/onboarding/seller/[step]/page.tsx`
+
+**Testing Required**: User should test both buyer and seller onboarding flows to confirm no more React console errors appear.
+
+### ✅ COMPLETED - Fixed JavaScript Variable Declaration Order Error (December 2024)
+
+**Issue**: Runtime error "Cannot access 'pathname' before initialization" occurring in onboarding layouts.
+
+**Root Cause**: Variable `pathname` was being used in `isSuccessPage` calculation before it was declared, causing a JavaScript ReferenceError.
+
+**Problematic Code**:
+```javascript
+const isSuccessPage = params.step === 'success' || pathname.endsWith('/onboarding/buyer/success');
+const pathname = typeof window !== "undefined" ? window.location.pathname : ""; // Declared AFTER usage
+```
+
+**Solution Applied**:
+1. **Fixed Buyer Onboarding Layout** (`src/app/onboarding/buyer/layout.tsx`):
+   - Moved `pathname` declaration before its usage in `isSuccessPage`
+
+2. **Fixed Seller Onboarding Layout** (`src/app/onboarding/seller/layout.tsx`):
+   - Applied same fix to prevent similar error
+
+**Corrected Code**:
+```javascript
+const pathname = typeof window !== "undefined" ? window.location.pathname : "";
+const isSuccessPage = params.step === 'success' || pathname.endsWith('/onboarding/buyer/success');
+```
+
+**Expected Results**:
+- Onboarding pages should now load without JavaScript runtime errors
+- Both buyer and seller onboarding flows should work properly
+- No more "Cannot access 'pathname' before initialization" errors
+
+**Files Modified**:
+- `src/app/onboarding/buyer/layout.tsx`
+- `src/app/onboarding/seller/layout.tsx`
+
+**Testing Required**: User should test accessing onboarding pages to confirm the error is resolved.
+
+### ✅ COMPLETED - Fixed Major UX Flaw: Authenticated Users Accessing Auth Pages (December 2024)
+
+**Issue**: Authenticated users could still access and view authentication pages like `/auth/login`, `/auth/register`, `/auth/forgot-password`, etc. This is a major UX flaw that confused users.
+
+**Root Cause**: Authentication pages had no protection against already-authenticated users. They were just rendering forms without checking authentication status.
+
+**Solution Applied**:
+1. **Created AuthPageGuard Component** (`src/components/auth/auth-page-guard.tsx`):
+   - Uses `useCurrentUser` hook to check authentication status
+   - Shows loading spinner while checking authentication
+   - Redirects authenticated users to appropriate destinations based on:
+     - Onboarding completion status
+     - User role (buyer → `/dashboard`, seller → `/seller-dashboard`, admin → `/admin`)
+     - Incomplete onboarding → appropriate onboarding flow
+   - Only renders children (auth forms) for unauthenticated users
+
+2. **Protected All Authentication Pages**:
+   - `/auth/login` - wrapped with `<AuthPageGuard>`
+   - `/auth/register` - wrapped with `<AuthPageGuard>`
+   - `/auth/register/buyer` - wrapped with `<AuthPageGuard>`
+   - `/auth/register/seller` - wrapped with `<AuthPageGuard>`
+   - `/auth/forgot-password` - wrapped with `<AuthPageGuard>`
+
+**Technical Implementation**:
+- Guard component checks `!loading && user && profile` conditions
+- Intelligent redirection based on user state and role
+- Smooth UX with loading states during authentication check
+- Returns `null` while redirecting to prevent flash of auth content
+
+**Expected Results**:
+- Authenticated users visiting `/auth/login` should be automatically redirected to their appropriate dashboard
+- No more confusing scenario where logged-in users see login forms
+- Seamless experience that respects user authentication state
+- Users redirected to onboarding if incomplete, or dashboard if complete
+
+**Files Modified**:
+- `src/components/auth/auth-page-guard.tsx` (new component)
+- `src/app/auth/login/page.tsx`
+- `src/app/auth/register/page.tsx`
+- `src/app/auth/register/buyer/page.tsx`
+- `src/app/auth/register/seller/page.tsx`
+- `src/app/auth/forgot-password/page.tsx`
+
+**Testing Required**: User should test accessing auth pages while logged in to confirm automatic redirection works properly.
+
+### ✅ COMPLETED - Fixed Navbar Authentication State Synchronization (June 2, 2025)
+
+**Issue**: Navbar wasn't automatically updating to show authenticated state after login. Users had to reload the page to see authentication changes reflected in the navbar (login/logout buttons, user profile dropdown, etc.).
+
+**Root Cause**: The navbar component was using a separate authentication system (`@/lib/auth`) with its own state management, while the main application was using the newer `useCurrentUser` hook. These two systems were not synchronized, causing state inconsistencies.
 
 **Technical Details**:
-- Modified lines 179-183 in `src/lib/auth.ts`
-- Added specific handling for `response.status === 409`
-- Duplicate prevention logic is working correctly (as seen in terminal logs)
+- **Before**: Navbar used `auth.getCurrentUser()`, `auth.onAuthStateChange()`, and managed its own `useState` for `isAuthenticated` and `userProfile`
+- **After**: Navbar now uses the centralized `useCurrentUser` hook which provides consistent authentication state across the entire application
 
-**Status**: ✅ DUPLICATE PROFILE HANDLING FIXED - No more false error messages
+**Solution Applied**:
+1. **Updated navbar to use `useCurrentUser` hook**:
+   - Removed separate authentication state management (`useState` for `isAuthenticated`, `userProfile`, `isLoading`)
+   - Replaced with `const { user, profile: userProfile, loading: isLoading } = useCurrentUser()`
+   - Derived `isAuthenticated` from `!!user`
 
-**Expected Behavior**: User tries to register again → Profile already exists → Registration continues successfully with existing profile
+2. **Simplified logout handling**:
+   - Updated to use `supabase.auth.signOut()` directly instead of `auth.signOut()`
+   - Removed manual state cleanup since `useCurrentUser` hook handles state changes automatically
 
-### 🔒 CRITICAL SECURITY: Email Uniqueness Enforcement
+3. **Maintained full navbar functionality**:
+   - Preserved all dropdown menus (Sell Your Business, Buy a Business, Company)
+   - Kept both desktop and mobile navigation structures
+   - Maintained proper TypeScript types for user profile data
 
-**Issue Identified**: Need to ensure one email cannot be used for multiple accounts with different roles (e.g., same person can't register as both buyer and seller).
+**Files Modified**:
+- `src/components/layout/navbar.tsx`: Complete refactor to use centralized authentication state
 
-**Multi-Layer Protection Implemented**:
+**Expected Results**:
+- Navbar should now automatically update when users log in/out without requiring page reload
+- Authentication state should be consistent across navbar and dashboard components
+- Real-time auth state changes should be reflected immediately in the UI
 
-1. **🛡️ Supabase Auth Layer** (Primary Protection):
-   - `supabase.auth.signUp()` prevents duplicate emails at auth level
-   - Returns "User already registered" error for duplicate email attempts
-   - This blocks registration before profile creation
+**Testing Required**: User should test logging in and confirm that the navbar immediately shows authenticated state (user profile dropdown, dashboard button) without requiring a page refresh.
 
-2. **🛡️ Database Schema Layer** (Secondary Protection):
-   - `UNIQUE` constraint on `user_profiles.email` column
-   - Prevents duplicate emails even if auth layer bypassed
-   - Constraint name: `user_profiles_email_key`
+### ✅ COMPLETED - Fixed Dashboard Authentication Redirect Loop (June 1, 2025)
 
-3. **🛡️ Application Logic Layer** (User Experience):
-   - Enhanced error handling in `src/lib/auth.ts` (line 119-121)
-   - Clear error message: "An account with this email already exists. Please try logging in instead."
-   - Enhanced API error handling for email constraint violations
+**Issue**: Users could log in successfully but were immediately redirected back to `/auth/login` when accessing dashboard pages. The pattern observed was:
+1. Dashboard loads (200 status)
+2. `/api/auth/current-user` returns 401 (Unauthorized)
+3. User gets redirected back to login page
 
-**Code Implementation**:
-- `src/lib/auth.ts`: Handles auth-level email duplicates
-- `src/app/api/auth/create-profile/route.ts`: Handles database-level email constraint violations
-- Database schema: `user_profiles_email_key` UNIQUE constraint
+**Root Cause**: Mismatch between frontend and backend authentication methods:
+- Backend API routes were updated to expect Authorization headers with JWT tokens
+- Frontend was still using `credentials: 'include'` (cookie-based) without sending Authorization headers
+- This caused all `/api/auth/current-user` calls to return 401, triggering the dashboard redirect logic
 
-**Testing Scenarios Covered**:
-✅ User tries to register same email with different role → Blocked at auth level
-✅ Hypothetical database-level bypass → Blocked by unique constraint
-✅ User receives clear, actionable error message
+**Solution Applied**:
+1. **Updated `useCurrentUser` hook** (`src/hooks/use-current-user.ts`):
+   - Get current session and access token using `supabase.auth.getSession()`
+   - Send Authorization header with Bearer token instead of using credentials: 'include'
+   - Handle cases where no valid session exists gracefully
 
-**Status**: ✅ TRIPLE-LAYER EMAIL UNIQUENESS PROTECTION ACTIVE
+2. **Updated `updateUserProfile` function**:
+   - Same pattern - get session token and send in Authorization header
+   - Proper error handling for unauthenticated states
 
-**Business Rule Enforced**: **One Email = One Account = One Role** (Cannot change roles, must use different email for different role)
+**Files Modified**:
+- `src/hooks/use-current-user.ts`: Fixed authentication method to match API expectations
+
+**Technical Details**:
+- Frontend now calls `supabase.auth.getSession()` to get the JWT access token
+- Sends `Authorization: Bearer ${session.access_token}` header in API requests
+- Removed `credentials: 'include'` approach that was incompatible with server-side JWT verification
+
+**Expected Results**:
+- Dashboard pages should now load properly after login
+- Authentication state should be maintained correctly
+- Role-based dashboard routing should work (buyer → `/dashboard`, seller → `/seller-dashboard`)
+
+**Testing Required**: User should test logging in and accessing dashboard to confirm the redirect loop is resolved.
+
+### ✅ COMPLETED - Fixed Supabase Auth-Helpers Dependency Issue (June 1, 2025)
+
+**Issue**: Build error with missing `@supabase/auth-helpers-nextjs` module in API routes:
+- `./src/app/api/auth/current-user/route.ts`
+- `./src/app/api/auth/update-profile/route.ts`
+
+**Root Cause**: The code was using the deprecated `@supabase/auth-helpers-nextjs` package which is not installed and has been superseded by the main `@supabase/supabase-js` package.
+
+**Solution Applied**:
+1. Updated both API routes to use `createClient` from `@supabase/supabase-js` instead of `createRouteHandlerClient`
+2. Implemented proper server-side JWT authentication by:
+   - Reading the Authorization header from incoming requests
+   - Verifying JWT tokens using `supabase.auth.getUser(token)`
+   - Creating authenticated clients with the verified token for database operations
+3. Maintained RLS compliance by using authenticated clients rather than service role clients
+
+**Files Modified**:
+- `src/app/api/auth/current-user/route.ts`: Fixed import and implemented JWT verification
+- `src/app/api/auth/update-profile/route.ts`: Fixed import and implemented JWT verification
+
+**Testing Results**:
+- ✅ Development server starts without build errors
+- ✅ Server responds with HTTP 200 status
+- ✅ No more module resolution errors
+
+**Next Steps**: The build system is now functional. These API endpoints will need to be tested with actual authentication tokens from the frontend to ensure end-to-end functionality.
+
+---
 
 ## Lessons
 
-1. **Supabase Auth Integration**: When using Supabase Auth, the `auth.users` table automatically creates user records with UUIDs. Custom profile tables should use the same UUID as a foreign key to maintain data consistency.
+### Supabase Auth Dependencies (June 1, 2025)
+- The `@supabase/auth-helpers-nextjs` package is deprecated in favor of using the main `@supabase/supabase-js` package directly
+- For server-side API routes, use JWT token verification with `supabase.auth.getUser(token)` rather than cookie-based session handling
+- Create authenticated clients by passing the JWT token in the Authorization header for RLS-compliant database operations
+- Always check if dependencies exist in package.json before using imports
 
-2. **Error Handling Best Practices**: Always implement comprehensive error handling in APIs with specific HTTP status codes:
-   - 400 for bad requests (JSON parsing errors)
-   - 409 for conflicts (duplicate resources)
-   - 500 for server errors (database constraints)
+# Project: Nobridge - Onboarding Flow Implementation
 
-3. **Testing with Real Data**: Always test APIs with real Supabase Auth users rather than fake UUIDs to ensure proper integration with the auth system.
+## Background and Motivation
 
-4. **Supabase RLS Considerations**: Row Level Security (RLS) can prevent profile creation during signup. Using service role in API endpoints bypasses RLS when needed for administrative operations.
+**User Request**: Implement an onboarding flow with document verification requirements before users can access the dashboard. Currently, after registration, users are immediately authenticated and given dashboard access, which shouldn't be the case. There should be a database flag to prevent dashboard access until documents are submitted.
 
-5. **JSON Parsing Robustness**: Always validate and handle JSON parsing errors gracefully, providing clear error messages for debugging.
+**Context**: The onboarding UI is already built but backend implementation and logic is needed.
 
-6. **Database Constraint Handling**: Implement specific handling for PostgreSQL constraint violation codes (23505 for duplicates, 23503 for foreign key violations).
+## Key Challenges and Analysis
 
-7. **Local Email Testing Setup**: Supabase local development uses **Inbucket** email testing server at `http://localhost:54324`. Emails are NOT delivered to real addresses but captured in this web interface. This is the standard and correct setup for local development - always check Inbucket for email verification during testing.
+1. **Current Flow Issue**: Register → Authenticated → Dashboard Access (immediate)
+2. **Desired Flow**: Register → Authenticated → Onboarding (document submission) → Dashboard Access
+3. **Database Schema**: Need to add onboarding completion tracking to `user_profiles` table
+4. **Authentication Flow**: Need middleware to enforce onboarding completion before dashboard access
+5. **API Integration**: Onboarding UI needs to connect to real backend APIs
 
-8. **Multi-Layer Security for Email Uniqueness**: Always implement security at multiple layers:
-   - **Auth Layer**: Prevent duplicate emails at authentication service level
-   - **Database Layer**: UNIQUE constraints as safety net
-   - **Application Layer**: Clear error messages for user experience
-   - This prevents users from creating multiple accounts with different roles using the same email address.
+## High-level Task Breakdown
 
-9. **Database Constraint Error Handling**: When handling PostgreSQL constraint violations, check the constraint name to provide specific error messages:
-    - `user_profiles_email_key`: Email already registered with different account
-    - Primary key violations: Resource already exists
-    - Foreign key violations: Referenced resource doesn't exist
+### ✅ Task 1: Database Schema Updates
+- [x] Create migration script for onboarding fields
+- [ ] **PENDING MANUAL ACTION**: Apply database migration to production
+- [x] Add fields: `is_onboarding_completed`, `onboarding_completed_at`, `onboarding_step_completed`, `submitted_documents`
+- [x] Create `onboarding_documents` table for file tracking
 
-### User Specified Lessons
+### ✅ Task 2: API Endpoints
+- [x] Create `/api/onboarding/status` endpoint (GET/POST)
+- [x] Create `/api/onboarding/upload` endpoint for document uploads
+- [x] Integrate with Supabase Storage for file handling
 
-- Include info useful for debugging in the program output.
-- Read the file before you try to edit it.
-- If there are vulnerabilities that appear in the terminal, run npm audit before proceeding
-- Always ask before using the -force git command
+### ✅ Task 3: Authentication & Middleware
+- [x] Update middleware to check onboarding completion status
+- [x] Redirect incomplete users to appropriate onboarding step
+- [x] Protect dashboard routes from unverified users
+- [x] Install and configure @supabase/ssr package
 
-### 🔧 CRITICAL FIX: Dashboard Layout SidebarInset Error + Magic Link Debugging
+### ✅ Task 4: Frontend Integration
+- [x] Update `useCurrentUser` hook with onboarding fields
+- [x] Add onboarding utility functions (checkOnboardingStatus, updateOnboardingStatus, uploadOnboardingDocument)
+- [x] Update buyer onboarding flow to call real APIs
+- [x] Update seller onboarding flow to call real APIs
 
-**Issues Identified**:
-1. **Dashboard Layout Error**: `SidebarInset is not defined` causing runtime error when accessing `/dashboard`
-2. **Magic Link Redirect Issue**: Still redirecting to `/auth/login#` instead of proper dashboard
+### ✅ Task 5: Storage Setup
+- [x] Create storage bucket SQL setup for document uploads
+- [x] Define RLS policies for secure document access
 
-**Root Causes**:
-1. **Missing Import**: `SidebarInset` component was used but not imported in `src/app/dashboard/layout.tsx`
-2. **Magic Link Silent Failure**: No debugging information to understand why callback fails
+### Task 6: Registration Flow Updates
+- [x] Buyer registration already redirects to `/onboarding/buyer/1`
+- [x] Seller registration already redirects to `/onboarding/seller/1`
+- [x] Verified existing redirect logic is correct
 
-**Solutions Implemented**:
-- ✅ **Fixed Dashboard Layout**: Added missing `SidebarInset` import to dashboard layout
-- ✅ **Added Magic Link Debugging**: Comprehensive console logging in auth callback route to trace the flow
+## Current Status / Progress Tracking
 
-**Code Changes**:
-- **dashboard/layout.tsx**: Added `SidebarInset` to imports from `@/components/ui/sidebar`
-- **auth/callback/route.ts**: Added detailed logging for:
-  - Code exchange process
-  - User session creation
-  - Profile fetching
-  - Redirect determination
-  - Error handling
+### ✅ Completed
+- Database migration script created
+- API endpoints implemented
+- Middleware security implemented
+- Frontend hooks updated
+- Buyer onboarding integration completed
+- **NEW**: Seller onboarding integration completed
+- **NEW**: Storage bucket setup created
 
-**Status**: ✅ DASHBOARD LAYOUT FIXED, 🔧 MAGIC LINK DEBUGGING ACTIVE
+### 🔄 In Progress
+- Database migration needs manual application
+- Storage bucket needs manual setup
 
-**Expected Behavior**:
-- Dashboard should load without SidebarInset error
-- Magic link callback should provide detailed logs to identify the issue
-- Console will show exactly where the magic link flow fails
+### ⏳ Pending
+- Testing complete flow end-to-end
+- Onboarding success pages integration
 
-**Next Steps**: Test registration flow and check browser console for magic link debugging output
+## Project Status Board
 
-### 🔧 CRITICAL FIX: Inconsistent Dashboard Redirect URLs
+- [ ] **URGENT**: Apply database migration manually via Supabase SQL Editor
+- [ ] **URGENT**: Apply storage bucket setup via Supabase SQL Editor
+- [ ] Test registration → onboarding → dashboard flow for buyers
+- [ ] Test registration → onboarding → dashboard flow for sellers
+- [ ] Create onboarding success pages integration
+- [ ] Test document upload functionality
 
-**Issue Identified**: Two authentication flows were redirecting to different (and incorrect) dashboard URLs:
+## Executor's Feedback or Assistance Requests
 
-1. **OTP Verification Flow**: Redirected to `/buyer`, `/seller`, `/admin` (all giving 404 errors)
-2. **Magic Link Flow**: Redirected to `/dashboard`, `/seller-dashboard`, `/admin` (mostly correct but inconsistent)
+### 🎯 Ready for Testing Phase!
 
-**Root Cause**: The existing dashboard routes in the project are:
-- **Buyer Dashboard**: `/dashboard` ✅
-- **Seller Dashboard**: `/seller-dashboard` ✅
-- **Admin Dashboard**: `/admin` ✅
+**Current Status**: All onboarding implementation is complete! Both buyer and seller flows are now integrated with real APIs.
 
-But the redirect logic was inconsistent and pointing to non-existent routes.
+**Next Critical Steps**:
 
-**Console Errors Observed**:
+1. **Apply Database Migrations** (User Action Required):
+   ```sql
+   -- First, apply the main migration:
+   -- Copy and run: database-migrations/01-add-onboarding-fields.sql
+
+   -- Then, apply the storage setup:
+   -- Copy and run: database-migrations/02-create-storage-bucket.sql
+   ```
+
+2. **Test Complete Flow**:
+   - Register as buyer → Should redirect to `/onboarding/buyer/1`
+   - Complete onboarding steps → Should redirect to `/dashboard`
+   - Register as seller → Should redirect to `/onboarding/seller/1`
+   - Complete onboarding steps → Should redirect to `/seller-dashboard`
+
+**What's Been Implemented**:
+
+✅ **Buyer Onboarding (2 steps)**:
+- Step 1: Profile completion (name, country, investment focus)
+- Step 2: Identity document upload
+
+✅ **Seller Onboarding (5 steps)**:
+- Step 1: Business overview (company name, website, country, summary)
+- Step 2: Identity document upload
+- Step 3: Business registration & ownership documents
+- Step 4: Financial documents (P&L, balance sheet)
+- Step 5: Review & confirmation
+
+✅ **Security & Flow Control**:
+- Middleware blocks dashboard access until onboarding complete
+- Documents stored securely in Supabase Storage with RLS
+- Onboarding state persisted across browser sessions
+- Real-time API integration with proper error handling
+
+### Architecture Summary
+
+**Complete Flow**:
 ```
-GET /buyer 404 in 709ms  // OTP flow trying to redirect buyer
-GET /auth/login#         // Magic link redirect issue
+Registration →
+  ↓ (automatic redirect)
+Onboarding Steps (2 for buyers, 5 for sellers) →
+  ↓ (middleware enforces completion)
+Dashboard Access (role-based routing)
 ```
 
-**Solution Implemented**:
-- ✅ Fixed OTP verification flow in `src/app/(auth)/verify-email/page.tsx`
-- ✅ Fixed magic link callback flow in `src/app/auth/callback/route.ts`
-- ✅ Updated both flows to use consistent, correct dashboard routes:
-  - **Buyer**: `/dashboard`
-  - **Seller**: `/seller-dashboard`
-  - **Admin**: `/admin`
-  - **Default**: `/` (home page)
+**Key Features**:
+- ✅ Document upload with 5MB limit and file type validation
+- ✅ Session storage maintains form state across steps
+- ✅ Real-time onboarding progress tracking
+- ✅ Automatic dashboard routing after completion
+- ✅ Secure file storage with user-only access
 
-**Code Changes**:
-- **verify-email/page.tsx** lines 113-119: Updated redirectUrl logic
-- **auth/callback/route.ts** lines 28-34: Updated redirectPath logic
+## Lessons
 
-**Status**: ✅ DASHBOARD REDIRECT CONSISTENCY FIXED
-
-**Expected Behavior**:
-- OTP verification → Auto-login → Correct dashboard based on user role
-- Magic link → Auto-login → Correct dashboard based on user role
-- Unknown/missing roles → Redirect to home page (`/`)
-
-### 🔧 LATEST FIX: Profile Creation Duplicate Handling
-
-**Issue Identified**: Users attempting to register again with existing accounts were seeing "error" messages in console, even though the registration flow was working correctly.
-
-**Root Cause**: The auth.ts file was treating HTTP 409 (Conflict - profile already exists) as an error, when it should be treated as a success case.
-
-**Console Errors Before Fix**:
-```
-Profile creation API failed: {}
-Response status: 409
-Response statusText: "Conflict"
-```
-
-**Solution Implemented**:
-- ✅ Updated profile creation error handling in `src/lib/auth.ts`
-- ✅ HTTP 409 status now treated as success case ("Profile already exists - continuing")
-- ✅ Only genuine errors (4xx/5xx except 409) are logged as errors
-- ✅ Improved user experience with clearer messaging
-
-**Technical Details**:
-- Modified lines 179-183 in `src/lib/auth.ts`
-- Added specific handling for `response.status === 409`
-- Duplicate prevention logic is working correctly (as seen in terminal logs)
-
-**Status**: ✅ DUPLICATE PROFILE HANDLING FIXED - No more false error messages
-
-**Expected Behavior**: User tries to register again → Profile already exists → Registration continues successfully with existing profile
+- Use @supabase/ssr instead of deprecated auth-helpers packages
+- Always check networking connectivity before running remote database commands
+- Include manual fallback steps for critical migrations
+- Session storage in onboarding flow maintains form state across steps
+- **NEW**: Supabase Storage RLS policies require careful folder structure matching user IDs
+- **NEW**: File upload APIs need proper error handling for size and type validation

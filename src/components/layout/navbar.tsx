@@ -1,8 +1,7 @@
-
 'use client';
 
 import * as React from 'react';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,10 +15,10 @@ import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/s
 import { Menu, ChevronDown, UserCircle, LogIn, UserPlus, LogOut, LayoutDashboard, Settings, Bell, Briefcase, ShoppingCart, Building2, Phone, Info, FileText, Search, Users2, DollarSign, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePathname, useRouter } from 'next/navigation';
-import { auth, type UserProfile } from '@/lib/auth';
-import type { User } from '@supabase/supabase-js';
 import { useToast } from '@/hooks/use-toast';
 import { Logo } from '@/components/shared/logo';
+import { useCurrentUser } from '@/hooks/use-current-user';
+import { supabase } from '@/lib/supabase';
 
 interface NavLinkItem {
   href: string;
@@ -65,9 +64,10 @@ export function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const { toast } = useToast();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = useState(true); // Start as true
+
+  // Use the centralized useCurrentUser hook instead of managing auth state separately
+  const { user, profile: userProfile, loading: isLoading } = useCurrentUser();
+  const isAuthenticated = !!user;
 
   const [sellMenuOpen, setSellMenuOpen] = useState(false);
   const [buyMenuOpen, setBuyMenuOpen] = useState(false);
@@ -77,57 +77,13 @@ export function Navbar() {
   const buyMenuTimerRef = useRef<NodeJS.Timeout | null>(null);
   const companyMenuTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  useEffect(() => {
-    const updateUserState = async (currentUser: User | null) => {
-      if (currentUser) {
-        setIsAuthenticated(true);
-        try {
-          // console.log('Navbar: Auth change detected, fetching profile for user:', currentUser.id);
-          const profile = await auth.getCurrentUserProfile();
-          // console.log('Navbar: Profile fetched:', profile);
-          setUserProfile(profile);
-        } catch (error) {
-          console.error('Navbar: Error fetching profile on auth change:', error);
-          setUserProfile(null);
-        }
-      } else {
-        // console.log('Navbar: No user session, setting unauthenticated state.');
-        setIsAuthenticated(false);
-        setUserProfile(null);
-      }
-      setIsLoading(false); // Set loading to false after all state updates for this auth event
-    };
-
-    // Initial check
-    const initializeAuth = async () => {
-      setIsLoading(true);
-      // console.log('Navbar: Initializing auth state...');
-      const { data: { user } } = await auth.getCurrentUserAndSession();
-      // console.log('Navbar: Initial auth check, user:', user ? user.id : 'null');
-      await updateUserState(user);
-    };
-
-    initializeAuth();
-
-    // Subscribe to auth changes
-    const { data: { subscription } } = auth.onAuthStateChange(async (_event, session) => {
-      // console.log('Navbar: Auth state changed, event:', _event, 'session user:', session?.user ? session.user.id : 'null');
-      setIsLoading(true); // Indicate loading for this auth state change processing
-      await updateUserState(session?.user ?? null);
-    });
-
-    return () => {
-      // console.log('Navbar: Unsubscribing from auth state changes.');
-      subscription?.unsubscribe();
-    };
-  }, []); // Runs once on mount
-
-
   const handleLogout = async () => {
-    setIsLoading(true);
     try {
-      await auth.signOut();
-      // onAuthStateChange will handle setting isAuthenticated and userProfile to null
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        throw error;
+      }
+
       toast({
         title: "Logged out successfully",
         description: "You have been signed out of your account."
@@ -139,13 +95,10 @@ export function Navbar() {
         title: "Logout failed",
         description: error instanceof Error ? error.message : "An error occurred"
       });
-      setIsLoading(false); // Ensure loading is false on error
     }
-    // No need to manually set isLoading to false here if navigation occurs,
-    // but onAuthStateChange should handle the final state update.
   };
 
-  const getUserInitials = (profile: UserProfile | null) => {
+  const getUserInitials = (profile: typeof userProfile) => {
     if (!profile?.full_name) return 'U';
     return profile.full_name
       .split(' ')
@@ -155,7 +108,7 @@ export function Navbar() {
       .slice(0, 2);
   };
 
-  const getDashboardUrl = (profile: UserProfile | null) => {
+  const getDashboardUrl = (profile: typeof userProfile) => {
     if (!profile) return '/dashboard'; // Fallback, though should not be called if no profile
     switch (profile.role) {
       case 'seller':
@@ -168,36 +121,36 @@ export function Navbar() {
         return '/dashboard'; // Default fallback
     }
   };
-  
+
   const handleMouseEnter = (setOpen: React.Dispatch<React.SetStateAction<boolean>>, timerRef: React.MutableRefObject<NodeJS.Timeout | null>) => {
     if (timerRef.current) clearTimeout(timerRef.current);
     setOpen(true);
   };
 
   const handleMouseLeave = (setOpen: React.Dispatch<React.SetStateAction<boolean>>, timerRef: React.MutableRefObject<NodeJS.Timeout | null>) => {
-    timerRef.current = setTimeout(() => setOpen(false), 200);
+    timerRef.current = setTimeout(() => setOpen(false), 150);
   };
-  
+
   const getMenuOpenState = (label: string) => {
     if (label === "Sell Your Business") return sellMenuOpen;
     if (label === "Buy a Business") return buyMenuOpen;
     if (label === "Company") return companyMenuOpen;
     return false;
-  }
+  };
 
   const getSetMenuOpenFn = (label: string): React.Dispatch<React.SetStateAction<boolean>> => {
     if (label === "Sell Your Business") return setSellMenuOpen;
     if (label === "Buy a Business") return setBuyMenuOpen;
     if (label === "Company") return setCompanyMenuOpen;
-    return () => {}; 
-  }
-  
+    return setSellMenuOpen; // Fallback
+  };
+
   const getTimerRef = (label: string): React.MutableRefObject<NodeJS.Timeout | null> => {
-     if (label === "Sell Your Business") return sellMenuTimerRef;
+    if (label === "Sell Your Business") return sellMenuTimerRef;
     if (label === "Buy a Business") return buyMenuTimerRef;
     if (label === "Company") return companyMenuTimerRef;
-    return { current: null }; 
-  }
+    return { current: null };
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-brand-light-gray/60 bg-brand-white text-brand-dark-blue shadow-sm">
@@ -208,9 +161,9 @@ export function Navbar() {
             {navLinkGroups.map((group) => {
               const TriggerIcon = group.triggerIcon;
               return (
-                <DropdownMenu 
-                  key={group.label} 
-                  open={getMenuOpenState(group.label)} 
+                <DropdownMenu
+                  key={group.label}
+                  open={getMenuOpenState(group.label)}
                   onOpenChange={getSetMenuOpenFn(group.label)}
                 >
                   <DropdownMenuTrigger asChild>
@@ -323,7 +276,7 @@ export function Navbar() {
               </div>
               <nav className="flex flex-col space-y-1 p-4">
                 {navLinkGroups.map((group) => {
-                   const TriggerIcon = group.triggerIcon;
+                  const TriggerIcon = group.triggerIcon;
                   return (
                     <div key={group.label} className="flex flex-col space-y-1">
                        <h4 className="text-base font-semibold px-3 py-3 w-full text-brand-dark-blue flex items-center">
@@ -335,12 +288,12 @@ export function Navbar() {
                           const IconComponent = item.icon;
                           return (
                             <SheetClose asChild key={item.label}>
-                             <Button variant="ghost" asChild className={cn("justify-start text-base font-normal px-3 py-2 text-brand-dark-blue/80 hover:text-brand-dark-blue hover:bg-brand-light-gray", pathname === item.href && "bg-brand-light-gray font-medium")}>
-                              <Link href={item.href} className="flex items-center">
-                                 <IconComponent className="mr-2 h-4 w-4 opacity-80" />
-                                {item.label}
-                              </Link>
-                             </Button>
+                              <Button variant="ghost" asChild className={cn("justify-start text-base font-normal px-3 py-2 text-brand-dark-blue/80 hover:text-brand-dark-blue hover:bg-brand-light-gray", pathname === item.href && "bg-brand-light-gray font-medium")}>
+                                <Link href={item.href} className="flex items-center">
+                                  <IconComponent className="mr-2 h-4 w-4 opacity-80" />
+                                  {item.label}
+                                </Link>
+                              </Button>
                             </SheetClose>
                           );
                         })}

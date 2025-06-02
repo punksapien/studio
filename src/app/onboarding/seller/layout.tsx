@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -14,9 +13,8 @@ export default function SellerOnboardingLayout({
 }) {
   const params = useParams();
   const currentStep = params.step ? parseInt(params.step as string, 10) : 1;
-  const isSuccessPage = params.step === 'success' || pathname.endsWith('/onboarding/seller/success'); // Updated check
   const pathname = typeof window !== "undefined" ? window.location.pathname : "";
-
+  const isSuccessPage = params.step === 'success' || pathname.endsWith('/onboarding/seller/success');
 
   const sellerStepTitles = [
     "Welcome & Business Overview",
