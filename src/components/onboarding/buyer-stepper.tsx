@@ -15,7 +15,8 @@ export function BuyerStepper({ currentStep, stepTitles }: BuyerStepperProps) {
 
   return (
     <nav aria-label="Progress">
-      <ol role="list" className="flex items-center justify-around"> {/* Changed to justify-around for fewer steps */}
+      {/* For 2 steps, justify-around makes them more centered than justify-between */}
+      <ol role="list" className="flex items-center justify-around">
         {stepTitles.map((title, index) => {
           const stepNumber = index + 1;
           const isCompleted = stepNumber < currentStep;
@@ -48,7 +49,7 @@ export function BuyerStepper({ currentStep, stepTitles }: BuyerStepperProps) {
                   {isCompleted ? <Check className="h-5 w-5" /> : stepNumber}
                 </div>
                 <p className={cn(
-                    "mt-2 text-xs font-medium w-28 truncate", // Adjusted width
+                    "mt-2 text-xs font-medium w-32 truncate", // Increased width for potentially longer titles
                     isActive ? "text-brand-sky-blue" : "text-muted-foreground"
                 )}>
                   {title}
