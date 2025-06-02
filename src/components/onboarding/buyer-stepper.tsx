@@ -15,18 +15,22 @@ export function BuyerStepper({ currentStep, stepTitles }: BuyerStepperProps) {
 
   return (
     <nav aria-label="Progress">
-      {/* For 2 steps, justify-around makes them more centered than justify-between */}
-      <ol role="list" className="flex items-center justify-around">
+      <ol role="list" className="flex items-center justify-center space-x-8 md:space-x-12"> {/* Adjusted to justify-center and added spacing */}
         {stepTitles.map((title, index) => {
           const stepNumber = index + 1;
           const isCompleted = stepNumber < currentStep;
           const isActive = stepNumber === currentStep;
 
           return (
-            <li key={title} className={cn("relative", index < totalSteps - 1 ? "flex-1" : "")}>
-              {index < totalSteps - 1 && ( // Only render connecting line if not the last step
+            // Removed conditional flex-1, let items size naturally with space-x
+            <li key={title} className="relative">
+              {index < totalSteps - 1 && (
                 <div
-                  className="absolute inset-0 top-4 left-1/2 flex w-[calc(100%-2rem)] items-center" // Adjusted to roughly connect centers
+                  className={cn(
+                    "absolute inset-0 top-4 flex items-center",
+                    // Adjust left and width for connector line to be more centered between two items
+                    "left-full w-8 md:w-12 -ml-4 md:-ml-6" // Offset by half the space-x
+                  )}
                   aria-hidden="true"
                 >
                   <div className={cn("h-0.5 w-full", isCompleted ? "bg-brand-sky-blue" : "bg-brand-light-gray")} />
@@ -44,7 +48,7 @@ export function BuyerStepper({ currentStep, stepTitles }: BuyerStepperProps) {
                   {isCompleted ? <Check className="h-5 w-5" /> : stepNumber}
                 </div>
                 <p className={cn(
-                    "mt-2 text-xs font-medium w-32 truncate", // Increased width for potentially longer titles
+                    "mt-2 text-xs font-medium w-auto min-w-[60px] max-w-[120px] truncate", // Use w-auto for more flexible title width
                     isActive ? "text-brand-sky-blue" : "text-muted-foreground"
                 )}>
                   {title}

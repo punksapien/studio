@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -30,7 +31,7 @@ function VerifyEmailContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const email = searchParams.get("email") || '';
-  const type = searchParams.get("type") || 'register'; // Default to 'register' if type is not present
+  const type = searchParams.get("type") || 'register';
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -89,7 +90,6 @@ function VerifyEmailContent() {
     );
   }
 
-
   const onSubmit = (values: z.infer<typeof OTPSchema>) => {
     setError("");
     setSuccess("");
@@ -99,36 +99,48 @@ function VerifyEmailContent() {
       try {
         const verificationTypeForSupabase = type === 'register' ? 'email' : type;
 
-        // Verify the OTP - this automatically logs the user in
         const result = await auth.verifyEmailOtp(email, values.otp);
 
         if (result.user) {
-          // Get the user's profile to determine their role and redirect appropriately
-          const profile = await auth.getCurrentUserProfile();
-
-          setSuccess("Email verified successfully! Logging you in...");
+          setSuccess("Email verified successfully! Proceeding to next step...");
           toast({
-            title: "Welcome to Nobridge!",
-            description: "Your email has been verified and you're now logged in."
+            title: "Email Verified!",
+            description: "Your email has been successfully verified."
           });
 
-          // Redirect to appropriate dashboard based on role
-          let redirectUrl = '/';
-          if (profile?.role === 'seller') {
-            redirectUrl = '/seller-dashboard';
-          } else if (profile?.role === 'buyer') {
-            redirectUrl = '/dashboard';
-          } else if (profile?.role === 'admin') {
-            redirectUrl = '/admin';
-          }
+          // Fetch profile to determine role for onboarding redirect
+          const profile = await auth.getCurrentUserProfile();
+          let redirectUrl = '/'; // Default redirect
 
-          // Check if there's a specific redirect URL
-          const nextUrl = searchParams.get("next");
-          if (nextUrl) {
-            redirectUrl = nextUrl;
+          if (type === 'register' || verificationTypeForSupabase === 'email') { // Redirect to onboarding if it was a registration verification
+            if (profile?.role === 'seller') {
+              redirectUrl = '/onboarding/seller/1';
+            } else if (profile?.role === 'buyer') {
+              redirectUrl = '/onboarding/buyer/1';
+            } else {
+              // If role is unknown or admin, default to a generic dashboard or home
+              // Or handle admin onboarding if that exists
+              console.warn("Unknown role for onboarding, defaulting to home:", profile?.role);
+              redirectUrl = profile?.role === 'admin' ? '/admin' : '/';
+            }
+          } else { // For other types like password reset, redirect to login or specific page
+             // Get the user's profile to determine their role and redirect appropriately
+            if (profile?.role === 'seller') {
+                redirectUrl = '/seller-dashboard';
+            } else if (profile?.role === 'buyer') {
+                redirectUrl = '/dashboard';
+            } else if (profile?.role === 'admin') {
+                redirectUrl = '/admin';
+            }
+          }
+          
+          const nextQueryParam = searchParams.get("next");
+          if (nextQueryParam) { // Allow overriding redirect if 'next' is present
+            redirectUrl = nextQueryParam;
           }
 
           setTimeout(() => router.push(redirectUrl), 1500);
+
         } else {
           throw new Error('Verification succeeded but no user session was created');
         }
@@ -154,7 +166,8 @@ function VerifyEmailContent() {
 
     startTransition(async () => {
       try {
-        await auth.resendVerificationForEmail(email);
+        // For resending, always use 'signup' type to match Supabase expectation for initial verification
+        await auth.resendVerificationForEmail(email); 
         toast({
           title: "Verification Email Resent",
           description: `A new verification email has been sent to ${email}. Please check your inbox and spam folder.`,

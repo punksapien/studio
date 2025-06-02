@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -76,15 +77,13 @@ export default function SellerRegisterPage() {
         if (result.user) {
           toast({
             title: "Registration Successful!",
-            description: "Please complete your onboarding to list your business."
+            description: "Please check your email to verify your account and then complete onboarding."
           });
-          router.push('/onboarding/seller/1'); // Redirect to seller onboarding
+          router.push(`/verify-email?email=${encodeURIComponent(values.email)}&type=register`);
         } else {
-          // Fallback to email verification if user somehow not created but no error
-          // This case should ideally be handled by auth.signUp throwing an error
            toast({
             title: "Registration Incomplete",
-            description: "Please check your email for a verification link."
+            description: "Something went wrong, but please check your email for a verification link."
           });
           router.push(`/verify-email?email=${encodeURIComponent(values.email)}&type=register`);
         }
