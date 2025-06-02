@@ -13,10 +13,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
-import { Menu, ChevronDown, UserCircle, LogIn, UserPlus, LogOut, LayoutDashboard, Settings, Bell, Briefcase, ShoppingCart, Building2, Phone, Info, FileText, Search, Users2, DollarSign } from 'lucide-react';
+import { Menu, ChevronDown, UserCircle, LogIn, UserPlus, LogOut, LayoutDashboard, Settings, Bell, Briefcase, ShoppingCart, Building2, Phone, Info, FileText, Search, Users2, DollarSign, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePathname, useRouter } from 'next/navigation';
 import { auth, type UserProfile } from '@/lib/auth';
+import type { User } from '@supabase/supabase-js';
 import { useToast } from '@/hooks/use-toast';
 import { Logo } from '@/components/shared/logo';
 
@@ -66,7 +67,7 @@ export function Navbar() {
   const { toast } = useToast();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true); // Start as true
 
   const [sellMenuOpen, setSellMenuOpen] = useState(false);
   const [buyMenuOpen, setBuyMenuOpen] = useState(false);
@@ -77,60 +78,71 @@ export function Navbar() {
   const companyMenuTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    const checkAuthState = async () => {
-      setIsLoading(true);
-      try {
-        const user = await auth.getCurrentUser();
-        if (user) {
+    const updateUserState = async (currentUser: User | null) => {
+      if (currentUser) {
+        setIsAuthenticated(true);
+        try {
+          // console.log('Navbar: Auth change detected, fetching profile for user:', currentUser.id);
           const profile = await auth.getCurrentUserProfile();
-          setIsAuthenticated(true);
+          // console.log('Navbar: Profile fetched:', profile);
           setUserProfile(profile);
-        } else {
-          setIsAuthenticated(false);
+        } catch (error) {
+          console.error('Navbar: Error fetching profile on auth change:', error);
           setUserProfile(null);
         }
-      } catch (error) {
-        console.error('Error checking auth state:', error);
+      } else {
+        // console.log('Navbar: No user session, setting unauthenticated state.');
         setIsAuthenticated(false);
         setUserProfile(null);
-      } finally {
-        setIsLoading(false);
       }
+      setIsLoading(false); // Set loading to false after all state updates for this auth event
     };
 
-    checkAuthState();
-
-    const { data: { subscription } } = auth.onAuthStateChange(async (_event, session) => {
+    // Initial check
+    const initializeAuth = async () => {
       setIsLoading(true);
-      if (session?.user) {
-        const profile = await auth.getCurrentUserProfile();
-        setIsAuthenticated(true);
-        setUserProfile(profile);
-      } else {
-        setIsAuthenticated(false);
-        setUserProfile(null);
-      }
-      setIsLoading(false);
+      // console.log('Navbar: Initializing auth state...');
+      const { data: { user } } = await auth.getCurrentUserAndSession();
+      // console.log('Navbar: Initial auth check, user:', user ? user.id : 'null');
+      await updateUserState(user);
+    };
+
+    initializeAuth();
+
+    // Subscribe to auth changes
+    const { data: { subscription } } = auth.onAuthStateChange(async (_event, session) => {
+      // console.log('Navbar: Auth state changed, event:', _event, 'session user:', session?.user ? session.user.id : 'null');
+      setIsLoading(true); // Indicate loading for this auth state change processing
+      await updateUserState(session?.user ?? null);
     });
 
-    return () => subscription?.unsubscribe();
-  }, []);
+    return () => {
+      // console.log('Navbar: Unsubscribing from auth state changes.');
+      subscription?.unsubscribe();
+    };
+  }, []); // Runs once on mount
+
 
   const handleLogout = async () => {
+    setIsLoading(true);
     try {
       await auth.signOut();
+      // onAuthStateChange will handle setting isAuthenticated and userProfile to null
       toast({
         title: "Logged out successfully",
         description: "You have been signed out of your account."
       });
-      router.push('/');
+      router.push('/'); // Redirect to home after logout
     } catch (error) {
       toast({
         variant: "destructive",
         title: "Logout failed",
         description: error instanceof Error ? error.message : "An error occurred"
       });
+      setIsLoading(false); // Ensure loading is false on error
     }
+    // No need to manually set isLoading to false here if navigation occurs,
+    // but onAuthStateChange should handle the final state update.
   };
 
   const getUserInitials = (profile: UserProfile | null) => {
@@ -144,7 +156,7 @@ export function Navbar() {
   };
 
   const getDashboardUrl = (profile: UserProfile | null) => {
-    if (!profile) return '/dashboard';
+    if (!profile) return '/dashboard'; // Fallback, though should not be called if no profile
     switch (profile.role) {
       case 'seller':
         return '/seller-dashboard';
@@ -153,10 +165,10 @@ export function Navbar() {
       case 'admin':
         return '/admin';
       default:
-        return '/dashboard';
+        return '/dashboard'; // Default fallback
     }
   };
-
+  
   const handleMouseEnter = (setOpen: React.Dispatch<React.SetStateAction<boolean>>, timerRef: React.MutableRefObject<NodeJS.Timeout | null>) => {
     if (timerRef.current) clearTimeout(timerRef.current);
     setOpen(true);
@@ -186,7 +198,6 @@ export function Navbar() {
     if (label === "Company") return companyMenuTimerRef;
     return { current: null }; 
   }
-
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-brand-light-gray/60 bg-brand-white text-brand-dark-blue shadow-sm">
@@ -240,7 +251,10 @@ export function Navbar() {
 
         <div className="hidden md:flex items-center space-x-3">
           {isLoading ? (
-            <div className="h-9 w-24 animate-pulse bg-gray-200 rounded-md"></div>
+            <div className="flex items-center space-x-2">
+              <Loader2 className="h-5 w-5 animate-spin text-brand-dark-blue/50" />
+              <span className="text-sm text-brand-dark-blue/50">Loading...</span>
+            </div>
           ) : isAuthenticated ? (
             <>
               <Button variant="outline" asChild className="border-brand-dark-blue/30 text-brand-dark-blue hover:bg-brand-light-gray/50 hover:border-brand-dark-blue/50 py-2 px-4 font-medium text-sm">
@@ -294,6 +308,7 @@ export function Navbar() {
           )}
         </div>
 
+        {/* Mobile Menu */}
         <div className="md:hidden">
           <Sheet>
             <SheetTrigger asChild>
@@ -335,7 +350,9 @@ export function Navbar() {
                 })}
                 <DropdownMenuSeparator className="my-4 bg-brand-light-gray/80"/>
                 {isLoading ? (
-                   <div className="px-3 py-2 text-sm text-brand-dark-blue/60">Loading user...</div>
+                   <div className="px-3 py-2 text-sm text-brand-dark-blue/60 flex items-center">
+                     <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading user...
+                   </div>
                 ) : isAuthenticated ? (
                   <>
                     <div className="px-3 py-2 text-sm border-b border-brand-light-gray/60 mb-2">
