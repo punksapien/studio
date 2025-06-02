@@ -14,18 +14,18 @@ export default function BuyerOnboardingLayout({
 }) {
   const params = useParams();
   const currentStep = params.step ? parseInt(params.step as string, 10) : 1;
-  const isSuccessPage = params.step === 'success' || pathname.endsWith('/onboarding/buyer/success'); // Updated check
   const pathname = typeof window !== "undefined" ? window.location.pathname : "";
+  const isSuccessPage = params.step === 'success' || pathname.endsWith('/onboarding/buyer/success');
 
 
   const buyerStepTitles = [
-    "Welcome & Profile",
+    "Profile & Focus", // Renamed for clarity
     "Identity Verification",
   ];
 
   return (
     <div className="min-h-screen bg-brand-light-gray flex flex-col items-center py-8 md:py-12 px-4">
-      <div className="w-full max-w-2xl">
+      <div className="w-full max-w-3xl"> {/* Adjusted max-width */}
         <div className="mb-8 text-center">
           <Link href="/" aria-label="Back to homepage">
             <Logo size="xl" forceTheme="light" />
@@ -39,12 +39,12 @@ export default function BuyerOnboardingLayout({
         </div>
 
         {!isSuccessPage && (
-          <div className="mb-10">
+          <div className="mb-10"> {/* Added margin-bottom for stepper */}
             <BuyerStepper currentStep={currentStep} stepTitles={buyerStepTitles} />
           </div>
         )}
 
-        <main className="bg-brand-white p-6 md:p-10 rounded-xl shadow-xl">
+        <main className="bg-brand-white p-6 md:p-10 rounded-xl shadow-xl"> {/* Standardized padding */}
           {children}
         </main>
       </div>

@@ -12,15 +12,13 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { asianCountries, BuyerPersonaTypes, PreferredInvestmentSizes } from '@/lib/types';
+import { BuyerPersonaTypes, PreferredInvestmentSizes } from '@/lib/types'; // Removed asianCountries
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, ArrowRight, CheckCircle, FileText, Loader2 } from 'lucide-react';
 
 // --- Schemas ---
+// Step 1: Buyer Profile & Investment Focus - Streamlined
 const Step1BuyerSchema = z.object({
-  fullName: z.string().min(1, "Full name is required."),
-  country: z.string().min(1, "Country is required."),
-  phoneNumber: z.string().min(1, "Phone number is required."),
   buyerPersonaType: z.enum(BuyerPersonaTypes, { required_error: "Buyer persona type is required."}),
   buyerPersonaOther: z.string().optional(),
   investmentFocusDescription: z.string().min(10, "Please describe your investment focus (min 10 characters)."),
@@ -104,7 +102,7 @@ export default function BuyerOnboardingStepPage() {
   const currentSchema = buyerStepSchemas[currentStep - 1] || z.object({});
   const methods = useForm<BuyerFormValues>({
     resolver: zodResolver(currentSchema),
-    defaultValues: formData, // Pre-fill with data from session storage or default
+    defaultValues: formData, 
   });
 
   React.useEffect(() => {
@@ -121,14 +119,14 @@ export default function BuyerOnboardingStepPage() {
       sessionStorage.setItem('buyerOnboardingData', JSON.stringify(updatedData));
     }
 
-    setTimeout(() => { // Simulate API call
+    setTimeout(() => { 
       setIsLoading(false);
       if (currentStep < totalSteps) {
         router.push(`/onboarding/buyer/${currentStep + 1}`);
       } else {
         console.log("Buyer Onboarding Submitted:", updatedData);
         toast({ title: "Verification Submitted", description: "Your information is being reviewed." });
-        sessionStorage.removeItem('buyerOnboardingData');
+        // sessionStorage.removeItem('buyerOnboardingData'); // Keep for success page
         router.push('/onboarding/buyer/success');
       }
     }, 700);
@@ -146,14 +144,11 @@ export default function BuyerOnboardingStepPage() {
         return (
           <>
             <CardHeader>
-              <CardTitle className="font-heading">Welcome & Profile Completion</CardTitle>
-              <CardDescription>Welcome, [Buyer Name]! Complete your profile to unlock full access to detailed business information.</CardDescription>
+              <CardTitle className="font-heading">Buyer Profile & Investment Focus</CardTitle>
+              <CardDescription>Help us understand your investment preferences to connect you with the right opportunities.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <FormField control={methods.control} name="fullName" render={({ field }) => (<FormItem><FormLabel>Full Name</FormLabel><FormControl><Input {...field} placeholder="Your Full Name" /></FormControl><FormMessage /></FormItem>)} />
-              <FormField control={methods.control} name="country" render={({ field }) => (<FormItem><FormLabel>Country of Residence</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select country" /></SelectTrigger></FormControl><SelectContent>{asianCountries.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
-              <FormField control={methods.control} name="phoneNumber" render={({ field }) => (<FormItem><FormLabel>Phone Number</FormLabel><FormControl><Input {...field} placeholder="+65 1234 5678" /></FormControl><FormMessage /></FormItem>)} />
-              
+              {/* Removed Full Name, Country, Phone Number */}
               <FormField control={methods.control} name="buyerPersonaType" render={({ field }) => (<FormItem><FormLabel>I am a/an: (Primary Role / Buyer Type)</FormLabel><Select onValueChange={field.onChange} value={field.value || ""}><FormControl><SelectTrigger><SelectValue placeholder="Select your primary role" /></SelectTrigger></FormControl><SelectContent>{BuyerPersonaTypes.map((type) => (<SelectItem key={type} value={type}>{type}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)} />
               {watchedBuyerPersonaType === "Other" && (<FormField control={methods.control} name="buyerPersonaOther" render={({ field }) => (<FormItem><FormLabel>Please Specify Role</FormLabel><FormControl><Input {...field} placeholder="Your specific role" /></FormControl><FormMessage /></FormItem>)} />)}
               
@@ -195,9 +190,9 @@ export default function BuyerOnboardingStepPage() {
   return (
     <FormProvider {...methods}>
       <form onSubmit={methods.handleSubmit(onSubmit)}>
-        <Card>
+        <Card className="bg-brand-white p-0">
           {renderStepContent()}
-          <CardFooter className="flex justify-between pt-8 border-t">
+          <CardFooter className="flex justify-between pt-8 border-t mt-6 p-6 md:p-10">
             <Button type="button" variant="outline" onClick={handlePrevious} disabled={currentStep === 1 || isLoading}>
               <ArrowLeft className="mr-2 h-4 w-4" /> Previous
             </Button>
