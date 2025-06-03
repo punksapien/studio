@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# Nobridge Supabase Management Script - FIXED VERSION
-# This script now follows the lesson: "Don't fix normal Docker behavior"
-# Usage: ./scripts/supabase-reset.sh [--hard] [--verbose]
+# Nobridge Supabase Management Script - ENHANCED VERSION
+# This script provides robust Supabase management with automatic recovery
+# Usage: ./scripts/supabase-reset.sh [--hard] [--verbose] [--recover]
 
 set -e  # Exit on any error
 
@@ -16,6 +16,7 @@ NC='\033[0m' # No Color
 # Flags
 HARD_RESET=false
 VERBOSE=false
+RECOVER=false
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -28,10 +29,15 @@ while [[ $# -gt 0 ]]; do
             VERBOSE=true
             shift
             ;;
+        --recover)
+            RECOVER=true
+            shift
+            ;;
         *)
-            echo "Usage: $0 [--hard] [--verbose]"
+            echo "Usage: $0 [--hard] [--verbose] [--recover]"
             echo "  --hard    Force Docker cleanup (WARNING: Will re-download 8GB+ images)"
             echo "  --verbose Show detailed progress"
+            echo "  --recover Attempt to recover from failed state"
             exit 1
             ;;
     esac
@@ -59,9 +65,82 @@ verbose() {
     fi
 }
 
-# Show what we're going to do
+# Function to check if ports are available
+check_ports() {
+    local ports=(54321 54322 54323 54324)
+    local busy_ports=()
+
+    for port in "${ports[@]}"; do
+        if lsof -i :$port > /dev/null 2>&1; then
+            busy_ports+=($port)
+        fi
+    done
+
+    if [ ${#busy_ports[@]} -ne 0 ]; then
+        error "Ports ${busy_ports[*]} are already in use"
+        echo "Please free these ports or stop the services using them"
+        exit 1
+    fi
+}
+
+# Function to check Docker resources
+check_docker_resources() {
+    local memory=$(docker info --format '{{.MemTotal}}' 2>/dev/null)
+    if [ "$memory" -lt 8589934592 ]; then  # 8GB in bytes
+        warning "Docker has less than 8GB of memory allocated"
+        echo "Consider increasing Docker's memory limit in Docker Desktop settings"
+    fi
+}
+
+# Function to verify Supabase health
+verify_supabase_health() {
+    local max_attempts=30
+    local attempt=1
+
+    while [ $attempt -le $max_attempts ]; do
+        if curl -s http://localhost:54321/rest/v1/ > /dev/null; then
+            success "Supabase API is responding"
+            return 0
+        fi
+
+        verbose "Waiting for Supabase to be ready (attempt $attempt/$max_attempts)..."
+        sleep 2
+        attempt=$((attempt + 1))
+    done
+
+    error "Supabase failed to become healthy after $max_attempts attempts"
+    return 1
+}
+
+# Function to recover from failed state
+recover_supabase() {
+    log "Attempting to recover Supabase..."
+
+    # Stop any running containers
+    npx supabase stop 2>/dev/null || true
+
+    # Remove any stale containers
+    docker ps -aq --filter "name=supabase*" | xargs -r docker rm -f 2>/dev/null || true
+
+    # Clean up any stale volumes
+    docker volume ls -q --filter "name=supabase*" | xargs -r docker volume rm 2>/dev/null || true
+
+    # Start fresh
+    npx supabase start
+}
+
+# Main execution
 echo -e "${GREEN}🚀 Nobridge Supabase Management${NC}"
 echo "======================================"
+
+# Check prerequisites
+check_ports
+check_docker_resources
+
+if [[ "$RECOVER" == true ]]; then
+    recover_supabase
+    exit 0
+fi
 
 if [[ "$HARD_RESET" == true ]]; then
     warning "HARD RESET MODE: Will clean Docker and re-download images (8GB+)"
@@ -150,12 +229,12 @@ else
     fi
 fi
 
-# Step 4: Verify services are running
+# Step 4: Verify services are running and healthy
 log "Verifying services..."
 
-# Check if Supabase is running
-if npx supabase status > /dev/null 2>&1; then
-    success "Supabase is running"
+# Check if Supabase is running and healthy
+if verify_supabase_health; then
+    success "Supabase is running and healthy"
 
     # Show status
     echo ""
@@ -168,6 +247,9 @@ if npx supabase status > /dev/null 2>&1; then
     echo -e "${GREEN}📧 Email: http://localhost:54324${NC}"
     echo -e "${GREEN}🗄️  API: http://localhost:54321${NC}"
 
+    # Create a health check file
+    echo "$(date)" > .supabase-health
+
 else
     error "Supabase failed to start properly"
     echo ""
@@ -175,6 +257,7 @@ else
     echo "1. Run with --verbose to see detailed logs"
     echo "2. Check Docker has enough memory (8GB+ recommended)"
     echo "3. Ensure ports 54321-54324 are available"
+    echo "4. Try recovery mode: ./scripts/supabase-reset.sh --recover"
     echo ""
     exit 1
 fi

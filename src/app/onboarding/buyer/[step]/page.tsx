@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -8,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
+import { FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, ArrowRight, CheckCircle, FileText, Loader2, ShieldCheck } from 'lucide-react';
 import { updateOnboardingStatus, uploadOnboardingDocument } from '@/hooks/use-current-user';
@@ -212,17 +211,30 @@ export default function BuyerOnboardingStepPage() {
     <FormProvider {...methods}>
       <form onSubmit={methods.handleSubmit(onSubmit)}>
         <Card className="bg-brand-white p-0">
-        <Card className="bg-brand-white p-0">
           {renderStepContent()}
+
           <CardFooter className="flex justify-between pt-8 border-t mt-6 p-6 md:p-10">
-          <CardFooter className="flex justify-between pt-8 border-t mt-6 p-6 md:p-10">
-            <Button type="button" variant="outline" onClick={handlePrevious} disabled={currentStep === 1 || isLoading}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handlePrevious}
+              disabled={currentStep === 1 || isLoading}
+            >
               <ArrowLeft className="mr-2 h-4 w-4" /> Previous
             </Button>
-            <Button type="submit" disabled={isLoading} className="bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90">
+
+            <Button
+              type="submit"
+              disabled={isLoading}
+              className="bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90"
+            >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {currentStep < totalSteps ? 'Next Step' : 'Submit Verification'}
-              {currentStep < totalSteps ? <ArrowRight className="ml-2 h-4 w-4" /> : <CheckCircle className="ml-2 h-4 w-4" />}
+              {currentStep < totalSteps ? (
+                <ArrowRight className="ml-2 h-4 w-4" />
+              ) : (
+                <CheckCircle className="ml-2 h-4 w-4" />
+              )}
             </Button>
           </CardFooter>
         </Card>

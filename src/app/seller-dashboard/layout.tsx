@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -36,6 +35,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import type { UserRole } from '@/lib/types';
+import LogoutButton from '@/components/auth/LogoutButton';
 
 const currentUserRole: UserRole | null = 'seller';
 
@@ -144,10 +144,7 @@ export default function SellerDashboardLayout({
             </SidebarMenu>
           </SidebarContent>
           <SidebarFooter className="p-4 border-t border-sidebar-border">
-            <Button variant="outline" className="w-full text-destructive-foreground bg-destructive hover:bg-destructive/90 flex items-center justify-center">
-              <LogOut className="h-5 w-5 mr-2" />
-              <span className="truncate">Logout</span>
-            </Button>
+            <LogoutButton fullWidth />
           </SidebarFooter>
         </Sidebar>
         <SidebarInset className="flex-grow flex flex-col overflow-hidden">

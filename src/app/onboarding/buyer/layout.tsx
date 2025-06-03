@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -34,9 +33,6 @@ export default function BuyerOnboardingLayout({
     <div className="min-h-screen bg-brand-light-gray flex flex-col items-center py-8 md:py-12 px-4">
       <div className="w-full max-w-3xl">
         <div className="mb-8 text-center">
-          <Link href="/" aria-label="Nobridge Home">
-            <Logo size="2xl" forceTheme="light"/>
-          </Link>
           <h1 className="text-3xl md:text-4xl font-bold text-brand-dark-blue mt-4 mb-2 font-heading">
             Become a Verified Nobridge Buyer
           </h1>

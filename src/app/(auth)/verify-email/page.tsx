@@ -1,4 +1,3 @@
-
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -99,7 +98,7 @@ function VerifyEmailContent() {
       try {
         const verificationTypeForSupabase = type === 'register' ? 'email' : type;
 
-        const result = await auth.verifyEmailOtp(email, values.otp);
+        const result = await auth.verifyEmailOtp(email, values.otp, type === 'register' ? 'register' : 'email_change');
 
         if (result.user) {
           setSuccess("Email verified successfully! Proceeding to next step...");
@@ -112,19 +111,46 @@ function VerifyEmailContent() {
           const profile = await auth.getCurrentUserProfile();
           let redirectUrl = '/'; // Default redirect
 
-          if (type === 'register' || verificationTypeForSupabase === 'email') { // Redirect to onboarding if it was a registration verification
+          if (type === 'register' || verificationTypeForSupabase === 'email') {
+            // Registration flow - redirect to onboarding
             if (profile?.role === 'seller') {
-              redirectUrl = '/onboarding/seller/1';
+              const nextStep = (profile.onboarding_step_completed || 0) + 1;
+              const totalSteps = 5;
+              redirectUrl = nextStep <= totalSteps ? `/onboarding/seller/${nextStep}` : `/onboarding/seller/success`;
             } else if (profile?.role === 'buyer') {
-              redirectUrl = '/onboarding/buyer/1';
+              const nextStep = (profile.onboarding_step_completed || 0) + 1;
+              const totalSteps = 2;
+              redirectUrl = nextStep <= totalSteps ? `/onboarding/buyer/${nextStep}` : `/onboarding/buyer/success`;
             } else {
-              // If role is unknown or admin, default to a generic dashboard or home
-              // Or handle admin onboarding if that exists
               console.warn("Unknown role for onboarding, defaulting to home:", profile?.role);
               redirectUrl = profile?.role === 'admin' ? '/admin' : '/';
             }
-          } else { // For other types like password reset, redirect to login or specific page
-             // Get the user's profile to determine their role and redirect appropriately
+          } else if (type === 'login') {
+            // Login flow - check if onboarding is completed
+            if (profile?.is_onboarding_completed) {
+              // Redirect to appropriate dashboard
+              if (profile?.role === 'seller') {
+                redirectUrl = '/seller-dashboard';
+              } else if (profile?.role === 'buyer') {
+                redirectUrl = '/dashboard';
+              } else if (profile?.role === 'admin') {
+                redirectUrl = '/admin';
+              }
+            } else {
+              // User logged in but hasn't completed onboarding - send to onboarding
+              if (profile?.role === 'seller') {
+                const nextStep = (profile.onboarding_step_completed || 0) + 1;
+                const totalSteps = 5;
+                redirectUrl = nextStep <= totalSteps ? `/onboarding/seller/${nextStep}` : `/onboarding/seller/success`;
+              } else if (profile?.role === 'buyer') {
+                const nextStep = (profile.onboarding_step_completed || 0) + 1;
+                const totalSteps = 2;
+                redirectUrl = nextStep <= totalSteps ? `/onboarding/buyer/${nextStep}` : `/onboarding/buyer/success`;
+              }
+            }
+          } else {
+            // Other types like password reset, redirect to login or specific page
+            // Get the user's profile to determine their role and redirect appropriately
             if (profile?.role === 'seller') {
                 redirectUrl = '/seller-dashboard';
             } else if (profile?.role === 'buyer') {
@@ -133,7 +159,7 @@ function VerifyEmailContent() {
                 redirectUrl = '/admin';
             }
           }
-          
+
           const nextQueryParam = searchParams.get("next");
           if (nextQueryParam) { // Allow overriding redirect if 'next' is present
             redirectUrl = nextQueryParam;
@@ -167,7 +193,7 @@ function VerifyEmailContent() {
     startTransition(async () => {
       try {
         // For resending, always use 'signup' type to match Supabase expectation for initial verification
-        await auth.resendVerificationForEmail(email); 
+        await auth.resendVerificationForEmail(email);
         toast({
           title: "Verification Email Resent",
           description: `A new verification email has been sent to ${email}. Please check your inbox and spam folder.`,

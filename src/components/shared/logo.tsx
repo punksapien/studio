@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from 'next/link';
@@ -63,6 +62,7 @@ export function Logo({ size = 'xl', forceTheme }: LogoProps) {
         width={width}
         height={height}
         className="object-contain"
+        style={{ height: 'auto' }}
         priority
       />
     </Link>

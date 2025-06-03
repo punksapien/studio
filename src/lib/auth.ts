@@ -250,14 +250,14 @@ export const auth = {
   async resendEmailVerification() {
     const { error } = await supabase.auth.resend({ // This resends for the current user if email is blank
       type: 'signup',
-      email: '', 
+      email: '',
     })
 
     if (error) {
       throw new Error(`Email verification resend failed: ${error.message}`)
     }
   },
-  
+
   // Resend verification for a specific email (used if user is not yet logged in from that email)
   async resendVerificationForEmail(email: string) {
     const { error } = await supabase.auth.resend({
@@ -270,17 +270,19 @@ export const auth = {
   },
 
   // Verify email with OTP token
-  async verifyEmailOtp(email: string, token: string) {
+  async verifyEmailOtp(email: string, token: string, flow: 'register' | 'email_change' = 'register') {
+    const supabaseType = flow === 'register' ? 'signup' : 'email';
+
     const { data, error } = await supabase.auth.verifyOtp({
       email,
       token,
-      type: 'email' // This type is for verifying email post-signup or email change
+      type: supabaseType as any
     })
 
     if (error) {
       throw new Error(`Email verification failed: ${error.message}`)
     }
-    
+
     // If verification successful, mark profile as email_verified true
     if (data.user) {
         await supabase
@@ -315,7 +317,7 @@ export const auth = {
       // A secure backend check would be better but is more complex for client-side auth library.
       // Attempting signUp and checking for "User already registered" is one way.
       // For now, let's assume a simplified check or that signUp error handling is sufficient.
-      return { exists: false, verified: false, canResend: true }; 
+      return { exists: false, verified: false, canResend: true };
     } catch (error) {
       return { exists: false, verified: false, canResend: false };
     }

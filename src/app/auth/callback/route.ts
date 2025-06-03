@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 
@@ -33,11 +32,29 @@ export async function GET(request: NextRequest) {
     const userId = data.user.id;
     const userEmail = data.user.email;
 
+    // Update email verification status in user_profiles table
+    if (data.user.email_confirmed_at && userEmail) {
+      console.log('Email is now verified, updating user_profiles table...');
+      const { error: updateError } = await supabase
+        .from('user_profiles')
+        .update({
+          is_email_verified: true,
+          email_verified_at: data.user.email_confirmed_at
+        })
+        .eq('id', userId);
+
+      if (updateError) {
+        console.error('Failed to update email verification status in profile:', updateError);
+      } else {
+        console.log('Successfully updated email verification status in profile');
+      }
+    }
+
     // Get user profile to determine where to redirect
     console.log('Fetching user profile for role-based redirect...')
     const { data: profile, error: profileError } = await supabase
       .from('user_profiles')
-      .select('role, verification_status, is_email_verified') // Fetch necessary fields
+      .select('role, verification_status, is_email_verified, is_onboarding_completed, onboarding_step_completed') // Fetch necessary fields
       .eq('id', userId)
       .single()
 
@@ -65,22 +82,22 @@ export async function GET(request: NextRequest) {
     // Determine redirect path
     let redirectPath = '/' // Default to home page
 
-    // Check if user's email was just verified and they haven't completed onboarding
-    const emailJustVerified = !profile.is_email_verified; // If this is false after update, it means it was just verified
-    const needsOnboarding = profile.verification_status === 'anonymous' || profile.verification_status === 'pending_verification';
-
-    if (emailJustVerified && needsOnboarding) {
-      console.log(`User ${userId} email just verified and needs onboarding. Role: ${profile.role}`);
+    // Check if user hasn't completed onboarding
+    if (!profile.is_onboarding_completed) {
+      console.log(`User ${userId} email verified and needs onboarding. Role: ${profile.role}`);
+      const nextStep = (profile.onboarding_step_completed || 0) + 1;
       if (profile.role === 'seller') {
-        redirectPath = '/onboarding/seller/1';
+        const totalSteps = 5; // seller has 5 onboarding steps
+        redirectPath = nextStep <= totalSteps ? `/onboarding/seller/${nextStep}` : `/onboarding/seller/success`;
       } else if (profile.role === 'buyer') {
-        redirectPath = '/onboarding/buyer/1';
+        const totalSteps = 2; // buyer has 2 onboarding steps
+        redirectPath = nextStep <= totalSteps ? `/onboarding/buyer/${nextStep}` : `/onboarding/buyer/success`;
       } else if (profile.role === 'admin') {
         redirectPath = '/admin'; // Admins might not have onboarding
       }
     } else {
-      // Existing user or onboarding completed, redirect to dashboard
-      console.log(`User ${userId} already onboarded or not a new registration. Role: ${profile.role}`);
+      // User already completed onboarding, redirect to dashboard
+      console.log(`User ${userId} already onboarded. Role: ${profile.role}`);
       if (profile.role === 'seller') {
         redirectPath = '/seller-dashboard';
       } else if (profile.role === 'buyer') {
@@ -89,7 +106,7 @@ export async function GET(request: NextRequest) {
         redirectPath = '/admin';
       }
     }
-    
+
     console.log('Final redirectPath determined:', redirectPath);
     const finalRedirectUrl = new URL(redirectPath, requestUrl.origin);
     // Add success message to dashboards if applicable
@@ -98,7 +115,7 @@ export async function GET(request: NextRequest) {
     } else if (redirectPath.includes('onboarding')) {
         finalRedirectUrl.searchParams.set('verification_success', 'true');
     }
-    
+
     return NextResponse.redirect(finalRedirectUrl);
   }
 

@@ -52,22 +52,39 @@ export default function LoginPage() {
       try {
         const result = await auth.signIn(values.email, values.password);
 
+        // Check if user's email is verified
+        const user = await auth.getCurrentUser();
+
+        if (user && !user.email_confirmed_at) {
+          // User is authenticated but email not verified - redirect to verify-email
+          console.log("User logged in but email not verified, redirecting to verify-email");
+          router.push(`/verify-email?email=${encodeURIComponent(values.email)}&type=login`);
+          return;
+        }
+
         toast({
           title: "Login Successful!",
           description: "Welcome back!"
         });
 
         // Determine redirect based on role after successful login
-        const userProfile = await auth.getCurrentUserProfile();
-        if (userProfile?.role === 'seller') {
-            router.push('/seller-dashboard');
-        } else if (userProfile?.role === 'buyer') {
-            router.push('/dashboard');
-        } else if (userProfile?.role === 'admin') {
-             router.push('/admin');
-        }
-        else {
-            router.push('/'); // Fallback
+        try {
+          const userProfile = await auth.getCurrentUserProfile();
+          if (userProfile?.role === 'seller') {
+              router.push('/seller-dashboard');
+          } else if (userProfile?.role === 'buyer') {
+              router.push('/dashboard');
+          } else if (userProfile?.role === 'admin') {
+               router.push('/admin');
+          } else {
+              // Profile doesn't exist or role is undefined - redirect to home page
+              console.warn('No profile or undefined role after login, redirecting to home');
+              router.push('/');
+          }
+        } catch (profileError) {
+          // Profile fetch failed - redirect to home page as fallback
+          console.error('Profile fetch failed after login:', profileError);
+          router.push('/');
         }
 
       } catch (error) {

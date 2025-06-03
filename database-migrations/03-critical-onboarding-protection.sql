@@ -6,6 +6,12 @@
 -- STEP 1: Add onboarding fields to user_profiles
 -- ================================================
 
+-- Add name fields that auth service expects
+ALTER TABLE user_profiles
+ADD COLUMN IF NOT EXISTS first_name VARCHAR(100),
+ADD COLUMN IF NOT EXISTS last_name VARCHAR(100),
+ADD COLUMN IF NOT EXISTS company_name VARCHAR(255);
+
 -- Add onboarding completion tracking to user_profiles table
 ALTER TABLE user_profiles
 ADD COLUMN IF NOT EXISTS is_onboarding_completed BOOLEAN DEFAULT false,
@@ -16,6 +22,23 @@ ADD COLUMN IF NOT EXISTS onboarding_step_completed INTEGER DEFAULT 0;
 -- Create indexes for onboarding status queries
 CREATE INDEX IF NOT EXISTS idx_user_profiles_onboarding_completed ON user_profiles(is_onboarding_completed);
 CREATE INDEX IF NOT EXISTS idx_user_profiles_onboarding_step ON user_profiles(onboarding_step_completed);
+CREATE INDEX IF NOT EXISTS idx_user_profiles_names ON user_profiles(first_name, last_name);
+
+-- Update existing users to populate name fields from full_name
+DO $$
+DECLARE
+    updated_count INTEGER;
+BEGIN
+    RAISE NOTICE 'Splitting existing full_name into first_name and last_name...';
+    UPDATE user_profiles
+    SET
+        first_name = COALESCE(split_part(full_name, ' ', 1), ''),
+        last_name = COALESCE(trim(substring(full_name from position(' ' in full_name || ' ') + 1)), '')
+    WHERE full_name IS NOT NULL AND full_name != ''
+    AND (first_name IS NULL OR first_name = '');
+    GET DIAGNOSTICS updated_count = ROW_COUNT;
+    RAISE NOTICE '% user(s) had their names split from full_name.', updated_count;
+END $$;
 
 -- Update existing users to bypass onboarding (since they weren't required to complete it)
 -- This ensures existing users don't get blocked from dashboard access

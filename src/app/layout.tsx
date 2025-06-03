@@ -1,8 +1,8 @@
-
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import GlobalLayoutWrapper from '@/components/layout/GlobalLayoutWrapper';
+import NoticeListener from '@/components/NoticeListener';
 
 export const metadata: Metadata = {
   title: 'Nobridge - Business Marketplace Platform',
@@ -36,6 +36,7 @@ export default function RootLayout({
         <GlobalLayoutWrapper>
           {children}
         </GlobalLayoutWrapper>
+        <NoticeListener />
         <Toaster />
       </body>
     </html>

@@ -40,11 +40,13 @@ export default function HomePage() {
             </div>
             <span className="hidden sm:inline text-brand-light-gray/50">|</span>
             <div className="flex items-center">
-              <Zap className="h-5 w-5 mr-2 text-brand-light-gray" /> Efficient Process
+              {/* <Zap className="h-5 w-5 mr-2 text-brand-light-gray" /> */}
+              <NobridgeIcon icon="revenue" size="md" className="mr-2.5 opacity-100" />Efficient Process
             </div>
             <span className="hidden sm:inline text-brand-light-gray/50">|</span>
             <div className="flex items-center">
-              <UsersRound className="h-5 w-5 mr-2 text-brand-light-gray" /> Expert Support
+              {/* <UsersRound className="h-5 w-5 mr-2 text-brand-light-gray" /> */}
+              <NobridgeIcon icon="secure-docs" size="md" className="mr-2.5 opacity-100" /> Expert Support
             </div>
           </div>
           <div className="flex flex-col sm:flex-row justify-center items-center gap-4">

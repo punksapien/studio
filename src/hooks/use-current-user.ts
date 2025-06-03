@@ -1,4 +1,3 @@
-
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -46,6 +45,8 @@ export interface CurrentUserData {
   profile: UserProfile | null
   loading: boolean
   error: string | null
+  strategy?: string // Which auth strategy was used
+  lastUpdate?: string // When data was last fetched
 }
 
 export function useCurrentUser(): CurrentUserData {
@@ -56,14 +57,20 @@ export function useCurrentUser(): CurrentUserData {
     error: null
   })
 
-  const fetchCurrentUser = async () => {
+  const fetchCurrentUser = async (retryCount = 0) => {
     try {
       setData(prev => ({ ...prev, loading: true, error: null }))
 
       const { data: { session }, error: sessionError } = await supabase.auth.getSession()
 
       if (sessionError || !session?.access_token) {
-        setData({ user: null, profile: null, loading: false, error: null })
+        setData({
+          user: null,
+          profile: null,
+          loading: false,
+          error: null,
+          lastUpdate: new Date().toISOString()
+        })
         return
       }
 
@@ -76,23 +83,102 @@ export function useCurrentUser(): CurrentUserData {
       })
 
       if (!response.ok) {
+        // Handle specific error types from the new API
+        const contentType = response.headers.get('content-type')
+
         if (response.status === 401) {
-          setData({ user: null, profile: null, loading: false, error: null })
+          setData({
+            user: null,
+            profile: null,
+            loading: false,
+            error: null,
+            lastUpdate: new Date().toISOString()
+          })
           return
         }
-        const errorData = await response.json()
+
+        if (response.status === 429) {
+          // Rate limited - extract retry info
+          const retryAfter = response.headers.get('retry-after')
+          const rateLimitReset = response.headers.get('x-ratelimit-reset-time')
+
+          const errorData = await response.json().catch(() => ({ error: 'Rate limited' }))
+
+          setData(prev => ({
+            ...prev,
+            loading: false,
+            error: `Rate limited. ${errorData.error || 'Too many requests'} ${retryAfter ? `Try again in ${retryAfter} seconds.` : ''}`
+          }))
+          return
+        }
+
+        if (response.status === 503) {
+          // Service unavailable - maybe retry
+          const errorData = await response.json().catch(() => ({ error: 'Service unavailable' }))
+
+          if (retryCount < 2) {
+            console.log(`Service unavailable, retrying in 2 seconds (attempt ${retryCount + 1}/3)`)
+            setTimeout(() => fetchCurrentUser(retryCount + 1), 2000)
+            return
+          }
+
+          setData(prev => ({
+            ...prev,
+            loading: false,
+            error: 'Authentication service is temporarily unavailable. Please try again later.'
+          }))
+          return
+        }
+
+        // Check if response is HTML (middleware redirect) instead of JSON
+        if (contentType && contentType.includes('text/html')) {
+          console.warn('Received HTML response (likely middleware redirect) instead of JSON from current-user API')
+          setData({
+            user: null,
+            profile: null,
+            loading: false,
+            error: null,
+            lastUpdate: new Date().toISOString()
+          })
+          return
+        }
+
+        const errorData = await response.json().catch(() => ({
+          error: 'Unknown error occurred',
+          correlationId: 'unknown'
+        }))
+
         throw new Error(errorData.error || 'Failed to fetch user data')
       }
 
-      const { user, profile } = await response.json()
-      setData({ user, profile, loading: false, error: null })
+      const responseData = await response.json()
+
+      // Handle new API response format
+      const { user, profile, metadata } = responseData
+
+      setData({
+        user,
+        profile,
+        loading: false,
+        error: null,
+        strategy: metadata?.strategy,
+        lastUpdate: metadata?.timestamp || new Date().toISOString()
+      })
 
     } catch (error) {
       console.error('Error fetching current user:', error)
+
+      // If this is a network error and we haven't retried, try once more
+      if (retryCount < 1 && (error instanceof TypeError || error?.message?.includes('fetch'))) {
+        console.log('Network error, retrying in 1 second...')
+        setTimeout(() => fetchCurrentUser(retryCount + 1), 1000)
+        return
+      }
+
       setData(prev => ({
         ...prev,
         loading: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
       }))
     }
   }

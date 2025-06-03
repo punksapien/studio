@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -33,6 +32,7 @@ import {
   LineChart,
   BellRing
 } from 'lucide-react';
+import LogoutButton from '@/components/auth/LogoutButton';
 
 const adminSidebarNavItems = [
   { title: 'Dashboard', href: '/admin', icon: LayoutDashboard, tooltip: "Admin Overview" },
@@ -87,11 +87,6 @@ export default function AdminLayout({
     );
   }
 
-  const handleAdminLogout = () => {
-    console.log("Admin logout triggered. Implement actual logout logic here.");
-    // Example: await auth.signOut(); router.push('/admin/login');
-  };
-
   return (
     <SidebarProvider defaultOpen>
       <div className="flex min-h-screen">
@@ -144,14 +139,7 @@ export default function AdminLayout({
             </SidebarMenu>
           </SidebarContent>
           <SidebarFooter className="p-4 border-t border-sidebar-border">
-            <Button 
-              variant="outline" 
-              className="w-full text-destructive-foreground bg-destructive hover:bg-destructive/90"
-              onClick={handleAdminLogout}
-            >
-              <LogOut className="h-5 w-5 mr-2 shrink-0" />
-              <span className="truncate">Logout Admin</span>
-            </Button>
+            <LogoutButton fullWidth />
           </SidebarFooter>
         </Sidebar>
         <SidebarInset className="flex-grow flex flex-col overflow-hidden">
