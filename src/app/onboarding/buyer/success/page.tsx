@@ -90,7 +90,7 @@ export default function BuyerOnboardingSuccessPage() {
         <CardHeader>
           <CheckCircle2 className="mx-auto h-16 w-16 text-green-500 mb-6" />
           <CardTitle className="text-2xl font-semibold text-brand-dark-blue mb-3 font-heading">
-            Onboarding Complete, {buyerName}!
+            Thank You, {buyerName}!
           </CardTitle>
           <CardDescription className="text-lg">
             Your buyer verification has been successfully submitted.
@@ -106,9 +106,10 @@ export default function BuyerOnboardingSuccessPage() {
               Our team will review your verification documents within 1-2 business days. Once approved, you'll gain access to:
             </p>
             <ul className="text-left text-blue-800 space-y-2">
-              <li>• Detailed business information and documents for verified listings</li>
+              <li>• Detailed business information and financials</li>
               <li>• Direct communication with verified sellers</li>
-              <li>• Advanced search and filtering features</li>
+              <li>• Priority access to new listings</li>
+              <li>• Advanced search and filtering options</li>
             </ul>
           </div>
 
@@ -134,7 +135,7 @@ export default function BuyerOnboardingSuccessPage() {
           </div>
 
           <p className="text-muted-foreground">
-            In the meantime, you can browse public listings and explore your buyer dashboard.
+            In the meantime, you can continue browsing anonymous listings or explore your buyer dashboard.
           </p>
 
           <div className="flex flex-col sm:flex-row justify-center gap-4 pt-4">

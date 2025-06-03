@@ -61,18 +61,25 @@ export interface User {
   verificationStatus: VerificationStatus;
   isPaid: boolean;
   initialCompanyName?: string;
-  buyerType?: BuyerType;
+  buyerType?: BuyerType; // Legacy, prefer buyerPersonaType
   createdAt: Date;
   updatedAt: Date;
   lastLogin?: Date;
   listingCount?: number;
   inquiryCount?: number;
 
+  // Buyer Persona Fields
   buyerPersonaType?: BuyerPersona;
   buyerPersonaOther?: string;
   investmentFocusDescription?: string;
   preferredInvestmentSize?: PreferredInvestmentSize;
   keyIndustriesOfInterest?: string;
+
+  // Onboarding Fields
+  is_onboarding_completed: boolean;
+  onboarding_completed_at?: Date;
+  onboarding_step_completed: number; // Changed from optional to required, defaults to 0
+  submitted_documents?: Record<string, any>; // e.g. { "identity_proof_path": "path/to/id.pdf", "business_reg_path": "path/to/reg.pdf" }
 }
 
 export type ListingStatus = 'active' | 'inactive' | 'pending_verification' | 'verified_anonymous' | 'verified_public' | 'rejected_by_admin' | 'closed_deal';
@@ -225,11 +232,11 @@ export interface VerificationRequestItem {
   userRole: UserRole;
   listingId?: string;
   listingTitle?: string;
-  triggeringUserId?: string; // User who initiated (if different from subject user)
+  triggeringUserId?: string;
   reason: string;
   operationalStatus: VerificationQueueStatus;
   profileStatus: VerificationStatus;
-  adminNotes?: AdminNote[]; // Changed from string to AdminNote[]
+  adminNotes?: AdminNote[];
   documentsSubmitted?: { name: string, type: 'id_proof' | 'business_reg' | 'financials' }[];
 }
 
@@ -245,7 +252,7 @@ export interface ReadyToEngageItem {
   sellerVerificationStatus: VerificationStatus;
   listingId: string;
   listingTitle: string;
-  listingVerificationStatus: ListingStatus; // This should be Listing's status e.g. 'verified_public'
+  listingVerificationStatus: ListingStatus;
 }
 
 export type NotificationType = 'inquiry' | 'verification' | 'system' | 'engagement' | 'listing_update' | 'new_message';
@@ -286,4 +293,17 @@ export interface Message {
   isRead: boolean;
   attachmentUrl?: string;
   attachmentType?: string;
+}
+
+// Added for onboarding document tracking
+export interface OnboardingDocument {
+  id: string;
+  user_id: string;
+  document_type: string;
+  file_name: string;
+  file_path: string;
+  file_size: number;
+  mime_type?: string;
+  uploaded_at: Date;
+  metadata?: Record<string, any>;
 }

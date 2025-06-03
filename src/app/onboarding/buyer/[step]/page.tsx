@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -8,21 +9,17 @@ import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
-// Input, Textarea, Select not needed for the simplified Step 1
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, ArrowRight, CheckCircle, FileText, Loader2, ShieldCheck } from 'lucide-react';
 import { updateOnboardingStatus, uploadOnboardingDocument } from '@/hooks/use-current-user';
 
 // --- Schemas ---
-// Step 1: Simplified - Welcome/Information about verification
-const Step1BuyerSchema = z.object({
-  // No form fields needed for this informational step.
-  // Could add a confirmation checkbox if explicit consent to proceed is desired.
-  // confirmProceed: z.boolean().refine(val => val === true, { message: "Please confirm to proceed." })
-});
+const Step1BuyerSchema = z.object({}); // Step 1 is informational, no form fields needed
 
 const Step2BuyerSchema = z.object({
-  buyerIdentityFile: z.any().refine(file => file instanceof File || file === undefined, "File upload is required for verification.").optional(),
+  buyerIdentityFile: z.instanceof(File, { message: "Identity document is required." })
+    .refine(file => file.size <= 5 * 1024 * 1024, "File size must be 5MB or less.")
+    .refine(file => ['image/jpeg', 'image/png', 'application/pdf'].includes(file.type), "Invalid file type. JPG, PNG, PDF only."),
 });
 
 type BuyerFormValues = Partial<z.infer<typeof Step1BuyerSchema>> &
@@ -42,6 +39,10 @@ const StyledFileInput: React.FC<FileInputProps> = ({ label, helperText, currentF
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = React.useState<string | null>(currentFile?.name || null);
 
+  React.useEffect(() => {
+    setFileName(currentFile?.name || null);
+  }, [currentFile]);
+
   const handleButtonClick = () => {
     fileInputRef.current?.click();
   };
@@ -56,10 +57,10 @@ const StyledFileInput: React.FC<FileInputProps> = ({ label, helperText, currentF
     <FormItem>
       <FormLabel>{label}</FormLabel>
       <div className="flex items-center space-x-2">
-        <Button type="button" variant="outline" onClick={handleButtonClick}>
+        <Button type="button" variant="outline" onClick={handleButtonClick} disabled={props.disabled}>
           <FileText className="mr-2 h-4 w-4" /> Choose File
         </Button>
-        <input // Corrected type attribute for input
+        <input
           type="file"
           ref={fileInputRef}
           className="hidden"
@@ -92,12 +93,9 @@ export default function BuyerOnboardingStepPage() {
     return {};
   });
 
-  // Ensure all form values are properly initialized to prevent controlled/uncontrolled issues
-  const getDefaultValues = (data: BuyerFormValues): BuyerFormValues => {
-    return {
-      buyerIdentityFile: data.buyerIdentityFile || undefined,
-    };
-  };
+  const getDefaultValues = (data: BuyerFormValues): BuyerFormValues => ({
+    buyerIdentityFile: data.buyerIdentityFile || undefined,
+  });
 
   const currentSchema = buyerStepSchemas[currentStep - 1] || z.object({});
   const methods = useForm<BuyerFormValues>({
@@ -106,8 +104,11 @@ export default function BuyerOnboardingStepPage() {
   });
 
   React.useEffect(() => {
-    methods.reset(getDefaultValues(formData));
-  }, [currentStep, formData, methods]);
+    const loadedData = typeof window !== 'undefined' ? sessionStorage.getItem('buyerOnboardingData') : null;
+    const parsedData = loadedData ? JSON.parse(loadedData) : {};
+    methods.reset(getDefaultValues(parsedData));
+    setFormData(parsedData);
+  }, [currentStep, methods]);
 
   const onSubmit = async (data: BuyerFormValues) => {
     setIsLoading(true);
@@ -115,56 +116,37 @@ export default function BuyerOnboardingStepPage() {
     setFormData(updatedData);
 
     try {
-      // Save form data to session storage
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem('buyerOnboardingData', JSON.stringify(updatedData));
-      }
-
-      // Upload any files if present
-      if (data.buyerIdentityFile && data.buyerIdentityFile instanceof File) {
-        try {
-          await uploadOnboardingDocument(data.buyerIdentityFile, 'buyer_identity');
-        } catch (uploadError) {
-          console.error('File upload error:', uploadError);
-          toast({
-            variant: "destructive",
-            title: "Upload Error",
-            description: "Failed to upload identity document. Please try again."
+      if (currentStep === 1) { // Informational step
+        await updateOnboardingStatus({ step_completed: currentStep });
+      } else if (currentStep === 2) { // Document upload
+        if (updatedData.buyerIdentityFile instanceof File) {
+          await uploadOnboardingDocument(updatedData.buyerIdentityFile, 'buyer_identity');
+          await updateOnboardingStatus({
+            step_completed: currentStep,
+            submitted_documents: { buyer_identity_uploaded: true },
+            complete_onboarding: true // Mark onboarding complete after final step
           });
+        } else {
+          toast({ variant: "destructive", title: "Missing Document", description: "Please upload your identity document." });
           setIsLoading(false);
           return;
         }
       }
 
-      if (currentStep < totalSteps) {
-        // Update current step completion
-        await updateOnboardingStatus({
-          step_completed: currentStep
-        });
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('buyerOnboardingData', JSON.stringify(updatedData));
+      }
 
+      toast({ title: `Step ${currentStep} Saved`, description: "Progress saved successfully." });
+
+      if (currentStep < totalSteps) {
         router.push(`/onboarding/buyer/${currentStep + 1}`);
       } else {
-        // Final step - mark onboarding as complete
-        await updateOnboardingStatus({
-          step_completed: currentStep,
-          complete_onboarding: true
-        });
-
-        console.log("Buyer Onboarding Submitted:", updatedData);
-        toast({
-          title: "Verification Submitted",
-          description: "Your information is being reviewed."
-        });
         router.push('/onboarding/buyer/success');
       }
     } catch (error) {
-      console.error('Onboarding error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'An error occurred during onboarding';
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: errorMessage
-      });
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred';
+      toast({ variant: "destructive", title: "Error", description: errorMessage });
     } finally {
       setIsLoading(false);
     }
@@ -178,35 +160,30 @@ export default function BuyerOnboardingStepPage() {
 
   const renderStepContent = () => {
     switch (currentStep) {
-      case 1: // Welcome & Verification Info
+      case 1:
         return (
           <>
             <CardHeader>
-              <CardTitle className="font-heading flex items-center gap-2"><ShieldCheck className="h-7 w-7 text-primary" /> Verification Required</CardTitle>
-              <CardDescription>To ensure a trusted marketplace and enable full access to detailed business information, please complete our simple verification process.</CardDescription>
+              <CardTitle className="font-heading flex items-center gap-2"><ShieldCheck className="h-7 w-7 text-primary" /> Buyer Verification Process</CardTitle>
+              <CardDescription>Welcome to Nobridge! To access detailed business information and engage securely, please complete our simple verification.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <p className="text-muted-foreground">
-                Welcome to Nobridge! As a buyer, verifying your identity is a key step to:
-              </p>
+              <p className="text-muted-foreground">Verifying your identity helps us maintain a trusted marketplace by:</p>
               <ul className="list-disc list-inside space-y-2 text-muted-foreground pl-5">
-                <li>Access detailed information and documents for verified business listings.</li>
-                <li>Engage in secure, direct communication with verified sellers once a connection is facilitated.</li>
-                <li>Build trust within the Nobridge community.</li>
+                <li>Ensuring genuine interactions between buyers and sellers.</li>
+                <li>Allowing you to view sensitive data on verified listings.</li>
+                <li>Enabling direct communication with sellers (post admin facilitation).</li>
               </ul>
-              <p className="text-muted-foreground">
-                The next step involves uploading a clear copy of your government-issued photo ID. This information is handled securely and is solely for verification purposes.
-              </p>
-              {/* No form fields needed here for this simplified step */}
+              <p className="text-muted-foreground">The next step involves uploading a clear copy of your government-issued photo ID (e.g., Passport, National ID). This information is handled securely and is solely for verification purposes.</p>
             </CardContent>
           </>
         );
-      case 2: // Buyer Identity Verification
+      case 2:
         return (
           <>
             <CardHeader>
               <CardTitle className="font-heading">Upload Identity Document</CardTitle>
-              <CardDescription>Please upload a clear copy of your government-issued photo ID (e.g., Passport, National ID).</CardDescription>
+              <CardDescription>Please upload a clear copy of your government-issued photo ID. Max 5MB. Accepts: JPG, PNG, PDF.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <FormField
@@ -214,11 +191,12 @@ export default function BuyerOnboardingStepPage() {
                 name="buyerIdentityFile"
                 render={({ field }) => (
                   <StyledFileInput
-                    label="Upload Proof of Identity"
-                    helperText="Max 5MB. Accepts: .jpg, .png, .pdf"
+                    label="Proof of Identity"
+                    helperText="E.g., Passport, National ID Card, Driver's License."
                     accept=".jpg, .jpeg, .png, .pdf"
                     currentFile={field.value instanceof File ? field.value : null}
                     onFileChange={(file) => field.onChange(file)}
+                    disabled={isLoading}
                   />
                 )}
               />
@@ -234,16 +212,17 @@ export default function BuyerOnboardingStepPage() {
     <FormProvider {...methods}>
       <form onSubmit={methods.handleSubmit(onSubmit)}>
         <Card className="bg-brand-white p-0">
+        <Card className="bg-brand-white p-0">
           {renderStepContent()}
+          <CardFooter className="flex justify-between pt-8 border-t mt-6 p-6 md:p-10">
           <CardFooter className="flex justify-between pt-8 border-t mt-6 p-6 md:p-10">
             <Button type="button" variant="outline" onClick={handlePrevious} disabled={currentStep === 1 || isLoading}>
               <ArrowLeft className="mr-2 h-4 w-4" /> Previous
             </Button>
             <Button type="submit" disabled={isLoading} className="bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90">
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {currentStep < totalSteps ? 'Proceed to Document Upload' : 'Submit for Verification'}
-              {currentStep < totalSteps && <ArrowRight className="ml-2 h-4 w-4" />}
-              {currentStep === totalSteps && <CheckCircle className="ml-2 h-4 w-4" />}
+              {currentStep < totalSteps ? 'Next Step' : 'Submit Verification'}
+              {currentStep < totalSteps ? <ArrowRight className="ml-2 h-4 w-4" /> : <CheckCircle className="ml-2 h-4 w-4" />}
             </Button>
           </CardFooter>
         </Card>

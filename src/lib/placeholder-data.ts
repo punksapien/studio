@@ -20,6 +20,10 @@ export const sampleUsers: User[] = [
     lastLogin: new Date('2024-05-20T10:00:00Z'),
     listingCount: 2,
     inquiryCount: 0,
+    is_onboarding_completed: true, // Added
+    onboarding_completed_at: new Date('2023-01-11T09:00:00Z'), // Added
+    onboarding_step_completed: 5, // Added (max for seller)
+    submitted_documents: { identity: true, business_reg: true }, // Added
   },
   {
     id: 'user2',
@@ -39,6 +43,10 @@ export const sampleUsers: User[] = [
     updatedAt: new Date('2023-02-05T11:00:00Z'),
     lastLogin: new Date('2024-05-21T11:00:00Z'),
     inquiryCount: 3,
+    is_onboarding_completed: true, // Added
+    onboarding_completed_at: new Date('2023-02-06T11:00:00Z'), // Added
+    onboarding_step_completed: 2, // Added (max for buyer)
+    submitted_documents: { identity: true }, // Added
   },
   {
     id: 'user3',
@@ -56,6 +64,8 @@ export const sampleUsers: User[] = [
     lastLogin: new Date('2024-05-19T09:00:00Z'),
     listingCount: 1,
     inquiryCount: 0,
+    is_onboarding_completed: false, // Added
+    onboarding_step_completed: 1, // Added
   },
    {
     id: 'user4',
@@ -75,6 +85,10 @@ export const sampleUsers: User[] = [
     updatedAt: new Date('2023-04-10T10:00:00Z'),
     lastLogin: new Date('2024-05-18T14:00:00Z'),
     inquiryCount: 0,
+    is_onboarding_completed: true, // Added
+    onboarding_completed_at: new Date('2023-04-11T10:00:00Z'), // Added
+    onboarding_step_completed: 2, // Added
+    submitted_documents: { identity: true }, // Added
   },
   {
     id: 'user5',
@@ -94,6 +108,10 @@ export const sampleUsers: User[] = [
     updatedAt: new Date('2023-05-01T11:00:00Z'),
     lastLogin: new Date('2024-05-20T17:00:00Z'),
     inquiryCount: 1,
+    is_onboarding_completed: true, // Added
+    onboarding_completed_at: new Date('2023-05-02T11:00:00Z'), // Added
+    onboarding_step_completed: 2, // Added
+    submitted_documents: { identity: true }, // Added
   },
   {
     id: 'user6',
@@ -113,6 +131,8 @@ export const sampleUsers: User[] = [
     updatedAt: new Date('2023-06-15T09:00:00Z'),
     lastLogin: new Date('2024-05-17T10:00:00Z'),
     inquiryCount: 2,
+    is_onboarding_completed: false, // Added
+    onboarding_step_completed: 0, // Added
   },
 ];
 
