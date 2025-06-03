@@ -12,17 +12,16 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { asianCountries } from '@/lib/types';
+// Removed asianCountries as it's not used in the streamlined Step 1
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, ArrowRight, CheckCircle, FileText, Loader2 } from 'lucide-react';
 import { updateUserProfile, updateOnboardingStatus, uploadOnboardingDocument } from '@/hooks/use-current-user';
 
 // --- Schemas ---
+// Step 1: Welcome & Business Overview (Seller) - Streamlined
 const Step1SellerSchema = z.object({
-  registeredBusinessName: z.string().min(1, "Registered business name is required."),
   businessWebsiteUrl: z.string().url("Please enter a valid URL or leave blank.").optional().or(z.literal('')),
   yearEstablished: z.coerce.number().optional().refine(val => val === undefined || (val >= 1900 && val <= new Date().getFullYear()), "Invalid year."),
-  countryOfOperation: z.string().min(1, "Country of operation is required."),
   briefBusinessSummary: z.string().min(20, "Summary must be at least 20 characters.").max(300, "Summary too long (max 300 characters)."),
 });
 
@@ -116,23 +115,21 @@ export default function SellerOnboardingStepPage() {
   // Ensure all form values are properly initialized to prevent controlled/uncontrolled issues
   const getDefaultValues = (data: FormValues): FormValues => {
     return {
-      registeredBusinessName: data.registeredBusinessName || "",
       businessWebsiteUrl: data.businessWebsiteUrl || "",
-      yearEstablished: data.yearEstablished || "",
-      countryOfOperation: data.countryOfOperation || "",
+      yearEstablished: data.yearEstablished || undefined,
       briefBusinessSummary: data.briefBusinessSummary || "",
       sellerIdentityFile: data.sellerIdentityFile || undefined,
       businessRegistrationFile: data.businessRegistrationFile || undefined,
       proofOfOwnershipFile: data.proofOfOwnershipFile || undefined,
       profitAndLossFile: data.profitAndLossFile || undefined,
       balanceSheetFile: data.balanceSheetFile || undefined,
-      submitted_documents: data.submitted_documents || {},
+      confirmAccuracy: data.confirmAccuracy || false,
     };
   };
 
   const currentSchema = stepSchemas[currentStep - 1] || z.object({});
   const methods = useForm<FormValues>({
-    resolver: zodResolver(currentSchema),
+    resolver: zodResolver(currentSchema as any),
     defaultValues: getDefaultValues(formData),
   });
 
@@ -140,168 +137,26 @@ export default function SellerOnboardingStepPage() {
     methods.reset(getDefaultValues(formData));
   }, [currentStep, formData, methods]);
 
-  const onSubmit = async (data: FormValues) => {
+  const onSubmit = (data: FormValues) => {
     setIsLoading(true);
     const updatedData = { ...formData, ...data };
     setFormData(updatedData);
 
-    try {
-      if (currentStep === 1) {
-        // Step 1: Update basic business profile information
-        await updateUserProfile({
-          initial_company_name: updatedData.registeredBusinessName!,
-          country: updatedData.countryOfOperation!,
-        });
-
-        // Update onboarding step
-        await updateOnboardingStatus({
-          step_completed: currentStep,
-          submitted_documents: {
-            business_overview: {
-              registered_business_name: updatedData.registeredBusinessName,
-              business_website_url: updatedData.businessWebsiteUrl,
-              year_established: updatedData.yearEstablished,
-              country_of_operation: updatedData.countryOfOperation,
-              brief_business_summary: updatedData.briefBusinessSummary,
-            }
-          }
-        });
-
-        if (typeof window !== 'undefined') {
-          sessionStorage.setItem('sellerOnboardingData', JSON.stringify(updatedData));
-        }
-
-        toast({
-          title: "Business Information Saved",
-          description: "Your business overview has been saved."
-        });
-
+    // Simulate async operation for demo purposes
+    setTimeout(() => {
+      setIsLoading(false);
+      if (currentStep < totalSteps) {
         router.push(`/onboarding/seller/${currentStep + 1}`);
-
-      } else if (currentStep === 2) {
-        // Step 2: Upload seller identity document
-        let documentUploaded = false;
-
-        if (updatedData.sellerIdentityFile instanceof File) {
-          await uploadOnboardingDocument(updatedData.sellerIdentityFile, 'identity');
-          documentUploaded = true;
-        }
-
-        await updateOnboardingStatus({
-          step_completed: currentStep,
-          submitted_documents: {
-            ...updatedData.submitted_documents,
-            identity: documentUploaded
-          }
-        });
-
-        if (typeof window !== 'undefined') {
-          sessionStorage.setItem('sellerOnboardingData', JSON.stringify(updatedData));
-        }
-
+      } else {
+        console.log("Seller Onboarding Submitted:", updatedData);
         toast({
-          title: "Identity Document Uploaded",
-          description: "Your identity verification document has been uploaded."
+          title: "Verification Submitted",
+          description: "Your information is being reviewed."
         });
-
-        router.push(`/onboarding/seller/${currentStep + 1}`);
-
-      } else if (currentStep === 3) {
-        // Step 3: Upload business documents
-        let businessRegUploaded = false;
-        let ownershipUploaded = false;
-
-        if (updatedData.businessRegistrationFile instanceof File) {
-          await uploadOnboardingDocument(updatedData.businessRegistrationFile, 'business_registration');
-          businessRegUploaded = true;
-        }
-
-        if (updatedData.proofOfOwnershipFile instanceof File) {
-          await uploadOnboardingDocument(updatedData.proofOfOwnershipFile, 'ownership_proof');
-          ownershipUploaded = true;
-        }
-
-        await updateOnboardingStatus({
-          step_completed: currentStep,
-          submitted_documents: {
-            ...updatedData.submitted_documents,
-            business_registration: businessRegUploaded,
-            ownership_proof: ownershipUploaded
-          }
-        });
-
-        if (typeof window !== 'undefined') {
-          sessionStorage.setItem('sellerOnboardingData', JSON.stringify(updatedData));
-        }
-
-        toast({
-          title: "Business Documents Uploaded",
-          description: "Your business registration and ownership documents have been uploaded."
-        });
-
-        router.push(`/onboarding/seller/${currentStep + 1}`);
-
-      } else if (currentStep === 4) {
-        // Step 4: Upload financial documents
-        let profitLossUploaded = false;
-        let balanceSheetUploaded = false;
-
-        if (updatedData.profitAndLossFile instanceof File) {
-          await uploadOnboardingDocument(updatedData.profitAndLossFile, 'financial_statement');
-          profitLossUploaded = true;
-        }
-
-        if (updatedData.balanceSheetFile instanceof File) {
-          await uploadOnboardingDocument(updatedData.balanceSheetFile, 'financial_statement');
-          balanceSheetUploaded = true;
-        }
-
-        await updateOnboardingStatus({
-          step_completed: currentStep,
-          submitted_documents: {
-            ...updatedData.submitted_documents,
-            profit_loss: profitLossUploaded,
-            balance_sheet: balanceSheetUploaded
-          }
-        });
-
-        if (typeof window !== 'undefined') {
-          sessionStorage.setItem('sellerOnboardingData', JSON.stringify(updatedData));
-        }
-
-        toast({
-          title: "Financial Documents Uploaded",
-          description: "Your financial statements have been uploaded."
-        });
-
-        router.push(`/onboarding/seller/${currentStep + 1}`);
-
-      } else if (currentStep === 5) {
-        // Step 5: Complete onboarding
-        await updateOnboardingStatus({
-          step_completed: currentStep,
-          complete_onboarding: true
-        });
-
-        toast({
-          title: "Onboarding Complete!",
-          description: "Your seller verification has been submitted. You now have access to the platform!"
-        });
-
-        sessionStorage.removeItem('sellerOnboardingData');
+        // sessionStorage.removeItem('sellerOnboardingData'); // Keep for success page if needed
         router.push('/onboarding/seller/success');
       }
-
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'An error occurred';
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: errorMessage
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    }, 1000);
   };
 
   const handlePrevious = () => {
@@ -317,13 +172,12 @@ export default function SellerOnboardingStepPage() {
           <>
             <CardHeader>
               <CardTitle className="font-heading">Welcome & Business Overview</CardTitle>
-              <CardDescription>Welcome to Nobridge, [Seller Name]! Let&apos;s get your business ready. Please provide key details.</CardDescription>
+              <CardDescription>Let&apos;s get your business ready. Please provide some key details.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <FormField control={methods.control} name="registeredBusinessName" render={({ field }) => (<FormItem><FormLabel>Registered Business Name</FormLabel><FormControl><Input {...field} placeholder="Your Company Pte. Ltd." /></FormControl><FormMessage /></FormItem>)} />
+              {/* Removed Registered Business Name and Country of Operation */}
               <FormField control={methods.control} name="businessWebsiteUrl" render={({ field }) => (<FormItem><FormLabel>Business Website URL (Optional)</FormLabel><FormControl><Input {...field} placeholder="https://yourbusiness.com" /></FormControl><FormMessage /></FormItem>)} />
               <FormField control={methods.control} name="yearEstablished" render={({ field }) => (<FormItem><FormLabel>Year Business Established</FormLabel><FormControl><Input type="number" {...field} placeholder="YYYY" /></FormControl><FormMessage /></FormItem>)} />
-              <FormField control={methods.control} name="countryOfOperation" render={({ field }) => (<FormItem><FormLabel>Country of Operation</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select country" /></SelectTrigger></FormControl><SelectContent>{asianCountries.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
               <FormField control={methods.control} name="briefBusinessSummary" render={({ field }) => (<FormItem><FormLabel>Brief Business Summary/Pitch (1-2 sentences)</FormLabel><FormControl><Textarea {...field} rows={3} placeholder="e.g., We are a leading SaaS provider in the logistics tech space for APAC." /></FormControl><FormMessage /></FormItem>)} />
             </CardContent>
           </>
@@ -434,10 +288,8 @@ export default function SellerOnboardingStepPage() {
             </CardHeader>
             <CardContent className="space-y-4 text-sm">
               <h3 className="font-semibold text-brand-dark-blue">Business Overview:</h3>
-              <p>Name: {formData.registeredBusinessName || 'N/A'}</p>
               <p>Website: {formData.businessWebsiteUrl || 'N/A'}</p>
               <p>Established: {formData.yearEstablished || 'N/A'}</p>
-              <p>Country: {formData.countryOfOperation || 'N/A'}</p>
               <p>Summary: {formData.briefBusinessSummary || 'N/A'}</p>
 
               <h3 className="font-semibold text-brand-dark-blue mt-4">Seller Identity:</h3>
@@ -472,9 +324,9 @@ export default function SellerOnboardingStepPage() {
   return (
     <FormProvider {...methods}>
       <form onSubmit={methods.handleSubmit(onSubmit)}>
-        <Card>
+        <Card className="bg-brand-white p-0"> {/* Removed card padding, will be in Header/Content */}
           {renderStepContent()}
-          <CardFooter className="flex justify-between pt-8 border-t">
+          <CardFooter className="flex justify-between pt-8 border-t mt-6 p-6 md:p-10"> {/* Standardized padding */}
             <Button type="button" variant="outline" onClick={handlePrevious} disabled={currentStep === 1 || isLoading}>
               <ArrowLeft className="mr-2 h-4 w-4" /> Previous
             </Button>

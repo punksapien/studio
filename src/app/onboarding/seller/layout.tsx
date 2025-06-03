@@ -2,9 +2,9 @@
 
 import * as React from 'react';
 import { SellerStepper } from '@/components/onboarding/seller-stepper';
-import { Logo } from '@/components/shared/logo';
+// Removed Logo import
 import { useParams } from 'next/navigation';
-import Link from 'next/link';
+import Link from 'next/link'; // Keep Link if used for other purposes, e.g. back to homepage
 
 export default function SellerOnboardingLayout({
   children,
@@ -17,10 +17,10 @@ export default function SellerOnboardingLayout({
   const isSuccessPage = params.step === 'success' || pathname.endsWith('/onboarding/seller/success');
 
   const sellerStepTitles = [
-    "Welcome & Business Overview",
-    "Seller Identity Verification",
-    "Business Documentation",
-    "Financial Overview",
+    "Business Overview",
+    "Seller Identity",
+    "Business Docs",
+    "Financials",
     "Review & Submit",
   ];
 
@@ -28,11 +28,9 @@ export default function SellerOnboardingLayout({
     <div className="min-h-screen bg-brand-light-gray flex flex-col items-center py-8 md:py-12 px-4">
       <div className="w-full max-w-3xl">
         <div className="mb-8 text-center">
-          <Link href="/" aria-label="Back to homepage">
-            <Logo size="xl" forceTheme="light" />
-          </Link>
+          {/* Logo component removed from here */}
           <h1 className="text-3xl md:text-4xl font-bold text-brand-dark-blue mt-4 mb-2 font-heading">
-            Complete Your Seller Profile
+            Complete Your Seller Profile & Business Verification
           </h1>
           <p className="text-muted-foreground">
             Provide key details to get your business ready for verified buyers.
@@ -40,7 +38,7 @@ export default function SellerOnboardingLayout({
         </div>
 
         {!isSuccessPage && (
-          <div className="mb-10">
+          <div className="mb-10 max-w-3xl mx-auto">
             <SellerStepper currentStep={currentStep} stepTitles={sellerStepTitles} />
           </div>
         )}
