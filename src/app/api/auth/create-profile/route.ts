@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })
-      .select()
+      .select('*, is_onboarding_completed, onboarding_step_completed')
       .single()
 
     if (profileError) {

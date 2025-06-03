@@ -84,68 +84,68 @@ export default function LoginPage() {
 
   return (
     <AuthPageGuard>
-      <AuthCardWrapper
-        headerLabel="Welcome back! Please login to your account."
-        backButtonLabel="Don't have an account? Register here."
-        backButtonHref="/auth/register"
-        // showSocial prop is removed to hide the social login section
-      >
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email Address</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      placeholder="you@example.com"
-                      type="email"
-                      disabled={isPending}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Password</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      placeholder="********"
-                      type="password"
-                      disabled={isPending}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                  <Button size="sm" variant="link" asChild className="px-0 font-normal">
-                    <Link href="/auth/forgot-password">Forgot password?</Link>
-                  </Button>
-                </FormItem>
-              )}
-            />
-
-            {error && (
-              <Alert variant="destructive">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>Error</AlertTitle>
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
+    <AuthCardWrapper
+      headerLabel="Welcome back! Please login to your account."
+      backButtonLabel="Don't have an account? Register here."
+      backButtonHref="/auth/register"
+      // showSocial prop is removed to hide the social login section
+    >
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Email Address</FormLabel>
+                <FormControl>
+                  <Input
+                    {...field}
+                    placeholder="you@example.com"
+                    type="email"
+                    disabled={isPending}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
             )}
+          />
+          <FormField
+            control={form.control}
+            name="password"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Password</FormLabel>
+                <FormControl>
+                  <Input
+                    {...field}
+                    placeholder="********"
+                    type="password"
+                    disabled={isPending}
+                  />
+                </FormControl>
+                <FormMessage />
+                <Button size="sm" variant="link" asChild className="px-0 font-normal">
+                  <Link href="/auth/forgot-password">Forgot password?</Link>
+                </Button>
+              </FormItem>
+            )}
+          />
 
-            <Button type="submit" className="w-full" disabled={isPending}>
-              {isPending ? "Processing..." : "Login"}
-            </Button>
-          </form>
-        </Form>
-      </AuthCardWrapper>
+          {error && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          <Button type="submit" className="w-full" disabled={isPending}>
+            {isPending ? "Processing..." : "Login"}
+          </Button>
+        </form>
+      </Form>
+    </AuthCardWrapper>
     </AuthPageGuard>
   );
 }

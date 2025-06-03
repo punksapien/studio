@@ -238,3 +238,27 @@ export async function uploadOnboardingDocument(file: File, documentType: string)
 
   return response.json()
 }
+
+// Verification request utility function
+export async function sendVerificationRequestEmail() {
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+
+  if (sessionError || !session?.access_token) {
+    throw new Error('Not authenticated')
+  }
+
+  const response = await fetch('/api/verification/request-email', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    }
+  })
+
+  if (!response.ok) {
+    const errorData = await response.json()
+    throw new Error(errorData.error || 'Failed to send verification request email')
+  }
+
+  return response.json()
+}

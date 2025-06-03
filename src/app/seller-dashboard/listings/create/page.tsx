@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from "react";
@@ -301,7 +300,7 @@ export default function CreateSellerListingPage() {
           <Card className="shadow-md bg-brand-white">
             <CardHeader><CardTitle className="text-brand-dark-blue font-heading flex items-center gap-2"><NobridgeIcon icon="growth" size="sm"/>Growth &amp; Future Potential</CardTitle></CardHeader>
             <CardContent className="space-y-6">
-                <FormField control={form.control} name="specificGrowthOpportunities" render={({ field }) => (<FormItem><FormLabel>Specific Growth Opportunities (Use bullet points)</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={5} placeholder="- Expand to new markets (e.g., Region X)\n- Launch new product line (e.g., Product Y)\n- Optimize marketing spend by Z%" disabled={isPending} /></FormControl><FormDescription>List 3-5 specific, actionable growth opportunities.</FormMessage><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="specificGrowthOpportunities" render={({ field }) => (<FormItem><FormLabel>Specific Growth Opportunities (Use bullet points)</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={5} placeholder="- Expand to new markets (e.g., Region X)\n- Launch new product line (e.g., Product Y)\n- Optimize marketing spend by Z%" disabled={isPending} /></FormControl><FormDescription>List 3-5 specific, actionable growth opportunities.</FormDescription><FormMessage /></FormItem>)} />
             </CardContent>
           </Card>
 

@@ -137,26 +137,84 @@ export default function SellerOnboardingStepPage() {
     methods.reset(getDefaultValues(formData));
   }, [currentStep, formData, methods]);
 
-  const onSubmit = (data: FormValues) => {
+  const onSubmit = async (data: FormValues) => {
     setIsLoading(true);
     const updatedData = { ...formData, ...data };
     setFormData(updatedData);
 
-    // Simulate async operation for demo purposes
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      // Save form data to session storage
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('sellerOnboardingData', JSON.stringify(updatedData));
+      }
+
+      // Upload any files if present in current step
+      const fileUploads: Promise<void>[] = [];
+
+      if (data.sellerIdentityFile && data.sellerIdentityFile instanceof File) {
+        fileUploads.push(uploadOnboardingDocument(data.sellerIdentityFile, 'seller_identity'));
+      }
+      if (data.businessRegistrationFile && data.businessRegistrationFile instanceof File) {
+        fileUploads.push(uploadOnboardingDocument(data.businessRegistrationFile, 'business_registration'));
+      }
+      if (data.proofOfOwnershipFile && data.proofOfOwnershipFile instanceof File) {
+        fileUploads.push(uploadOnboardingDocument(data.proofOfOwnershipFile, 'proof_of_ownership'));
+      }
+      if (data.profitAndLossFile && data.profitAndLossFile instanceof File) {
+        fileUploads.push(uploadOnboardingDocument(data.profitAndLossFile, 'profit_and_loss'));
+      }
+      if (data.balanceSheetFile && data.balanceSheetFile instanceof File) {
+        fileUploads.push(uploadOnboardingDocument(data.balanceSheetFile, 'balance_sheet'));
+      }
+
+      // Wait for all file uploads to complete
+      if (fileUploads.length > 0) {
+        try {
+          await Promise.all(fileUploads);
+        } catch (uploadError) {
+          console.error('File upload error:', uploadError);
+          toast({
+            variant: "destructive",
+            title: "Upload Error",
+            description: "Failed to upload one or more documents. Please try again."
+          });
+          setIsLoading(false);
+          return;
+        }
+      }
+
       if (currentStep < totalSteps) {
+        // Update current step completion
+        await updateOnboardingStatus({
+          step_completed: currentStep
+        });
+
         router.push(`/onboarding/seller/${currentStep + 1}`);
       } else {
+        // Final step - mark onboarding as complete
+        await updateOnboardingStatus({
+          step_completed: currentStep,
+          complete_onboarding: true
+        });
+
         console.log("Seller Onboarding Submitted:", updatedData);
         toast({
           title: "Verification Submitted",
           description: "Your information is being reviewed."
         });
-        // sessionStorage.removeItem('sellerOnboardingData'); // Keep for success page if needed
         router.push('/onboarding/seller/success');
       }
-    }, 1000);
+    } catch (error) {
+      console.error('Onboarding error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred during onboarding';
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: errorMessage
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handlePrevious = () => {

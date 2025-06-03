@@ -11,6 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 // Input, Textarea, Select not needed for the simplified Step 1
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, ArrowRight, CheckCircle, FileText, Loader2, ShieldCheck } from 'lucide-react';
+import { updateOnboardingStatus, uploadOnboardingDocument } from '@/hooks/use-current-user';
 
 // --- Schemas ---
 // Step 1: Simplified - Welcome/Information about verification
@@ -94,14 +95,6 @@ export default function BuyerOnboardingStepPage() {
   // Ensure all form values are properly initialized to prevent controlled/uncontrolled issues
   const getDefaultValues = (data: BuyerFormValues): BuyerFormValues => {
     return {
-      fullName: data.fullName || "",
-      country: data.country || "",
-      phoneNumber: data.phoneNumber || "",
-      buyerPersonaType: data.buyerPersonaType || undefined,
-      buyerPersonaOther: data.buyerPersonaOther || "",
-      investmentFocusDescription: data.investmentFocusDescription || "",
-      preferredInvestmentSize: data.preferredInvestmentSize || undefined,
-      keyIndustriesOfInterest: data.keyIndustriesOfInterest || "",
       buyerIdentityFile: data.buyerIdentityFile || undefined,
     };
   };
@@ -122,41 +115,51 @@ export default function BuyerOnboardingStepPage() {
     setFormData(updatedData);
 
     try {
-      if (currentStep === 1) {
-        // Step 1: Update profile information
-        await updateUserProfile({
-          full_name: updatedData.fullName!,
-          phone_number: updatedData.phoneNumber!,
-          country: updatedData.country!,
-          buyer_persona_type: updatedData.buyerPersonaType!,
-          buyer_persona_other: updatedData.buyerPersonaOther,
-          investment_focus_description: updatedData.investmentFocusDescription,
-          preferred_investment_size: updatedData.preferredInvestmentSize,
-          key_industries_of_interest: updatedData.keyIndustriesOfInterest,
-        });
+      // Save form data to session storage
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('buyerOnboardingData', JSON.stringify(updatedData));
+      }
 
-        // Update onboarding step
+      // Upload any files if present
+      if (data.buyerIdentityFile && data.buyerIdentityFile instanceof File) {
+        try {
+          await uploadOnboardingDocument(data.buyerIdentityFile, 'buyer_identity');
+        } catch (uploadError) {
+          console.error('File upload error:', uploadError);
+          toast({
+            variant: "destructive",
+            title: "Upload Error",
+            description: "Failed to upload identity document. Please try again."
+          });
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      if (currentStep < totalSteps) {
+        // Update current step completion
         await updateOnboardingStatus({
           step_completed: currentStep
         });
 
-        if (typeof window !== 'undefined') {
-          sessionStorage.setItem('buyerOnboardingData', JSON.stringify(updatedData));
-        }
-
-    setTimeout(() => {
-      setIsLoading(false);
-      if (currentStep < totalSteps) {
         router.push(`/onboarding/buyer/${currentStep + 1}`);
       } else {
+        // Final step - mark onboarding as complete
+        await updateOnboardingStatus({
+          step_completed: currentStep,
+          complete_onboarding: true
+        });
+
         console.log("Buyer Onboarding Submitted:", updatedData);
-        toast({ title: "Verification Submitted", description: "Your information is being reviewed." });
-        sessionStorage.removeItem('buyerOnboardingData');
+        toast({
+          title: "Verification Submitted",
+          description: "Your information is being reviewed."
+        });
         router.push('/onboarding/buyer/success');
       }
-
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'An error occurred';
+      console.error('Onboarding error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred during onboarding';
       toast({
         variant: "destructive",
         title: "Error",
@@ -183,16 +186,6 @@ export default function BuyerOnboardingStepPage() {
               <CardDescription>To ensure a trusted marketplace and enable full access to detailed business information, please complete our simple verification process.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <FormField control={methods.control} name="fullName" render={({ field }) => (<FormItem><FormLabel>Full Name</FormLabel><FormControl><Input {...field} placeholder="Your Full Name" /></FormControl><FormMessage /></FormItem>)} />
-              <FormField control={methods.control} name="country" render={({ field }) => (<FormItem><FormLabel>Country of Residence</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select country" /></SelectTrigger></FormControl><SelectContent>{asianCountries.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
-              <FormField control={methods.control} name="phoneNumber" render={({ field }) => (<FormItem><FormLabel>Phone Number</FormLabel><FormControl><Input {...field} placeholder="+65 1234 5678" /></FormControl><FormMessage /></FormItem>)} />
-
-              <FormField control={methods.control} name="buyerPersonaType" render={({ field }) => (<FormItem><FormLabel>I am a/an: (Primary Role / Buyer Type)</FormLabel><Select onValueChange={field.onChange} value={field.value || ""}><FormControl><SelectTrigger><SelectValue placeholder="Select your primary role" /></SelectTrigger></FormControl><SelectContent>{BuyerPersonaTypes.map((type) => (<SelectItem key={type} value={type}>{type}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)} />
-              {watchedBuyerPersonaType === "Other" && (<FormField control={methods.control} name="buyerPersonaOther" render={({ field }) => (<FormItem><FormLabel>Please Specify Role</FormLabel><FormControl><Input {...field} placeholder="Your specific role" /></FormControl><FormMessage /></FormItem>)} />)}
-
-              <FormField control={methods.control} name="investmentFocusDescription" render={({ field }) => (<FormItem><FormLabel>Investment Focus or What You&apos;re Looking For</FormLabel><FormControl><Textarea {...field} rows={3} placeholder="e.g., SaaS businesses in Southeast Asia with $100k-$1M ARR." /></FormControl><FormMessage /></FormItem>)} />
-              <FormField control={methods.control} name="preferredInvestmentSize" render={({ field }) => (<FormItem><FormLabel>Preferred Investment Size (Optional)</FormLabel><Select onValueChange={field.onChange} value={field.value || ""}><FormControl><SelectTrigger><SelectValue placeholder="Select preferred investment size" /></SelectTrigger></FormControl><SelectContent>{PreferredInvestmentSizes.map((size) => (<SelectItem key={size} value={size}>{size}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)} />
-              <FormField control={methods.control} name="keyIndustriesOfInterest" render={({ field }) => (<FormItem><FormLabel>Key Industries of Interest (Optional)</FormLabel><FormControl><Textarea {...field} rows={2} placeholder="e.g., Technology, E-commerce, Healthcare" /></FormControl><FormMessage /></FormItem>)} />
               <p className="text-muted-foreground">
                 Welcome to Nobridge! As a buyer, verifying your identity is a key step to:
               </p>

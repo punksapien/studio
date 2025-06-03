@@ -25,10 +25,19 @@ export async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname
   const startTime = Date.now()
 
+  // 🚨 DEBUG: Add this to see if middleware is running at all
+  console.log(`🔥 [MIDDLEWARE DEBUG] Called for: ${pathname}`)
+
   // Early return for static assets and public pages
-  if (shouldSkipMiddleware(pathname)) {
+  const shouldSkip = shouldSkipMiddleware(pathname)
+  console.log(`🔥 [MIDDLEWARE DEBUG] Should skip ${pathname}: ${shouldSkip}`)
+
+  if (shouldSkip) {
+    console.log(`🔥 [MIDDLEWARE DEBUG] Skipping: ${pathname}`)
     return NextResponse.next()
   }
+
+  console.log(`🔥 [MIDDLEWARE DEBUG] Processing: ${pathname}`)
 
   let response = NextResponse.next({
     request: { headers: req.headers }
@@ -91,8 +100,22 @@ function shouldSkipMiddleware(pathname: string): boolean {
     '/how-'
   ]
 
-  return skipPatterns.some(pattern => pathname.startsWith(pattern)) ||
-         pathname.includes('.') // Files like .png, .svg, etc.
+  // Check each pattern
+  for (const pattern of skipPatterns) {
+    if (pathname.startsWith(pattern)) {
+      console.log(`🔥 [MIDDLEWARE DEBUG] Skip pattern "${pattern}" matches ${pathname}`)
+      return true
+    }
+  }
+
+  // Check for file extensions
+  if (pathname.includes('.')) {
+    console.log(`🔥 [MIDDLEWARE DEBUG] File extension detected in ${pathname}`)
+    return true
+  }
+
+  console.log(`🔥 [MIDDLEWARE DEBUG] No skip pattern matches ${pathname}`)
+  return false
 }
 
 function createSupabaseClient(req: NextRequest, response: NextResponse) {
