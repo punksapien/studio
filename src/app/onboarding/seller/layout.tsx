@@ -1,10 +1,11 @@
+
 'use client';
 
 import * as React from 'react';
 import { SellerStepper } from '@/components/onboarding/seller-stepper';
-// Removed Logo import
 import { useParams } from 'next/navigation';
-import Link from 'next/link'; // Keep Link if used for other purposes, e.g. back to homepage
+import Link from 'next/link';
+import { Logo } from '@/components/shared/logo';
 
 export default function SellerOnboardingLayout({
   children,
@@ -13,8 +14,14 @@ export default function SellerOnboardingLayout({
 }) {
   const params = useParams();
   const currentStep = params.step ? parseInt(params.step as string, 10) : 1;
-  const pathname = typeof window !== "undefined" ? window.location.pathname : "";
-  const isSuccessPage = params.step === 'success' || pathname.endsWith('/onboarding/seller/success');
+
+  // This ensures pathname is only accessed client-side
+  const [isClient, setIsClient] = React.useState(false);
+  React.useEffect(() => {
+    setIsClient(true);
+  }, []);
+  
+  const pathname = isClient ? window.location.pathname : "";
   const isSuccessPage = params.step === 'success' || pathname.endsWith('/onboarding/seller/success');
   const isSuccessPage = params.step === 'success' || pathname.endsWith('/onboarding/seller/success');
 
@@ -34,7 +41,9 @@ export default function SellerOnboardingLayout({
     <div className="min-h-screen bg-brand-light-gray flex flex-col items-center py-8 md:py-12 px-4">
       <div className="w-full max-w-3xl">
         <div className="mb-8 text-center">
-          {/* Logo component removed from here */}
+          <Link href="/" aria-label="Nobridge Home">
+            <Logo size="2xl" forceTheme="light"/>
+          </Link>
           <h1 className="text-3xl md:text-4xl font-bold text-brand-dark-blue mt-4 mb-2 font-heading">
             Complete Your Seller Profile & Business Verification
             Complete Your Seller Profile & Business Verification

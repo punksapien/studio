@@ -1,7 +1,8 @@
+
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 
-const supabase = createClient(
+const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
   {
@@ -12,152 +13,144 @@ const supabase = createClient(
   }
 );
 
+// Helper to get user from token
+async function getUserFromToken(request: NextRequest) {
+  const authHeader = request.headers.get('authorization');
+  if (!authHeader?.startsWith('Bearer ')) {
+    return { user: null, error: 'Missing or invalid authorization header' };
+  }
+  const token = authHeader.substring(7);
+  return supabaseAdmin.auth.getUser(token);
+}
+
 // POST /api/onboarding/upload - Handle document uploads
 export async function POST(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Missing or invalid authorization header' }, { status: 401 });
-    }
-
-    const token = authHeader.substring(7);
-
-    // Verify the user token
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await getUserFromToken(request);
     if (authError || !user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+      return NextResponse.json({ error: authError?.message || 'Invalid token' }, { status: 401 });
     }
 
-    // Parse multipart form data
     const formData = await request.formData();
-    const file = formData.get('file') as File;
-    const documentType = formData.get('document_type') as string;
+    const file = formData.get('file') as File | null;
+    const documentType = formData.get('document_type') as string | null;
 
     if (!file || !documentType) {
-      return NextResponse.json({
-        error: 'Missing file or document_type'
-      }, { status: 400 });
+      return NextResponse.json({ error: 'Missing file or document_type' }, { status: 400 });
     }
 
-    // Validate file size (5MB limit)
     const maxSize = 5 * 1024 * 1024; // 5MB
     if (file.size > maxSize) {
-      return NextResponse.json({
-        error: 'File size exceeds 5MB limit'
-      }, { status: 400 });
+      return NextResponse.json({ error: 'File size exceeds 5MB limit' }, { status: 400 });
     }
 
-    // Validate file type
-    const allowedTypes = [
-      'image/jpeg', 'image/jpg', 'image/png', 'application/pdf'
-    ];
-    if (!allowedTypes.includes(file.type)) {
-      return NextResponse.json({
-        error: 'Invalid file type. Only JPG, PNG, and PDF files are allowed.'
-      }, { status: 400 });
+    const allowedMimeTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+    if (!allowedMimeTypes.includes(file.type)) {
+      return NextResponse.json({ error: 'Invalid file type. Only JPG, PNG, and PDF allowed.' }, { status: 400 });
     }
 
-    // Generate unique file path
     const fileExtension = file.name.split('.').pop();
-    const fileName = `${user.id}/${documentType}_${Date.now()}.${fileExtension}`;
+    const storagePath = `onboarding-documents/${user.id}/${documentType}_${Date.now()}.${fileExtension}`;
 
-    // Convert File to ArrayBuffer for Supabase Storage
-    const fileBuffer = await file.arrayBuffer();
-
-    // Upload to Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('onboarding-documents')
-      .upload(fileName, fileBuffer, {
+    const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+      .from('onboarding-documents') // Ensure this bucket name matches your Storage setup
+      .upload(storagePath, file, {
         contentType: file.type,
         cacheControl: '3600',
-        upsert: false
+        upsert: false // Do not overwrite if file path conflicts, though unlikely with timestamp
       });
 
     if (uploadError) {
       console.error('Storage upload error:', uploadError);
-      return NextResponse.json({
-        error: 'Failed to upload file'
-      }, { status: 500 });
+      return NextResponse.json({ error: 'Failed to upload file to storage', details: uploadError.message }, { status: 500 });
     }
 
     // Save document record in database
-    const { data: documentRecord, error: dbError } = await supabase
+    const { data: documentRecord, error: dbError } = await supabaseAdmin
       .from('onboarding_documents')
-      .upsert({
+      .insert({
         user_id: user.id,
         document_type: documentType,
         file_name: file.name,
-        file_path: fileName,
-        file_size: file.size
-      }, {
-        onConflict: 'user_id,document_type' // Replace existing document of same type
+        file_path: storagePath, // Use the path from uploadData if different, but storagePath should be it
+        file_size: file.size,
+        mime_type: file.type
       })
       .select()
       .single();
 
     if (dbError) {
-      console.error('Database insert error:', dbError);
+      console.error('Database insert error for onboarding_documents:', dbError);
+      // Attempt to clean up uploaded file if database insert fails
+      await supabaseAdmin.storage.from('onboarding-documents').remove([storagePath]);
+      return NextResponse.json({ error: 'Failed to save document record', details: dbError.message }, { status: 500 });
+    }
+    
+    // Update user_profiles.submitted_documents
+    const { data: currentProfile, error: fetchProfileError } = await supabaseAdmin
+        .from('user_profiles')
+        .select('submitted_documents')
+        .eq('id', user.id)
+        .single();
 
-      // Clean up uploaded file if database insert fails
-      await supabase.storage
-        .from('onboarding-documents')
-        .remove([fileName]);
+    if (fetchProfileError && fetchProfileError.code !== 'PGRST116') {
+        console.error('Error fetching current submitted_documents for update:', fetchProfileError);
+    }
+    const existingDocs = currentProfile?.submitted_documents || {};
+    const updatedSubmittedDocs = { ...existingDocs, [documentType]: storagePath };
 
-      return NextResponse.json({
-        error: 'Failed to save document record'
-      }, { status: 500 });
+    const { error: profileUpdateError } = await supabaseAdmin
+        .from('user_profiles')
+        .update({ submitted_documents: updatedSubmittedDocs })
+        .eq('id', user.id);
+    
+    if (profileUpdateError) {
+        console.error('Error updating user_profiles.submitted_documents:', profileUpdateError);
+        // This is not critical enough to fail the whole upload if the onboarding_documents record was saved.
     }
 
-    // Get signed URL for the uploaded file (optional, for verification)
-    const { data: urlData } = await supabase.storage
+
+    // Get signed URL for client access if needed, though returning path is often enough
+    const { data: urlData } = await supabaseAdmin.storage
       .from('onboarding-documents')
-      .createSignedUrl(fileName, 60 * 60 * 24); // 24 hours
+      .createSignedUrl(storagePath, 60 * 5); // Signed URL valid for 5 minutes
 
     return NextResponse.json({
       success: true,
-      document: documentRecord,
-      signed_url: urlData?.signedUrl
+      documentRecord, // The record from onboarding_documents table
+      filePath: storagePath, // The actual path in storage
+      signedUrl: urlData?.signedUrl // Optional: if client needs direct temp access
     });
 
   } catch (error) {
     console.error('Document upload error:', error);
-    return NextResponse.json({
-      error: 'Internal server error'
-    }, { status: 500 });
+    if (error instanceof SyntaxError) {
+      return NextResponse.json({ error: 'Invalid request format (expected FormData)' }, { status: 400 });
+    }
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
-// GET /api/onboarding/upload - Get user's uploaded documents
+// GET /api/onboarding/upload - Get user's uploaded documents (basic list)
 export async function GET(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Missing or invalid authorization header' }, { status: 401 });
-    }
-
-    const token = authHeader.substring(7);
-
-    // Verify the user token
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await getUserFromToken(request);
     if (authError || !user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+      return NextResponse.json({ error: authError?.message || 'Invalid token' }, { status: 401 });
     }
 
-    // Get user's uploaded documents
-    const { data: documents, error: documentsError } = await supabase
+    const { data: documents, error: documentsError } = await supabaseAdmin
       .from('onboarding_documents')
-      .select('*')
+      .select('id, document_type, file_name, uploaded_at, mime_type')
       .eq('user_id', user.id)
       .order('uploaded_at', { ascending: false });
 
     if (documentsError) {
       console.error('Documents fetch error:', documentsError);
-      return NextResponse.json({ error: 'Failed to fetch documents' }, { status: 500 });
+      return NextResponse.json({ error: 'Failed to fetch documents', details: documentsError.message }, { status: 500 });
     }
 
-    return NextResponse.json({
-      documents: documents || []
-    });
+    return NextResponse.json({ documents: documents || [] });
 
   } catch (error) {
     console.error('Documents fetch error:', error);

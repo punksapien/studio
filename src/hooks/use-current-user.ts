@@ -1,3 +1,4 @@
+
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -20,7 +21,8 @@ export interface UserProfile {
   is_onboarding_completed: boolean
   onboarding_completed_at?: string
   onboarding_step_completed: number
-  submitted_documents?: Record<string, any>
+  submitted_documents?: Record<string, any> // e.g. { "identity": "path/to/id.pdf", "business_reg": "path/to/reg.pdf" }
+
 
   // Seller-specific fields
   initial_company_name?: string
@@ -58,17 +60,10 @@ export function useCurrentUser(): CurrentUserData {
     try {
       setData(prev => ({ ...prev, loading: true, error: null }))
 
-      // Get the current session to access the JWT token
       const { data: { session }, error: sessionError } = await supabase.auth.getSession()
 
       if (sessionError || !session?.access_token) {
-        // No valid session, user not authenticated
-        setData({
-          user: null,
-          profile: null,
-          loading: false,
-          error: null
-        })
+        setData({ user: null, profile: null, loading: false, error: null })
         return
       }
 
@@ -82,28 +77,15 @@ export function useCurrentUser(): CurrentUserData {
 
       if (!response.ok) {
         if (response.status === 401) {
-          // User not authenticated
-          setData({
-            user: null,
-            profile: null,
-            loading: false,
-            error: null
-          })
+          setData({ user: null, profile: null, loading: false, error: null })
           return
         }
-
         const errorData = await response.json()
         throw new Error(errorData.error || 'Failed to fetch user data')
       }
 
       const { user, profile } = await response.json()
-
-      setData({
-        user,
-        profile,
-        loading: false,
-        error: null
-      })
+      setData({ user, profile, loading: false, error: null })
 
     } catch (error) {
       console.error('Error fetching current user:', error)
@@ -117,17 +99,12 @@ export function useCurrentUser(): CurrentUserData {
 
   useEffect(() => {
     fetchCurrentUser()
-
-    // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         console.log('Auth state changed:', event, session?.user?.id)
-        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
-          fetchCurrentUser()
-        }
+        fetchCurrentUser() // Refetch user data on any auth change
       }
     )
-
     return () => subscription.unsubscribe()
   }, [])
 
@@ -135,9 +112,7 @@ export function useCurrentUser(): CurrentUserData {
 }
 
 export async function updateUserProfile(updateData: Partial<UserProfile>): Promise<UserProfile> {
-  // Get the current session to access the JWT token
   const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-
   if (sessionError || !session?.access_token) {
     throw new Error('Not authenticated - please log in again')
   }
@@ -155,17 +130,21 @@ export async function updateUserProfile(updateData: Partial<UserProfile>): Promi
     const errorData = await response.json()
     throw new Error(errorData.error || 'Failed to update profile')
   }
-
   const { profile } = await response.json()
   return profile
 }
 
 // Onboarding utility functions
-export async function checkOnboardingStatus() {
-  const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-
+export async function checkOnboardingStatus(): Promise<{
+  is_onboarding_completed: boolean;
+  onboarding_step_completed: number;
+  submitted_documents?: Record<string, any>;
+  role: 'buyer' | 'seller' | 'admin';
+  next_step: string;
+}> {
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
   if (sessionError || !session?.access_token) {
-    throw new Error('Not authenticated')
+    throw new Error('Not authenticated for checkOnboardingStatus');
   }
 
   const response = await fetch('/api/onboarding/status', {
@@ -174,25 +153,23 @@ export async function checkOnboardingStatus() {
       'Authorization': `Bearer ${session.access_token}`,
       'Content-Type': 'application/json',
     }
-  })
+  });
 
   if (!response.ok) {
-    const errorData = await response.json()
-    throw new Error(errorData.error || 'Failed to check onboarding status')
+    const errorData = await response.json();
+    throw new Error(errorData.error || 'Failed to check onboarding status');
   }
-
-  return response.json()
+  return response.json();
 }
 
 export async function updateOnboardingStatus(updates: {
-  step_completed?: number
-  submitted_documents?: Record<string, any>
-  complete_onboarding?: boolean
-}) {
-  const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-
+  step_completed?: number;
+  submitted_documents?: Record<string, any>;
+  complete_onboarding?: boolean;
+}): Promise<{ success: boolean; profile: UserProfile }> {
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
   if (sessionError || !session?.access_token) {
-    throw new Error('Not authenticated')
+    throw new Error('Not authenticated for updateOnboardingStatus');
   }
 
   const response = await fetch('/api/onboarding/status', {
@@ -202,39 +179,42 @@ export async function updateOnboardingStatus(updates: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(updates)
-  })
+  });
 
   if (!response.ok) {
-    const errorData = await response.json()
-    throw new Error(errorData.error || 'Failed to update onboarding status')
+    const errorData = await response.json();
+    throw new Error(errorData.error || 'Failed to update onboarding status');
   }
-
-  return response.json()
+  return response.json();
 }
 
-export async function uploadOnboardingDocument(file: File, documentType: string) {
-  const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-
+export async function uploadOnboardingDocument(file: File, documentType: string): Promise<{
+  success: boolean;
+  documentRecord: any; // Define specific type for onboarding document record
+  filePath: string;
+  signedUrl?: string;
+}> {
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
   if (sessionError || !session?.access_token) {
-    throw new Error('Not authenticated')
+    throw new Error('Not authenticated for uploadOnboardingDocument');
   }
 
-  const formData = new FormData()
-  formData.append('file', file)
-  formData.append('document_type', documentType)
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('document_type', documentType);
 
   const response = await fetch('/api/onboarding/upload', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${session.access_token}`,
+      // Content-Type is set automatically by browser for FormData
     },
     body: formData
-  })
+  });
 
   if (!response.ok) {
-    const errorData = await response.json()
-    throw new Error(errorData.error || 'Failed to upload document')
+    const errorData = await response.json();
+    throw new Error(errorData.error || 'Failed to upload document');
   }
-
-  return response.json()
+  return response.json();
 }

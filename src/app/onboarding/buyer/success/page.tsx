@@ -5,20 +5,21 @@ import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { CheckCircle2, LayoutDashboard, Search } from 'lucide-react';
+import { useCurrentUser } from '@/hooks/use-current-user'; // Assuming this hook can provide user's name
 
 export default function BuyerOnboardingSuccessPage() {
-  const [buyerName, setBuyerName] = React.useState<string | null>(null);
+  const { profile } = useCurrentUser(); // Fetch current user's profile
+  const [buyerName, setBuyerName] = React.useState<string | null>(profile?.full_name || null);
 
   React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedDataRaw = sessionStorage.getItem('buyerOnboardingData');
-      if (savedDataRaw) {
-        const savedData = JSON.parse(savedDataRaw);
-        setBuyerName(savedData.fullName || 'Buyer'); 
-      }
-      sessionStorage.removeItem('buyerOnboardingData'); 
+    if (profile?.full_name) {
+      setBuyerName(profile.full_name);
     }
-  }, []);
+    // Clear session storage for buyer onboarding data
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('buyerOnboardingData');
+    }
+  }, [profile]);
   
   return (
     <div className="text-center">
@@ -27,10 +28,12 @@ export default function BuyerOnboardingSuccessPage() {
             Thank You, {buyerName || 'Buyer'}!
         </h2>
         <p className="text-muted-foreground mb-6">
-            Your verification request has been successfully submitted. Our team will review it within 1-2 business days. You will be notified of your status via email and on your dashboard.
+            Your verification information has been successfully submitted. Our team will review it within 1-2 business days.
+            You will be notified of your verification status via email and on your dashboard.
         </p>
         <p className="text-muted-foreground mb-8">
-            In the meantime, you can continue browsing anonymous listings or explore your buyer dashboard.
+            Once verified, you'll gain full access to detailed business information and secure communication channels.
+            In the meantime, you can explore anonymous listings in our marketplace or visit your dashboard.
         </p>
         <div className="flex flex-col sm:flex-row justify-center gap-4">
             <Button asChild size="lg" className="bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90">
@@ -44,6 +47,9 @@ export default function BuyerOnboardingSuccessPage() {
                 </Link>
             </Button>
         </div>
+        <p className="text-xs text-muted-foreground mt-8">
+            If you have any urgent questions, please <Link href="/contact" className="underline hover:text-primary">contact our support team</Link>.
+        </p>
     </div>
   );
 }
