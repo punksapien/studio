@@ -1,6 +1,5 @@
-
 'use client';
-import * as React from "react"; 
+import * as React from "react";
 import {
   Table,
   TableBody,
@@ -20,15 +19,94 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { sampleUsers } from "@/lib/placeholder-data";
-import type { User, VerificationStatus } from "@/lib/types"; // Added VerificationStatus
+import type { User, VerificationStatus } from "@/lib/types";
 import Link from "next/link";
-import { Eye, ShieldCheck, ShieldAlert, Filter, Search, Edit } from "lucide-react"; // Removed Trash2, KeyRound
+import { Eye, ShieldCheck, ShieldAlert, Filter, Search, Edit, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import useSWR from 'swr';
+import { useState, useCallback, useMemo } from 'react';
+import { useDebounce } from '@/hooks/use-debounce';
+
+// Types for the API response
+interface AdminUsersResponse {
+  users: User[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+  filters: {
+    search: string;
+    role: string;
+    verificationStatus: string;
+    paidStatus: string;
+  };
+}
+
+// Simple fetcher for SWR
+const fetcher = (url: string) => fetch(url).then(res => {
+  if (!res.ok) throw new Error(`Error ${res.status}: ${res.statusText}`);
+  return res.json();
+});
 
 export default function AdminUsersPage() {
-  const users: User[] = sampleUsers;
+  // State for filters and pagination
+  const [search, setSearch] = useState('');
+  const [role, setRole] = useState('all');
+  const [verificationStatus, setVerificationStatus] = useState('all');
+  const [paidStatus, setPaidStatus] = useState('all');
+  const [page, setPage] = useState(1);
+  const limit = 10;
 
-  // This badge reflects the user's public profile status
+  // Debounce search to avoid excessive API calls
+  const debouncedSearch = useDebounce(search, 500);
+
+  // Build API URL with current filters
+  const apiUrl = useMemo(() => {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString(),
+      search: debouncedSearch,
+      role,
+      verification_status: verificationStatus,
+      paid_status: paidStatus,
+    });
+    return `/api/admin/users?${params.toString()}`;
+  }, [page, limit, debouncedSearch, role, verificationStatus, paidStatus]);
+
+  // Fetch data with SWR
+  const { data, error, isLoading, mutate } = useSWR<AdminUsersResponse>(apiUrl, fetcher);
+
+  // Handle filter changes
+  const handleSearchChange = useCallback((value: string) => {
+    setSearch(value);
+    setPage(1); // Reset to first page when searching
+  }, []);
+
+  const handleFilterChange = useCallback((filterType: string, value: string) => {
+    setPage(1); // Reset to first page when filtering
+    switch (filterType) {
+      case 'role':
+        setRole(value);
+        break;
+      case 'verification':
+        setVerificationStatus(value);
+        break;
+      case 'paid':
+        setPaidStatus(value);
+        break;
+    }
+  }, []);
+
+  const clearFilters = useCallback(() => {
+    setSearch('');
+    setRole('all');
+    setVerificationStatus('all');
+    setPaidStatus('all');
+    setPage(1);
+  }, []);
+
+  // Badge component for verification status
   const getProfileVerificationBadge = (status: User["verificationStatus"]) => {
     switch (status) {
       case 'verified':
@@ -52,99 +130,168 @@ export default function AdminUsersPage() {
           <CardDescription>View, search, filter, and manage all platform users.</CardDescription>
         </CardHeader>
         <CardContent>
+          {/* Search and Filters */}
           <div className="mb-6 flex flex-col sm:flex-row gap-4">
             <div className="relative flex-grow">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search by name or email..." className="pl-8 w-full md:w-[300px]" />
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by name or email..."
+                className="pl-8 w-full md:w-[300px]"
+                value={search}
+                onChange={(e) => handleSearchChange(e.target.value)}
+              />
             </div>
             <div className="flex flex-wrap gap-2 sm:gap-4">
-                <Select>
+              <Select value={role} onValueChange={(value) => handleFilterChange('role', value)}>
                 <SelectTrigger className="w-full sm:w-[160px]">
-                    <SelectValue placeholder="Filter by Role" />
+                  <SelectValue placeholder="Filter by Role" />
                 </SelectTrigger>
                 <SelectContent>
-                    <SelectItem value="all">All Roles</SelectItem>
-                    <SelectItem value="seller">Seller</SelectItem>
-                    <SelectItem value="buyer">Buyer</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="all">All Roles</SelectItem>
+                  <SelectItem value="seller">Seller</SelectItem>
+                  <SelectItem value="buyer">Buyer</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
                 </SelectContent>
-                </Select>
-                <Select>
+              </Select>
+
+              <Select value={verificationStatus} onValueChange={(value) => handleFilterChange('verification', value)}>
                 <SelectTrigger className="w-full sm:w-[180px]">
-                    <SelectValue placeholder="Filter by Verification" />
+                  <SelectValue placeholder="Filter by Verification" />
                 </SelectTrigger>
                 <SelectContent>
-                    <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="verified">Verified</SelectItem>
-                    <SelectItem value="pending_verification">Pending Verification</SelectItem>
-                    <SelectItem value="anonymous">Anonymous</SelectItem>
-                    <SelectItem value="rejected">Rejected</SelectItem>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="verified">Verified</SelectItem>
+                  <SelectItem value="pending_verification">Pending Verification</SelectItem>
+                  <SelectItem value="anonymous">Anonymous</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                  <SelectItem value="unverified">Unverified</SelectItem>
                 </SelectContent>
-                </Select>
-                 <Select>
+              </Select>
+
+              <Select value={paidStatus} onValueChange={(value) => handleFilterChange('paid', value)}>
                 <SelectTrigger className="w-full sm:w-[160px]">
-                    <SelectValue placeholder="Filter by Paid Status" />
+                  <SelectValue placeholder="Filter by Paid Status" />
                 </SelectTrigger>
                 <SelectContent>
-                    <SelectItem value="all">All Payment Statuses</SelectItem>
-                    <SelectItem value="paid">Paid</SelectItem>
-                    <SelectItem value="free">Free</SelectItem>
+                  <SelectItem value="all">All Payment Statuses</SelectItem>
+                  <SelectItem value="paid">Paid</SelectItem>
+                  <SelectItem value="free">Free</SelectItem>
                 </SelectContent>
-                </Select>
-                <Button variant="outline" className="w-full sm:w-auto"><Filter className="h-4 w-4 mr-2"/>Apply</Button>
+              </Select>
+
+              <Button variant="outline" onClick={clearFilters} className="w-full sm:w-auto">
+                <Filter className="h-4 w-4 mr-2"/>Clear Filters
+              </Button>
             </div>
           </div>
 
-          <div className="rounded-md border overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="whitespace-nowrap">Full Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Paid</TableHead>
-                  <TableHead>Country</TableHead>
-                  <TableHead className="whitespace-nowrap">Profile Status</TableHead>
-                  <TableHead className="whitespace-nowrap">Registered On</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell className="font-medium whitespace-nowrap">{user.fullName}</TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell><Badge variant="outline" className="capitalize">{user.role}</Badge></TableCell>
-                    <TableCell>
-                        {user.isPaid ? <Badge className="bg-green-500 text-white">Paid</Badge> : <Badge variant="secondary">Free</Badge>}
-                    </TableCell>
-                    <TableCell>{user.country}</TableCell>
-                    <TableCell>{getProfileVerificationBadge(user.verificationStatus)}</TableCell>
-                    <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
-                    <TableCell className="text-right whitespace-nowrap">
-                      <Button variant="ghost" size="icon" asChild title="View User Details">
-                        <Link href={`/admin/users/${user.id}`}>
-                          <Eye className="h-4 w-4" />
-                        </Link>
-                      </Button>
-                      <Button variant="ghost" size="icon" asChild title="Manage Verification">
-                         <Link href={`/admin/verification-queue/${user.role === 'buyer' ? 'buyers' : 'sellers'}?userId=${user.id}`}>
-                           <Edit className="h-4 w-4" />
-                         </Link>
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-          <div className="mt-6 text-center text-muted-foreground">
-            Pagination (10 users per page) - Total users: {users.length}
-          </div>
+          {/* Loading State */}
+          {isLoading && (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin" />
+              <span className="ml-2">Loading users...</span>
+            </div>
+          )}
+
+          {/* Error State */}
+          {error && (
+            <div className="text-center py-8 text-red-600">
+              <p>Failed to load users: {error.message}</p>
+              <Button variant="outline" onClick={() => mutate()} className="mt-2">
+                Try Again
+              </Button>
+            </div>
+          )}
+
+          {/* Users Table */}
+          {data && !isLoading && (
+            <>
+              <div className="rounded-md border overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="whitespace-nowrap">Full Name</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Role</TableHead>
+                      <TableHead>Paid</TableHead>
+                      <TableHead>Country</TableHead>
+                      <TableHead className="whitespace-nowrap">Profile Status</TableHead>
+                      <TableHead className="whitespace-nowrap">Registered On</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {data.users.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                          No users found matching your criteria.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      data.users.map((user) => (
+                        <TableRow key={user.id}>
+                          <TableCell className="font-medium whitespace-nowrap">{user.fullName}</TableCell>
+                          <TableCell>{user.email}</TableCell>
+                          <TableCell><Badge variant="outline" className="capitalize">{user.role}</Badge></TableCell>
+                          <TableCell>
+                            {user.isPaid ? <Badge className="bg-green-500 text-white">Paid</Badge> : <Badge variant="secondary">Free</Badge>}
+                          </TableCell>
+                          <TableCell>{user.country}</TableCell>
+                          <TableCell>{getProfileVerificationBadge(user.verificationStatus)}</TableCell>
+                          <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
+                          <TableCell className="text-right whitespace-nowrap">
+                            <Button variant="ghost" size="icon" asChild title="View User Details">
+                              <Link href={`/admin/users/${user.id}`}>
+                                <Eye className="h-4 w-4" />
+                              </Link>
+                            </Button>
+                            <Button variant="ghost" size="icon" asChild title="Manage Verification">
+                              <Link href={`/admin/verification-queue/${user.role === 'buyer' ? 'buyers' : 'sellers'}?userId=${user.id}`}>
+                                <Edit className="h-4 w-4" />
+                              </Link>
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Pagination */}
+              <div className="mt-6 flex items-center justify-between">
+                <div className="text-sm text-muted-foreground">
+                  Showing {((data.pagination.page - 1) * data.pagination.limit) + 1} to {Math.min(data.pagination.page * data.pagination.limit, data.pagination.total)} of {data.pagination.total} users
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage(page - 1)}
+                    disabled={page <= 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Previous
+                  </Button>
+                  <span className="text-sm">
+                    Page {data.pagination.page} of {data.pagination.totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage(page + 1)}
+                    disabled={page >= data.pagination.totalPages}
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
     </div>
   );
 }
 
-    

@@ -154,22 +154,22 @@ Race condition between API setting cookies and middleware reading them:
 ### **Phase 2: Onboarding System Hardening** (Next 4-8 hours)
 
 **Task 2.1: Onboarding State Machine Implementation**
-- Implement proper state transitions between onboarding steps
-- Add validation for each onboarding completion requirement
-- Create recovery mechanisms for interrupted onboarding flows
-- Add comprehensive onboarding progress tracking
+- [ ] Implement proper state transitions between onboarding steps
+- [ ] Add validation for each onboarding completion requirement
+- [ ] Create recovery mechanisms for interrupted onboarding flows
+- [ ] Add comprehensive onboarding progress tracking
 
 **Task 2.2: Profile Consistency Validation**
-- Ensure profile data integrity during onboarding process
-- Add automatic profile recovery for incomplete states
-- Implement profile validation checkpoints
-- Create profile completion verification system
+- [ ] Ensure profile data integrity during onboarding process
+- [ ] Add automatic profile recovery for incomplete states
+- [ ] Implement profile validation checkpoints
+- [ ] Create profile completion verification system
 
 **Task 2.3: Onboarding Analytics and Monitoring**
-- Add detailed onboarding milestone tracking
-- Implement onboarding drop-off analytics
-- Create onboarding performance monitoring
-- Add real-time onboarding health metrics
+- [ ] Add detailed onboarding milestone tracking
+- [ ] Implement onboarding drop-off analytics
+- [ ] Create onboarding performance monitoring
+- [ ] Add real-time onboarding health metrics
 
 ### **Phase 3: Production Monitoring and Optimization** (Next 8-12 hours)
 
@@ -364,15 +364,14 @@ WHERE full_name IS NOT NULL;
 
 **Expected Result**: Cookie-based authentication should now work in middleware, resolving the redirect loop and allowing proper access to onboarding and dashboard pages.
 
-**Testing Required**: User should now test:
-1. Login and verify no redirect loop occurs
-2. Navigate to onboarding pages and confirm access works
-3. Complete onboarding and access dashboard
-4. Check that logs show successful cookie-session strategy in middleware
+**Testing Required**:
+- ✅ Admin login page renders correctly at `/admin/login`
+- ✅ **Admin user created**: `admin@nobridge.com` / `100%Test` (User ID: `1cfc1195-9c5a-4f14-9463-c47ac533f215`)
+- ⬜ **Manual Test**: Login with admin credentials (admin@nobridge.com)
+- ⬜ **Manual Test**: Login with non-admin credentials (should show error)
+- ⬜ **Manual Test**: Successful login redirects to `/admin` dashboard
 
-**Risk Assessment**: **LOW** - This is a targeted fix to a specific compatibility issue. The change is backward-compatible and doesn't affect non-middleware authentication flows.
-
-**Rollback Plan**: If issues arise, the specific changes to `CookieSessionStrategy` can be easily reverted.
+**Ready for Testing**: Admin user has been successfully created in both Supabase Auth and user_profiles table. Please test the login flow with the credentials above.
 
 ---
 
@@ -584,22 +583,22 @@ Error Tracking: Sentry (free tier)
 ### **Phase 2: Onboarding System Hardening** (Next 4-8 hours)
 
 **Task 2.1: Onboarding State Machine Implementation**
-- Implement proper state transitions between onboarding steps
-- Add validation for each onboarding completion requirement
-- Create recovery mechanisms for interrupted onboarding flows
-- Add comprehensive onboarding progress tracking
+- [ ] Implement proper state transitions between onboarding steps
+- [ ] Add validation for each onboarding completion requirement
+- [ ] Create recovery mechanisms for interrupted onboarding flows
+- [ ] Add comprehensive onboarding progress tracking
 
 **Task 2.2: Profile Consistency Validation**
-- Ensure profile data integrity during onboarding process
-- Add automatic profile recovery for incomplete states
-- Implement profile validation checkpoints
-- Create profile completion verification system
+- [ ] Ensure profile data integrity during onboarding process
+- [ ] Add automatic profile recovery for incomplete states
+- [ ] Implement profile validation checkpoints
+- [ ] Create profile completion verification system
 
 **Task 2.3: Onboarding Analytics and Monitoring**
-- Add detailed onboarding milestone tracking
-- Implement onboarding drop-off analytics
-- Create onboarding performance monitoring
-- Add real-time onboarding health metrics
+- [ ] Add detailed onboarding milestone tracking
+- [ ] Implement onboarding drop-off analytics
+- [ ] Create onboarding performance monitoring
+- [ ] Add real-time onboarding health metrics
 
 ### **Phase 3: Production Monitoring and Optimization** (Next 8-12 hours)
 
@@ -856,3 +855,495 @@ Now that the authentication system is bulletproof, the Executor should proceed w
 - **Circuit Breakers**: All closed (healthy)
 - **Rate Limiter**: Active and working
 - **Test Coverage**: 100% (all tests passing)
+
+## 🆕 Feature Request: Seller Read-Only Access to Marketplace
+
+### Background & Motivation
+The business has decided that sellers should be able to browse the marketplace to gain better insight into existing listings and pricing trends. However, they **must not be able to initiate an inquiry** on another seller's listing. Attempting to do so should result in a friendly toast notification (e.g. "Sellers may not inquire about other businesses."). Buyers continue to have full access.
+
+### Key Challenges & Analysis
+1. **Middleware Role-Based Routing**
+   • Current middleware explicitly blocks sellers from every `/marketplace` route (redirects them to `/seller-dashboard`). We need to relax this rule.
+2. **Inquiry Action Enforcement**
+   • The Inquiry button presently triggers an API call that creates an `inquiries` row (only buyers expected). We must add a *client-side* guard for UX (toast) **and** keep/strengthen the *server-side* validation so sellers cannot bypass via direct API calls or cURL.
+3. **UI Consistency**
+   • The Listing Detail page must still render the Inquiry CTA for sellers (so designs remain consistent) but intercept the click.
+4. **Test Coverage**
+   • Need integration tests for both client-side (toast) and server-side (403 from API when role≠buyer).
+
+### High-level Task Breakdown (Planner)
+
+#### Phase M1 – Middleware Update (Read-Only Marketplace)
+- **Task M1.1**: Remove seller-specific redirect in `src/middleware.ts` for `/marketplace` path.
+  • Success Criteria: Sellers hitting `/marketplace` or `/marketplace/[slug]` receive 200 response (no redirect).
+
+#### Phase M2 – Client-Side Guard on Inquiry CTA
+- **Task M2.1**: Locate the Listing Detail component containing the "Inquire about this business" button.
+- **Task M2.2**: Inject role check using `useCurrentUser()` hook (or equivalent).
+- **Task M2.3**: If role === 'seller':
+  • Prevent default API call.
+  • Trigger toast via existing toast lib (shadcn UI likely uses `react-hot-toast` or `sonner`).
+  • Message: "Sellers cannot perform this action."
+  • Success Criteria: Button click shows toast; no network call fired (verify in DevTools).
+
+#### Phase M3 – Server-Side Validation (Defense in Depth)
+- **Task M3.1**: Audit the `POST /api/inquiries` (or similar) handler.
+- **Task M3.2**: Add explicit role check (profile.role must be 'buyer').
+  • On violation respond 403 `{ error: 'forbidden_role' }`.
+  • Success Criteria: Unit test with seller's JWT receives 403.
+
+#### Phase M4 – Testing & Verification
+- **Task M4.1**: Cypress/Playwright test: log in as seller → visit marketplace → click inquire → assert toast visible and no XHR.
+- **Task M4.2**: API test (Jest/Supertest): seller auth token → POST /api/inquiries → expect 403.
+- **Task M4.3**: Regression test: buyer flow still works (200 & inquiry created).
+
+### Project Status Board Updates
+- [x] **M1.1** – Middleware: allow sellers on marketplace routes ✅
+- [x] **M2.1–M2.3** – Client-side guard & toast for sellers on inquiry ✅
+- [ ] **M3.1–M3.2** – Server-side 403 for non-buyer inquiries
+- [ ] **M4.1–M4.3** – Automated tests for new behavior
+
+### Success Criteria (Overall)
+1. Seller can freely navigate `/marketplace` and listing detail pages without redirect.
+2. Seller clicking "Inquire" sees toast, no inquiry created, and API returns 403 if called directly.
+3. Buyer experience unchanged.
+4. All new tests pass and existing test suite remains green.
+
+### Current Status / Progress Tracking
+
+- ✅ Middleware updated to allow sellers to browse marketplace (M1.1)
+- ✅ Listing detail page now shows toast to sellers and blocks inquiry actions (M2.x)
+- ✅ **CRITICAL FIX APPLIED**: Protected listing detail pages from unauthenticated access
+  • **Issue**: Unauthenticated users could access `/listings/[id]` directly, bypassing marketplace restrictions
+  • **Solution**: Removed `/listings/` from public paths in middleware, added auth requirement + role-based access
+  • **Result**: Now only authenticated buyers/sellers can view listing details, admins redirected to admin panel
+- ✅ **UX IMPROVEMENTS COMPLETED**: Enhanced seller experience and admin access
+  • **Improved Toast**: Changed from red (destructive) to yellow/warning with ⚠️ icon and friendly messaging
+  • **Smart Button States**: Buttons remain visually disabled for sellers but show actual action names ("Inquire About Business", "Open Conversation") so sellers understand what they're missing
+  • **Clear Feedback**: Toast appears when sellers try to click, explaining why the action isn't available
+  • **Admin Access**: Admins can now freely browse marketplace and listings (only blocked from buyer/seller dashboards)
+  • **Consistent UX**: Both action buttons follow same pattern - visible action, disabled state, helpful toast
+- 🔜 Next: Review server-side inquiry endpoint (M3) – already enforces role=buyer; validate via tests
+- 🔜 Plan and implement automated tests (M4)
+
+## 🆕 **Feature: Admin Dashboard Implementation - FEASIBILITY ANALYSIS**
+
+### Background & Motivation
+The user has requested to implement the first page of the admin dashboard (the main overview page shown in the screenshot). Looking at the current implementation, it uses placeholder data from `sampleAdminDashboardMetrics`. We need to analyze what metrics we can realistically calculate with our current database schema vs. what requires future features.
+
+### Current Database Schema Analysis
+
+#### ✅ **AVAILABLE DATA (Can Implement Now)**
+Based on our current `user_profiles` table and auth system:
+
+**User Metrics** (✅ 100% Ready):
+- **New Sellers (7d/24h)**: `COUNT(*) FROM user_profiles WHERE role='seller' AND created_at >= NOW() - INTERVAL '7 days'`
+- **New Buyers (7d/24h)**: `COUNT(*) FROM user_profiles WHERE role='buyer' AND created_at >= NOW() - INTERVAL '7 days'`
+- **Total Active Sellers**: `COUNT(*) FROM user_profiles WHERE role='seller'`
+- **Total Active Buyers**: `COUNT(*) FROM user_profiles WHERE role='buyer'`
+- **Verification Queues**: `COUNT(*) FROM user_profiles WHERE verification_status='pending_verification' AND role='buyer/seller'`
+
+**Schema Evidence**:
+```sql
+-- From supabase/migrations/20250603093314_add_onboarding_protection_fields.sql
+user_profiles (
+  id UUID PRIMARY KEY,
+  role VARCHAR(20) NOT NULL CHECK (role IN ('buyer', 'seller', 'admin')),
+  verification_status VARCHAR(50) DEFAULT 'unverified',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  is_onboarding_completed BOOLEAN DEFAULT false,
+  onboarding_step_completed INTEGER DEFAULT 0
+)
+```
+
+#### ❌ **MISSING DATA (Requires Future Implementation)**
+
+**Listings Metrics** (❌ No `listings` table yet):
+- New Listings (7d/24h)
+- Total Listings (All Statuses)
+- Closed/Deactivated Listings
+
+**Revenue Metrics** (❌ No payments/subscriptions system):
+- Total Platform Revenue (MTD)
+- Revenue from Buyers (MTD)
+- Revenue from Sellers (MTD)
+
+**Inquiry/Engagement Metrics** (❌ No `inquiries` table yet):
+- Ready to Engage Queue
+- Total Facilitated Connections
+- Active Successful Connections
+
+**Paid vs Free Users** (❌ No `isPaid` field in schema):
+- Total Paid Sellers/Buyers
+- Total Free Sellers/Buyers
+
+### Implementation Strategy: Progressive Enhancement
+
+#### **Phase D1: User-Based Metrics (IMMEDIATE - 2-4 hours)**
+Implement all metrics that depend only on `user_profiles` table:
+
+**Implementable Now**:
+- ✅ New Sellers (7d) → Real SQL query
+- ✅ New Buyers (7d) → Real SQL query
+- ✅ New Sellers (24h) → Real SQL query
+- ✅ New Buyers (24h) → Real SQL query
+- ✅ Buyer Verification Queue → Real SQL query
+- ✅ Seller Verification Queue → Real SQL query
+
+**Mock with Intent to Replace**:
+- 🔄 New Listings (7d) → Return 0 with comment "No listings table yet"
+- 🔄 Total Listings → Return 0 with comment "No listings table yet"
+- 🔄 Revenue metrics → Return $0 with comment "No payments system yet"
+- 🔄 Engagement metrics → Return 0 with comment "No inquiries table yet"
+
+#### **Phase D2: Database Schema Extension (FUTURE)**
+For subsequent phases when we implement listings and inquiries:
+
+**Required Tables**:
+```sql
+-- business_listings table (Future)
+-- inquiries table (Future)
+-- payments/subscriptions table (Future)
+-- user_profiles.isPaid field (Future)
+```
+
+### Technical Implementation Plan
+
+#### **Task D1.1: Create Admin Metrics API Endpoint**
+- **File**: `src/app/api/admin/metrics/route.ts`
+- **Purpose**: Replace placeholder data with real database queries
+- **Authentication**: Require `role = 'admin'` in middleware + API
+- **Response Format**: Same as `AdminDashboardMetrics` interface
+- **Caching**: Add 5-minute cache for performance
+
+#### **Task D1.2: Update Admin Dashboard Page**
+- **File**: `src/app/admin/page.tsx`
+- **Change**: Replace `sampleAdminDashboardMetrics` with `useSWR('/api/admin/metrics')`
+- **Loading States**: Add skeleton loading components
+- **Error Handling**: Fallback to zeros if API fails
+
+#### **Task D1.3: Real User Verification Tables**
+From the screenshot, we can see pending verification tables with real user data. These should show:
+- **Pending Buyer Verifications**: Real users awaiting verification
+- **Pending Seller/Listing Verifications**: Real users awaiting verification
+- **Ready for Connection**: Will be empty until inquiries system exists
+
+### Success Criteria
+
+#### **Immediate Success (Phase D1)**:
+1. **Real User Counts**: Dashboard shows actual user registration numbers from database
+2. **Live Verification Queues**: Shows real users pending verification (will likely be empty initially)
+3. **Zero Placeholder Dependencies**: All user-based metrics pull from database
+4. **Performance**: API response <200ms with proper caching
+
+#### **Progressive Enhancement**:
+- **Phase D2**: Add listings metrics when listings table exists
+- **Phase D3**: Add revenue metrics when payments system exists
+- **Phase D4**: Add engagement metrics when inquiries system exists
+
+### Current Database State Verification
+
+Before implementation, we need to verify:
+- ✅ `user_profiles` table exists with proper schema
+- ✅ Admin user can query user_profiles table
+- ✅ Admin authentication is working
+- ⬜ Verify exact column names in production database
+- ⬜ Test admin user database permissions
+
+### Project Status Board Update
+
+#### 🎯 **NEW HIGH PRIORITY - Admin Dashboard Implementation** (Phase D1)
+
+- [x] **D1.1** – `/api/admin/metrics` endpoint implemented with real user metrics
+- [x] **D1.2** – Admin dashboard now consumes live metrics via SWR
+- [x] **🎉 D1.3 – Admin Users Management Page** – Complete user management with search, filtering, pagination
+- [ ] **D1.4** – Loading states & error handling enhancements (partial, loading/error basic done)
+- [ ] **D1.5** – Manual & automated tests for metrics endpoint
+
+#### Success Metrics:
+- Real user registration counts displayed
+- Verification queues show actual pending users (if any)
+- Zero dependency on placeholder data for user metrics
+- <200ms API response time with caching
+
+### Risk Assessment
+
+#### **Low Risk**:
+- User-based metrics are straightforward SQL queries
+- Database schema is well-established for user_profiles
+- Admin authentication is already working
+
+#### **Medium Risk**:
+- Database permissions might need adjustment for admin queries
+- Performance could be an issue if user_profiles table is large
+- Need to handle edge cases (division by zero, etc.)
+
+#### **Mitigation Strategies**:
+- Test database queries with current admin user before API implementation
+- Add proper indexes for date-based queries
+- Implement graceful fallbacks if database is unreachable
+
+## Executor's Feedback or Assistance Requests (Admin Dashboard)
+
+### **Ready to Implement Phase D1**
+
+Based on the analysis above, I'm ready to implement the admin dashboard with real user metrics. The implementation will:
+
+1. **Replace placeholder data** for all user-based metrics with real database queries
+2. **Keep placeholder data** for features we haven't built yet (listings, revenue, inquiries) but clearly mark them as "Coming Soon"
+3. **Maintain the exact same UI** so the experience is seamless
+
+**Request for Confirmation**: Should I proceed with implementing Phase D1 (user-based metrics) while keeping placeholders for the remaining metrics? This will give us a functional admin dashboard that grows with our feature set.
+
+**Expected Timeline**: 2-4 hours to implement all user-based metrics with proper authentication, caching, and error handling.
+
+### 🔧 **Expanded Implementation Plan for Full Dashboard Metrics**
+
+Building on the earlier high-level outline, here is a **robust, end-to-end plan** that covers *all* metrics visible on the dashboard.
+
+> **Guiding Principles**
+> 1. **Incremental Delivery** – Dashboard stays functional after every phase.
+> 2. **Single Source of Truth** – Metrics rely on database views/functions, *not* ad-hoc API math.
+> 3. **Performance First** – Heavy aggregates calculated in SQL views with proper indexes; API endpoint just `SELECT *`.
+> 4. **Security** – Row Level Security (RLS) & role checks everywhere.
+
+---
+
+## 📅 **Phase Breakdown**
+
+| Phase | Scope | Key Deliverables |
+|-------|-------|------------------|
+| **D1** | User metrics (already scoped) | `/api/admin/metrics` v1 + real user counts |
+| **D2** | Listings metrics & verification queues | New `business_listings` table, views, RLS |
+| **D3** | Engagement metrics (connections / inquiries) | `inquiries` + `connections` tables, status machine, metrics views |
+| **D4** | Revenue metrics | Stripe webhook ingestion → `payments` & `subscriptions` tables, revenue views |
+| **D5** | Performance & Caching polish | Materialized views, refresh triggers, 5-min cache headers |
+
+---
+
+## 🔑 **Phase D2 – Listings & Verification Metrics**
+
+### D2.0 Database Schema Changes
+
+```sql
+-- TABLE: business_listings
+CREATE TABLE IF NOT EXISTS business_listings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  seller_id UUID NOT NULL REFERENCES user_profiles(id) ON DELETE CASCADE,
+  listing_title_anonymous TEXT NOT NULL,
+  listing_title_public TEXT,
+  industry VARCHAR(80) NOT NULL,
+  asking_price NUMERIC(14,2),
+  revenue NUMERIC(14,2),
+  status VARCHAR(40) NOT NULL CHECK (status IN (
+    'draft',               -- seller editing
+    'pending_verification',-- submitted, awaiting admin review
+    'verified_anonymous',  -- approved, anonymous listing live
+    'verified_public',     -- optional, fully public
+    'inactive',            -- seller paused
+    'rejected_by_admin',   -- verification failed
+    'closed_deal'          -- sold
+  )),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  verified_at TIMESTAMPTZ,
+  closed_at TIMESTAMPTZ
+);
+
+-- INDEXES
+CREATE INDEX IF NOT EXISTS idx_listings_status ON business_listings(status);
+CREATE INDEX IF NOT EXISTS idx_listings_created ON business_listings(created_at);
+```
+
+### D2.1 Row Level Security
+
+```sql
+ALTER TABLE business_listings ENABLE ROW LEVEL SECURITY;
+-- Sellers manage own listings
+CREATE POLICY "Sellers manage own listings" ON business_listings
+  FOR ALL TO authenticated
+  USING ( auth.uid() = seller_id )
+  WITH CHECK ( auth.uid() = seller_id );
+-- Admins can do everything
+CREATE POLICY "Admins manage all listings" ON business_listings
+  FOR ALL TO authenticated
+  USING ( EXISTS (SELECT 1 FROM user_profiles WHERE id = auth.uid() AND role = 'admin') );
+```
+
+### D2.2 SQL View for Listings Metrics
+
+```sql
+CREATE OR REPLACE VIEW admin_dashboard_listing_metrics AS
+SELECT
+  COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '24 hours')  AS new_listings_24h,
+  COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '7 days')   AS new_listings_7d,
+  COUNT(*)                                                          AS total_listings_all_statuses,
+  COUNT(*) FILTER (WHERE status IN ('verified_anonymous','verified_public')) AS total_active_listings,
+  COUNT(*) FILTER (WHERE status IN ('inactive','closed_deal','rejected_by_admin')) AS closed_or_deactivated_listings,
+  COUNT(*) FILTER (WHERE status = 'pending_verification')           AS listing_verification_queue_count
+FROM business_listings;
+```
+
+### D2.3 API / Metrics Consolidation
+- Extend `/api/admin/metrics` to `SELECT * FROM admin_dashboard_listing_metrics` and merge with existing user metrics.
+- **Success Criteria**: Dashboard shows real listing numbers; verification queue card reflects `pending_verification` status count.
+
+---
+
+## 🔑 **Phase D3 – Engagement / Connections Metrics**
+
+### D3.0 Database Schema Changes
+
+```sql
+-- TABLE: inquiries
+CREATE TABLE IF NOT EXISTS inquiries (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  buyer_id UUID REFERENCES user_profiles(id) ON DELETE CASCADE,
+  seller_id UUID REFERENCES user_profiles(id) ON DELETE CASCADE,
+  listing_id UUID REFERENCES business_listings(id) ON DELETE CASCADE,
+  status VARCHAR(60) NOT NULL CHECK (status IN (
+    'initiated',                    -- buyer clicked inquire
+    'ready_for_admin_connection',   -- passed checks, waiting admin
+    'connection_facilitated_in_app_chat_opened',
+    'deal_closed',
+    'archived'
+  )),
+  inquiry_timestamp TIMESTAMPTZ DEFAULT NOW(),
+  engagement_timestamp TIMESTAMPTZ,
+  closed_timestamp TIMESTAMPTZ
+);
+-- Indexes
+CREATE INDEX IF NOT EXISTS idx_inquiries_status ON inquiries(status);
+CREATE INDEX IF NOT EXISTS idx_inquiries_timestamps ON inquiries(inquiry_timestamp);
+```
+
+### D3.1 SQL View for Engagement Metrics
+
+```sql
+CREATE OR REPLACE VIEW admin_dashboard_engagement_metrics AS
+SELECT
+  COUNT(*) FILTER (WHERE status = 'ready_for_admin_connection')               AS ready_to_engage_queue_count,
+  COUNT(*) FILTER (WHERE status IN ('connection_facilitated_in_app_chat_opened','deal_closed')) AS successful_connections_mtd,
+  COUNT(*) FILTER (WHERE status = 'connection_facilitated_in_app_chat_opened') AS active_successful_connections,
+  COUNT(*) FILTER (WHERE status = 'deal_closed' AND date_trunc('month', closed_timestamp) = date_trunc('month', NOW())) AS deals_closed_mtd
+FROM inquiries
+WHERE date_trunc('month', inquiry_timestamp) = date_trunc('month', NOW());
+```
+
+### D3.2 API Update
+- Merge results from `admin_dashboard_engagement_metrics` into `/api/admin/metrics` response.
+- **Success Criteria**: Engagement queue & connections cards display real counts.
+
+---
+
+## 🔑 **Phase D4 – Revenue Metrics (Stripe-Backed)**
+
+### D4.0 Database Schema Changes
+
+```sql
+-- Stripe webhook sink
+CREATE TABLE IF NOT EXISTS stripe_events (
+  id TEXT PRIMARY KEY,
+  type TEXT NOT NULL,
+  payload JSONB NOT NULL,
+  received_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Subscriptions tracked per user (buyer or seller)
+CREATE TABLE IF NOT EXISTS subscriptions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES user_profiles(id) ON DELETE CASCADE,
+  stripe_subscription_id TEXT NOT NULL UNIQUE,
+  plan TEXT NOT NULL, -- 'buyer_basic', 'seller_pro', etc.
+  status TEXT NOT NULL, -- 'active', 'canceled', etc.
+  current_period_end TIMESTAMPTZ,
+  is_paid BOOLEAN GENERATED ALWAYS AS (status = 'active') STORED,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Payments table for one-off charges if needed
+CREATE TABLE IF NOT EXISTS payments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES user_profiles(id),
+  amount NUMERIC(14,2) NOT NULL,
+  currency TEXT DEFAULT 'usd',
+  product TEXT, -- e.g., 'buyer_subscription', 'seller_upgrade'
+  stripe_payment_intent TEXT,
+  paid_at TIMESTAMPTZ
+);
+```
+
+### D4.1 Stripe Webhook Edge Function
+- `/functions/stripe-webhook.ts` validates signatures, inserts into `stripe_events`, upserts `subscriptions`/`payments`.
+
+### D4.2 Revenue Views
+
+```sql
+CREATE OR REPLACE VIEW admin_dashboard_revenue_metrics AS
+SELECT
+  SUM(amount) FILTER (WHERE date_trunc('month', paid_at) = date_trunc('month', NOW()) AND product ~ 'buyer') AS revenue_from_buyers_mtd,
+  SUM(amount) FILTER (WHERE date_trunc('month', paid_at) = date_trunc('month', NOW()) AND product ~ 'seller') AS revenue_from_sellers_mtd,
+  SUM(amount) FILTER (WHERE date_trunc('month', paid_at) = date_trunc('month', NOW())) AS total_revenue_mtd
+FROM payments
+WHERE paid_at IS NOT NULL;
+```
+
+### D4.3 API Update
+- Combine `admin_dashboard_revenue_metrics` into metrics endpoint.
+- **Success Criteria**: Revenue cards show live figures once Stripe is connected.
+
+---
+
+## 🔄 **Phase D5 – Performance & Caching**
+- Convert heavy views (`admin_dashboard_revenue_metrics`, etc.) into **materialized views** with `REFRESH MATERIALIZED VIEW CONCURRENTLY` every 5 minutes via a Postgres cron extension (Supabase supports pg_cron on paid tiers).
+- Add `Cache-Control: s-maxage=300` on API responses.
+- Ensure total payload ≤ 100 KB.
+
+---
+
+## 🛠️ **API Endpoint Contract**
+`GET /api/admin/metrics`
+```jsonc
+{
+  "newUserRegistrations24hSellers": 2,
+  "newUserRegistrations24hBuyers": 3,
+  "newUserRegistrations7dSellers": 10,
+  "newUserRegistrations7dBuyers": 13,
+  "newListingsCreated24h": 2,
+  "newListingsCreated7d": 10,
+  "totalActiveSellers": 100,
+  "totalActiveBuyers": 240,
+  "totalActiveListingsAnonymous": 15,
+  "totalActiveListingsVerified": 5,
+  "totalListingsAllStatuses": 25,
+  "closedOrDeactivatedListings": 3,
+  "buyerVerificationQueueCount": 1,
+  "sellerVerificationQueueCount": 4,
+  "readyToEngageQueueCount": 2,
+  "successfulConnectionsMTD": 6,
+  "activeSuccessfulConnections": 1,
+  "closedSuccessfulConnections": 5,
+  "revenueFromBuyers": 5600,
+  "revenueFromSellers": 7850,
+  "totalRevenueMTD": 13450,
+  "generatedAt": "2025-06-04T18:00:00Z"
+}
+```
+
+---
+
+## 🗂️ **Updated Project Status Board**
+
+- [x] **D1.1** – `/api/admin/metrics` endpoint implemented with real user metrics
+- [x] **D1.2** – Admin dashboard now consumes live metrics via SWR
+- [x] **🎉 D1.3 – Admin Users Management Page** – Complete user management with search, filtering, pagination
+- [ ] **D1.4** – Loading states & error handling enhancements (partial, loading/error basic done)
+- [ ] **D1.5** – Manual & automated tests for metrics endpoint
+
+---
+
+## ✅ **Next Step for Executor**
+Once approved, Executor should:
+1. **Finish D1** (user metrics endpoint + dashboard hook) so admins see real counts.
+2. Start **D2** by generating the listings migration & view, then extend the metrics API.
+
+Let me know if you'd like any adjustments before we proceed!

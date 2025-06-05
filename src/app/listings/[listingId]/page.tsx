@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -18,6 +17,7 @@ import {
 import { cn } from '@/lib/utils';
 import { sampleListings, sampleUsers } from '@/lib/placeholder-data';
 import type { Listing, User } from '@/lib/types';
+import { useToast } from '@/hooks/use-toast';
 
 // Helper to format currency
 const formatCurrency = (amount?: number) => {
@@ -130,6 +130,7 @@ function ImageGallery({ imageUrls, listingTitle }: { imageUrls?: string[]; listi
 
 export default function ListingDetailPage() {
   const params = useParams();
+  const { toast } = useToast();
   const listingId = typeof params.listingId === 'string' ? params.listingId : '';
 
   const [listing, setListing] = React.useState<Listing | null | undefined>(undefined);
@@ -138,7 +139,7 @@ export default function ListingDetailPage() {
   const [currentUser, setCurrentUser] = React.useState<User | null | undefined>(undefined);
 
   React.useEffect(() => {
-    const storedUserId = 'user2';
+    const storedUserId = 'user1';
     const user = sampleUsers.find(u => u.id === storedUserId);
     setCurrentUser(user || null);
 
@@ -173,10 +174,10 @@ export default function ListingDetailPage() {
         return <p className="text-sm text-muted-foreground italic">Details available to paid, verified buyers.</p>;
     }
     if (!href || href.trim() === "" || href.trim() === "#") {
-        return <p className="text-sm text-muted-foreground">Document not provided by seller.</p>;
+        return <p className="text-sm text-slate-600">Document not provided by seller.</p>;
     }
     return (
-        <Link href={href} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex items-center gap-1">
+        <Link href={href} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:text-blue-800 hover:underline font-medium flex items-center gap-1">
             <FileText className="h-4 w-4"/>{children}
         </Link>
     );
@@ -186,7 +187,9 @@ export default function ListingDetailPage() {
     <div className="container py-8 md:py-12 bg-brand-light-gray">
       <Card className="shadow-xl overflow-hidden bg-brand-white">
         <CardHeader className="p-4 md:p-6">
-            <ImageGallery imageUrls={listing.imageUrls} listingTitle={listing.listingTitleAnonymous}/>
+            <div className="flex justify-center">
+                <ImageGallery imageUrls={listing.imageUrls} listingTitle={listing.listingTitleAnonymous}/>
+            </div>
             <div className="mt-4">
                 <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-brand-dark-blue tracking-tight">{listing.listingTitleAnonymous}</h1>
                 <div className="mt-2 flex items-center gap-2 flex-wrap">
@@ -266,71 +269,80 @@ export default function ListingDetailPage() {
                 )}
 
                 <Separator />
-                <section id="verified-details" className={`p-6 rounded-lg ${canViewVerifiedDetails ? 'bg-primary/5 border-primary/20' : 'bg-muted/30 border-muted/50'}`}>
+                <section id="verified-details" className={`p-6 rounded-lg border ${canViewVerifiedDetails ? 'bg-primary/5 border-primary/20' : 'bg-muted/30 border-muted/50'}`}>
                     <h2 className="text-2xl font-semibold text-primary mb-4 flex items-center">
                       <ShieldCheck className="h-6 w-6 mr-2"/>
-                      {canViewVerifiedDetails ? "Verified Seller Information &amp; Documents" : "Verified Seller Information (Restricted Access)"}
+                      {canViewVerifiedDetails ? "Verified Seller Information & Documents" : "Verified Seller Information (Restricted Access)"}
                     </h2>
 
-                    <div className="space-y-4">
+                    <div className="space-y-6">
                         <div>
-                            <h3 className="font-semibold text-brand-dark-blue flex items-center gap-2 mb-1"><Building className="h-5 w-5"/>Company Details</h3>
+                            <h3 className="font-semibold text-brand-dark-blue flex items-center gap-2 mb-2"><Building className="h-5 w-5"/>Company Details</h3>
                             {canViewVerifiedDetails ? (
-                              <>
-                                <p className="text-sm"><span className="font-medium">Actual Company Name:</span> {listing.actualCompanyName || 'N/A'}</p>
-                                <p className="text-sm"><span className="font-medium">Registered Business Name:</span> {listing.registeredBusinessName || 'N/A'}</p>
-                                <p className="text-sm"><span className="font-medium">Year Established:</span> {listing.yearEstablished || 'N/A'}</p>
-                                <p className="text-sm"><span className="font-medium">Full Business Address:</span> {listing.fullBusinessAddress || 'N/A'}</p>
-                                <p className="text-sm"><span className="font-medium">Number of Employees:</span> {listing.numberOfEmployees || 'N/A'}</p>
-                              </>
+                              <div className="space-y-1">
+                                <p className="text-sm text-slate-700"><span className="font-medium text-slate-900">Actual Company Name:</span> {listing.actualCompanyName || 'N/A'}</p>
+                                <p className="text-sm text-slate-700"><span className="font-medium text-slate-900">Registered Business Name:</span> {listing.registeredBusinessName || 'N/A'}</p>
+                                <p className="text-sm text-slate-700"><span className="font-medium text-slate-900">Year Established:</span> {listing.yearEstablished || 'N/A'}</p>
+                                <p className="text-sm text-slate-700"><span className="font-medium text-slate-900">Full Business Address:</span> {listing.fullBusinessAddress || 'N/A'}</p>
+                                <p className="text-sm text-slate-700"><span className="font-medium text-slate-900">Number of Employees:</span> {listing.numberOfEmployees || 'N/A'}</p>
+                              </div>
                             ) : (
                               <p className="text-sm text-muted-foreground italic">Visible to paid, verified buyers.</p>
                             )}
                         </div>
                          <div>
-                            <h3 className="font-semibold text-brand-dark-blue flex items-center gap-2 mb-1"><Globe className="h-5 w-5"/>Web Presence</h3>
+                            <h3 className="font-semibold text-brand-dark-blue flex items-center gap-2 mb-2"><Globe className="h-5 w-5"/>Web Presence</h3>
                              {canViewVerifiedDetails ? (
-                              <>
-                                <p className="text-sm"><span className="font-medium">Business Website:</span> {listing.businessWebsiteUrl ? <Link href={listing.businessWebsiteUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{listing.businessWebsiteUrl}</Link> : 'N/A'}</p>
-                                {listing.socialMediaLinks && <p className="text-sm"><span className="font-medium">Social Media:</span> <span className="whitespace-pre-wrap">{listing.socialMediaLinks}</span></p>}
-                              </>
+                              <div className="space-y-1">
+                                <p className="text-sm text-slate-700"><span className="font-medium text-slate-900">Business Website:</span> {listing.businessWebsiteUrl ? <Link href={listing.businessWebsiteUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 hover:underline font-medium">{listing.businessWebsiteUrl}</Link> : 'N/A'}</p>
+                                {listing.socialMediaLinks && <p className="text-sm text-slate-700"><span className="font-medium text-slate-900">Social Media:</span> <span className="whitespace-pre-wrap">{listing.socialMediaLinks}</span></p>}
+                              </div>
                             ) : (
                               <p className="text-sm text-muted-foreground italic">Visible to paid, verified buyers.</p>
                             )}
-                            <DocumentLink href={listing.webPresenceInfoUrl} docType="web">Web &amp; Analytics Report</DocumentLink>
+                            <div className="mt-2">
+                                <DocumentLink href={listing.webPresenceInfoUrl} docType="web">Web & Analytics Report</DocumentLink>
+                            </div>
                         </div>
                          <div>
-                            <h3 className="font-semibold text-brand-dark-blue flex items-center gap-2 mb-1"><DollarSign className="h-5 w-5"/>Specific Financials</h3>
+                            <h3 className="font-semibold text-brand-dark-blue flex items-center gap-2 mb-2"><DollarSign className="h-5 w-5"/>Specific Financials</h3>
                              {canViewVerifiedDetails ? (
-                              <>
-                                <p className="text-sm"><span className="font-medium">Specific Annual Revenue (TTM):</span> {listing.specificAnnualRevenueLastYear ? `${formatCurrency(listing.specificAnnualRevenueLastYear)}` : 'N/A'}</p>
-                                <p className="text-sm"><span className="font-medium">Specific Net Profit (TTM):</span> {listing.specificNetProfitLastYear ? `${formatCurrency(listing.specificNetProfitLastYear)}` : 'N/A'}</p>
-                              </>
+                              <div className="space-y-1">
+                                <p className="text-sm text-slate-700"><span className="font-medium text-slate-900">Specific Annual Revenue (TTM):</span> {listing.specificAnnualRevenueLastYear ? `${formatCurrency(listing.specificAnnualRevenueLastYear)}` : 'N/A'}</p>
+                                <p className="text-sm text-slate-700"><span className="font-medium text-slate-900">Specific Net Profit (TTM):</span> {listing.specificNetProfitLastYear ? `${formatCurrency(listing.specificNetProfitLastYear)}` : 'N/A'}</p>
+                              </div>
                             ) : (
                               <p className="text-sm text-muted-foreground italic">Visible to paid, verified buyers.</p>
                             )}
-                            <DocumentLink href={listing.financialSnapshotUrl || listing.financialDocumentsUrl} docType="financials">Financial Snapshot / Statements</DocumentLink>
-                            <DocumentLink href={listing.keyMetricsReportUrl} docType="metrics">Key Metrics Report</DocumentLink>
+                            <div className="mt-2 space-y-1">
+                                <DocumentLink href={listing.financialSnapshotUrl || listing.financialDocumentsUrl} docType="financials">Financial Snapshot / Statements</DocumentLink>
+                                <DocumentLink href={listing.keyMetricsReportUrl} docType="metrics">Key Metrics Report</DocumentLink>
+                            </div>
                         </div>
                         <div>
-                            <h3 className="font-semibold text-brand-dark-blue flex items-center gap-2 mb-1"><UsersIcon className="h-5 w-5"/>Seller &amp; Deal Information</h3>
+                            <h3 className="font-semibold text-brand-dark-blue flex items-center gap-2 mb-2"><UsersIcon className="h-5 w-5"/>Seller & Deal Information</h3>
                              {canViewVerifiedDetails ? (
-                              <>
-                                <p className="text-sm"><span className="font-medium">Detailed Reason for Selling:</span> <span className="whitespace-pre-wrap">{listing.detailedReasonForSelling || 'N/A'}</span></p>
-                                <p className="text-sm"><span className="font-medium">Seller Role &amp; Time Commitment:</span> <span className="whitespace-pre-wrap">{listing.sellerRoleAndTimeCommitment || 'N/A'}</span></p>
-                                <p className="text-sm"><span className="font-medium">Post-Sale Transition Support:</span> <span className="whitespace-pre-wrap">{listing.postSaleTransitionSupport || 'N/A'}</span></p>
-                              </>
+                              <div className="space-y-1">
+                                <p className="text-sm text-slate-700"><span className="font-medium text-slate-900">Detailed Reason for Selling:</span> <span className="whitespace-pre-wrap">{listing.detailedReasonForSelling || 'N/A'}</span></p>
+                                <p className="text-sm text-slate-700"><span className="font-medium text-slate-900">Seller Role & Time Commitment:</span> <span className="whitespace-pre-wrap">{listing.sellerRoleAndTimeCommitment || 'N/A'}</span></p>
+                                <p className="text-sm text-slate-700"><span className="font-medium text-slate-900">Post-Sale Transition Support:</span> <span className="whitespace-pre-wrap">{listing.postSaleTransitionSupport || 'N/A'}</span></p>
+                              </div>
                             ) : (
                               <p className="text-sm text-muted-foreground italic">Visible to paid, verified buyers.</p>
                             )}
                         </div>
                          <div>
-                            <h3 className="font-semibold text-brand-dark-blue flex items-center gap-2 mb-1"><FileText className="h-5 w-5"/>Other Documents</h3>
-                            <DocumentLink href={listing.ownershipDetailsUrl || listing.ownershipDocumentsUrl} docType="ownership">Ownership Documents</DocumentLink>
-                            <DocumentLink href={listing.locationRealEstateInfoUrl} docType="location">Location/Real Estate Info</DocumentLink>
+                            <h3 className="font-semibold text-brand-dark-blue flex items-center gap-2 mb-2"><FileText className="h-5 w-5"/>Other Documents</h3>
+                            <div className="space-y-1">
+                                <DocumentLink href={listing.ownershipDetailsUrl || listing.ownershipDocumentsUrl} docType="ownership">Ownership Documents</DocumentLink>
+                                <DocumentLink href={listing.locationRealEstateInfoUrl} docType="location">Location/Real Estate Info</DocumentLink>
+                            </div>
                          </div>
                          {canViewVerifiedDetails && listing.secureDataRoomLink && (
-                            <div><h3 className="font-semibold text-brand-dark-blue flex items-center gap-2 mb-1"><LinkIconLucide className="h-5 w-5"/>Secure Data Room</h3><DocumentLink href={listing.secureDataRoomLink} docType="dataroom">Access Data Room</DocumentLink></div>
+                            <div>
+                                <h3 className="font-semibold text-brand-dark-blue flex items-center gap-2 mb-2"><LinkIconLucide className="h-5 w-5"/>Secure Data Room</h3>
+                                <DocumentLink href={listing.secureDataRoomLink} docType="dataroom">Access Data Room</DocumentLink>
+                            </div>
                         )}
                     </div>
                 </section>
@@ -390,9 +402,22 @@ export default function ListingDetailPage() {
                     </CardContent>
                     <CardFooter className="flex flex-col gap-2">
                         <Button
-                            className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
-                            disabled={!currentUser || currentUser.role !== 'buyer'}
-                            onClick={() => console.log("Inquire about business clicked for listing:", listing.id)}
+                            className="w-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={!currentUser || currentUser.role === 'seller'}
+                            onClick={() => {
+                              console.log('Button clicked! Current user:', currentUser);
+                              if (!currentUser) return; // Should not happen due to disabled state
+                              if (currentUser.role === 'seller') {
+                                console.log('Seller detected - showing toast');
+                                toast({
+                                  title: '⚠️ Action not available',
+                                  description: 'Sellers cannot inquire about other businesses.',
+                                  className: 'border-yellow-200 bg-yellow-50 text-yellow-800'
+                                });
+                                return;
+                              }
+                              console.log("Inquire about business clicked for listing:", listing.id);
+                            }}
                         >
                             <MessageSquare className="h-4 w-4 mr-2"/>
                             Inquire About Business
@@ -400,8 +425,19 @@ export default function ListingDetailPage() {
                         {canViewVerifiedDetails && (listing.status === 'verified_public' || listing.status === 'verified_anonymous') && (
                            <Button
                              variant="outline"
-                             className="w-full border-primary text-primary hover:bg-primary/10"
-                             onClick={() => console.log("Open conversation clicked for listing:", listing.id)}
+                             className="w-full border-primary text-primary hover:bg-primary/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                             disabled={currentUser?.role === 'seller'}
+                             onClick={() => {
+                               if (currentUser?.role === 'seller') {
+                                 toast({
+                                   title: '⚠️ Action not available',
+                                   description: 'Sellers cannot start conversations with other businesses.',
+                                   className: 'border-yellow-200 bg-yellow-50 text-yellow-800'
+                                 });
+                                 return;
+                               }
+                               console.log("Open conversation clicked for listing:", listing.id);
+                             }}
                             >
                              <ExternalLink className="h-4 w-4 mr-2" />
                              Open Conversation

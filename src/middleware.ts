@@ -27,7 +27,11 @@ export async function middleware(req: NextRequest) {
 
   // Public paths that don't require authentication
   const publicPaths = [
+    // Auth pages
     '/auth/login', '/auth/register', '/auth/forgot-password', '/auth/update-password',
+    // Admin auth page (public for unauthenticated access)
+    '/admin/login',
+    // Misc auth related
     '/auth/verify-otp', '/auth/callback', '/auth/verification-error', '/auth/verification-success',
     '/verify-email', // Allow unauthenticated users to verify email
     '/about', '/contact', '/pricing', '/terms', '/privacy',
@@ -37,7 +41,6 @@ export async function middleware(req: NextRequest) {
 
   const isPublicPath = publicPaths.includes(pathname) ||
                        pathname === '/' || // Handle root path separately
-                       pathname.startsWith('/listings/') || // Public listing detail pages
                        pathname.startsWith('/_next/') || // Next.js internals
                        pathname.startsWith('/assets/') || // Static assets
                        pathname.includes('.') // Files like .png, .svg etc.
@@ -103,8 +106,10 @@ export async function middleware(req: NextRequest) {
     console.log(`[MIDDLEWARE] ${correlationId} | Unauthenticated access to ${pathname}, redirecting to login`)
     console.log(`[MIDDLEWARE] ${correlationId} | Auth failure reason: ${error?.type || 'unknown'} | Strategy: ${strategy || 'none'}`)
 
-    const redirectUrl = new URL('/auth/login', req.url)
-    if (pathname !== '/auth/login') {
+    // Determine correct login page based on route namespace
+    const loginPath = pathname.startsWith('/admin') ? '/admin/login' : '/auth/login'
+    const redirectUrl = new URL(loginPath, req.url)
+    if (pathname !== loginPath) {
       redirectUrl.searchParams.set('redirectTo', pathname)
     }
 
@@ -148,21 +153,20 @@ export async function middleware(req: NextRequest) {
   }
 
   // Handle dashboard routes - enforce onboarding completion
-  const protectedAppRoutes = ['/dashboard', '/seller-dashboard', '/admin', '/marketplace']
+  const protectedAppRoutes = ['/dashboard', '/seller-dashboard', '/admin']
   if (protectedAppRoutes.some(route => pathname.startsWith(route))) {
     return handleDashboardRoutes(req, res, user, profile, correlationId, pathname)
   }
 
-  // Special handling for marketplace route
+  // Special handling for marketplace route – allow buyers, sellers, and admins
   if (pathname.startsWith('/marketplace')) {
-    // Only buyers with completed onboarding may access
-    if (profile.role !== 'buyer') {
-      // Redirect sellers/admins to their dashboards
-      const target = profile.role === 'seller' ? '/seller-dashboard' : profile.role === 'admin' ? '/admin' : '/';
-      console.log(`[MIDDLEWARE] ${correlationId} | Non-buyer attempted marketplace access (${profile.role}). Redirecting to ${target}`)
-      return NextResponse.redirect(new URL(target, req.url))
-    }
-    // Buyer is allowed (onboarding completion already enforced above)
+    console.log(`[MIDDLEWARE] ${correlationId} | Marketplace access allowed for role ${profile.role}`)
+    return res
+  }
+
+  // Special handling for listing detail pages – allow buyers, sellers, and admins
+  if (pathname.startsWith('/listings/')) {
+    console.log(`[MIDDLEWARE] ${correlationId} | Listing detail access allowed for role ${profile.role}`)
     return res
   }
 
@@ -177,14 +181,42 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL('/dashboard', req.url))
   }
 
-  if (profile.role === 'seller' && !pathname.startsWith('/seller-dashboard')) {
+  if (profile.role === 'seller' && !(pathname.startsWith('/seller-dashboard') || pathname.startsWith('/marketplace') || pathname.startsWith('/listings/'))) {
     console.log(`[MIDDLEWARE] ${correlationId} | Seller accessing wrong dashboard: ${pathname} -> /seller-dashboard`)
     return NextResponse.redirect(new URL('/seller-dashboard', req.url))
   }
 
-  if (profile.role === 'admin' && !pathname.startsWith('/admin')) {
+  if (profile.role === 'admin' && (pathname.startsWith('/dashboard') || pathname.startsWith('/seller-dashboard'))) {
     console.log(`[MIDDLEWARE] ${correlationId} | Admin accessing wrong dashboard: ${pathname} -> /admin`)
     return NextResponse.redirect(new URL('/admin', req.url))
+  }
+
+  // Enforce admin-only access to /admin routes
+  if (pathname.startsWith('/admin') && profile.role !== 'admin') {
+    console.log(`[MIDDLEWARE] ${correlationId} | Non-admin role (${profile.role}) attempted to access admin area: ${pathname}`)
+
+    // If API route under /admin, return JSON 403
+    if (pathname.startsWith('/api/')) {
+      return new NextResponse(
+        JSON.stringify({
+          error: 'forbidden_role',
+          type: 'forbidden',
+          correlationId,
+          timestamp: new Date().toISOString()
+        }),
+        {
+          status: 403,
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Correlation-ID': correlationId,
+            ...Object.fromEntries(res.headers.entries())
+          }
+        }
+      )
+    }
+
+    // For page requests, show 403 response
+    return new NextResponse('Forbidden', { status: 403 })
   }
 
   // Allow access to other protected routes
@@ -282,8 +314,8 @@ function handleDashboardRoutes(
 ): NextResponse {
   const { role, is_onboarding_completed } = profile
 
-  // Enforce onboarding completion for dashboard access
-  if (!is_onboarding_completed) {
+  // Enforce onboarding completion for dashboard access (EXEMPT ADMINS - they don't need onboarding)
+  if (role !== 'admin' && !is_onboarding_completed) {
     console.log(`[MIDDLEWARE] ${correlationId} | Onboarding incomplete, redirecting from ${pathname}`)
 
     const redirect = middlewareAuth.determineRedirectUrl(profile, pathname, correlationId)
@@ -301,7 +333,7 @@ function handleDashboardRoutes(
     return NextResponse.redirect(redirectUrl)
   }
 
-  // Ensure user lands on their correct dashboard
+  // Ensure user lands on their correct dashboard page
   if (role === 'buyer' && !pathname.startsWith('/dashboard')) {
     console.log(`[MIDDLEWARE] ${correlationId} | Buyer attempting to access ${pathname}. Redirecting to /dashboard`)
     return NextResponse.redirect(new URL('/dashboard', req.url))

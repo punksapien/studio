@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from "react";
@@ -22,7 +21,8 @@ import { Logo } from "@/components/shared/logo";
 import { useState, useTransition } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
-
+import { useRouter, useSearchParams } from "next/navigation";
+import { auth } from "@/lib/auth";
 
 const AdminLoginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
@@ -31,8 +31,11 @@ const AdminLoginSchema = z.object({
 
 export default function AdminLoginPage() {
   const [error, setError] = useState<string | undefined>("");
-  const [success, setSuccess] = useState<string | undefined>(""); // Might not be needed for admin
+  const [success, setSuccess] = useState<string | undefined>("");
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get('redirectTo') || '/admin';
 
   const form = useForm<z.infer<typeof AdminLoginSchema>>({
     resolver: zodResolver(AdminLoginSchema),
@@ -47,13 +50,47 @@ export default function AdminLoginPage() {
     setSuccess("");
 
     startTransition(async () => {
-      console.log("Admin Login values:", values);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      if (values.email === "admin@nobridge.asia" && values.password === "password") { // Updated email domain
+      try {
+        console.log("Admin Login attempt:", { email: values.email, redirectTo });
+
+        // Use existing auth system
+        const result = await auth.signIn(values.email, values.password);
+        console.log("Admin auth.signIn result:", result);
+
+        // Check if user's email is verified
+        const user = await auth.getCurrentUser();
+        console.log("Admin current user:", user);
+
+        if (user && !user.email_confirmed_at) {
+          setError("Please verify your email before logging in to the admin panel.");
+          return;
+        }
+
+        // Get user profile and verify admin role
+        const userProfile = await auth.getCurrentUserProfile();
+        console.log("Admin user profile:", userProfile);
+
+        if (!userProfile) {
+          setError("User profile not found. Please contact support.");
+          return;
+        }
+
+        if (userProfile.role !== 'admin') {
+          setError("Access denied. Admin privileges required.");
+          return;
+        }
+
         setSuccess("Login successful! Redirecting to admin dashboard...");
-         if (typeof window !== 'undefined') window.location.href = '/admin'; // Updated redirect path
-      } else {
-        setError("Invalid admin credentials.");
+
+        // Small delay to show success message, then redirect
+        setTimeout(() => {
+          router.push(redirectTo);
+        }, 1000);
+
+      } catch (error) {
+        console.error("Admin login error:", error);
+        const errorMessage = error instanceof Error ? error.message : 'Login failed';
+        setError(`Login failed: ${errorMessage}`);
       }
     });
   };
@@ -77,10 +114,10 @@ export default function AdminLoginPage() {
                 <FormItem>
                   <FormLabel>Email Address</FormLabel>
                   <FormControl>
-                    <Input 
-                      {...field} 
-                      placeholder="admin@nobridge.asia" 
-                      type="email" 
+                    <Input
+                      {...field}
+                      placeholder="admin@nobridge.com"
+                      type="email"
                       disabled={isPending}
                     />
                   </FormControl>
@@ -95,10 +132,10 @@ export default function AdminLoginPage() {
                 <FormItem>
                   <FormLabel>Password</FormLabel>
                   <FormControl>
-                    <Input 
-                      {...field} 
-                      placeholder="********" 
-                      type="password" 
+                    <Input
+                      {...field}
+                      placeholder="********"
+                      type="password"
                       disabled={isPending}
                     />
                   </FormControl>

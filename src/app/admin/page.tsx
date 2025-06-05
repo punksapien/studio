@@ -1,7 +1,9 @@
-
+'use client'
 import * as React from "react";
 import { MetricCard } from "@/components/admin/metric-card";
-import { sampleAdminDashboardMetrics, sampleVerificationRequests, sampleInquiries, sampleListings, sampleUsers } from "@/lib/placeholder-data";
+import useSWR from 'swr';
+import type { AdminDashboardMetrics } from '@/lib/types';
+import { sampleVerificationRequests, sampleInquiries, sampleListings, sampleUsers } from "@/lib/placeholder-data";
 import { Users, BellRing, LineChart, ListChecks, UserCheck, Building, DollarSign, Banknote, ListX, Handshake } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,8 +19,20 @@ import {
 import type { Inquiry } from "@/lib/types";
 import { NobridgeIcon, NobridgeIconType } from "@/components/ui/nobridge-icon";
 
+// Simple fetcher for SWR
+const fetcher = (url: string) => fetch(url).then(res => res.json());
+
 export default function AdminDashboardPage() {
-  const metrics = sampleAdminDashboardMetrics;
+  const { data: metrics, isLoading, error } = useSWR<AdminDashboardMetrics>('/api/admin/metrics', fetcher, { refreshInterval: 300000 }); // 5-min re-fetch
+
+  if (error) {
+    return <div className="p-8 text-red-600">Failed to load metrics: {error.message}</div>;
+  }
+
+  if (isLoading || !metrics) {
+    return <div className="p-8">Loading admin metrics...</div>;
+  }
+
   const buyerVerificationRequests = sampleVerificationRequests.filter(req => req.userRole === 'buyer' && req.status !== 'Approved' && req.status !== 'Rejected');
   const sellerVerificationRequests = sampleVerificationRequests.filter(req => req.userRole === 'seller' && req.status !== 'Approved' && req.status !== 'Rejected');
 
@@ -33,7 +47,7 @@ export default function AdminDashboardPage() {
         buyerName: buyer?.fullName || inquiry.buyerId,
         sellerName: seller?.fullName || inquiry.sellerId,
         listingTitle: listing?.listingTitleAnonymous || inquiry.listingId,
-        timestamp: inquiry.engagementTimestamp || inquiry.inquiryTimestamp, 
+        timestamp: inquiry.engagementTimestamp || inquiry.inquiryTimestamp,
       };
     });
 
@@ -63,7 +77,7 @@ export default function AdminDashboardPage() {
         <MetricCard
           title="Total Listings (All Statuses)"
           value={metrics.totalListingsAllStatuses}
-          icon={ListChecks} 
+          icon={ListChecks}
           description={`${metrics.totalActiveListingsVerified + metrics.totalActiveListingsAnonymous} active`}
         />
         <MetricCard
