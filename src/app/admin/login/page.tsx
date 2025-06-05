@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from "react";
@@ -99,7 +100,7 @@ export default function AdminLoginPage() {
     <Card className="w-[400px] shadow-xl">
       <CardHeader className="text-center">
         <div className="flex justify-center mb-4">
-          <Logo size="2xl" />
+          <Logo size="2xl" forceTheme="light" />
         </div>
         <CardTitle className="text-2xl font-semibold font-heading">Admin Panel Login</CardTitle>
         <CardDescription>Please enter your administrator credentials.</CardDescription>
