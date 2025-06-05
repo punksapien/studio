@@ -14,11 +14,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { VerificationRequestItem, VerificationQueueStatus, VerificationStatus } from "@/lib/types";
+import type { VerificationRequestItem, VerificationQueueStatus, VerificationStatus, UserRole } from "@/lib/types";
 import Link from "next/link";
-import { Eye, Edit, ShieldCheck, AlertTriangle, MailOpen, MessageSquare, Clock, FileSearch, RefreshCw } from "lucide-react";
+import { Eye, Edit, ShieldCheck, AlertTriangle, MailOpen, MessageSquare, Clock, FileSearch, RefreshCw, Loader2 } from "lucide-react";
 import { UpdateVerificationStatusDialog } from "@/components/admin/update-verification-status-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 function FormattedTimestamp({ timestamp }: { timestamp: Date | string }) {
   const [formattedDate, setFormattedDate] = React.useState<string | null>(null);
@@ -127,7 +128,7 @@ export default function AdminBuyerVerificationQueuePage() {
       case 'pending_verification': return <Badge variant="secondary" className="bg-yellow-100 text-yellow-700 dark:bg-yellow-700 dark:text-yellow-200 border-yellow-300 dark:border-yellow-500 text-xs"><AlertTriangle className="h-3 w-3 mr-1" />Pending</Badge>;
       case 'anonymous': return <Badge variant="outline" className="text-xs">Anonymous</Badge>;
       case 'rejected': return <Badge variant="destructive" className="text-xs">Rejected</Badge>;
-      default: return <Badge variant="outline" className="capitalize text-xs">{status.replace(/_/g, ' ')}</Badge>;
+      default: return <Badge variant="outline" className="capitalize text-xs">{(status as string).replace(/_/g, ' ')}</Badge>;
     }
   };
 
@@ -191,7 +192,9 @@ export default function AdminBuyerVerificationQueuePage() {
                     <RefreshCw className="h-4 w-4 mr-2" /> Refresh
                 </Button>
             </div>
-
+          </div>
+        </CardHeader>
+        <CardContent>
           <div className="rounded-md border overflow-x-auto">
             <Table>
               <TableHeader className="bg-brand-light-gray/50">
@@ -207,7 +210,12 @@ export default function AdminBuyerVerificationQueuePage() {
               <TableBody>
                 {isLoading ? (
                     <TableRow>
-                        <TableCell colSpan={6} className="text-center text-muted-foreground py-10">Loading requests...</TableCell>
+                        <TableCell colSpan={6} className="text-center text-muted-foreground py-10">
+                          <div className="flex items-center justify-center">
+                            <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                            Loading requests...
+                          </div>
+                        </TableCell>
                     </TableRow>
                 ) : requests.length === 0 ? (
                   <TableRow>
@@ -282,3 +290,4 @@ export default function AdminBuyerVerificationQueuePage() {
     </div>
   );
 }
+

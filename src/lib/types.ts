@@ -230,6 +230,10 @@ export interface VerificationRequestItem {
   userId: string;
   userName: string;
   userRole: UserRole;
+  userEmail?: string;
+  userPhone?: string;
+  userCountry?: string;
+  isEmailVerified?: boolean;
   listingId?: string;
   listingTitle?: string;
   triggeringUserId?: string;
@@ -238,6 +242,7 @@ export interface VerificationRequestItem {
   profileStatus: VerificationStatus;
   adminNotes?: AdminNote[];
   documentsSubmitted?: { name: string, type: 'id_proof' | 'business_reg' | 'financials' }[];
+  updatedAt?: Date;
 }
 
 
