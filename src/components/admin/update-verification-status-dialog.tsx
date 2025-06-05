@@ -1,7 +1,7 @@
 
 'use client';
 
-import * as React from 'react';
+import *a_s React from 'react';
 import {
   Dialog,
   DialogContent,
@@ -9,7 +9,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogClose,
 } from '@/components/ui/dialog';
 import {
   AlertDialog,
@@ -25,12 +24,12 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Input } from "@/components/ui/input";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import type { VerificationRequestItem, VerificationStatus, VerificationQueueStatus, AdminNote } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { Trash2, Edit, UserCircle } from 'lucide-react';
+import { Trash2, UserCircle, Clock, ShieldCheck, AlertTriangle, Info, Edit, CheckSquare, ListChecks, MessageSquareWarning } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface UpdateVerificationStatusDialogProps {
   isOpen: boolean;
@@ -43,6 +42,31 @@ interface UpdateVerificationStatusDialogProps {
     updatedAdminNotes: AdminNote[]
   ) => void;
 }
+
+const OperationalStatusBadge = ({ status }: { status: VerificationQueueStatus }) => {
+  const commonClasses = "text-xs px-2 py-0.5 rounded-full font-medium flex items-center gap-1";
+  switch (status) {
+    case 'New Request': return <Badge variant="outline" className={cn(commonClasses, "bg-red-100 text-red-700 border-red-300")}><Clock className="h-3 w-3" />New</Badge>;
+    case 'Contacted': return <Badge variant="outline" className={cn(commonClasses, "bg-blue-100 text-blue-700 border-blue-300")}><UserCircle className="h-3 w-3" />Contacted</Badge>;
+    case 'Docs Under Review': return <Badge variant="outline" className={cn(commonClasses, "bg-purple-100 text-purple-700 border-purple-300")}><ListChecks className="h-3 w-3" />Docs Review</Badge>;
+    case 'More Info Requested': return <Badge variant="outline" className={cn(commonClasses, "bg-orange-100 text-orange-700 border-orange-300")}><MessageSquareWarning className="h-3 w-3" />More Info</Badge>;
+    case 'Approved': return <Badge variant="outline" className={cn(commonClasses, "bg-green-100 text-green-700 border-green-300")}><CheckSquare className="h-3 w-3" />Approved</Badge>;
+    case 'Rejected': return <Badge variant="destructive" className={cn(commonClasses, "bg-red-600 text-white border-red-700")}><AlertTriangle className="h-3 w-3" />Rejected</Badge>;
+    default: return <Badge className={cn(commonClasses)}>{status}</Badge>;
+  }
+};
+
+const ProfileStatusBadge = ({ status }: { status: VerificationStatus }) => {
+  const commonClasses = "text-xs px-2 py-0.5 rounded-full font-medium flex items-center gap-1";
+  switch (status) {
+    case 'verified': return <Badge variant="outline" className={cn(commonClasses, "bg-green-100 text-green-700 border-green-300")}><ShieldCheck className="h-3 w-3" />Verified</Badge>;
+    case 'pending_verification': return <Badge variant="outline" className={cn(commonClasses, "bg-yellow-100 text-yellow-700 border-yellow-300")}><AlertTriangle className="h-3 w-3" />Pending</Badge>;
+    case 'rejected': return <Badge variant="destructive" className={cn(commonClasses, "bg-red-600 text-white border-red-700")}><AlertTriangle className="h-3 w-3" />Rejected</Badge>;
+    case 'anonymous':
+    default: return <Badge variant="outline" className={cn(commonClasses, "capitalize")}>{(status as string).replace(/_/g, ' ')}</Badge>;
+  }
+};
+
 
 export function UpdateVerificationStatusDialog({
   isOpen,
@@ -71,14 +95,14 @@ export function UpdateVerificationStatusDialog({
       initialRequestStateRef.current = {
         operationalStatus: request.operationalStatus,
         profileStatus: request.profileStatus,
-        adminNotes: [...(request.adminNotes || [])], // Deep copy for comparison
+        adminNotes: JSON.parse(JSON.stringify(request.adminNotes || [])),
       };
       setSelectedOperationalStatus(request.operationalStatus);
       setSelectedProfileStatus(request.profileStatus);
-      setCurrentAdminNotes([...(request.adminNotes || [])]); // Deep copy for local modification
+      setCurrentAdminNotes(JSON.parse(JSON.stringify(request.adminNotes || [])));
       setNewNoteText('');
     } else {
-        initialRequestStateRef.current = null; // Reset when dialog is closed or no request
+        initialRequestStateRef.current = null;
     }
     setShowMainConfirmation(false);
     setNoteToDeleteId(null);
@@ -117,8 +141,8 @@ export function UpdateVerificationStatusDialog({
         timestamp: new Date(),
         operationalStatusAtTimeOfNote: selectedOperationalStatus,
         profileStatusAtTimeOfNote: selectedProfileStatus,
-        adminId: 'current_admin_placeholder', // Replace with actual admin ID
-        adminName: 'Admin User', // Replace with actual admin name
+        adminId: 'current_admin_placeholder', 
+        adminName: 'Admin User', 
       });
     }
     onSave(request.id, selectedOperationalStatus, selectedProfileStatus, finalNotes);
@@ -134,7 +158,7 @@ export function UpdateVerificationStatusDialog({
   const handleConfirmDeleteNote = () => {
     if (noteToDeleteId) {
       setCurrentAdminNotes(prev => prev.filter(note => note.id !== noteToDeleteId));
-      toast({ title: "Note Deleted", description: "The note has been marked for deletion. Save changes to confirm." });
+      toast({ title: "Note Marked for Deletion", description: "The note will be removed when you save changes." });
     }
     setIsDeleteNoteDialogOpen(false);
     setNoteToDeleteId(null);
@@ -144,7 +168,7 @@ export function UpdateVerificationStatusDialog({
     if (initialRequestStateRef.current) {
         setSelectedOperationalStatus(initialRequestStateRef.current.operationalStatus);
         setSelectedProfileStatus(initialRequestStateRef.current.profileStatus);
-        setCurrentAdminNotes([...(initialRequestStateRef.current.adminNotes || [])]);
+        setCurrentAdminNotes(JSON.parse(JSON.stringify(initialRequestStateRef.current.adminNotes || [])));
     }
     setNewNoteText('');
     setShowMainConfirmation(false);
@@ -154,141 +178,128 @@ export function UpdateVerificationStatusDialog({
   const operationalStatusOptions: VerificationQueueStatus[] = ["New Request", "Contacted", "Docs Under Review", "More Info Requested", "Approved", "Rejected"];
   const profileStatusOptions: VerificationStatus[] = ['anonymous', 'pending_verification', 'verified', 'rejected'];
 
-  const getStatusBadge = (status: VerificationStatus | VerificationQueueStatus, type: 'profile' | 'operational') => {
-    if (type === 'profile') {
-      switch (status) {
-        case 'verified': return <Badge className="bg-green-100 text-green-700 text-xs">Verified</Badge>;
-        case 'pending_verification': return <Badge variant="secondary" className="bg-yellow-100 text-yellow-700 text-xs">Pending</Badge>;
-        case 'rejected': return <Badge variant="destructive" className="text-xs">Rejected</Badge>;
-        default: return <Badge variant="outline" className="text-xs capitalize">{status.replace('_', ' ')}</Badge>;
-      }
-    } else { // operational
-       switch (status as VerificationQueueStatus) {
-        case 'New Request': return <Badge variant="outline" className="text-xs">New Request</Badge>;
-        case 'Contacted': return <Badge className="bg-blue-100 text-blue-700 text-xs">Contacted</Badge>;
-        case 'Docs Under Review': return <Badge className="bg-purple-100 text-purple-700 text-xs">Docs Review</Badge>;
-        case 'More Info Requested': return <Badge className="bg-orange-100 text-orange-700 text-xs">More Info Req.</Badge>;
-        case 'Approved': return <Badge className="bg-green-100 text-green-700 text-xs">Approved</Badge>;
-        case 'Rejected': return <Badge variant="destructive" className="text-xs">Rejected</Badge>;
-        default: return <Badge className="text-xs">{status}</Badge>;
-      }
-    }
-  };
-
   return (
     <>
       <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleCancel(); else onOpenChange(true);}}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col">
+        <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col p-0">
           {!showMainConfirmation ? (
             <>
-              <DialogHeader>
-                <DialogTitle>Manage Verification: {request.userName}</DialogTitle>
-                <DialogDescription>
-                  User Role: {request.userRole}. Request ID: {request.id.substring(0,8)}...
-                  {request.listingId && ` Listing: ${request.listingTitle || request.listingId.substring(0,8)}...`}
+              <DialogHeader className="p-6 border-b">
+                <DialogTitle className="text-xl font-semibold text-brand-dark-blue flex items-center">
+                  <Edit className="mr-2 h-5 w-5 text-primary"/>Manage Verification: {request.userName}
+                </DialogTitle>
+                <DialogDescription className="text-sm text-muted-foreground">
+                  Request ID: <span className="font-mono text-xs">{request.id.substring(0,8)}...</span>
+                  {request.listingId && ` | Listing: ${request.listingTitle || request.listingId.substring(0,8)}...`}
+                  <br/>Role: <Badge variant="outline" className="capitalize text-xs">{request.userRole}</Badge>
                 </DialogDescription>
               </DialogHeader>
-              <div className="grid md:grid-cols-2 gap-x-6 gap-y-4 py-4 flex-grow overflow-hidden">
+              
+              <div className="grid md:grid-cols-2 gap-6 p-6 flex-grow overflow-y-auto">
                 {/* Left Column: Statuses and New Note */}
-                <div className="space-y-4 flex flex-col">
-                  <div className="grid grid-cols-3 items-center gap-3">
-                    <Label htmlFor="current-ops-status" className="text-right text-xs">Current Ops</Label>
-                    <Input id="current-ops-status" value={request.operationalStatus} disabled className="col-span-2 h-8 text-xs" />
-                  </div>
-                  <div className="grid grid-cols-3 items-center gap-3">
-                    <Label htmlFor="operationalStatus" className="text-right text-xs">New Ops Status</Label>
+                <div className="space-y-6 flex flex-col">
+                  <div>
+                    <Label className="text-sm font-medium text-brand-dark-blue">Operational Status</Label>
+                    <div className="flex items-center gap-2 mt-1 mb-2">
+                        <span className="text-xs text-muted-foreground">Current:</span>
+                        <OperationalStatusBadge status={request.operationalStatus} />
+                    </div>
                     <Select value={selectedOperationalStatus} onValueChange={(value) => setSelectedOperationalStatus(value as VerificationQueueStatus)}>
-                      <SelectTrigger id="operationalStatus" className="col-span-2 h-8 text-xs"><SelectValue placeholder="Select ops status" /></SelectTrigger>
+                      <SelectTrigger id="operationalStatus" className="h-9 text-sm"><SelectValue placeholder="Select new operational status" /></SelectTrigger>
                       <SelectContent>{operationalStatusOptions.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
-                  <div className="grid grid-cols-3 items-center gap-3">
-                    <Label htmlFor="current-profile-status" className="text-right text-xs">Current Profile</Label>
-                    <Input id="current-profile-status" value={request.profileStatus} disabled className="col-span-2 h-8 text-xs" />
-                  </div>
-                  <div className="grid grid-cols-3 items-center gap-3">
-                    <Label htmlFor="profileStatus" className="text-right text-xs">New Profile Status</Label>
+
+                  <div>
+                    <Label className="text-sm font-medium text-brand-dark-blue">Profile Status</Label>
+                     <div className="flex items-center gap-2 mt-1 mb-2">
+                        <span className="text-xs text-muted-foreground">Current:</span>
+                        <ProfileStatusBadge status={request.profileStatus} />
+                    </div>
                     <Select value={selectedProfileStatus} onValueChange={(value) => setSelectedProfileStatus(value as VerificationStatus)}>
-                      <SelectTrigger id="profileStatus" className="col-span-2 h-8 text-xs"><SelectValue placeholder="Select profile status" /></SelectTrigger>
+                      <SelectTrigger id="profileStatus" className="h-9 text-sm"><SelectValue placeholder="Select new profile status" /></SelectTrigger>
                       <SelectContent>{profileStatusOptions.map(s => <SelectItem key={s} value={s} className="capitalize">{s.replace('_', ' ')}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
+                  
                   <div className="space-y-1.5 flex-grow flex flex-col">
-                    <Label htmlFor="newAdminNoteText">Add New Note</Label>
+                    <Label htmlFor="newAdminNoteText" className="text-sm font-medium text-brand-dark-blue">Add New Internal Note</Label>
                     <Textarea
                       id="newAdminNoteText"
                       value={newNoteText}
                       onChange={(e) => setNewNoteText(e.target.value)}
-                      className="flex-grow text-xs min-h-[100px]"
-                      placeholder="Type a new internal note..."
+                      className="flex-grow text-sm min-h-[120px] sm:min-h-[150px] bg-brand-light-gray/30 focus:ring-primary"
+                      placeholder="Type a new internal note for this request..."
                     />
                   </div>
                 </div>
 
                 {/* Right Column: Note History */}
                 <div className="space-y-2 flex flex-col overflow-hidden">
-                  <Label>Notes History ({currentAdminNotes.length})</Label>
+                  <Label className="text-sm font-medium text-brand-dark-blue">Notes History ({currentAdminNotes.length})</Label>
                   {currentAdminNotes.length > 0 ? (
-                    <ScrollArea className="border rounded-md p-3 h-72 bg-muted/30 flex-grow">
+                    <ScrollArea className="border rounded-md p-3 h-80 sm:h-[calc(100%-2rem)] bg-brand-light-gray/20 flex-grow"> {/* Adjusted height */}
                       <div className="space-y-3">
-                        {currentAdminNotes.slice().reverse().map(note => ( // Display newest first
-                          <div key={note.id} className="text-xs p-2.5 border rounded-md bg-background shadow-sm">
-                            <p className="whitespace-pre-wrap mb-1">{note.note}</p>
-                            <div className="text-muted-foreground/80 text-[0.7rem] flex flex-wrap gap-x-2 gap-y-0.5 items-center">
+                        {currentAdminNotes.slice().reverse().map(note => (
+                          <div key={note.id} className="text-xs p-2.5 border rounded-md bg-background shadow-sm relative group">
+                            <p className="whitespace-pre-wrap mb-1.5 text-gray-700 text-[13px]">{note.note}</p>
+                            <div className="text-muted-foreground/80 text-[0.7rem] flex flex-wrap gap-x-2 gap-y-0.5 items-center border-t pt-1.5 mt-1.5">
                               <span><UserCircle className="inline h-3 w-3 mr-0.5" /> {note.adminName || note.adminId}</span>
-                              <span>@ {new Date(note.timestamp).toLocaleString()}</span>
-                              <span>Ops: {getStatusBadge(note.operationalStatusAtTimeOfNote, 'operational')}</span>
-                              <span>Profile: {getStatusBadge(note.profileStatusAtTimeOfNote, 'profile')}</span>
-                              <Button variant="ghost" size="icon" className="h-5 w-5 ml-auto text-destructive hover:bg-destructive/10" onClick={() => handleOpenDeleteNoteDialog(note.id)}>
-                                <Trash2 className="h-3 w-3"/>
-                              </Button>
+                              <span>@ {new Date(note.timestamp).toLocaleString([], {dateStyle: 'short', timeStyle: 'short'})}</span>
+                              <span>Ops: <OperationalStatusBadge status={note.operationalStatusAtTimeOfNote} /></span>
+                              <span>Profile: <ProfileStatusBadge status={note.profileStatusAtTimeOfNote} /></span>
                             </div>
+                             <Button variant="ghost" size="icon" className="absolute top-1 right-1 h-6 w-6 text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => handleOpenDeleteNoteDialog(note.id)} title="Delete this note">
+                                <Trash2 className="h-3.5 w-3.5"/>
+                              </Button>
                           </div>
                         ))}
                       </div>
                     </ScrollArea>
                   ) : (
-                    <div className="border rounded-md p-3 h-72 bg-muted/30 flex items-center justify-center text-sm text-muted-foreground">
-                      No notes yet.
+                    <div className="border rounded-md p-3 h-80 sm:h-[calc(100%-2rem)] bg-brand-light-gray/20 flex items-center justify-center text-sm text-muted-foreground">
+                      No internal notes recorded yet.
                     </div>
                   )}
                 </div>
               </div>
-              <DialogFooter>
-                <DialogClose asChild><Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button></DialogClose>
-                <Button type="button" onClick={handleAttemptSave} disabled={!hasAnyChange || !selectedOperationalStatus || !selectedProfileStatus}>
+              <DialogFooter className="p-6 border-t">
+                <Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button>
+                <Button type="button" onClick={handleAttemptSave} disabled={!hasAnyChange || !selectedOperationalStatus || !selectedProfileStatus} className="bg-primary text-primary-foreground hover:bg-primary/90">
                   Review & Save Changes
                 </Button>
               </DialogFooter>
             </>
-          ) : ( // Show Confirmation View
+          ) : ( 
             <>
-              <DialogHeader>
-                <DialogTitle>Confirm Status & Note Changes</DialogTitle>
-                <DialogDescription>Review the changes before saving.</DialogDescription>
+              <DialogHeader className="p-6 border-b">
+                <DialogTitle className="text-xl font-semibold text-brand-dark-blue flex items-center">
+                    <Info className="mr-2 h-5 w-5 text-primary"/>Confirm Changes for {request.userName}
+                </DialogTitle>
+                <DialogDescription>Please review the changes before saving.</DialogDescription>
               </DialogHeader>
-              <div className="py-4 space-y-3 text-sm max-h-[60vh] overflow-y-auto">
+              <div className="p-6 space-y-4 text-sm max-h-[60vh] overflow-y-auto">
                 {operationalStatusChanged && (
-                  <p><strong>Operational Status:</strong> <span className="text-muted-foreground line-through">{initialRequestStateRef.current?.operationalStatus}</span> &rarr; <span className="text-primary font-semibold">{selectedOperationalStatus}</span></p>
+                  <p><strong>Operational Status:</strong> <OperationalStatusBadge status={initialRequestStateRef.current!.operationalStatus!} /> &rarr; <OperationalStatusBadge status={selectedOperationalStatus!} /></p>
                 )}
                 {profileStatusChanged && (
-                   <p><strong>Profile Status:</strong> <span className="text-muted-foreground line-through">{initialRequestStateRef.current?.profileStatus}</span> &rarr; <span className="text-primary font-semibold">{selectedProfileStatus}</span></p>
+                   <p><strong>Profile Status:</strong> <ProfileStatusBadge status={initialRequestStateRef.current!.profileStatus!} /> &rarr; <ProfileStatusBadge status={selectedProfileStatus!} /></p>
                 )}
                 {newNoteAdded && (
                   <div>
                     <p><strong>New Note to Add:</strong></p>
-                    <p className="text-muted-foreground p-2 border rounded bg-muted/50 whitespace-pre-wrap">{newNoteText.trim()}</p>
-                    <p className="text-xs text-muted-foreground">(With statuses: Ops: {selectedOperationalStatus}, Profile: {selectedProfileStatus})</p>
+                    <p className="text-muted-foreground p-3 border rounded bg-brand-light-gray/40 whitespace-pre-wrap text-xs">{newNoteText.trim()}</p>
+                    <p className="text-xs text-muted-foreground mt-1">(Will be saved with statuses: Ops: {selectedOperationalStatus}, Profile: {selectedProfileStatus})</p>
                   </div>
                 )}
                 {notesChanged && !newNoteAdded && (JSON.stringify(currentAdminNotes) !== JSON.stringify(initialRequestStateRef.current?.adminNotes || [])) && (
-                     <p>Admin notes history will be updated (e.g., notes deleted).</p>
+                     <p className="text-yellow-700 bg-yellow-50 p-2 rounded border border-yellow-200"><AlertTriangle className="inline h-4 w-4 mr-1"/>Notes history will be updated (e.g., notes deleted).</p>
                 )}
-                {!hasAnyChange && <p>No changes detected.</p>}
+                {!hasAnyChange && <p>No changes were detected.</p>}
               </div>
-              <DialogFooter>
+              <DialogFooter className="p-6 border-t">
                 <Button type="button" variant="outline" onClick={() => setShowMainConfirmation(false)}>Back to Edit</Button>
-                <Button type="button" onClick={handleConfirmSave} className="bg-primary text-primary-foreground">Confirm & Save All</Button>
+                <Button type="button" onClick={handleConfirmSave} className="bg-green-600 text-white hover:bg-green-700">Confirm & Save All Changes</Button>
               </DialogFooter>
             </>
           )}
@@ -300,7 +311,7 @@ export function UpdateVerificationStatusDialog({
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Admin Note?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this note? This action cannot be undone after saving the main changes.
+              Are you sure you want to permanently delete this note? This action cannot be undone once changes are saved.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

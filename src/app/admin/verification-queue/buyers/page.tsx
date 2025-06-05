@@ -1,5 +1,6 @@
+
 'use client';
-import * as React from "react";
+import *a_s React from "react";
 import useSWR from 'swr';
 import {
   Table,
@@ -13,20 +14,30 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { VerificationRequestItem, VerificationQueueStatus, VerificationStatus, UserRole } from "@/lib/types";
+import type { VerificationRequestItem, VerificationQueueStatus, VerificationStatus, UserRole, AdminNote } from "@/lib/types";
 import Link from "next/link";
-import { Eye, Edit, ShieldCheck, AlertTriangle, MailOpen, MessageSquare, Clock, FileSearch, RefreshCw, Loader2 } from "lucide-react";
+import { Eye, Edit, ShieldCheck, AlertTriangle, MailOpen, MessageSquare, Clock, FileSearch, RefreshCw, Loader2, Users } from "lucide-react";
 import { UpdateVerificationStatusDialog } from "@/components/admin/update-verification-status-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
-function FormattedTimestamp({ timestamp }: { timestamp: Date | string }) {
+function FormattedTimestamp({ timestamp, short = false }: { timestamp: Date | string, short?: boolean }) {
   const [formattedDate, setFormattedDate] = React.useState<string | null>(null);
   React.useEffect(() => {
-    setFormattedDate(new Date(timestamp).toLocaleString());
-  }, [timestamp]);
-  if (!formattedDate) return <span className="italic text-xs">Loading...</span>;
-  return <>{formattedDate}</>;
+    const dateObj = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
+    if (!isNaN(dateObj.getTime())) {
+      if (short) {
+        setFormattedDate(dateObj.toLocaleDateString());
+      } else {
+        setFormattedDate(dateObj.toLocaleString());
+      }
+    } else {
+      setFormattedDate('N/A');
+    }
+  }, [timestamp, short]);
+
+  if (timestamp && !formattedDate) return <span className="italic text-xs">Loading...</span>;
+  return <>{formattedDate || 'N/A'}</>;
 }
 
 interface VerificationQueueResponse {
@@ -55,13 +66,13 @@ export default function AdminBuyerVerificationQueuePage() {
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [selectedRequest, setSelectedRequest] = React.useState<VerificationRequestItem | null>(null);
 
-  const apiUrl = `/api/admin/verification-queue/buyers?page=${page}&limit=20&status=${statusFilter}`;
+  const apiUrl = `/api/admin/verification-queue/buyers?page=${page}&limit=10&status=${statusFilter}`;
 
   const { data, error, isLoading, mutate } = useSWR<VerificationQueueResponse>(
     apiUrl,
     fetcher,
     {
-      refreshInterval: 30000,
+      refreshInterval: 60000, // Refresh every 60 seconds
       revalidateOnFocus: true,
     }
   );
@@ -75,12 +86,19 @@ export default function AdminBuyerVerificationQueuePage() {
     requestId: string,
     newOperationalStatus: VerificationQueueStatus,
     newProfileStatus: VerificationStatus,
-    updatedAdminNotes: any[] // Assuming AdminNote[] type
+    updatedAdminNotes: AdminNote[]
   ) => {
     try {
       // TODO: Implement API call to update verification status
-      // For now, just refresh the data
-      await mutate();
+      // For now, just optimistically update UI and refresh data
+      // Example:
+      // await fetch(`/api/admin/verification-queue/update/${requestId}`, {
+      //   method: 'PUT',
+      //   body: JSON.stringify({ operationalStatus: newOperationalStatus, profileStatus: newProfileStatus, adminNotes: updatedAdminNotes })
+      // });
+      console.log("Saving update:", { requestId, newOperationalStatus, newProfileStatus, updatedAdminNotes });
+      
+      mutate(); // Re-fetch data after save
 
       const requestToUpdate = data?.requests.find(r => r.id === requestId);
       const userName = requestToUpdate?.userName || "User";
@@ -108,29 +126,31 @@ export default function AdminBuyerVerificationQueuePage() {
     setPage(1);
   };
 
-  const getOperationalStatusBadge = (status: VerificationQueueStatus) => {
+  const OperationalStatusBadge = ({ status }: { status: VerificationQueueStatus }) => {
+    const commonClasses = "text-xs px-2 py-0.5 rounded-full font-medium flex items-center gap-1.5";
     switch (status) {
-      case 'New Request': return <Badge variant="destructive" className="text-xs bg-red-100 text-red-700 border-red-300"><Clock className="h-3 w-3 mr-1" />New</Badge>;
-      case 'Contacted': return <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700 border-blue-300"><MailOpen className="h-3 w-3 mr-1" />Contacted</Badge>;
-      case 'Docs Under Review': return <Badge className="bg-purple-100 text-purple-700 text-xs border-purple-300"><FileSearch className="h-3 w-3 mr-1" />Docs Review</Badge>;
-      case 'More Info Requested': return <Badge className="bg-yellow-100 text-yellow-700 text-xs border-yellow-300"><MessageSquare className="h-3 w-3 mr-1" />More Info</Badge>;
-      case 'Approved': return <Badge className="bg-green-100 text-green-700 text-xs border-green-300"><ShieldCheck className="h-3 w-3 mr-1" />Approved</Badge>;
-      case 'Rejected': return <Badge variant="destructive" className="text-xs bg-red-700 text-white border-red-500"><AlertTriangle className="h-3 w-3 mr-1" />Rejected</Badge>;
-      default: return <Badge className="text-xs">{status}</Badge>;
+      case 'New Request': return <Badge variant="outline" className={cn(commonClasses, "bg-red-100 text-red-700 border-red-300")}><Clock className="h-3 w-3" />New</Badge>;
+      case 'Contacted': return <Badge variant="outline" className={cn(commonClasses, "bg-blue-100 text-blue-700 border-blue-300")}><MailOpen className="h-3 w-3" />Contacted</Badge>;
+      case 'Docs Under Review': return <Badge variant="outline" className={cn(commonClasses, "bg-purple-100 text-purple-700 border-purple-300")}><FileSearch className="h-3 w-3" />Docs Review</Badge>;
+      case 'More Info Requested': return <Badge variant="outline" className={cn(commonClasses, "bg-orange-100 text-orange-700 border-orange-300")}><MessageSquare className="h-3 w-3" />More Info</Badge>;
+      case 'Approved': return <Badge variant="outline" className={cn(commonClasses, "bg-green-100 text-green-700 border-green-300")}><ShieldCheck className="h-3 w-3" />Approved</Badge>;
+      case 'Rejected': return <Badge variant="destructive" className={cn(commonClasses, "bg-red-600 text-white border-red-700")}><AlertTriangle className="h-3 w-3" />Rejected</Badge>;
+      default: return <Badge className={cn(commonClasses)}>{status}</Badge>;
     }
   };
 
-  const getProfileStatusBadge = (status?: VerificationStatus) => {
-    if (!status) return <Badge variant="outline" className="text-xs">Unknown</Badge>;
+  const ProfileStatusBadge = ({ status }: { status?: VerificationStatus }) => {
+    const commonClasses = "text-xs px-2 py-0.5 rounded-full font-medium flex items-center gap-1.5";
+    if (!status) return <Badge variant="outline" className={cn(commonClasses)}>Unknown</Badge>;
     switch (status) {
-      case 'verified': return <Badge className="bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-200 border-green-300 dark:border-green-500 text-xs"><ShieldCheck className="h-3 w-3 mr-1" />Verified</Badge>;
-      case 'pending_verification': return <Badge variant="secondary" className="bg-yellow-100 text-yellow-700 dark:bg-yellow-700 dark:text-yellow-200 border-yellow-300 dark:border-yellow-500 text-xs"><AlertTriangle className="h-3 w-3 mr-1" />Pending</Badge>;
-      case 'anonymous': return <Badge variant="outline" className="text-xs">Anonymous</Badge>;
-      case 'rejected': return <Badge variant="destructive" className="text-xs">Rejected</Badge>;
-      default: return <Badge variant="outline" className="capitalize text-xs">{(status as string).replace(/_/g, ' ')}</Badge>;
+      case 'verified': return <Badge variant="outline" className={cn(commonClasses, "bg-green-100 text-green-700 border-green-300")}><ShieldCheck className="h-3 w-3" />Verified</Badge>;
+      case 'pending_verification': return <Badge variant="outline" className={cn(commonClasses, "bg-yellow-100 text-yellow-700 border-yellow-300")}><AlertTriangle className="h-3 w-3" />Pending</Badge>;
+      case 'anonymous': return <Badge variant="outline" className={cn(commonClasses)}>Anonymous</Badge>;
+      case 'rejected': return <Badge variant="destructive" className={cn(commonClasses, "bg-red-600 text-white border-red-700")}><AlertTriangle className="h-3 w-3" />Rejected</Badge>;
+      default: return <Badge variant="outline" className={cn(commonClasses, "capitalize")}>{(status as string).replace(/_/g, ' ')}</Badge>;
     }
   };
-
+  
   const pendingCount = data?.requests.filter(r =>
     r.operationalStatus !== 'Approved' && r.operationalStatus !== 'Rejected'
   ).length || 0;
@@ -138,9 +158,9 @@ export default function AdminBuyerVerificationQueuePage() {
   if (error) {
     return (
       <div className="space-y-8">
-        <Card className="shadow-md">
+        <Card className="shadow-md bg-brand-white">
           <CardHeader>
-            <CardTitle className="text-brand-dark-blue font-heading">Buyer Verification Queue</CardTitle>
+            <CardTitle className="text-brand-dark-blue font-heading flex items-center"><Users className="mr-2 h-6 w-6 text-primary" />Buyer Verification Queue</CardTitle>
             <CardDescription>Failed to load verification requests</CardDescription>
           </CardHeader>
           <CardContent>
@@ -163,57 +183,60 @@ export default function AdminBuyerVerificationQueuePage() {
     <div className="space-y-8">
       <Card className="shadow-xl bg-brand-white">
         <CardHeader>
-          <CardTitle className="text-brand-dark-blue font-heading">Buyer Verification Queue</CardTitle>
-          <CardDescription>
-            Manage buyers awaiting verification. Total pending: {pendingCount} | Total requests: {data?.pagination.total || 0}
-          </CardDescription>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+            <div>
+              <CardTitle className="text-brand-dark-blue font-heading flex items-center"><Users className="mr-3 h-7 w-7 text-primary" />Buyer Verification Queue</CardTitle>
+              <CardDescription>
+                Manage buyers awaiting verification. Total pending: {pendingCount} | Total requests: {data?.pagination.total || 0}
+              </CardDescription>
+            </div>
+             <div className="flex items-center gap-2 w-full sm:w-auto">
+                <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
+                  <SelectTrigger className="w-full sm:w-48 h-9 text-xs">
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="New Request">New Request</SelectItem>
+                    <SelectItem value="Contacted">Contacted</SelectItem>
+                    <SelectItem value="Docs Under Review">Docs Under Review</SelectItem>
+                    <SelectItem value="More Info Requested">More Info Requested</SelectItem>
+                    <SelectItem value="Approved">Approved</SelectItem>
+                    <SelectItem value="Rejected">Rejected</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button onClick={handleRefresh} variant="outline" size="sm" className="h-9 text-xs">
+                  <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Refresh
+                </Button>
+              </div>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="mb-6 flex flex-col sm:flex-row gap-4 items-center justify-between">
-            <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
-              <SelectTrigger className="w-full sm:w-48">
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="New Request">New Request</SelectItem>
-                <SelectItem value="Contacted">Contacted</SelectItem>
-                <SelectItem value="Docs Under Review">Docs Under Review</SelectItem>
-                <SelectItem value="More Info Requested">More Info Requested</SelectItem>
-                <SelectItem value="Approved">Approved</SelectItem>
-                <SelectItem value="Rejected">Rejected</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button onClick={handleRefresh} variant="outline" size="sm">
-              <RefreshCw className="h-4 w-4 mr-2" /> Refresh
-            </Button>
-          </div>
-
           <div className="rounded-md border overflow-x-auto">
             <Table>
-              <TableHeader className="bg-brand-light-gray/50">
+              <TableHeader className="bg-brand-light-gray/40">
                 <TableRow>
-                  <TableHead className="whitespace-nowrap text-brand-dark-blue/80">Date Requested</TableHead>
-                  <TableHead className="whitespace-nowrap text-brand-dark-blue/80">Buyer Name</TableHead>
-                  <TableHead className="text-brand-dark-blue/80">Email</TableHead>
-                  <TableHead className="whitespace-nowrap text-brand-dark-blue/80">Operational Status</TableHead>
-                  <TableHead className="whitespace-nowrap text-brand-dark-blue/80">Profile Status</TableHead>
-                  <TableHead className="text-right text-brand-dark-blue/80">Actions</TableHead>
+                  <TableHead className="whitespace-nowrap text-brand-dark-blue/80 font-semibold">Requested</TableHead>
+                  <TableHead className="whitespace-nowrap text-brand-dark-blue/80 font-semibold">Buyer Name</TableHead>
+                  <TableHead className="text-brand-dark-blue/80 font-semibold">Email</TableHead>
+                  <TableHead className="whitespace-nowrap text-brand-dark-blue/80 font-semibold">Ops Status</TableHead>
+                  <TableHead className="whitespace-nowrap text-brand-dark-blue/80 font-semibold">Profile Status</TableHead>
+                  <TableHead className="text-right text-brand-dark-blue/80 font-semibold">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground py-10">
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-10 h-60">
                       <div className="flex items-center justify-center">
-                        <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                        <Loader2 className="h-6 w-6 animate-spin mr-2 text-primary" />
                         Loading requests...
                       </div>
                     </TableCell>
                   </TableRow>
                 ) : requests.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground py-10">
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-10 h-60">
                       {statusFilter === 'all'
                         ? 'The buyer verification queue is empty.'
                         : `No verification requests found with status "${statusFilter}".`}
@@ -221,19 +244,19 @@ export default function AdminBuyerVerificationQueuePage() {
                   </TableRow>
                 ) : (
                   requests.map((req) => (
-                    <TableRow key={req.id} className="hover:bg-brand-light-gray/30">
+                    <TableRow key={req.id} className="hover:bg-brand-light-gray/30 text-sm">
                       <TableCell className="text-xs whitespace-nowrap"><FormattedTimestamp timestamp={req.timestamp} /></TableCell>
                       <TableCell className="font-medium whitespace-nowrap text-brand-dark-blue">
                         <Link href={`/admin/users/${req.userId}`} className="hover:underline hover:text-brand-sky-blue">{req.userName}</Link>
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">{req.userEmail || 'N/A'}</TableCell>
-                      <TableCell>{getOperationalStatusBadge(req.operationalStatus)}</TableCell>
-                      <TableCell>{getProfileStatusBadge(req.profileStatus)}</TableCell>
+                      <TableCell><OperationalStatusBadge status={req.operationalStatus} /></TableCell>
+                      <TableCell><ProfileStatusBadge status={req.profileStatus} /></TableCell>
                       <TableCell className="text-right whitespace-nowrap">
-                        <Button variant="outline" size="sm" onClick={() => handleManageStatus(req)} className="border-brand-sky-blue text-brand-sky-blue hover:bg-brand-sky-blue/10 hover:text-brand-sky-blue">
+                        <Button variant="default" size="sm" onClick={() => handleManageStatus(req)} className="bg-brand-sky-blue text-brand-white hover:bg-brand-sky-blue/90 text-xs h-8 px-3">
                           <Edit className="h-3.5 w-3.5 mr-1.5"/> Manage
                         </Button>
-                        <Button variant="ghost" size="icon" asChild title="View Buyer Details" className="text-brand-dark-blue/70 hover:text-brand-sky-blue">
+                        <Button variant="ghost" size="icon" asChild title="View Buyer Details" className="text-brand-dark-blue/70 hover:text-brand-sky-blue ml-1">
                           <Link href={`/admin/users/${req.userId}`}>
                             <Eye className="h-4 w-4" />
                           </Link>
@@ -249,7 +272,7 @@ export default function AdminBuyerVerificationQueuePage() {
           {data?.pagination && data.pagination.totalPages > 1 && (
             <div className="flex items-center justify-between px-2 py-4 mt-4">
               <div className="text-sm text-muted-foreground">
-                Showing {data.requests.length > 0 ? ((data.pagination.page - 1) * data.pagination.limit) + 1 : 0} to{' '}
+                Showing {requests.length > 0 ? ((data.pagination.page - 1) * data.pagination.limit) + 1 : 0} to{' '}
                 {Math.min(data.pagination.page * data.pagination.limit, data.pagination.total)} of{' '}
                 {data.pagination.total} requests
               </div>
@@ -285,4 +308,3 @@ export default function AdminBuyerVerificationQueuePage() {
     </div>
   );
 }
-
