@@ -128,7 +128,7 @@ export default function AdminBuyerVerificationQueuePage() {
       case 'pending_verification': return <Badge variant="secondary" className="bg-yellow-100 text-yellow-700 dark:bg-yellow-700 dark:text-yellow-200 border-yellow-300 dark:border-yellow-500 text-xs"><AlertTriangle className="h-3 w-3 mr-1" />Pending</Badge>;
       case 'anonymous': return <Badge variant="outline" className="text-xs">Anonymous</Badge>;
       case 'rejected': return <Badge variant="destructive" className="text-xs">Rejected</Badge>;
-      default: return <Badge variant="outline" className="capitalize text-xs">{status.replace(/_/g, ' ')}</Badge>;
+      default: return <Badge variant="outline" className="capitalize text-xs">{(status as string).replace(/_/g, ' ')}</Badge>;
     }
   };
 
