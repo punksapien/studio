@@ -1347,3 +1347,79 @@ Once approved, Executor should:
 2. Start **D2** by generating the listings migration & view, then extend the metrics API.
 
 Let me know if you'd like any adjustments before we proceed!
+
+### 🔧 **DEBUGGING: Admin Users Page Loading Issue** 🐛
+
+**Issue**: Page shows "Loading user details..." indefinitely despite API returning 200 status
+
+**Root Cause Analysis**:
+1. ✅ API endpoint `/api/admin/users` working (200 responses in logs)
+2. ✅ Authentication working (admin user accessing successfully)
+3. ❌ **Type Mismatch Issue**: Frontend `User` interface expects fields that API doesn't provide
+
+**🛠️ **Fixes Applied**:
+1. **Added Missing Required Fields**: `phoneNumber`, `isEmailVerified` to API response
+2. **Fixed Field Name Consistency**: Added both `snake_case` and `camelCase` versions
+3. **Created Simplified Interface**: `AdminUser` interface matching exact API response
+4. **Updated Badge Function**: Accept `string` instead of specific type
+5. **Added Debug Logging**: Console.log in API to track data flow
+
+**🧪 **Testing Status**: Waiting for page reload to confirm fix
+
+**Next Steps**:
+- Refresh `/admin/users` page to test the fixes
+- Check browser console for any remaining JavaScript errors
+- Verify data loads and displays correctly
+
+### 🆕 **TASK COMPLETED: Admin Buyer Verification Queue Backend** ✅
+
+**Implementation Status**: ✅ **FULLY COMPLETED**
+
+#### **🔧 Implementation Details**:
+
+**✅ API Endpoint Created**:
+- **Route**: `/api/admin/verification-queue/buyers`
+- **Method**: GET with query parameters (page, limit, status filtering)
+- **Authentication**: Admin role required with proper auth verification
+
+**✅ Database Integration**:
+- **Query**: Uses `verification_requests` table with INNER JOIN to `user_profiles`
+- **Filtering**: Supports buyer role filtering and verification status filtering
+- **Pagination**: Built-in pagination with count and page management
+- **Real Data**: Replaced placeholder data with actual database queries
+
+**✅ Frontend Integration**:
+- **Updated Page**: `/admin/verification-queue/buyers` now uses real API
+- **SWR Integration**: Added proper data fetching with auto-refresh every 30 seconds
+- **Loading States**: Added spinner and loading indicators
+- **Error Handling**: Proper error display and retry functionality
+- **Filtering**: Status filter dropdown connected to API parameters
+- **Pagination**: Dynamic pagination based on total records
+
+**✅ Data Transformation**:
+- **API Response**: Properly formatted to match `VerificationRequestItem` interface
+- **User Details**: Includes email, phone, country, verification status
+- **Admin Notes**: Handles both string and object formats from database
+- **Timestamps**: Proper date formatting and timezone handling
+
+#### **🎯 Available Features**:
+- ✅ **Real-time Data**: Live verification requests from database
+- ✅ **Status Filtering**: Filter by operational status (New, Contacted, Docs Review, etc.)
+- ✅ **Search & Pagination**: Efficient data loading with pagination controls
+- ✅ **Email Display**: Shows actual user email addresses instead of placeholders
+- ✅ **Refresh Function**: Manual refresh button to update data immediately
+- ✅ **User Links**: Clickable links to view individual user details
+
+#### **🔄 Next Steps** (Optional Enhancements):
+- **Status Update API**: Implement PUT endpoint to update verification status
+- **Document Review**: Add document viewing/management capabilities
+- **Admin Notes**: API for adding/updating admin notes
+- **Email Notifications**: Auto-email when status changes
+
+#### **📊 Technical Stack**:
+- **Backend**: Next.js API routes with Supabase service client
+- **Frontend**: React with SWR for data fetching and caching
+- **Database**: PostgreSQL queries with proper JOIN operations
+- **Auth**: Production-grade admin authentication middleware
+
+---

@@ -29,8 +29,6 @@ export async function middleware(req: NextRequest) {
   const publicPaths = [
     // Auth pages
     '/auth/login', '/auth/register', '/auth/forgot-password', '/auth/update-password',
-    // Admin auth page (public for unauthenticated access)
-    '/admin/login',
     // Misc auth related
     '/auth/verify-otp', '/auth/callback', '/auth/verification-error', '/auth/verification-success',
     '/verify-email', // Allow unauthenticated users to verify email
@@ -98,6 +96,26 @@ export async function middleware(req: NextRequest) {
     }
     // Allow access to other auth pages like /auth/callback, /auth/update-password etc.
     console.log(`[MIDDLEWARE] ${correlationId} | Auth page access: ${pathname} - ALLOWED`)
+    return res
+  }
+
+  // Handle admin login page - redirect authenticated admins to admin dashboard
+  if (pathname === '/admin/login') {
+    if (success && user && profile && profile.role === 'admin') {
+      console.log(`[MIDDLEWARE] ${correlationId} | Authenticated admin accessing /admin/login, redirecting to /admin`)
+
+      middlewareAuth.logOnboardingState(
+        correlationId,
+        user.id,
+        profile,
+        'redirect_from_admin_login',
+        pathname
+      )
+
+      return NextResponse.redirect(new URL('/admin', req.url))
+    }
+    // Allow unauthenticated access or non-admin users to see the login page
+    console.log(`[MIDDLEWARE] ${correlationId} | Admin login page access - ALLOWED`)
     return res
   }
 

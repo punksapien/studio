@@ -26,9 +26,27 @@ import useSWR from 'swr';
 import { useState, useCallback, useMemo } from 'react';
 import { useDebounce } from '@/hooks/use-debounce';
 
-// Types for the API response
+// Simplified interface for admin user data that matches API response exactly
+interface AdminUser {
+  id: string;
+  fullName: string;
+  email: string;
+  phoneNumber: string;
+  role: string;
+  verificationStatus: string;
+  isEmailVerified: boolean;
+  country: string;
+  createdAt: string; // ISO string from database
+  updatedAt: string; // ISO string from database
+  isPaid: boolean;
+  isOnboardingCompleted: boolean;
+  is_onboarding_completed: boolean;
+  onboardingStep: number;
+  onboarding_step_completed: number;
+}
+
 interface AdminUsersResponse {
-  users: User[];
+  users: AdminUser[];
   pagination: {
     page: number;
     limit: number;
@@ -107,7 +125,7 @@ export default function AdminUsersPage() {
   }, []);
 
   // Badge component for verification status
-  const getProfileVerificationBadge = (status: User["verificationStatus"]) => {
+  const getProfileVerificationBadge = (status: string) => {
     switch (status) {
       case 'verified':
         return <Badge className="bg-green-100 text-green-700 dark:bg-green-800 dark:text-green-200 border-green-300 dark:border-green-600"><ShieldCheck className="h-3 w-3 mr-1" /> Verified</Badge>;

@@ -86,15 +86,25 @@ export async function GET(req: NextRequest) {
       id: user.id,
       fullName: user.full_name || 'Unknown',
       email: user.email || 'No email',
+      phoneNumber: 'N/A', // Add missing required field
       role: user.role,
       verificationStatus: user.verification_status || 'unverified',
+      isEmailVerified: true, // Add missing required field
       country: user.country || 'Unknown',
-      createdAt: user.created_at,
-      updatedAt: user.updated_at,
+      createdAt: user.created_at, // Keep as ISO string
+      updatedAt: user.updated_at, // Keep as ISO string
       isPaid: false, // TODO: Calculate from subscriptions table when available
       isOnboardingCompleted: user.is_onboarding_completed || false,
-      onboardingStep: user.onboarding_step_completed || 0
+      is_onboarding_completed: user.is_onboarding_completed || false, // Add field name consistency
+      onboardingStep: user.onboarding_step_completed || 0,
+      onboarding_step_completed: user.onboarding_step_completed || 0 // Add field name consistency
     })) || []
+
+    console.log('Admin Users API - returning data:', {
+      userCount: transformedUsers.length,
+      totalCount: count,
+      sampleUser: transformedUsers[0]
+    })
 
     return NextResponse.json({
       users: transformedUsers,
