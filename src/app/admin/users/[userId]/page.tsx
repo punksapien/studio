@@ -271,7 +271,7 @@ export default function AdminUserDetailPage() {
            <Card className="shadow-md mt-6 bg-brand-white">
                 <CardHeader><CardTitle className="text-brand-dark-blue font-heading flex items-center"><FileText className="h-5 w-5 mr-2"/>Verification History &amp; Data</CardTitle></CardHeader>
                 <CardContent>
-                  <p className="text-muted-foreground text-sm mb-4">Current Profile Verification Status: {getProfileVerificationBadge(user.verificationStatus)}</ColSpan>
+                  <p className="text-muted-foreground text-sm mb-4">Current Profile Verification Status: {getProfileVerificationBadge(user.verificationStatus)}</p>
                   {userVerificationRequests.length > 0 ? (
                      <div className="rounded-md border overflow-x-auto">
                       <Table>
