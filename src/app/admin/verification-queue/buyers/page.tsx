@@ -192,10 +192,11 @@ export default function AdminBuyerVerificationQueuePage() {
                     <RefreshCw className="h-4 w-4 mr-2" /> Refresh
                 </Button>
             </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-md border overflow-x-auto">
+
+          <div className={cn(
+            "rounded-md border overflow-x-auto",
+            !isLoading && requests.length === 0 && "min-h-80 flex items-center justify-center" // Adjusted min-h
+          )}>
             <Table>
               <TableHeader className="bg-brand-light-gray/50">
                 <TableRow>
@@ -291,3 +292,4 @@ export default function AdminBuyerVerificationQueuePage() {
   );
 }
 
+  
