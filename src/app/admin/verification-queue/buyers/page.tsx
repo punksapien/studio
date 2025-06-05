@@ -1,4 +1,3 @@
-
 'use client';
 import * as React from "react";
 import useSWR from 'swr';
@@ -164,39 +163,33 @@ export default function AdminBuyerVerificationQueuePage() {
     <div className="space-y-8">
       <Card className="shadow-xl bg-brand-white">
         <CardHeader>
-            <CardTitle className="text-brand-dark-blue font-heading">Buyer Verification Queue</CardTitle>
-            <CardDescription>
-            Manage buyers awaiting verification.
-            {data && ` Total pending: ${pendingCount} | Total requests: ${data.pagination.total}`}
-            </CardDescription>
+          <CardTitle className="text-brand-dark-blue font-heading">Buyer Verification Queue</CardTitle>
+          <CardDescription>
+            Manage buyers awaiting verification. Total pending: {pendingCount} | Total requests: {data?.pagination.total || 0}
+          </CardDescription>
         </CardHeader>
         <CardContent>
-            <div className="mb-6 flex flex-col sm:flex-row gap-4 items-center justify-between">
-              <div className="flex flex-wrap gap-2 sm:gap-4">
-                <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
-                    <SelectTrigger className="w-full sm:w-48">
-                    <SelectValue placeholder="Filter by status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                    <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="New Request">New Request</SelectItem>
-                    <SelectItem value="Contacted">Contacted</SelectItem>
-                    <SelectItem value="Docs Under Review">Docs Under Review</SelectItem>
-                    <SelectItem value="More Info Requested">More Info Requested</SelectItem>
-                    <SelectItem value="Approved">Approved</SelectItem>
-                    <SelectItem value="Rejected">Rejected</SelectItem>
-                    </SelectContent>
-                </Select>
-              </div>
-                <Button onClick={handleRefresh} variant="outline" size="sm">
-                    <RefreshCw className="h-4 w-4 mr-2" /> Refresh
-                </Button>
-            </div>
+          <div className="mb-6 flex flex-col sm:flex-row gap-4 items-center justify-between">
+            <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
+              <SelectTrigger className="w-full sm:w-48">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="New Request">New Request</SelectItem>
+                <SelectItem value="Contacted">Contacted</SelectItem>
+                <SelectItem value="Docs Under Review">Docs Under Review</SelectItem>
+                <SelectItem value="More Info Requested">More Info Requested</SelectItem>
+                <SelectItem value="Approved">Approved</SelectItem>
+                <SelectItem value="Rejected">Rejected</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button onClick={handleRefresh} variant="outline" size="sm">
+              <RefreshCw className="h-4 w-4 mr-2" /> Refresh
+            </Button>
+          </div>
 
-          <div className={cn(
-            "rounded-md border overflow-x-auto",
-            !isLoading && requests.length === 0 && "min-h-80 flex items-center justify-center" // Adjusted min-h
-          )}>
+          <div className="rounded-md border overflow-x-auto">
             <Table>
               <TableHeader className="bg-brand-light-gray/50">
                 <TableRow>
@@ -210,14 +203,14 @@ export default function AdminBuyerVerificationQueuePage() {
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                    <TableRow>
-                        <TableCell colSpan={6} className="text-center text-muted-foreground py-10">
-                          <div className="flex items-center justify-center">
-                            <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                            Loading requests...
-                          </div>
-                        </TableCell>
-                    </TableRow>
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-10">
+                      <div className="flex items-center justify-center">
+                        <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                        Loading requests...
+                      </div>
+                    </TableCell>
+                  </TableRow>
                 ) : requests.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center text-muted-foreground py-10">
@@ -228,26 +221,27 @@ export default function AdminBuyerVerificationQueuePage() {
                   </TableRow>
                 ) : (
                   requests.map((req) => (
-                  <TableRow key={req.id} className="hover:bg-brand-light-gray/30">
-                    <TableCell className="text-xs whitespace-nowrap"><FormattedTimestamp timestamp={req.timestamp} /></TableCell>
-                    <TableCell className="font-medium whitespace-nowrap text-brand-dark-blue">
+                    <TableRow key={req.id} className="hover:bg-brand-light-gray/30">
+                      <TableCell className="text-xs whitespace-nowrap"><FormattedTimestamp timestamp={req.timestamp} /></TableCell>
+                      <TableCell className="font-medium whitespace-nowrap text-brand-dark-blue">
                         <Link href={`/admin/users/${req.userId}`} className="hover:underline hover:text-brand-sky-blue">{req.userName}</Link>
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{req.userEmail || 'N/A'}</TableCell>
-                    <TableCell>{getOperationalStatusBadge(req.operationalStatus)}</TableCell>
-                    <TableCell>{getProfileStatusBadge(req.profileStatus)}</TableCell>
-                    <TableCell className="text-right whitespace-nowrap">
-                      <Button variant="outline" size="sm" onClick={() => handleManageStatus(req)} className="border-brand-sky-blue text-brand-sky-blue hover:bg-brand-sky-blue/10 hover:text-brand-sky-blue">
-                        <Edit className="h-3.5 w-3.5 mr-1.5"/> Manage
-                      </Button>
-                      <Button variant="ghost" size="icon" asChild title="View Buyer Details" className="text-brand-dark-blue/70 hover:text-brand-sky-blue">
-                        <Link href={`/admin/users/${req.userId}`}>
-                          <Eye className="h-4 w-4" />
-                        </Link>
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                )))}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{req.userEmail || 'N/A'}</TableCell>
+                      <TableCell>{getOperationalStatusBadge(req.operationalStatus)}</TableCell>
+                      <TableCell>{getProfileStatusBadge(req.profileStatus)}</TableCell>
+                      <TableCell className="text-right whitespace-nowrap">
+                        <Button variant="outline" size="sm" onClick={() => handleManageStatus(req)} className="border-brand-sky-blue text-brand-sky-blue hover:bg-brand-sky-blue/10 hover:text-brand-sky-blue">
+                          <Edit className="h-3.5 w-3.5 mr-1.5"/> Manage
+                        </Button>
+                        <Button variant="ghost" size="icon" asChild title="View Buyer Details" className="text-brand-dark-blue/70 hover:text-brand-sky-blue">
+                          <Link href={`/admin/users/${req.userId}`}>
+                            <Eye className="h-4 w-4" />
+                          </Link>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>
@@ -292,4 +286,3 @@ export default function AdminBuyerVerificationQueuePage() {
   );
 }
 
-  
