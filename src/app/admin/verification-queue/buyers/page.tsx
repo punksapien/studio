@@ -14,11 +14,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { VerificationRequestItem, VerificationQueueStatus, VerificationStatus } from "@/lib/types";
+import type { VerificationRequestItem, VerificationQueueStatus, VerificationStatus, UserRole } from "@/lib/types";
 import Link from "next/link";
-import { Eye, Edit, ShieldCheck, AlertTriangle, MailOpen, MessageSquare, Clock, FileSearch, RefreshCw } from "lucide-react";
+import { Eye, Edit, ShieldCheck, AlertTriangle, MailOpen, MessageSquare, Clock, FileSearch, RefreshCw, Loader2 } from "lucide-react";
 import { UpdateVerificationStatusDialog } from "@/components/admin/update-verification-status-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 function FormattedTimestamp({ timestamp }: { timestamp: Date | string }) {
   const [formattedDate, setFormattedDate] = React.useState<string | null>(null);
@@ -105,7 +106,7 @@ export default function AdminBuyerVerificationQueuePage() {
 
   const handleStatusFilterChange = (newStatus: string) => {
     setStatusFilter(newStatus);
-    setPage(1); 
+    setPage(1);
   };
 
   const getOperationalStatusBadge = (status: VerificationQueueStatus) => {
@@ -192,7 +193,10 @@ export default function AdminBuyerVerificationQueuePage() {
                 </Button>
             </div>
 
-          <div className="rounded-md border overflow-x-auto">
+          <div className={cn(
+            "rounded-md border overflow-x-auto",
+            !isLoading && requests.length === 0 && "min-h-80 flex items-center justify-center" // Adjusted min-h
+          )}>
             <Table>
               <TableHeader className="bg-brand-light-gray/50">
                 <TableRow>
@@ -207,7 +211,12 @@ export default function AdminBuyerVerificationQueuePage() {
               <TableBody>
                 {isLoading ? (
                     <TableRow>
-                        <TableCell colSpan={6} className="text-center text-muted-foreground py-10">Loading requests...</TableCell>
+                        <TableCell colSpan={6} className="text-center text-muted-foreground py-10">
+                          <div className="flex items-center justify-center">
+                            <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                            Loading requests...
+                          </div>
+                        </TableCell>
                     </TableRow>
                 ) : requests.length === 0 ? (
                   <TableRow>
@@ -282,3 +291,4 @@ export default function AdminBuyerVerificationQueuePage() {
     </div>
   );
 }
+
