@@ -15,7 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { sampleVerificationRequests, sampleUsers } from "@/lib/placeholder-data";
 import type { VerificationRequestItem, VerificationQueueStatus, User, VerificationStatus, AdminNote } from "@/lib/types";
 import Link from "next/link";
-import { Eye, Edit, ShieldCheck, AlertTriangle } from "lucide-react";
+import { Eye, Edit, ShieldCheck, AlertTriangle, MailOpen, MessageSquare, Clock, FileSearch } from "lucide-react";
 import { UpdateVerificationStatusDialog } from "@/components/admin/update-verification-status-dialog";
 import { useToast } from "@/hooks/use-toast";
 
@@ -36,6 +36,7 @@ export default function AdminBuyerVerificationQueuePage() {
   const { toast } = useToast();
   const [requests, setRequests] = React.useState<VerificationRequestItem[]>(
     sampleVerificationRequests.filter(req => req.userRole === 'buyer')
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
   );
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [selectedRequest, setSelectedRequest] = React.useState<VerificationRequestItem | null>(null);
@@ -75,12 +76,12 @@ export default function AdminBuyerVerificationQueuePage() {
 
   const getOperationalStatusBadge = (status: VerificationQueueStatus) => {
     switch (status) {
-      case 'New Request': return <Badge variant="destructive" className="text-xs">New</Badge>;
-      case 'Contacted': return <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700">Contacted</Badge>;
-      case 'Docs Under Review': return <Badge className="bg-purple-100 text-purple-700 text-xs">Docs Review</Badge>;
-      case 'More Info Requested': return <Badge className="bg-yellow-100 text-yellow-700 text-xs">More Info</Badge>;
-      case 'Approved': return <Badge className="bg-green-100 text-green-700 text-xs">Approved</Badge>;
-      case 'Rejected': return <Badge variant="destructive" className="text-xs bg-red-100 text-red-700">Rejected</Badge>;
+      case 'New Request': return <Badge variant="destructive" className="text-xs bg-red-100 text-red-700 border-red-300"><Clock className="h-3 w-3 mr-1" />New</Badge>;
+      case 'Contacted': return <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700 border-blue-300"><MailOpen className="h-3 w-3 mr-1" />Contacted</Badge>;
+      case 'Docs Under Review': return <Badge className="bg-purple-100 text-purple-700 text-xs border-purple-300"><FileSearch className="h-3 w-3 mr-1" />Docs Review</Badge>;
+      case 'More Info Requested': return <Badge className="bg-yellow-100 text-yellow-700 text-xs border-yellow-300"><MessageSquare className="h-3 w-3 mr-1" />More Info</Badge>;
+      case 'Approved': return <Badge className="bg-green-100 text-green-700 text-xs border-green-300"><ShieldCheck className="h-3 w-3 mr-1" />Approved</Badge>;
+      case 'Rejected': return <Badge variant="destructive" className="text-xs bg-red-700 text-white border-red-500"><AlertTriangle className="h-3 w-3 mr-1" />Rejected</Badge>;
       default: return <Badge className="text-xs">{status}</Badge>;
     }
   };
@@ -97,41 +98,41 @@ export default function AdminBuyerVerificationQueuePage() {
 
   return (
     <div className="space-y-8">
-      <Card className="shadow-md">
+      <Card className="shadow-xl bg-brand-white">
         <CardHeader>
-          <CardTitle>Buyer Verification Queue</CardTitle>
+          <CardTitle className="text-brand-dark-blue font-heading">Buyer Verification Queue</CardTitle>
           <CardDescription>Manage buyers awaiting verification. Total pending: {requests.filter(r => r.operationalStatus !== 'Approved' && r.operationalStatus !== 'Rejected').length}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="rounded-md border overflow-x-auto">
             <Table>
-              <TableHeader>
+              <TableHeader className="bg-brand-light-gray/50">
                 <TableRow>
-                  <TableHead className="whitespace-nowrap">Date Requested</TableHead>
-                  <TableHead className="whitespace-nowrap">Buyer Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead className="whitespace-nowrap">Operational Status</TableHead>
-                  <TableHead className="whitespace-nowrap">Profile Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="whitespace-nowrap text-brand-dark-blue/80">Date Requested</TableHead>
+                  <TableHead className="whitespace-nowrap text-brand-dark-blue/80">Buyer Name</TableHead>
+                  <TableHead className="text-brand-dark-blue/80">Email</TableHead>
+                  <TableHead className="whitespace-nowrap text-brand-dark-blue/80">Operational Status</TableHead>
+                  <TableHead className="whitespace-nowrap text-brand-dark-blue/80">Profile Status</TableHead>
+                  <TableHead className="text-right text-brand-dark-blue/80">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {requests.map((req) => {
                   const user = getUserDetails(req.userId);
                   return (
-                  <TableRow key={req.id}>
+                  <TableRow key={req.id} className="hover:bg-brand-light-gray/30">
                     <TableCell className="text-xs whitespace-nowrap"><FormattedTimestamp timestamp={req.timestamp} /></TableCell>
-                    <TableCell className="font-medium whitespace-nowrap">
-                        <Link href={`/admin/users/${req.userId}`} className="hover:underline">{req.userName}</Link>
+                    <TableCell className="font-medium whitespace-nowrap text-brand-dark-blue">
+                        <Link href={`/admin/users/${req.userId}`} className="hover:underline hover:text-brand-sky-blue">{req.userName}</Link>
                     </TableCell>
-                     <TableCell className="text-xs">{user?.email}</TableCell>
+                     <TableCell className="text-xs text-muted-foreground">{user?.email}</TableCell>
                     <TableCell>{getOperationalStatusBadge(req.operationalStatus)}</TableCell>
                     <TableCell>{getProfileStatusBadge(req.profileStatus)}</TableCell>
                     <TableCell className="text-right whitespace-nowrap">
-                      <Button variant="outline" size="sm" onClick={() => handleManageStatus(req)}>
-                        <Edit className="h-3 w-3 mr-1.5"/> Manage Statuses
+                      <Button variant="outline" size="sm" onClick={() => handleManageStatus(req)} className="border-brand-sky-blue text-brand-sky-blue hover:bg-brand-sky-blue/10 hover:text-brand-sky-blue">
+                        <Edit className="h-3.5 w-3.5 mr-1.5"/> Manage
                       </Button>
-                      <Button variant="ghost" size="icon" asChild title="View Buyer Details">
+                      <Button variant="ghost" size="icon" asChild title="View Buyer Details" className="text-brand-dark-blue/70 hover:text-brand-sky-blue">
                         <Link href={`/admin/users/${req.userId}`}>
                           <Eye className="h-4 w-4" />
                         </Link>
@@ -141,8 +142,8 @@ export default function AdminBuyerVerificationQueuePage() {
                 )})}
                  {requests.length === 0 && (
                     <TableRow>
-                        <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                            The buyer verification queue is empty.
+                        <TableCell colSpan={6} className="text-center text-muted-foreground py-10">
+                            The buyer verification queue is empty. Great job!
                         </TableCell>
                     </TableRow>
                 )}
