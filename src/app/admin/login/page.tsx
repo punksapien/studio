@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from "react";
@@ -90,6 +89,16 @@ export default function AdminLoginPage() {
 
       } catch (error) {
         console.error("Admin login error:", error);
+
+        // Handle unconfirmed email specifically
+        if (error instanceof Error && error.message === 'UNCONFIRMED_EMAIL') {
+          setError(`Your email hasn't been verified yet. Redirecting to verification...`);
+          setTimeout(() => {
+            router.push(`/verify-email?email=${encodeURIComponent(values.email)}&type=login`);
+          }, 2000);
+          return;
+        }
+
         const errorMessage = error instanceof Error ? error.message : 'Login failed';
         setError(`Login failed: ${errorMessage}`);
       }

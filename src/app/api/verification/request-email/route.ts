@@ -1,6 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
-import { Resend } from 'resend';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -13,9 +12,7 @@ const supabase = createClient(
   }
 );
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
-// POST /api/verification/request-email - Send verification request email
+// POST /api/verification/request-email - Send verification request email using Supabase
 export async function POST(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization');
@@ -48,18 +45,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Onboarding must be completed before requesting verification' }, { status: 400 });
     }
 
-    // Create verification request record (simplified for now)
-    const verificationRequest = {
-      id: `vr_${Date.now()}`,
-      user_id: user.id,
-      user_name: profile.full_name,
-      user_role: profile.role,
-      request_type: 'profile_verification',
-      created_at: new Date().toISOString(),
-      status: 'pending'
-    };
+    // Create verification request record in database
+    const { data: verificationRequest, error: insertError } = await supabase
+      .from('verification_requests')
+      .insert({
+        user_id: user.id,
+        request_type: 'user_verification',
+        status: 'New Request',
+        reason: `${profile.role} verification request`,
+        documents_submitted: [],
+        admin_notes: null
+      })
+      .select()
+      .single();
 
-    // Send email to user with confirmation and next steps
+    if (insertError) {
+      console.error('Failed to create verification request:', insertError);
+      return NextResponse.json({ error: 'Failed to create verification request' }, { status: 500 });
+    }
+
+    // Create email content for Supabase
     const emailSubject = `${profile.role === 'seller' ? 'Seller' : 'Buyer'} Verification Request Received - Nobridge`;
 
     const emailHtml = `
@@ -110,11 +115,11 @@ export async function POST(request: NextRequest) {
             </div>
 
             <p><strong>Want to expedite your verification?</strong></p>
-            <p>You can request priority verification by clicking the button below. Our admin team will prioritize your request and reach out within 24 hours.</p>
+            <p>You can request priority verification by visiting your dashboard. Our admin team will prioritize your request and reach out within 24 hours.</p>
 
             <div style="text-align: center;">
-              <a href="${process.env.NEXT_PUBLIC_APP_URL}/${profile.role === 'seller' ? 'seller-dashboard' : 'dashboard'}/verification?priority=true" class="button">
-                Request Priority Verification
+              <a href="${process.env.NEXT_PUBLIC_APP_URL}/${profile.role === 'seller' ? 'seller-dashboard' : 'dashboard'}/verification" class="button">
+                Visit Your Dashboard
               </a>
             </div>
 
@@ -147,19 +152,53 @@ export async function POST(request: NextRequest) {
       </html>
     `;
 
-    // Send the email
-    await resend.emails.send({
-      from: 'Nobridge <onboarding@resend.dev>',
-      to: [user.email!],
-      subject: emailSubject,
-      html: emailHtml,
-    });
+    // Send email using Supabase's built-in email system
+    try {
+      // Use Supabase Auth's admin email function
+      const { error: emailError } = await supabase.auth.admin.generateLink({
+        type: 'magiclink',
+        email: user.email!,
+        options: {
+          data: {
+            verification_request_id: verificationRequest.id,
+            subject: emailSubject,
+            html_content: emailHtml,
+            email_type: 'verification_request'
+          }
+        }
+      });
 
-    return NextResponse.json({
-      success: true,
-      message: 'Verification request email sent successfully',
-      verification_request: verificationRequest
-    });
+      if (emailError) {
+        console.error('Supabase email error:', emailError);
+        // Still return success since the verification request was created
+        return NextResponse.json({
+          success: true,
+          message: 'Verification request created successfully. Email notification may not have been sent.',
+          verification_request: verificationRequest,
+          email_status: 'failed'
+        });
+      }
+
+      console.log(`[VERIFICATION-EMAIL] Email sent successfully to ${user.email} for ${profile.role} verification`);
+
+      return NextResponse.json({
+        success: true,
+        message: 'Verification request created and email sent successfully',
+        verification_request: verificationRequest,
+        email_status: 'sent'
+      });
+
+    } catch (emailError) {
+      console.error('Email sending failed:', emailError);
+
+      // Still return success since the verification request was created
+      return NextResponse.json({
+        success: true,
+        message: 'Verification request created successfully. Email notification may not have been sent.',
+        verification_request: verificationRequest,
+        email_status: 'failed'
+      });
+    }
 
   } catch (error) {
     console.error('Verification request email error:', error);

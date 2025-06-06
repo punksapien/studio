@@ -12,7 +12,7 @@ import {
   Mail, Phone, MapPin, CalendarDays, Briefcase, UserCircle,
   ShieldCheck, ShieldAlert, Edit3, Wallet, Building2, Users2,
   Clock, Loader2, ArrowLeft, RefreshCw, AlertCircle, Eye, Target,
-  FileText, User, Activity
+  FileText, User, Activity, Crown, Sparkles, Zap
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -57,6 +57,19 @@ interface UserDetailResponse {
   };
 }
 
+// Types for meme API
+interface MemeResponse {
+  postLink: string;
+  subreddit: string;
+  title: string;
+  url: string;
+  nsfw: boolean;
+  spoiler: boolean;
+  author: string;
+  ups: number;
+  preview: string[];
+}
+
 // Fetcher function for SWR
 const fetcher = async (url: string): Promise<UserDetailResponse> => {
   const res = await fetch(url);
@@ -65,6 +78,15 @@ const fetcher = async (url: string): Promise<UserDetailResponse> => {
       throw new Error('USER_NOT_FOUND');
     }
     throw new Error(`API Error: ${res.status} ${res.statusText}`);
+  }
+  return res.json();
+};
+
+// Meme fetcher function
+const memeFetcher = async (url: string): Promise<MemeResponse> => {
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`Meme API Error: ${res.status}`);
   }
   return res.json();
 };
@@ -141,6 +163,22 @@ export default function AdminUserDetailPage() {
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
       dedupingInterval: 30000, // 30 seconds
+    }
+  );
+
+  // Fetch a random meme for admin users
+  const {
+    data: memeData,
+    error: memeError,
+    isLoading: memeLoading,
+    mutate: refreshMeme
+  } = useSWR<MemeResponse>(
+    data?.user?.role === 'admin' ? 'https://meme-api.com/gimme/wholesomememes' : null,
+    memeFetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      dedupingInterval: 60000, // 1 minute
     }
   );
 
@@ -253,16 +291,25 @@ export default function AdminUserDetailPage() {
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
           </Button>
-            <Button variant="outline" asChild>
-              <Link href={`/admin/verification-queue/${user.role === 'buyer' ? 'buyers' : 'sellers'}?userId=${user.id}`}>
-              <Edit3 className="h-4 w-4 mr-2" />
-              Manage Verification
-              </Link>
+          {user.role !== 'admin' ? (
+            <>
+              <Button variant="outline" asChild>
+                <Link href={`/admin/verification-queue/${user.role === 'buyer' ? 'buyers' : 'sellers'}?userId=${user.id}`}>
+                  <Edit3 className="h-4 w-4 mr-2" />
+                  Manage Verification
+                </Link>
+              </Button>
+              <Button variant="outline" onClick={handleTogglePaidStatus}>
+                <Wallet className="h-4 w-4 mr-2" />
+                Make {user.isPaid ? 'Free' : 'Paid'}
+              </Button>
+            </>
+          ) : (
+            <Button variant="outline" disabled className="opacity-50">
+              <Crown className="h-4 w-4 mr-2" />
+              Admin Account
             </Button>
-             <Button variant="outline" onClick={handleTogglePaidStatus}>
-            <Wallet className="h-4 w-4 mr-2" />
-            Make {user.isPaid ? 'Free' : 'Paid'}
-             </Button>
+          )}
         </div>
       </div>
 
@@ -278,10 +325,20 @@ export default function AdminUserDetailPage() {
                 <Badge variant="outline" className="capitalize">
                   {user.role}
                 </Badge>
-                {user.isPaid ? (
-                  <Badge className="bg-green-500 text-white">Paid User</Badge>
+                {user.role === 'admin' ? (
+                  <>
+                    <Badge className="bg-purple-500 text-white">Platform Admin</Badge>
+                    <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white">
+                      <Crown className="h-3 w-3 mr-1" />
+                      Full Access
+                    </Badge>
+                  </>
                 ) : (
-                  <Badge variant="secondary">Free User</Badge>
+                  user.isPaid ? (
+                    <Badge className="bg-green-500 text-white">Paid User</Badge>
+                  ) : (
+                    <Badge variant="secondary">Free User</Badge>
+                  )
                 )}
               </CardDescription>
             </div>
@@ -333,37 +390,183 @@ export default function AdminUserDetailPage() {
               )}
           </div>
 
-            {/* Platform Activity */}
+            {/* Platform Activity - Different for Admin vs Regular Users */}
             <div className="space-y-3">
-              <h4 className="font-semibold text-brand-dark-blue mb-2">Platform Activity</h4>
-              <p className="flex items-center">
-                <Users2 className="h-4 w-4 mr-3 text-muted-foreground" />
-                <span className="font-medium mr-2">Onboarding:</span>
-                {user.is_onboarding_completed ? 'Completed' : `Step ${user.onboarding_step_completed}`}
-              </p>
-              {user.role === 'seller' && (
-                <p className="flex items-center">
-                  <Briefcase className="h-4 w-4 mr-3 text-muted-foreground" />
-                  <span className="font-medium mr-2">Listings:</span>
-                  {user.listingCount}
-                </p>
+              {user.role === 'admin' ? (
+                <>
+                  <h4 className="font-semibold text-brand-dark-blue mb-2 flex items-center">
+                    <Crown className="h-4 w-4 mr-2 text-purple-600" />
+                    Admin Status
+                  </h4>
+                  <div className="flex items-center">
+                    <ShieldCheck className="h-4 w-4 mr-3 text-purple-600" />
+                    <span className="font-medium mr-2">Access Level:</span>
+                    <Badge className="bg-purple-100 text-purple-700">Maximum</Badge>
+                  </div>
+                  <p className="flex items-center">
+                    <Users2 className="h-4 w-4 mr-3 text-purple-600" />
+                    <span className="font-medium mr-2">Privileges:</span>
+                    <span className="text-purple-700 font-medium">All Systems</span>
+                  </p>
+                  <div className="flex items-center">
+                    <Activity className="h-4 w-4 mr-3 text-purple-600" />
+                    <span className="font-medium mr-2">Security Clearance:</span>
+                    <Badge className="bg-green-100 text-green-700">Maximum</Badge>
+                  </div>
+                  <p className="flex items-center">
+                    <Zap className="h-4 w-4 mr-3 text-purple-600" />
+                    <span className="font-medium mr-2">Role:</span>
+                    <span className="text-purple-700 font-medium">Platform Administrator</span>
+                  </p>
+                </>
+              ) : (
+                <>
+                  <h4 className="font-semibold text-brand-dark-blue mb-2">Platform Activity</h4>
+                  <p className="flex items-center">
+                    <Users2 className="h-4 w-4 mr-3 text-muted-foreground" />
+                    <span className="font-medium mr-2">Onboarding:</span>
+                    {user.is_onboarding_completed ? 'Completed' : `Step ${user.onboarding_step_completed}`}
+                  </p>
+                  {user.role === 'seller' && (
+                    <p className="flex items-center">
+                      <Briefcase className="h-4 w-4 mr-3 text-muted-foreground" />
+                      <span className="font-medium mr-2">Listings:</span>
+                      {user.listingCount}
+                    </p>
+                  )}
+                  <p className="flex items-center">
+                    <Activity className="h-4 w-4 mr-3 text-muted-foreground" />
+                    <span className="font-medium mr-2">Inquiries:</span>
+                    {user.inquiryCount}
+                  </p>
+                  {user.role === 'seller' && user.initialCompanyName && (
+                    <p className="flex items-center">
+                      <Building2 className="h-4 w-4 mr-3 text-muted-foreground" />
+                      <span className="font-medium mr-2">Company:</span>
+                      {user.initialCompanyName}
+                    </p>
+                  )}
+                </>
               )}
-              <p className="flex items-center">
-                <Activity className="h-4 w-4 mr-3 text-muted-foreground" />
-                <span className="font-medium mr-2">Inquiries:</span>
-                {user.inquiryCount}
-              </p>
-            {user.role === 'seller' && user.initialCompanyName && (
-                <p className="flex items-center">
-                  <Building2 className="h-4 w-4 mr-3 text-muted-foreground" />
-                  <span className="font-medium mr-2">Company:</span>
-                  {user.initialCompanyName}
-                </p>
-            )}
             </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* Special Admin Section with Personality and Memes */}
+      {user.role === 'admin' && (
+        <Card className="shadow-lg border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50">
+          <CardHeader className="bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-t-lg">
+            <CardTitle className="text-2xl flex items-center justify-between">
+              <div className="flex items-center">
+                <Crown className="h-8 w-8 mr-3 animate-pulse" />
+                You Are Admin LOL!
+                <Sparkles className="h-6 w-6 ml-3 animate-bounce" />
+              </div>
+              {memeData && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => refreshMeme()}
+                  className="bg-white/10 border-white/30 text-white hover:bg-white/20"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  New Meme
+                </Button>
+              )}
+            </CardTitle>
+            <CardDescription className="text-purple-100">
+              🎉 You're looking at a fellow admin's profile! Here's some wholesome content to brighten your day.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Admin Personality Section */}
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2 text-purple-700">
+                  <Zap className="h-5 w-5" />
+                  <h4 className="font-bold text-lg">Admin Powers Activated!</h4>
+                </div>
+                <div className="space-y-3 text-sm">
+                  <div className="flex items-center space-x-2">
+                    <Badge className="bg-purple-100 text-purple-700">🚀 Super User</Badge>
+                    <span>Can access all admin features</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Badge className="bg-pink-100 text-pink-700">👑 Platform Master</Badge>
+                    <span>Ultimate platform control</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Badge className="bg-blue-100 text-blue-700">🔍 Data Detective</Badge>
+                    <span>Can see all user analytics</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Badge className="bg-green-100 text-green-700">🛡️ Security Guardian</Badge>
+                    <span>Verification queue master</span>
+                  </div>
+                </div>
+                <div className="mt-4 p-3 bg-purple-100 rounded-lg">
+                  <p className="text-purple-800 text-sm font-medium">
+                    💝 Fun Fact: You're viewing {user.fullName}'s admin profile. They probably know all the platform secrets!
+                  </p>
+                </div>
+              </div>
+
+              {/* Meme Section */}
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2 text-pink-700">
+                  <Sparkles className="h-5 w-5" />
+                  <h4 className="font-bold text-lg">Admin Mood Booster</h4>
+                </div>
+
+                {memeLoading && (
+                  <div className="flex items-center justify-center h-48 bg-gray-100 rounded-lg">
+                    <div className="text-center">
+                      <Loader2 className="h-8 w-8 animate-spin mx-auto text-purple-600 mb-2" />
+                      <p className="text-sm text-gray-600">Loading wholesome meme...</p>
+                    </div>
+                  </div>
+                )}
+
+                {memeError && (
+                  <div className="h-48 bg-red-50 rounded-lg border-2 border-red-200 flex items-center justify-center">
+                    <div className="text-center text-red-600">
+                      <AlertCircle className="h-8 w-8 mx-auto mb-2" />
+                      <p className="text-sm">Memes are taking a break! 😴</p>
+                    </div>
+                  </div>
+                )}
+
+                {memeData && !memeLoading && (
+                  <div className="space-y-3">
+                    <div className="bg-white rounded-lg shadow-sm border p-4">
+                      <img
+                        src={memeData.url}
+                        alt={memeData.title}
+                        className="w-full h-48 object-cover rounded-lg mb-3"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                        }}
+                      />
+                      <h5 className="font-medium text-gray-800 text-sm mb-2">
+                        {memeData.title}
+                      </h5>
+                      <div className="flex items-center justify-between text-xs text-gray-500">
+                        <span>r/{memeData.subreddit}</span>
+                        <span>👍 {memeData.ups}</span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-center text-gray-500 italic">
+                      Fresh meme delivered with admin love! 💖
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Detailed Information Tabs */}
       <Tabs defaultValue="profile_details" className="w-full">
@@ -378,13 +581,15 @@ export default function AdminUserDetailPage() {
               Buyer Persona
             </TabsTrigger>
           )}
-          <TabsTrigger value="onboarding_info">
-            <FileText className="h-4 w-4 mr-2" />
-            Onboarding
-          </TabsTrigger>
+          {user.role !== 'admin' && (
+            <TabsTrigger value="onboarding_info">
+              <FileText className="h-4 w-4 mr-2" />
+              Onboarding
+            </TabsTrigger>
+          )}
           <TabsTrigger value="activity_history">
             <Activity className="h-4 w-4 mr-2" />
-            Activity
+            {user.role === 'admin' ? 'Admin Activity' : 'Activity'}
           </TabsTrigger>
         </TabsList>
 
@@ -433,7 +638,11 @@ export default function AdminUserDetailPage() {
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="font-medium">Verification Status:</span>
-                      {getProfileVerificationBadge(user.verificationStatus)}
+                      {user.role === 'admin' ? (
+                        <Badge className="bg-purple-100 text-purple-700">Admin Account</Badge>
+                      ) : (
+                        getProfileVerificationBadge(user.verificationStatus)
+                      )}
                     </div>
                     <div className="flex justify-between">
                       <span className="font-medium">Email Verified:</span>
@@ -441,12 +650,14 @@ export default function AdminUserDetailPage() {
                         {user.isEmailVerified ? "Yes" : "No"}
                       </Badge>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium">Paid Status:</span>
-                      <Badge variant={user.isPaid ? "default" : "secondary"}>
-                        {user.isPaid ? "Paid" : "Free"}
-                      </Badge>
-                    </div>
+                    {user.role !== 'admin' && (
+                      <div className="flex justify-between">
+                        <span className="font-medium">Paid Status:</span>
+                        <Badge variant={user.isPaid ? "default" : "secondary"}>
+                          {user.isPaid ? "Paid" : "Free"}
+                        </Badge>
+                      </div>
+                    )}
                     <div className="flex justify-between">
                       <span className="font-medium">Created:</span>
                       <span><FormattedDate dateString={user.createdAt} /></span>
@@ -562,19 +773,42 @@ export default function AdminUserDetailPage() {
           <div className="grid md:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle>Platform Activity Summary</CardTitle>
+                <CardTitle>
+                  {user.role === 'admin' ? 'Administrative Activity' : 'Platform Activity Summary'}
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="font-medium">Total Listings:</span>
-                    <Badge variant="outline">{user.listingCount}</Badge>
+                {user.role === 'admin' ? (
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="font-medium">Access Level:</span>
+                      <Badge className="bg-purple-100 text-purple-700">System Administrator</Badge>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium">Admin Privileges:</span>
+                      <Badge className="bg-green-100 text-green-700">Full Platform Control</Badge>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium">Data Access:</span>
+                      <Badge className="bg-blue-100 text-blue-700">All Users & Analytics</Badge>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium">Management:</span>
+                      <Badge className="bg-orange-100 text-orange-700">Verification & Content</Badge>
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="font-medium">Total Inquiries:</span>
-                    <Badge variant="outline">{user.inquiryCount}</Badge>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="font-medium">Total Listings:</span>
+                      <Badge variant="outline">{user.listingCount}</Badge>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium">Total Inquiries:</span>
+                      <Badge variant="outline">{user.inquiryCount}</Badge>
+                    </div>
                   </div>
-                </div>
+                )}
               </CardContent>
             </Card>
 
@@ -583,18 +817,43 @@ export default function AdminUserDetailPage() {
                 <CardTitle>Quick Actions</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                <Button variant="outline" size="sm" className="w-full" asChild>
-                  <Link href={`/admin/listings?sellerId=${user.id}`}>
-                    <Eye className="h-4 w-4 mr-2" />
-                    View User's Listings
-                  </Link>
-                </Button>
-                <Button variant="outline" size="sm" className="w-full" asChild>
-                  <Link href={`/admin/conversations?userId=${user.id}`}>
-                    <Activity className="h-4 w-4 mr-2" />
-                    View Conversations
-                  </Link>
-                </Button>
+                {user.role === 'admin' ? (
+                  <>
+                    <Button variant="outline" size="sm" className="w-full" asChild>
+                      <Link href="/admin/analytics">
+                        <Activity className="h-4 w-4 mr-2" />
+                        View Analytics Dashboard
+                      </Link>
+                    </Button>
+                    <Button variant="outline" size="sm" className="w-full" asChild>
+                      <Link href="/admin/users">
+                        <Users2 className="h-4 w-4 mr-2" />
+                        Manage All Users
+                      </Link>
+                    </Button>
+                    <Button variant="outline" size="sm" className="w-full" asChild>
+                      <Link href="/admin/verification-queue/buyers">
+                        <ShieldCheck className="h-4 w-4 mr-2" />
+                        Verification Queue
+                      </Link>
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button variant="outline" size="sm" className="w-full" asChild>
+                      <Link href={`/admin/listings?sellerId=${user.id}`}>
+                        <Eye className="h-4 w-4 mr-2" />
+                        View User's Listings
+                      </Link>
+                    </Button>
+                    <Button variant="outline" size="sm" className="w-full" asChild>
+                      <Link href={`/admin/conversations?userId=${user.id}`}>
+                        <Activity className="h-4 w-4 mr-2" />
+                        View Conversations
+                      </Link>
+                    </Button>
+                  </>
+                )}
               </CardContent>
             </Card>
           </div>

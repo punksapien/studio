@@ -1,185 +1,94 @@
 'use client'
 
 import { useState } from 'react'
-import { auth, type RegisterData } from '@/lib/auth'
+import { supabase } from '@/lib/supabase'
 
 export default function TestAuthPage() {
-  const [mode, setMode] = useState<'register' | 'login'>('register')
+  const [result, setResult] = useState<string>('')
   const [loading, setLoading] = useState(false)
-  const [message, setMessage] = useState('')
-  const [error, setError] = useState('')
 
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    full_name: '',
-    role: 'buyer' as const,
-    phone_number: '',
-    country: '',
-  })
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const testDirectAuth = async () => {
     setLoading(true)
-    setError('')
-    setMessage('')
+    setResult('Testing...')
 
     try {
-      if (mode === 'register') {
-        const registerData: RegisterData = {
-          email: formData.email,
-          password: formData.password,
-          full_name: formData.full_name,
-          role: formData.role,
-          phone_number: formData.phone_number || undefined,
-          country: formData.country || undefined,
-        }
+      // Test 1: Check if supabase client is working
+      setResult(prev => prev + '\n1. Testing Supabase client initialization...')
+      console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
+      console.log('Supabase Key:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.substring(0, 20) + '...')
 
-        await auth.signUp(registerData)
-        setMessage('Registration successful! Please check your email for verification.')
+      // Test 2: Try a simple health check
+      setResult(prev => prev + '\n2. Testing connection...')
+      const { data: healthCheck, error: healthError } = await supabase
+        .from('user_profiles')
+        .select('count')
+        .limit(1)
+
+      if (healthError) {
+        setResult(prev => prev + `\n   Health check error: ${healthError.message}`)
       } else {
-        await auth.signIn(formData.email, formData.password)
-        setMessage('Login successful!')
+        setResult(prev => prev + '\n   ✅ Supabase connection working')
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+
+      // Test 3: Try to create a test user first
+      setResult(prev => prev + '\n3. Creating test user...')
+      const testEmail = 'test@example.com'
+      const testPassword = 'password123'
+
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: testEmail,
+        password: testPassword,
+      })
+
+      if (signUpError) {
+        setResult(prev => prev + `\n   Sign up error: ${signUpError.message}`)
+      } else {
+        setResult(prev => prev + `\n   ✅ Test user created or already exists: ${signUpData.user?.id}`)
+      }
+
+      // Test 4: Try login with the test user
+      setResult(prev => prev + '\n4. Testing login...')
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: testEmail,
+        password: testPassword,
+      })
+
+      if (signInError) {
+        setResult(prev => prev + `\n   ❌ Login error: ${signInError.message}`)
+        setResult(prev => prev + `\n   Error details: ${JSON.stringify(signInError, null, 2)}`)
+      } else {
+        setResult(prev => prev + `\n   ✅ Login successful: ${signInData.user?.email}`)
+      }
+
+    } catch (error) {
+      setResult(prev => prev + `\n❌ Unexpected error: ${error}`)
+      console.error('Test error:', error)
     } finally {
       setLoading(false)
     }
   }
 
-  const handleSignOut = async () => {
-    try {
-      await auth.signOut()
-      setMessage('Signed out successfully')
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Sign out failed')
-    }
-  }
-
   return (
-    <div className="max-w-md mx-auto p-8">
-      <h1 className="text-2xl font-bold mb-6">Auth Testing</h1>
+    <div className="p-8 max-w-4xl mx-auto">
+      <h1 className="text-2xl font-bold mb-4">Auth Debugging</h1>
 
-      <div className="flex gap-2 mb-6">
         <button
-          onClick={() => setMode('register')}
-          className={`px-4 py-2 rounded ${
-            mode === 'register'
-              ? 'bg-blue-500 text-white'
-              : 'bg-gray-200 text-gray-700'
-          }`}
+        onClick={testDirectAuth}
+        disabled={loading}
+        className="px-4 py-2 bg-blue-500 text-white rounded disabled:opacity-50"
         >
-          Register
+        {loading ? 'Testing...' : 'Run Auth Test'}
         </button>
-        <button
-          onClick={() => setMode('login')}
-          className={`px-4 py-2 rounded ${
-            mode === 'login'
-              ? 'bg-blue-500 text-white'
-              : 'bg-gray-200 text-gray-700'
-          }`}
-        >
-          Login
-        </button>
-        <button
-          onClick={handleSignOut}
-          className="px-4 py-2 rounded bg-red-500 text-white"
-        >
-          Sign Out
-        </button>
+
+      <pre className="mt-4 p-4 bg-gray-100 rounded text-sm whitespace-pre-wrap">
+        {result || 'Click "Run Auth Test" to start debugging'}
+      </pre>
+
+      <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded">
+        <h3 className="font-semibold">Current Environment:</h3>
+        <p>NEXT_PUBLIC_SUPABASE_URL: {process.env.NEXT_PUBLIC_SUPABASE_URL}</p>
+        <p>NEXT_PUBLIC_SUPABASE_ANON_KEY: {process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.substring(0, 20)}...</p>
       </div>
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium mb-1">Email</label>
-          <input
-            type="email"
-            required
-            value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium mb-1">Password</label>
-          <input
-            type="password"
-            required
-            value={formData.password}
-            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-          />
-        </div>
-
-        {mode === 'register' && (
-          <>
-            <div>
-              <label className="block text-sm font-medium mb-1">Full Name</label>
-              <input
-                type="text"
-                required
-                value={formData.full_name}
-                onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Role</label>
-              <select
-                value={formData.role}
-                onChange={(e) => setFormData({ ...formData, role: e.target.value as 'buyer' | 'seller' })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              >
-                <option value="buyer">Buyer</option>
-                <option value="seller">Seller</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Phone Number (Optional)</label>
-              <input
-                type="tel"
-                value={formData.phone_number}
-                onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Country (Optional)</label>
-              <input
-                type="text"
-                value={formData.country}
-                onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              />
-            </div>
-          </>
-        )}
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 disabled:opacity-50"
-        >
-          {loading ? 'Processing...' : mode === 'register' ? 'Register' : 'Login'}
-        </button>
-      </form>
-
-      {message && (
-        <div className="mt-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
-          {message}
-        </div>
-      )}
-
-      {error && (
-        <div className="mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-          {error}
-        </div>
-      )}
     </div>
   )
 }

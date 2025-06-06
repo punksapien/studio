@@ -1,16 +1,69 @@
+'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Loader2 } from "lucide-react";
+import { useUserSettings } from "@/hooks/use-user-settings";
+import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 export default function SellerSettingsPage() {
-  // Placeholder states for settings
-  // In a real app, these would come from user preferences or a backend.
-  // const [emailNotifications, setEmailNotifications] = useState(true);
-  // const [newInquiryAlerts, setNewInquiryAlerts] = useState(true);
+  const { settings, isLoading, error, updateSettings } = useUserSettings();
+  const { toast } = useToast();
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleNotificationToggle = async (key: string, value: boolean) => {
+    setIsSaving(true);
+    try {
+      const success = await updateSettings({ [key]: value });
+      if (success) {
+        toast({
+          title: "Settings Updated",
+          description: "Your notification preferences have been saved."
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to update settings. Please try again."
+        });
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update settings. Please try again."
+      });
+    }
+    setIsSaving(false);
+  };
+
+  if (error) {
+    return (
+      <div className="space-y-8 text-center">
+        <h1 className="text-3xl font-bold tracking-tight text-red-600">Error Loading Settings</h1>
+        <p className="text-muted-foreground">{error}</p>
+        <Button onClick={() => window.location.reload()}>Try Again</Button>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-8">
+        <h1 className="text-3xl font-bold tracking-tight">Seller Account Settings</h1>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+            <p className="text-muted-foreground">Loading your settings...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -24,24 +77,71 @@ export default function SellerSettingsPage() {
         <CardContent className="space-y-6">
           <div className="flex items-center justify-between p-4 border rounded-lg">
             <div>
+              <Label htmlFor="email-general" className="font-medium">General Email Notifications</Label>
+              <p className="text-sm text-muted-foreground">Receive general updates and announcements from Nobridge.</p>
+            </div>
+            <Switch
+              id="email-general"
+              checked={settings?.email_notifications_general ?? true}
+              onCheckedChange={(checked) => handleNotificationToggle('email_notifications_general', checked)}
+              disabled={isSaving}
+              aria-label="Toggle general email notifications"
+            />
+          </div>
+
+          <div className="flex items-center justify-between p-4 border rounded-lg">
+            <div>
               <Label htmlFor="email-new-inquiry" className="font-medium">New Inquiry Emails</Label>
               <p className="text-sm text-muted-foreground">Receive an email when a buyer makes an inquiry on one of your listings.</p>
             </div>
-            <Switch id="email-new-inquiry" defaultChecked={true} aria-label="Toggle new inquiry email notifications" />
+            <Switch
+              id="email-new-inquiry"
+              checked={settings?.email_notifications_inquiries ?? true}
+              onCheckedChange={(checked) => handleNotificationToggle('email_notifications_inquiries', checked)}
+              disabled={isSaving}
+              aria-label="Toggle new inquiry email notifications"
+            />
           </div>
+
           <div className="flex items-center justify-between p-4 border rounded-lg">
             <div>
               <Label htmlFor="email-listing-updates" className="font-medium">Listing Status Emails</Label>
               <p className="text-sm text-muted-foreground">Get notified via email about changes to your listing status (e.g., verification approved, deactivated).</p>
             </div>
-            <Switch id="email-listing-updates" defaultChecked={true} aria-label="Toggle listing status email notifications" />
+            <Switch
+              id="email-listing-updates"
+              checked={settings?.email_notifications_listing_updates ?? true}
+              onCheckedChange={(checked) => handleNotificationToggle('email_notifications_listing_updates', checked)}
+              disabled={isSaving}
+              aria-label="Toggle listing status email notifications"
+            />
           </div>
-           <Button>Save Notification Preferences</Button>
+
+          <div className="flex items-center justify-between p-4 border rounded-lg">
+            <div>
+              <Label htmlFor="email-system" className="font-medium">System & Security Emails</Label>
+              <p className="text-sm text-muted-foreground">Important system notifications, security alerts, and policy updates.</p>
+            </div>
+            <Switch
+              id="email-system"
+              checked={settings?.email_notifications_system ?? true}
+              onCheckedChange={(checked) => handleNotificationToggle('email_notifications_system', checked)}
+              disabled={isSaving}
+              aria-label="Toggle system email notifications"
+            />
+          </div>
+
+          {isSaving && (
+            <div className="flex items-center justify-center p-4">
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              <span className="text-sm text-muted-foreground">Saving...</span>
+            </div>
+          )}
         </CardContent>
       </Card>
 
       <Separator/>
-      
+
       <Card className="shadow-md">
         <CardHeader>
           <CardTitle>Profile & Account Management</CardTitle>

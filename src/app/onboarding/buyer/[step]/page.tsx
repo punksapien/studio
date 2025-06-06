@@ -93,7 +93,7 @@ export default function BuyerOnboardingStepPage() {
   });
 
   const getDefaultValues = (data: BuyerFormValues): BuyerFormValues => ({
-    buyerIdentityFile: data.buyerIdentityFile || undefined,
+    buyerIdentityFile: data.buyerIdentityFile || null,
   });
 
   const currentSchema = buyerStepSchemas[currentStep - 1] || z.object({});

@@ -89,6 +89,17 @@ export default function LoginPage() {
 
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Login failed';
+
+        // Handle unconfirmed email case - redirect to verification
+        if (errorMessage === 'UNCONFIRMED_EMAIL') {
+          toast({
+            title: "Email Verification Required",
+            description: "Your email needs to be verified before you can login. We've sent you a new verification email."
+          });
+          router.push(`/verify-email?email=${encodeURIComponent(values.email)}&type=login`);
+          return;
+        }
+
         setError(errorMessage);
         toast({
           variant: "destructive",

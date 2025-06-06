@@ -241,11 +241,23 @@ if verify_supabase_health; then
     log "Current status:"
     npx supabase status
 
+    # Step 5: Create admin user automatically
+    echo ""
+    log "Creating admin user..."
+    if node create-admin-user.js > /tmp/admin-creation.log 2>&1; then
+        success "Admin user created successfully"
+        echo -e "${GREEN}🔑 Admin credentials: admin@nobridge.com / 100%Test${NC}"
+    else
+        warning "Admin user creation failed - check logs:"
+        cat /tmp/admin-creation.log
+    fi
+
     echo ""
     success "🎉 All services are ready!"
     echo -e "${GREEN}📱 Studio: http://localhost:54323${NC}"
     echo -e "${GREEN}📧 Email: http://localhost:54324${NC}"
     echo -e "${GREEN}🗄️  API: http://localhost:54321${NC}"
+    echo -e "${GREEN}👑 Admin: http://localhost:9002/admin/login${NC}"
 
     # Create a health check file
     echo "$(date)" > .supabase-health

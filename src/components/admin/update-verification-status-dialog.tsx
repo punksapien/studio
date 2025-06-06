@@ -1,7 +1,6 @@
-
 'use client';
 
-import *a_s React from 'react';
+import * as React from 'react';
 import {
   Dialog,
   DialogContent,
@@ -79,7 +78,7 @@ export function UpdateVerificationStatusDialog({
   const [selectedProfileStatus, setSelectedProfileStatus] = React.useState<VerificationStatus | undefined>(undefined);
   const [currentAdminNotes, setCurrentAdminNotes] = React.useState<AdminNote[]>([]);
   const [newNoteText, setNewNoteText] = React.useState('');
-  
+
   const [showMainConfirmation, setShowMainConfirmation] = React.useState(false);
   const [noteToDeleteId, setNoteToDeleteId] = React.useState<string | null>(null);
   const [isDeleteNoteDialogOpen, setIsDeleteNoteDialogOpen] = React.useState(false);
@@ -141,8 +140,8 @@ export function UpdateVerificationStatusDialog({
         timestamp: new Date(),
         operationalStatusAtTimeOfNote: selectedOperationalStatus,
         profileStatusAtTimeOfNote: selectedProfileStatus,
-        adminId: 'current_admin_placeholder', 
-        adminName: 'Admin User', 
+        adminId: 'current_admin_placeholder',
+        adminName: 'Admin User',
       });
     }
     onSave(request.id, selectedOperationalStatus, selectedProfileStatus, finalNotes);
@@ -163,7 +162,7 @@ export function UpdateVerificationStatusDialog({
     setIsDeleteNoteDialogOpen(false);
     setNoteToDeleteId(null);
   };
-  
+
   const handleCancel = () => {
     if (initialRequestStateRef.current) {
         setSelectedOperationalStatus(initialRequestStateRef.current.operationalStatus);
@@ -194,7 +193,7 @@ export function UpdateVerificationStatusDialog({
                   <br/>Role: <Badge variant="outline" className="capitalize text-xs">{request.userRole}</Badge>
                 </DialogDescription>
               </DialogHeader>
-              
+
               <div className="grid md:grid-cols-2 gap-6 p-6 flex-grow overflow-y-auto">
                 {/* Left Column: Statuses and New Note */}
                 <div className="space-y-6 flex flex-col">
@@ -221,7 +220,7 @@ export function UpdateVerificationStatusDialog({
                       <SelectContent>{profileStatusOptions.map(s => <SelectItem key={s} value={s} className="capitalize">{s.replace('_', ' ')}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
-                  
+
                   <div className="space-y-1.5 flex-grow flex flex-col">
                     <Label htmlFor="newAdminNoteText" className="text-sm font-medium text-brand-dark-blue">Add New Internal Note</Label>
                     <Textarea
@@ -270,7 +269,7 @@ export function UpdateVerificationStatusDialog({
                 </Button>
               </DialogFooter>
             </>
-          ) : ( 
+          ) : (
             <>
               <DialogHeader className="p-6 border-b">
                 <DialogTitle className="text-xl font-semibold text-brand-dark-blue flex items-center">

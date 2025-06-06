@@ -1,4 +1,3 @@
-
 'use client';
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -70,10 +69,10 @@ export default function BuyerRegisterPage() {
       confirmPassword: "",
       phoneNumber: "",
       country: "",
-      buyerPersonaType: undefined,
+      buyerPersonaType: "" as any,
       buyerPersonaOther: "",
       investmentFocusDescription: "",
-      preferredInvestmentSize: undefined,
+      preferredInvestmentSize: "" as any,
       keyIndustriesOfInterest: "",
     },
   });
@@ -163,6 +162,17 @@ export default function BuyerRegisterPage() {
 
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Registration failed';
+
+        // Handle zombie email case - email exists but unverified (fallback from signUp)
+        if (errorMessage === 'UNVERIFIED_EMAIL_EXISTS') {
+          toast({
+            title: "Email Verification Required",
+            description: "This email already exists but is not verified. We've sent you a new verification email."
+          });
+          router.push(`/verify-email?email=${encodeURIComponent(values.email)}&type=resend`);
+          return;
+        }
+
         setError(errorMessage);
         toast({
           variant: "destructive",

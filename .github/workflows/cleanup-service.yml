@@ -1,0 +1,37 @@
+name: Zombie Account Cleanup Service
+on:
+  schedule:
+    - cron: '0 * * * *'  # Every hour
+  workflow_dispatch:  # Manual trigger
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run zombie account cleanup
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          CLEANUP_SERVICE_TOKEN: ${{ secrets.CLEANUP_SERVICE_TOKEN }}
+        run: |
+          echo "🚀 Starting automated zombie account cleanup..."
+          node scripts/cleanup-service.js --verbose
+          echo "✅ Cleanup completed successfully!"
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "❌ Cleanup service failed! Check logs and investigate."
+          echo "This could indicate database connectivity issues or other system problems."

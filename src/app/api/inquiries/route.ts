@@ -1,25 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
-import { authServer } from '@/lib/auth-server'
+import { AuthenticationService } from '@/lib/auth-service'
 
 // GET /api/inquiries - Get user's inquiries (buyer or seller perspective)
 export async function GET(request: NextRequest) {
   try {
-    const user = await authServer.getCurrentUser(request)
-    if (!user) {
+    const authService = AuthenticationService.getInstance()
+    const result = await authService.authenticateUser(request)
+
+    if (!result.success) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
       )
     }
 
-    const userProfile = await authServer.getCurrentUserProfile(request)
-    if (!userProfile) {
-      return NextResponse.json(
-        { error: 'User profile not found' },
-        { status: 404 }
-      )
-    }
+    const user = result.user!
+    const userProfile = result.profile!
 
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get('page') || '1')
@@ -34,11 +31,10 @@ export async function GET(request: NextRequest) {
         listing_id,
         buyer_id,
         seller_id,
-        message,
         status,
         conversation_id,
+        inquiry_timestamp,
         engagement_timestamp,
-        admin_notes,
         created_at,
         updated_at,
         listings (
@@ -123,16 +119,20 @@ export async function GET(request: NextRequest) {
 // POST /api/inquiries - Create new inquiry (buyers only)
 export async function POST(request: NextRequest) {
   try {
-    const user = await authServer.getCurrentUser(request)
-    if (!user) {
+    const authService = AuthenticationService.getInstance()
+    const result = await authService.authenticateUser(request)
+
+    if (!result.success) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
       )
     }
 
-    const userProfile = await authServer.getCurrentUserProfile(request)
-    if (!userProfile || userProfile.role !== 'buyer') {
+    const user = result.user!
+    const userProfile = result.profile!
+
+    if (userProfile.role !== 'buyer') {
       return NextResponse.json(
         { error: 'Only buyers can create inquiries' },
         { status: 403 }
@@ -206,7 +206,7 @@ export async function POST(request: NextRequest) {
       .select('id')
       .eq('listing_id', listing_id)
       .eq('buyer_id', user.id)
-      .not('status', 'eq', 'withdrawn')
+      .not('status', 'eq', 'archived')
       .single()
 
     if (existingInquiry) {
@@ -216,13 +216,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create the inquiry
+    // Create the inquiry (without message field since it doesn't exist in the table)
     const inquiryData = {
       listing_id: listing_id,
       buyer_id: user.id,
       seller_id: listing.seller_id,
-      message: message.trim(),
       status: 'new_inquiry',
+      inquiry_timestamp: new Date().toISOString(),
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     }
@@ -241,11 +241,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // TODO: Create notification for seller (implement in notification system)
+    // Note: Message handling would need to be implemented separately
+    // when the conversation/messaging system is built
+    // For now, we just create the inquiry without the initial message
 
     return NextResponse.json({
       message: 'Inquiry created successfully',
-      inquiry: newInquiry
+      inquiry: newInquiry,
+      note: 'Initial message will be handled when conversation system is implemented'
     }, { status: 201 })
   } catch (error) {
     console.error('Inquiry creation error:', error)

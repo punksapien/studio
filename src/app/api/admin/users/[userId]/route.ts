@@ -2,12 +2,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { AuthenticationService } from '@/lib/auth-service'
 
+interface RouteParams {
+  params: Promise<{ userId: string }>
+}
+
 // GET /api/admin/users/[userId] - Get detailed user information
-export async function GET(
-  req: NextRequest,
-  { params }: { params: { userId: string } }
-) {
+export async function GET(req: NextRequest, { params }: RouteParams) {
   try {
+    // Await the params object
+    const { userId } = await params;
+
     // Authenticate the requester and make sure they are an admin
     const authService = AuthenticationService.getInstance()
     const authResult = await authService.authenticateUser(req)
@@ -19,8 +23,6 @@ export async function GET(
     if (authResult.profile.role !== 'admin') {
       return NextResponse.json({ error: 'forbidden_role' }, { status: 403 })
     }
-
-    const { userId } = params
 
     if (!userId) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 })

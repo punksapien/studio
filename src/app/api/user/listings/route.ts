@@ -1,17 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
-import { auth } from '@/lib/auth'
+import { AuthenticationService } from '@/lib/auth-service'
 
 // GET /api/user/listings - Get current user's listings
 export async function GET(request: NextRequest) {
   try {
-    const user = await auth.getCurrentUser()
-    if (!user) {
+    const authService = AuthenticationService.getInstance()
+    const result = await authService.authenticateUser(request)
+
+    if (!result.success) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
       )
     }
+
+    const user = result.user!
+    const profile = result.profile!
 
     const { searchParams } = new URL(request.url)
 
@@ -22,35 +27,31 @@ export async function GET(request: NextRequest) {
     const sortBy = searchParams.get('sort_by') || 'updated_at'
     const sortOrder = searchParams.get('sort_order') || 'desc'
 
-    // Build the query for user's listings
+    // Build the query for user's listings using ACTUAL database column names
     let query = supabase
       .from('listings')
       .select(`
         id,
-        title,
-        short_description,
-        business_overview,
+        listing_title_anonymous,
+        anonymous_business_description,
+        business_model,
         asking_price,
-        business_type,
         industry,
         location_country,
-        location_city,
-        established_year,
+        location_city_region_general,
+        year_established,
         number_of_employees,
-        website_url,
-        images,
+        business_website_url,
+        image_urls,
         status,
-        verification_status,
+        is_seller_verified,
         created_at,
         updated_at,
-        annual_revenue,
-        net_profit,
-        monthly_cash_flow,
-        verified_annual_revenue,
-        verified_net_profit,
-        verified_cash_flow,
-        sold_date,
-        withdrawn_date
+        specific_annual_revenue_last_year,
+        specific_net_profit_last_year,
+        adjusted_cash_flow,
+        annual_revenue_range,
+        net_profit_margin_range
       `)
       .eq('seller_id', user.id)
 
@@ -59,8 +60,8 @@ export async function GET(request: NextRequest) {
       query = query.eq('status', status)
     }
 
-    // Apply sorting
-    const validSortFields = ['created_at', 'updated_at', 'asking_price', 'title', 'status']
+    // Apply sorting - fix valid sort fields to match actual database columns
+    const validSortFields = ['created_at', 'updated_at', 'asking_price', 'listing_title_anonymous', 'status']
     const validSortOrders = ['asc', 'desc']
 
     if (validSortFields.includes(sortBy) && validSortOrders.includes(sortOrder)) {
@@ -82,6 +83,34 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // Transform data to match expected API format (map database columns to frontend expectations)
+    const transformedListings = listings?.map(listing => ({
+      id: listing.id,
+      title: listing.listing_title_anonymous, // Map database column to frontend expectation
+      short_description: listing.anonymous_business_description,
+      business_overview: listing.business_model,
+      asking_price: listing.asking_price,
+      industry: listing.industry,
+      location_country: listing.location_country,
+      location_city: listing.location_city_region_general,
+      established_year: listing.year_established,
+      number_of_employees: listing.number_of_employees,
+      website_url: listing.business_website_url,
+      images: listing.image_urls,
+      status: listing.status,
+      verification_status: listing.is_seller_verified ? 'verified' : 'pending',
+      created_at: listing.created_at,
+      updated_at: listing.updated_at,
+      annual_revenue: listing.specific_annual_revenue_last_year,
+      net_profit: listing.specific_net_profit_last_year,
+      monthly_cash_flow: listing.adjusted_cash_flow,
+      verified_annual_revenue: listing.specific_annual_revenue_last_year,
+      verified_net_profit: listing.specific_net_profit_last_year,
+      verified_cash_flow: listing.adjusted_cash_flow,
+      annual_revenue_range: listing.annual_revenue_range,
+      net_profit_margin_range: listing.net_profit_margin_range
+    }))
+
     // Calculate pagination info
     const totalPages = count ? Math.ceil(count / limit) : 0
     const hasMore = page < totalPages
@@ -94,15 +123,15 @@ export async function GET(request: NextRequest) {
 
     const summary = {
       total: summaryData?.length || 0,
-      draft: summaryData?.filter(l => l.status === 'draft').length || 0,
+      active: summaryData?.filter(l => l.status === 'active').length || 0,
       verified_anonymous: summaryData?.filter(l => l.status === 'verified_anonymous').length || 0,
-      verified_with_financials: summaryData?.filter(l => l.status === 'verified_with_financials').length || 0,
-      sold: summaryData?.filter(l => l.status === 'sold').length || 0,
-      withdrawn: summaryData?.filter(l => l.status === 'withdrawn').length || 0
+      verified_public: summaryData?.filter(l => l.status === 'verified_public').length || 0,
+      pending_verification: summaryData?.filter(l => l.status === 'pending_verification').length || 0,
+      closed_deal: summaryData?.filter(l => l.status === 'closed_deal').length || 0
     }
 
     return NextResponse.json({
-      listings: listings || [],
+      listings: transformedListings || [],
       pagination: {
         page,
         limit,

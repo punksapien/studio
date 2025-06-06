@@ -4,7 +4,7 @@ import { MetricCard } from "@/components/admin/metric-card";
 import useSWR from 'swr';
 import type { AdminDashboardMetrics } from '@/lib/types';
 import { sampleVerificationRequests, sampleInquiries, sampleListings, sampleUsers } from "@/lib/placeholder-data";
-import { Users, BellRing, LineChart, ListChecks, UserCheck, Building, DollarSign, Banknote, ListX, Handshake } from "lucide-react";
+import { Users, BellRing, LineChart, ListChecks, UserCheck, Building, DollarSign, Banknote, ListX, Handshake, Clock, AlertTriangle, UserX } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -16,6 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import type { Inquiry } from "@/lib/types";
 import { NobridgeIcon, NobridgeIconType } from "@/components/ui/nobridge-icon";
 
@@ -24,6 +25,13 @@ const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 export default function AdminDashboardPage() {
   const { data: metrics, isLoading, error } = useSWR<AdminDashboardMetrics>('/api/admin/metrics', fetcher, { refreshInterval: 300000 }); // 5-min re-fetch
+
+  // NEW: Fetch cleanup queue data
+  const { data: cleanupData, isLoading: cleanupLoading, error: cleanupError } = useSWR(
+    '/api/admin/cleanup-queue',
+    fetcher,
+    { refreshInterval: 60000 } // 1-min refresh for cleanup queue
+  );
 
   if (error) {
     return <div className="p-8 text-red-600">Failed to load metrics: {error.message}</div>;
@@ -128,6 +136,22 @@ export default function AdminDashboardPage() {
           icon={Handshake}
           description={`${metrics.activeSuccessfulConnections} active, ${metrics.closedSuccessfulConnections} closed (MTD)`}
         />
+
+        {/* NEW: Cleanup Queue Metrics */}
+        <MetricCard
+          title="Unverified Accounts"
+          value={cleanupData?.data?.statistics?.unverified || 0}
+          icon={Clock}
+          description="Need email verification"
+          className={cleanupData?.data?.statistics?.unverified > 5 ? "border-orange-200 bg-orange-50/50" : ""}
+        />
+        <MetricCard
+          title="Pending Deletion"
+          value={cleanupData?.data?.statistics?.pending_deletion || 0}
+          icon={AlertTriangle}
+          description="Scheduled for cleanup"
+          className={cleanupData?.data?.statistics?.pending_deletion > 0 ? "border-red-200 bg-red-50/50" : ""}
+        />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -229,6 +253,81 @@ export default function AdminDashboardPage() {
                 {adminPageReadyToEngageItems.length === 0 && <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-4">No engagements ready for connection.</TableCell></TableRow>}
               </TableBody>
             </Table>
+          </CardContent>
+        </Card>
+
+        {/* NEW: Account Cleanup Queue Card */}
+        <Card className="shadow-md">
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <CardTitle className="font-heading flex items-center gap-2">
+                <UserX className="h-5 w-5" />
+                Account Cleanup Queue
+              </CardTitle>
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/admin/cleanup-queue">Manage All</Link>
+              </Button>
+            </div>
+            <CardDescription>
+              {cleanupLoading ? 'Loading...' : `${cleanupData?.data?.statistics?.total || 0} accounts need attention`}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {cleanupError && (
+              <div className="text-red-600 text-sm">Failed to load cleanup queue</div>
+            )}
+            {cleanupLoading && (
+              <div className="text-muted-foreground text-sm">Loading cleanup queue...</div>
+            )}
+            {cleanupData?.data?.queue && (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Time Left</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {cleanupData.data.queue.slice(0, 3).map((account: any) => {
+                    const timeLeft = account.time_until_deletion ?
+                      Math.floor(account.time_until_deletion / (1000 * 60 * 60)) : // Convert to hours
+                      (account.time_until_permanent_deletion ?
+                        Math.floor(account.time_until_permanent_deletion / (1000 * 60 * 60)) : 0);
+
+                    return (
+                      <TableRow key={account.id}>
+                        <TableCell className="font-medium">{account.email}</TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={account.account_status === 'unverified' ? 'secondary' : 'destructive'}
+                            className="text-xs"
+                          >
+                            {account.account_status === 'unverified' ? 'Unverified' : 'Pending Deletion'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {timeLeft > 0 ? (
+                            <span className={timeLeft < 2 ? 'text-red-600 font-medium' : 'text-muted-foreground'}>
+                              {timeLeft}h
+                            </span>
+                          ) : (
+                            <span className="text-red-600 font-medium">Expired</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  {(!cleanupData.data.queue || cleanupData.data.queue.length === 0) && (
+                    <TableRow>
+                      <TableCell colSpan={3} className="text-center text-muted-foreground py-4">
+                        ✅ No accounts in cleanup queue
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
       </div>

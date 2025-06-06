@@ -95,7 +95,7 @@ export function CommonRegistrationFields({ control, isPending }: CommonRegistrat
         render={({ field }) => (
           <FormItem>
             <FormLabel>Country</FormLabel>
-            <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isPending}>
+            <Select onValueChange={field.onChange} value={field.value || ""} disabled={isPending}>
               <FormControl>
                 <SelectTrigger>
                   <SelectValue placeholder="Select your country" />

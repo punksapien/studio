@@ -35,6 +35,7 @@ export async function middleware(req: NextRequest) {
     '/about', '/contact', '/pricing', '/terms', '/privacy',
     '/api/test', '/api/auth/create-profile', // Allow create-profile API for signup process
     '/api/health', '/api/debug', // Allow health and debug endpoints
+    '/test-auth', // Allow debug auth testing page
   ]
 
   const isPublicPath = publicPaths.includes(pathname) ||

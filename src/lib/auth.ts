@@ -101,6 +101,21 @@ export const auth = {
 
     console.log('Starting registration for:', email)
 
+    // First check if this email already exists but is unverified
+    const emailStatus = await this.checkEmailStatus(email)
+
+    if (emailStatus.exists && !emailStatus.verified && emailStatus.canResend) {
+      console.log(`Email ${email} exists but is unverified. Redirecting to verification.`)
+      // Resend verification email for this zombie account
+      await this.resendVerificationForEmail(email)
+      throw new Error('UNVERIFIED_EMAIL_EXISTS')
+    }
+
+    if (emailStatus.exists && emailStatus.verified) {
+      console.log(`Email ${email} already exists and is verified.`)
+      throw new Error('An account with this email already exists and is verified. Please try logging in instead.')
+    }
+
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
@@ -117,7 +132,8 @@ export const auth = {
     if (authError) {
       console.error('Auth signup error:', authError)
       if (authError.message.includes('User already registered')) {
-        throw new Error('An account with this email already exists. Please try logging in instead.')
+        // This shouldn't happen now due to our pre-check, but handle it anyway
+        throw new Error('UNVERIFIED_EMAIL_EXISTS')
       }
       throw new Error(`Registration failed: ${authError.message}`)
     }
@@ -130,6 +146,9 @@ export const auth = {
     console.log('User created in auth, now creating profile:', authData.user.id)
 
     if (authData.user) {
+      // Calculate verification deadline (24 hours from now)
+      const verificationDeadline = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+
       const profileInsertData = {
         email,
         full_name: userData.full_name,
@@ -138,6 +157,10 @@ export const auth = {
         role: userData.role,
         verification_status: 'anonymous' as const,
         is_paid: false,
+        // NEW: Zombie account management fields
+        account_status: 'unverified' as const,
+        verification_deadline: verificationDeadline,
+        is_email_verified: false, // Explicitly set to false for new accounts
         initial_company_name: userData.initial_company_name || null,
         buyer_persona_type: userData.buyer_persona_type || null,
         buyer_persona_other: userData.buyer_persona_other || null,
@@ -146,6 +169,7 @@ export const auth = {
         key_industries_of_interest: userData.key_industries_of_interest || null
       }
 
+      console.log('[ZOMBIE-ACCOUNT] Creating new account with 24h verification deadline:', verificationDeadline)
       console.log('About to create profile via API:', profileInsertData)
 
       try {
@@ -203,6 +227,17 @@ export const auth = {
     })
 
     if (error) {
+      // Handle email not confirmed error specifically
+      if (error.message.includes('Email not confirmed')) {
+        console.log(`Login failed for ${email} - email not confirmed. Resending verification.`)
+        // Automatically resend verification email
+        try {
+          await this.resendVerificationForEmail(email)
+        } catch (resendError) {
+          console.error('Failed to resend verification during login:', resendError)
+        }
+        throw new Error('UNCONFIRMED_EMAIL')
+      }
       throw new Error(`Login failed: ${error.message}`)
     }
 
@@ -246,27 +281,45 @@ export const auth = {
     }
   },
 
-  // Resend email verification (for current user)
+  // Resend email verification for current session
   async resendEmailVerification() {
-    const { error } = await supabase.auth.resend({ // This resends for the current user if email is blank
+    const { data: session } = await supabase.auth.getSession()
+
+    if (!session?.session?.user?.email) {
+      throw new Error('You must be logged in to resend verification email')
+    }
+
+    const { error } = await supabase.auth.resend({
       type: 'signup',
-      email: '',
+      email: session.session.user.email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`
+      }
     })
 
     if (error) {
-      throw new Error(`Email verification resend failed: ${error.message}`)
+      throw new Error(`Failed to resend verification email: ${error.message}`)
     }
   },
 
-  // Resend verification for a specific email (used if user is not yet logged in from that email)
+  // Resend verification email for a specific email (for zombie accounts)
   async resendVerificationForEmail(email: string) {
+    console.log(`Attempting to resend verification for ${email}`)
+
     const { error } = await supabase.auth.resend({
       type: 'signup',
       email: email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`
+      }
     })
+
     if (error) {
-      throw new Error(`Resending verification for ${email} failed: ${error.message}`)
+      console.error(`Failed to resend verification for ${email}:`, error)
+      throw new Error(`Failed to resend verification email: ${error.message}`)
     }
+
+    console.log(`Successfully queued verification resend for ${email}`)
   },
 
   // Verify email with OTP token
@@ -304,6 +357,23 @@ export const auth = {
     return this.hasRole('admin')
   },
 
+  // Update user notification settings
+  async updateUserSettings(settings: Record<string, any>) {
+    const user = await this.getCurrentUser()
+    if (!user) {
+      throw new Error('User not authenticated')
+    }
+
+    const { error } = await supabase
+      .from('user_profiles')
+      .update(settings)
+      .eq('id', user.id)
+
+    if (error) {
+      throw new Error(`Failed to update user settings: ${error.message}`)
+    }
+  },
+
   // Listen to auth state changes
   onAuthStateChange(callback: (user: User | null) => void) {
     return supabase.auth.onAuthStateChange((_event, session) => {
@@ -313,13 +383,32 @@ export const auth = {
 
   async checkEmailStatus(email: string): Promise<{ exists: boolean; verified: boolean; canResend: boolean }> {
     try {
-      // This is a client-side interpretation.
-      // A secure backend check would be better but is more complex for client-side auth library.
-      // Attempting signUp and checking for "User already registered" is one way.
-      // For now, let's assume a simplified check or that signUp error handling is sufficient.
-      return { exists: false, verified: false, canResend: true };
+      // Check if user exists by looking up the profile directly
+      // This is safer than triggering password reset emails
+      const { data: profile, error } = await supabase
+        .from('user_profiles')
+        .select('is_email_verified')
+        .eq('email', email)
+        .single()
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          // No row found - user doesn't exist
+          return { exists: false, verified: false, canResend: false }
+        }
+        // Other error - assume user doesn't exist (safer for privacy)
+        return { exists: false, verified: false, canResend: false }
+      }
+
+      // Profile found - user exists
+      return {
+        exists: true,
+        verified: profile.is_email_verified || false,
+        canResend: !profile.is_email_verified
+      }
     } catch (error) {
-      return { exists: false, verified: false, canResend: false };
+      // If any error, assume user doesn't exist (safer for privacy)
+      return { exists: false, verified: false, canResend: false }
     }
   },
 }

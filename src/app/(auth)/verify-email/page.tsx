@@ -70,7 +70,7 @@ function VerifyEmailContent() {
     );
   }
 
-  const validTypes = ['register', 'login', 'password-reset', 'email_change', 'recovery', 'email'];
+  const validTypes = ['register', 'login', 'password-reset', 'email_change', 'recovery', 'email', 'resend'];
   if (!validTypes.includes(type)) {
     return (
       <AuthCardWrapper
@@ -215,17 +215,29 @@ function VerifyEmailContent() {
   return (
     <AuthCardWrapper
       headerLabel="Verify Your Email"
-      backButtonLabel={type === 'login' ? "Back to Login" : "Back to Registration"}
-      backButtonHref={type === 'login' ? "/auth/login" : (email ? `/auth/register?email=${encodeURIComponent(email)}` : "/auth/register")}
+      backButtonLabel={
+        type === 'login' ? "Back to Login" :
+        type === 'resend' ? "Try Login Instead" :
+        "Back to Registration"
+      }
+      backButtonHref={
+        type === 'login' ? "/auth/login" :
+        type === 'resend' ? "/auth/login" :
+        (email ? `/auth/register?email=${encodeURIComponent(email)}` : "/auth/register")
+      }
     >
       <div className="space-y-6">
         <div className="text-center">
           <Mail className="mx-auto h-12 w-12 text-primary mb-4" />
           <h1 className="text-2xl font-semibold text-foreground mb-2">
-            Check Your Inbox
+            {type === 'resend' ? 'Account Found - Verify Email' :
+             type === 'login' ? 'Email Verification Required' :
+             'Check Your Inbox'}
           </h1>
           <p className="text-muted-foreground text-sm mb-1">
-            We&apos;ve sent a verification email to:
+            {type === 'resend' ? 'Your account exists but needs email verification. We\'ve sent a new verification email to:' :
+             type === 'login' ? 'You must verify your email before logging in. A verification email has been sent to:' :
+             'We\'ve sent a verification email to:'}
           </p>
           <p className="font-medium text-primary mb-6">{email}</p>
         </div>

@@ -47,9 +47,8 @@ export class MiddlewareAuthenticationService {
   }
 
   /**
-   * Authenticate user in middleware context.
-   * Primary strategy: Use a Supabase client configured specifically for middleware cookie handling.
-   * Fallback: Use the main AuthenticationService for other strategies (e.g., Bearer token for API-like calls from client).
+   * Authenticate user in middleware context - COMPATIBLE with browser client cookies
+   * This uses the same Supabase configuration as the browser client to ensure cookie compatibility
    */
   async authenticateUserInMiddleware(
     req: NextRequest,
@@ -59,114 +58,83 @@ export class MiddlewareAuthenticationService {
     const correlationId = this.logger.generateCorrelationId()
     const pathname = req.nextUrl.pathname
 
-    this.logger.logAuthAttempt('middleware', 'middleware-cookie-auth', correlationId)
-    console.log(`[MIDDLEWARE-AUTH] ${correlationId} | Starting auth for ${pathname}`)
+    this.logger.logAuthAttempt('middleware', 'compatible-cookie-auth', correlationId)
+    console.log(`[MIDDLEWARE-AUTH] ${correlationId} | Starting COMPATIBLE auth for ${pathname}`)
 
     try {
-      // Strategy 1: Middleware-specific cookie authentication
-      const supabaseMiddlewareClient = this.createMiddlewareSupabaseClient(req, res)
-      const { data: { user: cookieUser }, error: cookieError } = await supabaseMiddlewareClient.auth.getUser()
+      // Use server client that's compatible with browser client cookies
+      const supabase = this.createCompatibleSupabaseClient(req, res)
+      const { data: { user }, error } = await supabase.auth.getUser()
 
-      let profile: UserProfile | null = null
+      if (user && !error) {
+        console.log(`[MIDDLEWARE-AUTH] ${correlationId} | Compatible cookie auth successful. User: ${user.id}`)
 
-      if (cookieUser && !cookieError) {
-        console.log(`[MIDDLEWARE-AUTH] ${correlationId} | Middleware cookie auth successful. User: ${cookieUser.id}`)
-        profile = await this.getDetailedProfile(cookieUser.id, correlationId)
+        // Get profile using the same client
+        const profile = await this.getProfileUsingCompatibleClient(supabase, user.id, correlationId)
+
         if (!profile) {
-          // This case might indicate a desync or an issue creating profile, handle as auth failure for now
-          console.warn(`[MIDDLEWARE-AUTH] ${correlationId} | User ${cookieUser.id} found via cookie, but profile missing.`)
-          const error = AuthErrorFactory.createError(
+          console.warn(`[MIDDLEWARE-AUTH] ${correlationId} | User ${user.id} found via cookie, but profile missing.`)
+          const authError = AuthErrorFactory.createError(
             AuthErrorType.PROFILE_NOT_FOUND,
             'User profile not found after cookie authentication.',
             'Please try again or contact support.',
-            { endpoint: pathname, method: 'MIDDLEWARE', userId: cookieUser.id }
+            { endpoint: pathname, method: 'MIDDLEWARE', userId: user.id }
           )
-          this.logger.logAuthFailure(error)
+          this.logger.logAuthFailure(authError)
           return {
-            success: false, user: cookieUser, profile: null, error, correlationId,
-            strategy: 'middleware-cookie-fail-profile', executionTime: Date.now() - startTime
+            success: false, user, profile: null, error: authError, correlationId,
+            strategy: 'compatible-cookie-fail-profile', executionTime: Date.now() - startTime
           }
         }
 
-      const executionTime = Date.now() - startTime
-        this.logger.logAuthSuccess(cookieUser.id, profile.id, correlationId)
+        const executionTime = Date.now() - startTime
+        this.logger.logAuthSuccess(user.id, profile.id, correlationId)
         this.logger.logPerformanceMetric(
           'middleware-auth',
           executionTime,
           true,
           correlationId,
           {
-            strategy: 'middleware-cookie-success',
+            strategy: 'compatible-cookie-success',
             pathname,
-            userId: cookieUser.id,
+            userId: user.id,
             userRole: profile.role
           }
         )
-        console.log(`[MIDDLEWARE-AUTH] ${correlationId} | SUCCESS (Cookie via middleware client) | User: ${cookieUser.id} | Role: ${profile.role} | Time: ${executionTime}ms`)
+        console.log(`[MIDDLEWARE-AUTH] ${correlationId} | SUCCESS (Compatible Cookie) | User: ${user.id} | Role: ${profile.role} | Time: ${executionTime}ms`)
         return {
-          success: true, user: cookieUser, profile, correlationId,
-          strategy: 'middleware-cookie-success', executionTime
+          success: true, user, profile, correlationId,
+          strategy: 'compatible-cookie-success', executionTime
         }
-      } else if (cookieError) {
-        console.log(`[MIDDLEWARE-AUTH] ${correlationId} | Middleware cookie client attempt resulted in error: ${cookieError.message}`);
-        // Do not return yet, proceed to fallback strategies, as this specific error might be transient
-        // or other strategies (like Bearer) might still apply.
-      } else {
-        // This means cookieUser is null and cookieError is null - no active session found by middleware cookie client.
-        console.log(`[MIDDLEWARE-AUTH] ${correlationId} | No active session found by middleware cookie client.`);
       }
 
-      // Strategy 2: Fallback to main AuthenticationService (for Bearer tokens, etc.)
-      // This is useful if the middleware is also hit by client-side API calls that include bearer tokens.
-      console.log(`[MIDDLEWARE-AUTH] ${correlationId} | Proceeding to main auth service for other strategies (e.g., Bearer token).`)
-      const middlewareRequest = this.createMiddlewareRequest(req)
-      const authServiceResult: MainAuthResult = await this.authService.authenticateUser(middlewareRequest)
-      const executionTime = Date.now() - startTime
-
-      if (authServiceResult.success && authServiceResult.user && authServiceResult.profile) {
-        this.logger.logAuthSuccess(authServiceResult.user.id, authServiceResult.profile.id, correlationId)
-        this.logger.logPerformanceMetric(
-          'middleware-auth',
-          executionTime,
-          true,
-          correlationId,
-          {
-            strategy: authServiceResult.strategy,
-            pathname,
-            userId: authServiceResult.user.id,
-            userRole: authServiceResult.profile.role
-          }
-        )
-        console.log(`[MIDDLEWARE-AUTH] ${correlationId} | SUCCESS (Fallback: ${authServiceResult.strategy}) | User: ${authServiceResult.user.id} | Role: ${authServiceResult.profile.role} | Time: ${executionTime}ms`)
-        return {
-          success: true,
-          user: authServiceResult.user,
-          profile: authServiceResult.profile as UserProfile,
-          correlationId,
-          strategy: authServiceResult.strategy,
-          executionTime
-        }
+      // If cookie auth failed, log details
+      if (error) {
+        console.log(`[MIDDLEWARE-AUTH] ${correlationId} | Compatible cookie auth error: ${error.message}`)
+      } else {
+        console.log(`[MIDDLEWARE-AUTH] ${correlationId} | No active session found with compatible cookies`)
       }
 
       // All strategies failed
-      const errorToLog = authServiceResult.error || AuthErrorFactory.createError(
+      const executionTime = Date.now() - startTime
+      const authError = AuthErrorFactory.createError(
         AuthErrorType.INVALID_CREDENTIALS,
-        'All middleware authentication strategies failed',
+        'No valid authentication found',
         'Please log in again.',
         { endpoint: pathname, method: 'MIDDLEWARE' }
       )
-      this.logger.logAuthFailure(errorToLog)
+      this.logger.logAuthFailure(authError)
       this.logger.logPerformanceMetric(
         'middleware-auth',
         executionTime,
         false,
         correlationId,
-        { pathname, reason: 'all_strategies_failed' }
+        { pathname, reason: 'no_valid_auth' }
       )
-      console.log(`[MIDDLEWARE-AUTH] ${correlationId} | FAILED (All Strategies) | Reason: ${errorToLog.type} | Time: ${executionTime}ms`)
+      console.log(`[MIDDLEWARE-AUTH] ${correlationId} | FAILED (No Valid Auth) | Time: ${executionTime}ms`)
       return {
-        success: false, user: null, profile: null, error: errorToLog, correlationId,
-        strategy: 'all-failed', executionTime
+        success: false, user: null, profile: null, error: authError, correlationId,
+        strategy: 'no-auth', executionTime
       }
 
     } catch (error) {
@@ -192,38 +160,29 @@ export class MiddlewareAuthenticationService {
   }
 
   /**
-   * Create middleware-compatible request object for the main AuthenticationService (for fallback strategies)
+   * Create Supabase client that's compatible with browser client cookies
+   * This ensures cookie format compatibility between browser and server
    */
-  private createMiddlewareRequest(req: NextRequest): any {
-    return {
-      headers: {
-        get: (name: string) => req.headers.get(name),
-        authorization: req.headers.get('authorization')
-      },
-      cookies: req.cookies,
-      method: req.method,
-      url: req.url
+  private createCompatibleSupabaseClient(req: NextRequest, res: NextResponse) {
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      throw new Error('Missing Supabase environment variables')
     }
-  }
 
-  /**
-   * Enhanced cookie-aware Supabase client for middleware
-   * Uses standardized cookie handling consistent with Next.js 15 Middleware
-   */
-  createMiddlewareSupabaseClient(req: NextRequest, res: NextResponse) {
     return createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
       {
         cookies: {
           get(name: string) {
             return req.cookies.get(name)?.value
           },
           set(name: string, value: string, options: CookieOptions) {
-                res.cookies.set(name, value, options)
+            req.cookies.set({ name, value, ...options })
+            res.cookies.set({ name, value, ...options })
           },
           remove(name: string, options: CookieOptions) {
-            res.cookies.set(name, '', options)
+            req.cookies.set({ name, value: '', ...options })
+            res.cookies.set({ name, value: '', ...options })
           },
         },
       }
@@ -231,71 +190,69 @@ export class MiddlewareAuthenticationService {
   }
 
   /**
-   * Get detailed profile information for middleware routing decisions
+   * Get profile using the compatible client to ensure consistency
    */
-  async getDetailedProfile(userId: string, correlationId: string): Promise<UserProfile | null> {
+  private async getProfileUsingCompatibleClient(
+    supabase: any,
+    userId: string,
+    correlationId: string
+  ): Promise<UserProfile | null> {
     try {
       console.log(`[MIDDLEWARE-AUTH] ${correlationId} | Fetching profile for user: ${userId}`)
 
-      // Use a service-role Supabase client that does NOT rely on request cookies.
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!,
-        {
-          auth: {
-            autoRefreshToken: false,
-            persistSession: false,
-          },
-        }
-      )
-
-      // Fetch the full profile row so we don't depend on specific column names existing
-      const { data: profile, error } = await supabase
+      const { data, error } = await supabase
         .from('user_profiles')
-        .select('*')
+        .select(`
+          id,
+          email,
+          role,
+          verification_status,
+          created_at,
+          updated_at,
+          first_name,
+          last_name,
+          company_name,
+          is_onboarding_completed,
+          onboarding_step_completed
+        `)
         .eq('id', userId)
         .single()
 
       if (error) {
-        console.log(`[MIDDLEWARE-AUTH] ${correlationId} | Profile fetch failed for user ${userId}:`, error)
+        if (error.code === 'PGRST116') {
+          console.warn(`[MIDDLEWARE-AUTH] ${correlationId} | Profile not found for user ${userId} (PGRST116)`)
+        } else {
+          console.error(`[MIDDLEWARE-AUTH] ${correlationId} | Profile fetch error:`, error)
+        }
         return null
       }
 
-      if (!profile) {
-        console.log(`[MIDDLEWARE-AUTH] ${correlationId} | No profile found for user: ${userId}`)
+      if (!data) {
+        console.warn(`[MIDDLEWARE-AUTH] ${correlationId} | Profile data is null for user ${userId}`)
         return null
       }
 
-      console.log(`[MIDDLEWARE-AUTH] ${correlationId} | Profile found for user ${userId}: Role=${profile.role}, Verified=${profile.verification_status}`)
+      console.log(`[MIDDLEWARE-AUTH] ${correlationId} | Profile fetched successfully for user ${userId}`)
 
-      // Determine onboarding completion. Fall back to verification status if columns missing.
-      const isOnboardingCompleted =
-        profile.is_onboarding_completed !== undefined
-          ? profile.is_onboarding_completed
-          : profile.verification_status === 'verified'
-
-      const onboardingStep =
-        profile.onboarding_step_completed !== undefined && profile.onboarding_step_completed !== null
-          ? profile.onboarding_step_completed
-          : isOnboardingCompleted
-          ? 999
-          : 1
-
-      return {
-        id: profile.id,
-        role: profile.role,
-        is_onboarding_completed: isOnboardingCompleted,
-        onboarding_step_completed: onboardingStep,
-        verification_status: profile.verification_status,
-        email: profile.email,
-        created_at: profile.created_at,
-        updated_at: profile.updated_at,
-        first_name: profile.first_name || profile.full_name?.split(' ')[0] || '',
-        last_name: profile.last_name || profile.full_name?.split(' ').slice(1).join(' ') || '',
-        company_name: profile.company_name || (profile.role === 'seller' ? 'Not yet provided' : undefined)
+      // Ensure compatibility with middleware expectations
+      const profile: UserProfile = {
+        id: data.id,
+        role: data.role,
+        is_onboarding_completed: data.is_onboarding_completed ?? false,
+        onboarding_step_completed: data.onboarding_step_completed ?? null,
+        verification_status: data.verification_status || 'anonymous',
+        email: data.email,
+        created_at: data.created_at,
+        updated_at: data.updated_at,
+        first_name: data.first_name || '',
+        last_name: data.last_name || '',
+        company_name: data.company_name || undefined
       }
+
+      return profile
+
     } catch (error) {
-      console.error(`[MIDDLEWARE-AUTH] ${correlationId} | Error fetching profile for user ${userId}:`, error)
+      console.error(`[MIDDLEWARE-AUTH] ${correlationId} | Unexpected error fetching profile:`, error)
       return null
     }
   }
