@@ -3,7 +3,6 @@ import * as React from "react";
 import { MetricCard } from "@/components/admin/metric-card";
 import useSWR from 'swr';
 import type { AdminDashboardMetrics } from '@/lib/types';
-import { sampleVerificationRequests, sampleInquiries, sampleListings, sampleUsers } from "@/lib/placeholder-data";
 import { Users, BellRing, LineChart, ListChecks, UserCheck, Building, DollarSign, Banknote, ListX, Handshake, Clock, AlertTriangle, UserX } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,6 +32,19 @@ export default function AdminDashboardPage() {
     { refreshInterval: 60000 } // 1-min refresh for cleanup queue
   );
 
+  // NEW: Fetch real verification queue data
+  const { data: buyerVerificationData, isLoading: buyerVerificationLoading } = useSWR(
+    '/api/admin/verification-queue/buyers?limit=5&status=all',
+    fetcher,
+    { refreshInterval: 60000 }
+  );
+
+  const { data: sellerVerificationData, isLoading: sellerVerificationLoading } = useSWR(
+    '/api/admin/verification-queue/sellers?limit=5&status=all',
+    fetcher,
+    { refreshInterval: 60000 }
+  );
+
   if (error) {
     return <div className="p-8 text-red-600">Failed to load metrics: {error.message}</div>;
   }
@@ -41,23 +53,31 @@ export default function AdminDashboardPage() {
     return <div className="p-8">Loading admin metrics...</div>;
   }
 
-  const buyerVerificationRequests = sampleVerificationRequests.filter(req => req.userRole === 'buyer' && req.status !== 'Approved' && req.status !== 'Rejected');
-  const sellerVerificationRequests = sampleVerificationRequests.filter(req => req.userRole === 'seller' && req.status !== 'Approved' && req.status !== 'Rejected');
+  // Use real data from API instead of placeholder data
+  const buyerVerificationRequests = buyerVerificationData?.requests?.filter((req: any) =>
+    req.operationalStatus !== 'approved' && req.operationalStatus !== 'rejected'
+  ) || [];
 
-  const adminPageReadyToEngageItems = sampleInquiries
-    .filter(i => i.status === 'ready_for_admin_connection')
-    .map(inquiry => {
-      const buyer = sampleUsers.find(u => u.id === inquiry.buyerId);
-      const seller = sampleUsers.find(u => u.id === inquiry.sellerId);
-      const listing = sampleListings.find(l => l.id === inquiry.listingId);
-      return {
-        id: inquiry.id,
-        buyerName: buyer?.fullName || inquiry.buyerId,
-        sellerName: seller?.fullName || inquiry.sellerId,
-        listingTitle: listing?.listingTitleAnonymous || inquiry.listingId,
-        timestamp: inquiry.engagementTimestamp || inquiry.inquiryTimestamp,
-      };
-    });
+  const sellerVerificationRequests = sellerVerificationData?.requests?.filter((req: any) =>
+    req.operationalStatus !== 'approved' && req.operationalStatus !== 'rejected'
+  ) || [];
+
+  // Status color helper
+  const getStatusColor = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'new': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'contacted': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'under_review': return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'approved': return 'bg-green-100 text-green-800 border-green-200';
+      case 'rejected': return 'bg-red-100 text-red-800 border-red-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
+  // For now, we'll show placeholder data for engagement queue since we don't have real data yet
+  const adminPageReadyToEngageItems = [
+    // This will be replaced with real engagement queue data when that feature is implemented
+  ];
 
   return (
     <div className="space-y-8">
@@ -163,26 +183,42 @@ export default function AdminDashboardPage() {
                     <Link href="/admin/verification-queue/buyers">View All</Link>
                 </Button>
             </div>
-            <CardDescription>Top {buyerVerificationRequests.slice(0,3).length} buyers needing admin review.</CardDescription>
+            <CardDescription>
+              {buyerVerificationLoading ? 'Loading...' : `${buyerVerificationRequests.length} buyers needing admin review.`}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Buyer Name</TableHead>
-                  <TableHead>Reason</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Date</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {buyerVerificationRequests.slice(0,3).map(req => (
+                {buyerVerificationLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-center text-muted-foreground py-4">Loading...</TableCell>
+                  </TableRow>
+                ) : buyerVerificationRequests.slice(0, 3).map((req: any) => (
                   <TableRow key={req.id}>
-                    <TableCell>{req.userName}</TableCell>
-                    <TableCell className="truncate max-w-xs">{req.reason}</TableCell>
+                    <TableCell className="font-medium">{req.userName}</TableCell>
+                    <TableCell>
+                      <Badge className={`text-xs ${getStatusColor(req.operationalStatus)}`}>
+                        {req.operationalStatus}
+                      </Badge>
+                    </TableCell>
                     <TableCell>{new Date(req.timestamp).toLocaleDateString()}</TableCell>
                   </TableRow>
                 ))}
-                 {buyerVerificationRequests.length === 0 && <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-4">No pending buyer verifications.</TableCell></TableRow>}
+                {!buyerVerificationLoading && buyerVerificationRequests.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-center text-muted-foreground py-4">
+                      ✅ No pending buyer verifications.
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -196,7 +232,9 @@ export default function AdminDashboardPage() {
                     <Link href="/admin/verification-queue/sellers">View All</Link>
                 </Button>
             </div>
-            <CardDescription>Top {sellerVerificationRequests.slice(0,3).length} sellers/listings needing admin review.</CardDescription>
+            <CardDescription>
+              {sellerVerificationLoading ? 'Loading...' : `${sellerVerificationRequests.length} sellers/listings needing admin review.`}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
@@ -204,18 +242,34 @@ export default function AdminDashboardPage() {
                 <TableRow>
                   <TableHead>Seller Name</TableHead>
                   <TableHead>Listing</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Date</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sellerVerificationRequests.slice(0,3).map(req => (
+                {sellerVerificationLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center text-muted-foreground py-4">Loading...</TableCell>
+                  </TableRow>
+                ) : sellerVerificationRequests.slice(0, 3).map((req: any) => (
                   <TableRow key={req.id}>
-                    <TableCell>{req.userName}</TableCell>
+                    <TableCell className="font-medium">{req.userName}</TableCell>
                     <TableCell>{req.listingTitle || 'N/A (Profile)'}</TableCell>
+                    <TableCell>
+                      <Badge className={`text-xs ${getStatusColor(req.operationalStatus)}`}>
+                        {req.operationalStatus}
+                      </Badge>
+                    </TableCell>
                     <TableCell>{new Date(req.timestamp).toLocaleDateString()}</TableCell>
                   </TableRow>
                 ))}
-                 {sellerVerificationRequests.length === 0 && <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-4">No pending seller/listing verifications.</TableCell></TableRow>}
+                {!sellerVerificationLoading && sellerVerificationRequests.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center text-muted-foreground py-4">
+                      ✅ No pending seller/listing verifications.
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -229,7 +283,7 @@ export default function AdminDashboardPage() {
                     <Link href="/admin/engagement-queue">View All</Link>
                 </Button>
             </div>
-            <CardDescription>Top {adminPageReadyToEngageItems.slice(0,3).length} engagements ready for admin facilitation.</CardDescription>
+            <CardDescription>0 engagements ready for admin facilitation.</CardDescription>
           </CardHeader>
           <CardContent>
             <Table>

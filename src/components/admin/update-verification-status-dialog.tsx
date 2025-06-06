@@ -55,14 +55,19 @@ const OperationalStatusBadge = ({ status }: { status: VerificationQueueStatus })
   }
 };
 
-const ProfileStatusBadge = ({ status }: { status: VerificationStatus }) => {
-  const commonClasses = "text-xs px-2 py-0.5 rounded-full font-medium flex items-center gap-1";
+const ProfileStatusBadge = ({ status }: { status: VerificationStatus | undefined }) => {
+  const commonClasses = "text-xs px-2 py-1 h-5 gap-1";
+
+  if (!status) {
+    return <Badge variant="outline" className={cn(commonClasses, "capitalize")}>Unknown</Badge>;
+  }
+
   switch (status) {
     case 'verified': return <Badge variant="outline" className={cn(commonClasses, "bg-green-100 text-green-700 border-green-300")}><ShieldCheck className="h-3 w-3" />Verified</Badge>;
     case 'pending_verification': return <Badge variant="outline" className={cn(commonClasses, "bg-yellow-100 text-yellow-700 border-yellow-300")}><AlertTriangle className="h-3 w-3" />Pending</Badge>;
     case 'rejected': return <Badge variant="destructive" className={cn(commonClasses, "bg-red-600 text-white border-red-700")}><AlertTriangle className="h-3 w-3" />Rejected</Badge>;
     case 'anonymous':
-    default: return <Badge variant="outline" className={cn(commonClasses, "capitalize")}>{(status as string).replace(/_/g, ' ')}</Badge>;
+    default: return <Badge variant="outline" className={cn(commonClasses, "capitalize")}>{status.replace(/_/g, ' ')}</Badge>;
   }
 };
 
@@ -190,8 +195,11 @@ export function UpdateVerificationStatusDialog({
                 <DialogDescription className="text-sm text-muted-foreground">
                   Request ID: <span className="font-mono text-xs">{request.id.substring(0,8)}...</span>
                   {request.listingId && ` | Listing: ${request.listingTitle || request.listingId.substring(0,8)}...`}
-                  <br/>Role: <Badge variant="outline" className="capitalize text-xs">{request.userRole}</Badge>
                 </DialogDescription>
+                <div className="flex items-center gap-2 mt-2">
+                  <span className="text-sm text-muted-foreground">Role:</span>
+                  <Badge variant="outline" className="capitalize text-xs">{request.userRole}</Badge>
+                </div>
               </DialogHeader>
 
               <div className="grid md:grid-cols-2 gap-6 p-6 flex-grow overflow-y-auto">
@@ -245,8 +253,14 @@ export function UpdateVerificationStatusDialog({
                             <div className="text-muted-foreground/80 text-[0.7rem] flex flex-wrap gap-x-2 gap-y-0.5 items-center border-t pt-1.5 mt-1.5">
                               <span><UserCircle className="inline h-3 w-3 mr-0.5" /> {note.adminName || note.adminId}</span>
                               <span>@ {new Date(note.timestamp).toLocaleString([], {dateStyle: 'short', timeStyle: 'short'})}</span>
-                              <span>Ops: <OperationalStatusBadge status={note.operationalStatusAtTimeOfNote} /></span>
-                              <span>Profile: <ProfileStatusBadge status={note.profileStatusAtTimeOfNote} /></span>
+                              <div className="flex items-center gap-1">
+                                <span>Ops:</span>
+                                <OperationalStatusBadge status={note.operationalStatusAtTimeOfNote} />
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <span>Profile:</span>
+                                <ProfileStatusBadge status={note.profileStatusAtTimeOfNote} />
+                              </div>
                             </div>
                              <Button variant="ghost" size="icon" className="absolute top-1 right-1 h-6 w-6 text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => handleOpenDeleteNoteDialog(note.id)} title="Delete this note">
                                 <Trash2 className="h-3.5 w-3.5"/>
@@ -279,10 +293,24 @@ export function UpdateVerificationStatusDialog({
               </DialogHeader>
               <div className="p-6 space-y-4 text-sm max-h-[60vh] overflow-y-auto">
                 {operationalStatusChanged && (
-                  <p><strong>Operational Status:</strong> <OperationalStatusBadge status={initialRequestStateRef.current!.operationalStatus!} /> &rarr; <OperationalStatusBadge status={selectedOperationalStatus!} /></p>
+                  <div>
+                    <strong>Operational Status:</strong>
+                    <div className="flex items-center gap-2 mt-1">
+                      <OperationalStatusBadge status={initialRequestStateRef.current!.operationalStatus!} />
+                      <span>&rarr;</span>
+                      <OperationalStatusBadge status={selectedOperationalStatus!} />
+                    </div>
+                  </div>
                 )}
                 {profileStatusChanged && (
-                   <p><strong>Profile Status:</strong> <ProfileStatusBadge status={initialRequestStateRef.current!.profileStatus!} /> &rarr; <ProfileStatusBadge status={selectedProfileStatus!} /></p>
+                  <div>
+                    <strong>Profile Status:</strong>
+                    <div className="flex items-center gap-2 mt-1">
+                      <ProfileStatusBadge status={initialRequestStateRef.current!.profileStatus!} />
+                      <span>&rarr;</span>
+                      <ProfileStatusBadge status={selectedProfileStatus!} />
+                    </div>
+                  </div>
                 )}
                 {newNoteAdded && (
                   <div>

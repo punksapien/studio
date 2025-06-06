@@ -1,202 +1,414 @@
-
 'use client'
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import { Briefcase, MessageSquare, PlusCircle, ShieldCheck, CheckCircle2, Bell, Edit3, Loader2 } from "lucide-react";
-import { useSellerDashboard } from "@/hooks/use-seller-dashboard";
-import { VerificationRequestModal } from "@/components/verification/verification-request-modal";
+import { useState } from 'react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import {
+  User,
+  FileText,
+  MessageSquare,
+  PlusCircle,
+  ExternalLink,
+  BarChart3,
+  Verified,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+  RefreshCw,
+  Timer,
+  TrendingUp,
+  ShieldCheck,
+  Eye,
+  Send
+} from 'lucide-react';
+import { useSellerDashboard } from '@/hooks/use-seller-dashboard';
+import { useVerificationRequest } from '@/hooks/use-verification-request';
+import { VerificationRequestModal } from '@/components/verification/verification-request-modal';
+import React from 'react';
 
-export default function SellerDashboardPage() {
-  const { user, stats, recentListings, isLoading, error, refreshData } = useSellerDashboard()
+export default function SellerDashboard() {
+  const { user, stats, recentListings, isLoading, error, refreshData, isPolling } = useSellerDashboard();
+  const { requests: verificationRequests, currentStatus: verificationStatus, canSubmitNewRequest } = useVerificationRequest();
 
-  if (error) {
+  // Prepare listings for verification modal
+  const userListingsForVerification = recentListings.map(l => ({
+    id: l.id,
+    listing_title_anonymous: l.title,
+    status: l.status
+  }));
+
+  const getVerificationStatusInfo = () => {
+    const pendingUserRequest = verificationRequests.find(r =>
+      r.request_type === 'user_verification' &&
+      ['New Request', 'Contacted', 'Docs Under Review', 'More Info Requested'].includes(r.status)
+    );
+
+    switch (verificationStatus) {
+      case 'verified':
+        return {
+          icon: <CheckCircle2 className="h-5 w-5 text-green-600" />,
+          status: 'Verified Seller',
+          description: 'Your profile has been verified by our team',
+          badgeVariant: 'default' as const,
+          badgeColor: 'bg-green-100 text-green-800 border-green-200',
+          actionText: 'Manage Verification',
+          showButton: false
+        };
+      case 'pending_verification':
+        return {
+          icon: <Clock className="h-5 w-5 text-yellow-600" />,
+          status: 'Verification Pending',
+          description: pendingUserRequest ?
+            `Your verification request is ${pendingUserRequest.status.toLowerCase()}. ${pendingUserRequest.can_bump ? 'You can bump it to the top!' : (pendingUserRequest.hours_until_can_bump && pendingUserRequest.hours_until_can_bump > 0) ? `You can bump it in ${pendingUserRequest.hours_until_can_bump} hours.` : ''}` :
+            'Your profile verification is being reviewed',
+          badgeVariant: 'outline' as const,
+          badgeColor: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+          actionText: pendingUserRequest?.can_bump ? 'Bump Request' : (pendingUserRequest?.hours_until_can_bump && pendingUserRequest.hours_until_can_bump > 0) ? `Bump in ${pendingUserRequest.hours_until_can_bump}h` : 'View Status',
+          showButton: true,
+          canBump: pendingUserRequest?.can_bump || false,
+          hoursUntilBump: pendingUserRequest?.hours_until_can_bump || 0
+        };
+      default: // anonymous
+        const canSubmit = canSubmitNewRequest('user_verification');
+        // Better logic for action text - avoid showing "0h"
+        let actionText = 'Request Verification';
+        if (!canSubmit.canSubmit) {
+          if (canSubmit.hoursRemaining && canSubmit.hoursRemaining > 0) {
+            actionText = `Available in ${canSubmit.hoursRemaining}h`;
+          } else {
+            // If no hours remaining but still can't submit, it means there's a pending request
+            actionText = 'Request Pending';
+          }
+        }
+
+        return {
+          icon: <User className="h-5 w-5 text-gray-600" />,
+          status: 'Anonymous Seller',
+          description: canSubmit.canSubmit ?
+            'Get verified to build trust and increase visibility' :
+            canSubmit.message || 'Verification request pending',
+          badgeVariant: 'outline' as const,
+          badgeColor: 'bg-gray-100 text-gray-800 border-gray-200',
+          actionText,
+          showButton: true,
+          disabled: !canSubmit.canSubmit,
+          hoursRemaining: canSubmit.hoursRemaining || 0
+        };
+    }
+  };
+
+  const verificationInfo = getVerificationStatusInfo();
+
+  if (isLoading) {
     return (
-      <div className="space-y-8 text-center">
-        <h1 className="text-3xl font-bold tracking-tight text-red-600">Error Loading Dashboard</h1>
-        <p className="text-muted-foreground">{error}</p>
-        <Button onClick={() => window.location.reload()}>Try Again</Button>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex items-center gap-2">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span>Loading dashboard...</span>
+        </div>
       </div>
     );
   }
 
-  if (isLoading) {
+  if (error) {
     return (
-      <div className="space-y-8">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-            <p className="text-muted-foreground">Loading your dashboard...</p>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <AlertCircle className="h-12 w-12 text-red-500 mx-auto" />
+          <div>
+            <h2 className="text-xl font-semibold">Error Loading Dashboard</h2>
+            <p className="text-muted-foreground">{error}</p>
+            <Button onClick={refreshData} className="mt-4">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Retry
+            </Button>
           </div>
         </div>
       </div>
     );
   }
 
-  if (!user) {
-    return (
-      <div className="space-y-8 text-center">
-        <h1 className="text-3xl font-bold tracking-tight">Access Denied</h1>
-        <p className="text-muted-foreground">You must be logged in as a seller to view this page.</p>
-        <Button asChild><Link href="/auth/login">Login</Link></Button>
-      </div>
-    );
-  }
-
-  // Filter listings for the recent listings section (same logic as original)
-  const activeListingsForSection = recentListings.filter(l =>
-    l.status === 'active' || l.status === 'verified_anonymous' || l.status === 'verified_with_financials' || l.status === 'verified_public'
-  );
-
-  // Prepare listings for verification modal (pass all listings, modal will filter eligible ones)
-  const userListingsForVerification = recentListings.map(l => ({
-    id: l.id,
-    listing_title_anonymous: l.title,
-    status: l.status 
-  }));
-
-
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Welcome back, {user.fullName}!</h1>
-          <p className="text-muted-foreground">Here&apos;s an overview of your seller activity.</p>
-        </div>
-        <Button size="lg" asChild>
-          <Link href="/seller-dashboard/listings/create">
-            <PlusCircle className="mr-2 h-5 w-5" /> Create New Listing
-          </Link>
-        </Button>
-      </div>
-
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="shadow-lg">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Listings</CardTitle>
-            <Briefcase className="h-5 w-5 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.activeListingsCount}</div>
-            <p className="text-xs text-muted-foreground">
-              Manage your businesses for sale.
-            </p>
-             <Button variant="link" asChild className="px-0 mt-2">
-                <Link href="/seller-dashboard/listings">View All My Listings</Link>
-              </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-lg">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Inquiries Received</CardTitle>
-            <MessageSquare className="h-5 w-5 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalInquiriesReceived}</div>
-            <p className="text-xs text-muted-foreground">
-              {stats.inquiriesAwaitingEngagement > 0 ? `${stats.inquiriesAwaitingEngagement} new inquiries awaiting your engagement.` : 'All inquiries viewed.'}
-            </p>
-             <Button variant="link" asChild className="px-0 mt-2">
-                <Link href="/seller-dashboard/inquiries">View All Inquiries</Link>
-              </Button>
-          </CardContent>
-        </Card>
-
-        <Card className={`shadow-lg ${stats.verificationStatus === 'verified' ? 'bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-700/50' : 'bg-amber-50 border-amber-200 dark:bg-amber-900/30 dark:border-amber-700/50'}`}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Verification Status</CardTitle>
-            <ShieldCheck className={`h-5 w-5 ${stats.verificationStatus === 'verified' ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'}`} />
-          </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold ${stats.verificationStatus === 'verified' ? 'text-green-700 dark:text-green-300' : 'text-amber-700 dark:text-amber-300'}`}>
-              {stats.verificationStatus === 'verified' ? 'Verified Seller' :
-               stats.verificationStatus === 'pending_verification' ? 'Verification Pending' :
-               'Anonymous Seller'}
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
+        {/* Header with Real-time Indicator */}
+        <div className="flex justify-between items-start mb-8">
+          <div>
+            <h1 className="text-3xl font-bold">Seller Dashboard</h1>
+            <div className="text-muted-foreground mt-1">
+              Welcome back, {user?.fullName || 'User'}
+              {isPolling && (
+                <span className="ml-2 inline-flex items-center gap-1 text-xs text-green-600">
+                  <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse" />
+                  Live updates
+                </span>
+              )}
             </div>
-            <p className="text-xs text-muted-foreground">
-              {stats.verificationStatus === 'verified'
-                ? 'Your profile is verified. Verified listings show full details to buyers.'
-                : 'Verify your profile and listings to attract serious buyers.'}
-            </p>
-            {stats.verificationStatus !== 'verified' && (
-              <VerificationRequestModal userListings={userListingsForVerification} onSuccess={refreshData}>
-                <Button variant="link" className="px-0 mt-2 text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300">
-                  {stats.verificationStatus === 'pending_verification' ? 'Check Verification Status' : 'Request Verification'}
+          </div>
+          <Button onClick={refreshData} variant="outline" size="sm">
+            <RefreshCw className={`h-4 w-4 mr-2 ${isPolling ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        </div>
+
+        {/* Enhanced Verification Status Card - Updated */}
+        <Card className={`mb-8 border-2 ${
+          verificationInfo.badgeColor.includes('green') ? 'border-green-200 bg-green-50/50' :
+          verificationInfo.badgeColor.includes('yellow') ? 'border-yellow-200 bg-yellow-50/50' :
+          (verificationStatus === 'anonymous' && verificationRequests.some(r => r.request_type === 'user_verification' && ['New Request', 'Contacted', 'Docs Under Review', 'More Info Requested'].includes(r.status))) ? 'border-yellow-200 bg-yellow-50/50' :
+          'border-gray-200'
+        }`}>
+          <CardHeader className="pb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {verificationInfo.icon}
+                <div>
+                  <CardTitle className="text-lg">{verificationInfo.status}</CardTitle>
+                  <CardDescription className="mt-1">
+                    {verificationInfo.description}
+                  </CardDescription>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <Badge className={verificationInfo.badgeColor}>
+                  {verificationStatus === 'verified' && <Verified className="h-3 w-3 mr-1" />}
+                  {verificationStatus === 'pending_verification' && <Clock className="h-3 w-3 mr-1" />}
+                  {verificationStatus === 'anonymous' && <User className="h-3 w-3 mr-1" />}
+                  {verificationInfo.status}
+                </Badge>
+              </div>
+            </div>
+          </CardHeader>
+
+          {verificationInfo.showButton && (
+            <CardContent className="pt-0">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  {(verificationInfo.hoursRemaining !== undefined && verificationInfo.hoursRemaining > 0) && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                      <Timer className="h-4 w-4" />
+                      <span>Cooldown: {verificationInfo.hoursRemaining} hours remaining</span>
+                      <Progress value={(24 - (verificationInfo.hoursRemaining || 0)) / 24 * 100} className="w-24 h-2" />
+                    </div>
+                  )}
+                  {(verificationInfo.hoursUntilBump !== undefined && verificationInfo.hoursUntilBump > 0) && (
+                    <div className="flex items-center gap-2 text-sm text-amber-600 mb-2">
+                      <Timer className="h-4 w-4" />
+                      <span>Can bump request in {verificationInfo.hoursUntilBump} hours</span>
+                      <Progress value={(24 - (verificationInfo.hoursUntilBump || 0)) / 24 * 100} className="w-24 h-2" />
+                    </div>
+                  )}
+                </div>
+
+                <VerificationRequestModal
+                  userListings={userListingsForVerification}
+                  onSuccess={refreshData}
+                >
+                  <Button
+                    disabled={verificationInfo.disabled && !verificationInfo.canBump}
+                    variant={verificationInfo.canBump ? "default" : "outline"}
+                    className={`
+                      ${verificationInfo.canBump ? "bg-green-600 hover:bg-green-700 text-white" : ""}
+                      ${!verificationInfo.canBump && !verificationInfo.disabled ? "bg-indigo-600 hover:bg-indigo-700 text-white border-indigo-600" : ""}
+                      ${verificationInfo.disabled && !verificationInfo.canBump ?
+                        "!bg-gray-200 !text-gray-500 !border-gray-300 !opacity-60 !cursor-not-allowed hover:!bg-gray-200 hover:!text-gray-500 hover:!border-gray-300" : ""
+                      }
+                    `}
+                    style={verificationInfo.disabled && !verificationInfo.canBump ? {
+                      pointerEvents: 'none',
+                      backgroundColor: '#f3f4f6',
+                      color: '#6b7280',
+                      borderColor: '#d1d5db'
+                    } : undefined}
+                  >
+                    {verificationInfo.canBump ? (
+                      <>
+                        <TrendingUp className="h-4 w-4 mr-2" />
+                        Bump to Top
+                      </>
+                    ) : verificationInfo.disabled ? (
+                      <>
+                        <Timer className="h-4 w-4 mr-2" />
+                        {verificationInfo.actionText}
+                      </>
+                    ) : (
+                      <>
+                        <Send className="h-4 w-4 mr-2" />
+                        {verificationInfo.actionText}
+                      </>
+                    )}
+                  </Button>
+                </VerificationRequestModal>
+              </div>
+            </CardContent>
+          )}
+        </Card>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Active Listings</CardTitle>
+              <FileText className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.activeListingsCount}</div>
+              <p className="text-xs text-muted-foreground">
+                Listings currently visible to buyers
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Inquiries</CardTitle>
+              <MessageSquare className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.totalInquiriesReceived}</div>
+              <p className="text-xs text-muted-foreground">
+                All-time inquiries received
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Awaiting Response</CardTitle>
+              <AlertCircle className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.inquiriesAwaitingEngagement}</div>
+              <p className="text-xs text-muted-foreground">
+                New inquiries needing attention
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <PlusCircle className="h-5 w-5" />
+                Quick Actions
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Link href="/seller-dashboard/listings/create">
+                <Button className="w-full justify-start">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Create New Listing
                 </Button>
-              </VerificationRequestModal>
+              </Link>
+              <Link href="/seller-dashboard/inquiries">
+                <Button variant="outline" className="w-full justify-start">
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  View All Inquiries
+                </Button>
+              </Link>
+              <Link href="/seller-dashboard/settings">
+                <Button variant="outline" className="w-full justify-start">
+                  <User className="h-4 w-4 mr-2" />
+                  Account Settings
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5" />
+                Performance
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex justify-between text-sm">
+                  <span>Profile Completion</span>
+                  <span>{verificationStatus === 'verified' ? '100%' : verificationStatus === 'pending_verification' ? '80%' : '60%'}</span>
+                </div>
+                <Progress value={verificationStatus === 'verified' ? 100 : verificationStatus === 'pending_verification' ? 80 : 60} />
+                <p className="text-xs text-muted-foreground">
+                  {verificationStatus === 'verified'
+                    ? 'Your profile is fully verified and optimized for maximum trust.'
+                    : verificationStatus === 'pending_verification'
+                    ? 'Your verification is pending. Verified profiles get 3x more inquiries.'
+                    : 'Complete verification to increase buyer trust and inquiry rates.'
+                  }
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Recent Listings */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Recent Listings
+            </CardTitle>
+            <Link href="/seller-dashboard/listings">
+              <Button variant="outline" size="sm">
+                <Eye className="h-4 w-4 mr-2" />
+                View All
+              </Button>
+            </Link>
+          </CardHeader>
+          <CardContent>
+            {recentListings.length > 0 ? (
+              <div className="space-y-4">
+                {recentListings.map((listing) => (
+                  <div key={listing.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex-1">
+                      <h3 className="font-medium">{listing.title}</h3>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge variant="outline" className="text-xs">
+                          {listing.status.replace('_', ' ')}
+                        </Badge>
+                        {listing.asking_price && (
+                          <span className="text-sm text-muted-foreground">
+                            ${listing.asking_price.toLocaleString()}
+                          </span>
+                        )}
+                        <span className="text-sm text-muted-foreground">
+                          {listing.inquiry_count || 0} inquiries
+                        </span>
+                      </div>
+                    </div>
+                    <Link href={`/seller-dashboard/listings/${listing.id}`}>
+                      <Button variant="ghost" size="sm">
+                        <ExternalLink className="h-4 w-4" />
+                      </Button>
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">No listings yet</h3>
+                <p className="text-muted-foreground mb-4">
+                  Create your first listing to start connecting with buyers.
+                </p>
+                <Link href="/seller-dashboard/listings/create">
+                  <Button>
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    Create Your First Listing
+                  </Button>
+                </Link>
+              </div>
             )}
           </CardContent>
         </Card>
       </div>
-
-      <Card className="shadow-md">
-        <CardHeader>
-          <CardTitle>Recent Active Listings</CardTitle>
-          <CardDescription>A quick look at your latest active businesses for sale.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {activeListingsForSection.length > 0 ? (
-            <>
-              {activeListingsForSection.slice(0, 3).map(listing => (
-                <div key={listing.id} className="p-3 border rounded-md hover:shadow-sm transition-shadow">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <Link href={`/listings/${listing.id}`} target="_blank" className="font-medium text-primary hover:underline">
-                        {listing.title}
-                      </Link>
-                      <p className="text-xs text-muted-foreground">
-                        Inquiries: {listing.inquiry_count || 0} | Status: <span className="font-medium">{listing.status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
-                      </p>
-                    </div>
-                    <Button variant="ghost" size="sm" asChild>
-                      <Link href={`/seller-dashboard/listings/${listing.id}/edit`}><Edit3 className="mr-2 h-4 w-4" />Edit</Link>
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </>
-          ) : (
-            <div className="text-center py-8">
-              <Briefcase className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground mb-4">No active listings yet. Create your first listing to get started!</p>
-              <Button asChild>
-                <Link href="/seller-dashboard/listings/create">
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  Create Your First Listing
-                </Link>
-              </Button>
-            </div>
-          )}
-          {activeListingsForSection.length > 0 && (
-            <Button variant="outline" asChild className="w-full mt-4">
-              <Link href="/seller-dashboard/listings">Manage All Listings</Link>
-            </Button>
-          )}
-        </CardContent>
-      </Card>
-
-      {(stats.verificationStatus === 'anonymous' || (stats.verificationStatus === 'pending_verification' && recentListings.some(l => l.status === 'active' || l.status === 'verified_anonymous'))) && (
-        <Card className="shadow-md bg-primary/10 border-primary/30">
-          <CardHeader>
-            <CardTitle className="text-primary flex items-center"><CheckCircle2 className="mr-2"/> Unlock Full Potential for Your {recentListings.some(l => l.status === 'active' || l.status === 'verified_anonymous') ? 'Listings' : 'Account'}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground mb-4">
-              {stats.verificationStatus === 'anonymous'
-                ? 'Get your seller profile verified to build trust. Once your profile is verified, you can request verification for individual listings to attract serious buyers and enable them to view full business details.'
-                : 'Your profile verification is pending. Once approved, you can verify individual listings.'
-              }
-            </p>
-            <VerificationRequestModal userListings={userListingsForVerification} onSuccess={refreshData}>
-              <Button>
-                {stats.verificationStatus === 'anonymous' ? 'Request Profile Verification' : 'Manage Verification Requests'}
-              </Button>
-            </VerificationRequestModal>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }

@@ -18,6 +18,7 @@ import Link from "next/link";
 import { Eye, Edit, ShieldCheck, AlertTriangle, MailOpen, MessageSquare, Clock, FileSearch, RefreshCw, Loader2, Users, InboxIcon } from "lucide-react";
 import { UpdateVerificationStatusDialog } from "@/components/admin/update-verification-status-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useAdminVerification } from "@/hooks/use-admin-verification";
 import { cn } from "@/lib/utils";
 
 function FormattedTimestamp({ timestamp, short = false }: { timestamp: Date | string, short?: boolean }) {
@@ -60,6 +61,7 @@ const fetcher = async (url: string): Promise<VerificationQueueResponse> => {
 
 export default function AdminBuyerVerificationQueuePage() {
   const { toast } = useToast();
+  const { updateVerificationRequest, isUpdating } = useAdminVerification();
   const [statusFilter, setStatusFilter] = React.useState<string>('all');
   const [page, setPage] = React.useState(1);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
@@ -88,24 +90,53 @@ export default function AdminBuyerVerificationQueuePage() {
     updatedAdminNotes: AdminNote[]
   ) => {
     try {
-      // TODO: Implement API call to update verification status
-      // For now, just optimistically update UI and refresh data
-      // Example:
-      // await fetch(`/api/admin/verification-queue/update/${requestId}`, {
-      //   method: 'PUT',
-      //   body: JSON.stringify({ operationalStatus: newOperationalStatus, profileStatus: newProfileStatus, adminNotes: updatedAdminNotes })
-      // });
-      console.log("Saving update:", { requestId, newOperationalStatus, newProfileStatus, updatedAdminNotes });
+      // Get the current request to find any changes
+      const currentRequest = data?.requests.find(r => r.id === requestId);
+      if (!currentRequest) {
+        throw new Error('Request not found');
+      }
 
-      mutate(); // Re-fetch data after save
+      // Prepare update payload
+      const updates: any = {};
 
-      const requestToUpdate = data?.requests.find(r => r.id === requestId);
-      const userName = requestToUpdate?.userName || "User";
+      // Only include changed values
+      if (newOperationalStatus !== currentRequest.operationalStatus) {
+        updates.operationalStatus = newOperationalStatus;
+      }
 
-      toast({
-        title: "Status Updated",
-        description: `Verification for ${userName} updated successfully.`
-      });
+      if (newProfileStatus !== currentRequest.profileStatus) {
+        updates.profileStatus = newProfileStatus;
+      }
+
+      // Check for new admin notes
+      const currentNotesCount = currentRequest.adminNotes?.length || 0;
+      const newNotesCount = updatedAdminNotes.length;
+
+      if (newNotesCount > currentNotesCount) {
+        // Get the latest note (assume it's the last one added)
+        const latestNote = updatedAdminNotes[newNotesCount - 1];
+        if (latestNote && 'note' in latestNote) {
+          updates.adminNote = latestNote.note;
+        } else if (latestNote && 'content' in latestNote) {
+          updates.adminNote = latestNote.content;
+        }
+        updates.adminName = 'Admin'; // You could get this from user context
+      }
+
+      // Only make API call if there are actual changes
+      if (Object.keys(updates).length > 0) {
+        const success = await updateVerificationRequest(requestId, updates);
+
+        if (success) {
+          // Refresh the data to show updated values
+          mutate();
+          setIsDialogOpen(false);
+        }
+      } else {
+        // No changes made
+        setIsDialogOpen(false);
+      }
+
     } catch (error) {
       console.error('Failed to update status:', error);
       toast({
