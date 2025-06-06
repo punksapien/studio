@@ -16,7 +16,7 @@
     --brand-dark-blue-hsl: 225 66% 13%;    /* #0D0D39 */
     --brand-light-gray-hsl: 220 33% 95%;   /* #F4F6FC */
     --brand-white-hsl: 0 0% 100%;          /* #FFFFFF */
-    --brand-sky-blue-hsl: 238 75% 51%;     /* #4338CA - Indigo-600 (Better harmony with dark blue) */
+    --brand-sky-blue-hsl: 220 50% 55%;     /* Changed from 238 75% 51% for a more professional blue */
 
     /* Light Mode - Nobridge Palette */
     --background: var(--brand-white-hsl);                     /* Main page background: White */
