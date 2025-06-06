@@ -1,3 +1,4 @@
+
 'use client'
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,7 +9,7 @@ import { useSellerDashboard } from "@/hooks/use-seller-dashboard";
 import { VerificationRequestModal } from "@/components/verification/verification-request-modal";
 
 export default function SellerDashboardPage() {
-  const { user, stats, recentListings, isLoading, error } = useSellerDashboard()
+  const { user, stats, recentListings, isLoading, error, refreshData } = useSellerDashboard()
 
   if (error) {
     return (
@@ -45,15 +46,16 @@ export default function SellerDashboardPage() {
 
   // Filter listings for the recent listings section (same logic as original)
   const activeListingsForSection = recentListings.filter(l =>
-    l.status === 'active' || l.status === 'verified_anonymous' || l.status === 'verified_with_financials'
+    l.status === 'active' || l.status === 'verified_anonymous' || l.status === 'verified_with_financials' || l.status === 'verified_public'
   );
 
-  // Prepare listings for verification modal
+  // Prepare listings for verification modal (pass all listings, modal will filter eligible ones)
   const userListingsForVerification = recentListings.map(l => ({
     id: l.id,
     listing_title_anonymous: l.title,
-    status: l.status
+    status: l.status 
   }));
+
 
   return (
     <div className="space-y-8">
@@ -115,11 +117,11 @@ export default function SellerDashboardPage() {
             </div>
             <p className="text-xs text-muted-foreground">
               {stats.verificationStatus === 'verified'
-                ? 'Your profile and listings (if verified) show full details to verified buyers.'
+                ? 'Your profile is verified. Verified listings show full details to buyers.'
                 : 'Verify your profile and listings to attract serious buyers.'}
             </p>
             {stats.verificationStatus !== 'verified' && (
-              <VerificationRequestModal userListings={userListingsForVerification}>
+              <VerificationRequestModal userListings={userListingsForVerification} onSuccess={refreshData}>
                 <Button variant="link" className="px-0 mt-2 text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300">
                   {stats.verificationStatus === 'pending_verification' ? 'Check Verification Status' : 'Request Verification'}
                 </Button>
@@ -129,7 +131,6 @@ export default function SellerDashboardPage() {
         </Card>
       </div>
 
-      {/* Recent Active Listings Section - ALWAYS show this section */}
       <Card className="shadow-md">
         <CardHeader>
           <CardTitle>Recent Active Listings</CardTitle>
@@ -137,7 +138,6 @@ export default function SellerDashboardPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           {activeListingsForSection.length > 0 ? (
-            // Show listings if available
             <>
               {activeListingsForSection.slice(0, 3).map(listing => (
                 <div key={listing.id} className="p-3 border rounded-md hover:shadow-sm transition-shadow">
@@ -147,7 +147,7 @@ export default function SellerDashboardPage() {
                         {listing.title}
                       </Link>
                       <p className="text-xs text-muted-foreground">
-                        Inquiries: {listing.inquiry_count || 0} | Status: <span className="font-medium">{listing.status}</span>
+                        Inquiries: {listing.inquiry_count || 0} | Status: <span className="font-medium">{listing.status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
                       </p>
                     </div>
                     <Button variant="ghost" size="sm" asChild>
@@ -158,7 +158,6 @@ export default function SellerDashboardPage() {
               ))}
             </>
           ) : (
-            // Show empty state when no listings
             <div className="text-center py-8">
               <Briefcase className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-muted-foreground mb-4">No active listings yet. Create your first listing to get started!</p>
@@ -170,27 +169,30 @@ export default function SellerDashboardPage() {
               </Button>
             </div>
           )}
-          <Button variant="outline" asChild className="w-full mt-4">
-            <Link href="/seller-dashboard/listings">Manage All Listings</Link>
-          </Button>
+          {activeListingsForSection.length > 0 && (
+            <Button variant="outline" asChild className="w-full mt-4">
+              <Link href="/seller-dashboard/listings">Manage All Listings</Link>
+            </Button>
+          )}
         </CardContent>
       </Card>
 
-      {/* Verification Prompt Section - Show for anonymous sellers (regardless of listing count) */}
-      {stats.verificationStatus === 'anonymous' && (
+      {(stats.verificationStatus === 'anonymous' || (stats.verificationStatus === 'pending_verification' && recentListings.some(l => l.status === 'active' || l.status === 'verified_anonymous'))) && (
         <Card className="shadow-md bg-primary/10 border-primary/30">
           <CardHeader>
-            <CardTitle className="text-primary flex items-center"><CheckCircle2 className="mr-2"/> Unlock Full Potential for Your Account</CardTitle>
+            <CardTitle className="text-primary flex items-center"><CheckCircle2 className="mr-2"/> Unlock Full Potential for Your {recentListings.some(l => l.status === 'active' || l.status === 'verified_anonymous') ? 'Listings' : 'Account'}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground mb-4">
-              {stats.activeListingsCount > 0
-                ? 'Get your listings verified to attract serious buyers and enable them to view full business details. Verified listings gain more trust and visibility.'
-                : 'Get verified to attract serious buyers when you create listings. Verified sellers gain more trust and visibility.'
+              {stats.verificationStatus === 'anonymous'
+                ? 'Get your seller profile verified to build trust. Once your profile is verified, you can request verification for individual listings to attract serious buyers and enable them to view full business details.'
+                : 'Your profile verification is pending. Once approved, you can verify individual listings.'
               }
             </p>
-            <VerificationRequestModal userListings={userListingsForVerification}>
-              <Button>Request Verification</Button>
+            <VerificationRequestModal userListings={userListingsForVerification} onSuccess={refreshData}>
+              <Button>
+                {stats.verificationStatus === 'anonymous' ? 'Request Profile Verification' : 'Manage Verification Requests'}
+              </Button>
             </VerificationRequestModal>
           </CardContent>
         </Card>

@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
 interface VerificationRequest {
@@ -13,7 +14,7 @@ interface VerificationRequest {
   documents_submitted: any[];
   created_at: string;
   updated_at: string;
-  listings?: {
+  listings?: { // Ensure this matches your actual data structure if present
     listing_title_anonymous: string;
     status: string;
   };
@@ -27,10 +28,10 @@ interface VerificationRequestPayload {
 
 interface UseVerificationRequestReturn {
   requests: VerificationRequest[];
-  currentStatus: string;
+  currentStatus: string; // User's overall profile verification status
   isLoading: boolean;
   error: string | null;
-  submitRequest: (payload: VerificationRequestPayload) => Promise<boolean>;
+  submitRequest: (payload: VerificationRequestPayload, onSuccessCallback?: () => void) => Promise<boolean>;
   refreshRequests: () => Promise<void>;
 }
 
@@ -41,7 +42,7 @@ export function useVerificationRequest(): UseVerificationRequestReturn {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const fetchRequests = async () => {
+  const fetchRequests = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -60,7 +61,7 @@ export function useVerificationRequest(): UseVerificationRequestReturn {
 
       const data = await response.json();
       setRequests(data.requests || []);
-      setCurrentStatus(data.current_status || 'anonymous');
+      setCurrentStatus(data.current_status || 'anonymous'); // This should be user's profile verification_status
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch verification requests';
       setError(errorMessage);
@@ -68,9 +69,9 @@ export function useVerificationRequest(): UseVerificationRequestReturn {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const submitRequest = async (payload: VerificationRequestPayload): Promise<boolean> => {
+  const submitRequest = async (payload: VerificationRequestPayload, onSuccessCallback?: () => void): Promise<boolean> => {
     try {
       setError(null);
 
@@ -97,12 +98,14 @@ export function useVerificationRequest(): UseVerificationRequestReturn {
       }
 
       toast({
-        title: "Verification Request Submitted",
-        description: data.message || "Your verification request has been submitted successfully.",
+        title: "Verification Request Submitted!",
+        description: data.message || "Your verification request has been submitted successfully. Our team will review it and contact you soon.",
       });
 
-      // Refresh the requests list
-      await fetchRequests();
+      await fetchRequests(); // Refresh the list of requests
+      if (onSuccessCallback) {
+        onSuccessCallback(); // Call the success callback to refresh dashboard data
+      }
       return true;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to submit verification request';
@@ -119,14 +122,9 @@ export function useVerificationRequest(): UseVerificationRequestReturn {
     }
   };
 
-  const refreshRequests = async () => {
-    await fetchRequests();
-  };
-
-  // Fetch requests on component mount
   useEffect(() => {
     fetchRequests();
-  }, []);
+  }, [fetchRequests]);
 
   return {
     requests,
@@ -134,6 +132,6 @@ export function useVerificationRequest(): UseVerificationRequestReturn {
     isLoading,
     error,
     submitRequest,
-    refreshRequests,
+    refreshRequests: fetchRequests, // Expose refresh function
   };
 }
