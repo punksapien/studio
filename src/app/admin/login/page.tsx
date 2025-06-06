@@ -90,17 +90,37 @@ export default function AdminLoginPage() {
       } catch (error) {
         console.error("Admin login error:", error);
 
-        // Handle unconfirmed email specifically
-        if (error instanceof Error && error.message === 'UNCONFIRMED_EMAIL') {
-          setError(`Your email hasn't been verified yet. Redirecting to verification...`);
-          setTimeout(() => {
-            router.push(`/verify-email?email=${encodeURIComponent(values.email)}&type=login`);
-          }, 2000);
-          return;
-        }
+        // Handle specific error types with proper UI feedback
+        if (error instanceof Error) {
+          if (error.message === 'UNCONFIRMED_EMAIL') {
+            setError("Your email hasn't been verified yet. Redirecting to verification...");
+            setTimeout(() => {
+              router.push(`/verify-email?email=${encodeURIComponent(values.email)}&type=login`);
+            }, 2000);
+            return;
+          }
 
-        const errorMessage = error instanceof Error ? error.message : 'Login failed';
-        setError(`Login failed: ${errorMessage}`);
+          if (error.message.includes('Invalid login credentials')) {
+            setError("Invalid email or password. Please check your credentials and try again.");
+            return;
+          }
+
+          if (error.message.includes('Email not confirmed')) {
+            setError("Please verify your email before logging in to the admin panel.");
+            return;
+          }
+
+          if (error.message.includes('Failed to fetch')) {
+            setError("Connection error. Please check your internet connection and try again.");
+            return;
+          }
+
+          // Generic error handling for other auth errors
+          setError(`Login failed: ${error.message.replace('Login failed: ', '')}`);
+        } else {
+          // Fallback for non-Error objects
+          setError("An unexpected error occurred. Please try again.");
+        }
       }
     });
   };

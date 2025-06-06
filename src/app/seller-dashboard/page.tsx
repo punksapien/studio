@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Briefcase, MessageSquare, PlusCircle, ShieldCheck, CheckCircle2, Bell, Edit3, Loader2 } from "lucide-react";
 import { useSellerDashboard } from "@/hooks/use-seller-dashboard";
+import { VerificationRequestModal } from "@/components/verification/verification-request-modal";
 
 export default function SellerDashboardPage() {
   const { user, stats, recentListings, isLoading, error } = useSellerDashboard()
@@ -41,6 +42,18 @@ export default function SellerDashboardPage() {
       </div>
     );
   }
+
+  // Filter listings for the recent listings section (same logic as original)
+  const activeListingsForSection = recentListings.filter(l =>
+    l.status === 'active' || l.status === 'verified_anonymous' || l.status === 'verified_with_financials'
+  );
+
+  // Prepare listings for verification modal
+  const userListingsForVerification = recentListings.map(l => ({
+    id: l.id,
+    listing_title_anonymous: l.title,
+    status: l.status
+  }));
 
   return (
     <div className="space-y-8">
@@ -106,60 +119,79 @@ export default function SellerDashboardPage() {
                 : 'Verify your profile and listings to attract serious buyers.'}
             </p>
             {stats.verificationStatus !== 'verified' && (
-              <Button variant="link" asChild className="px-0 mt-2 text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300">
-                <Link href="/seller-dashboard/verification">
-                  {stats.verificationStatus === 'pending_verification' ? 'Check Verification Status' : 'Request Verification Call'}
-                </Link>
-              </Button>
+              <VerificationRequestModal userListings={userListingsForVerification}>
+                <Button variant="link" className="px-0 mt-2 text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300">
+                  {stats.verificationStatus === 'pending_verification' ? 'Check Verification Status' : 'Request Verification'}
+                </Button>
+              </VerificationRequestModal>
             )}
           </CardContent>
         </Card>
       </div>
 
-      {recentListings.length > 0 && (
-        <Card className="shadow-md">
-          <CardHeader>
-            <CardTitle>Recent Active Listings</CardTitle>
-            <CardDescription>A quick look at your latest active businesses for sale.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {recentListings.slice(0, 3).map(listing => (
-              <div key={listing.id} className="p-3 border rounded-md hover:shadow-sm transition-shadow">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <Link href={`/listings/${listing.id}`} target="_blank" className="font-medium text-primary hover:underline">
-                      {listing.title}
-                    </Link>
-                    <p className="text-xs text-muted-foreground">
-                      Status: <span className="font-medium">{listing.status}</span>
-                      {listing.asking_price && ` | Price: $${listing.asking_price.toLocaleString()}`}
-                    </p>
+      {/* Recent Active Listings Section - ALWAYS show this section */}
+      <Card className="shadow-md">
+        <CardHeader>
+          <CardTitle>Recent Active Listings</CardTitle>
+          <CardDescription>A quick look at your latest active businesses for sale.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {activeListingsForSection.length > 0 ? (
+            // Show listings if available
+            <>
+              {activeListingsForSection.slice(0, 3).map(listing => (
+                <div key={listing.id} className="p-3 border rounded-md hover:shadow-sm transition-shadow">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <Link href={`/listings/${listing.id}`} target="_blank" className="font-medium text-primary hover:underline">
+                        {listing.title}
+                      </Link>
+                      <p className="text-xs text-muted-foreground">
+                        Inquiries: {listing.inquiry_count || 0} | Status: <span className="font-medium">{listing.status}</span>
+                      </p>
+                    </div>
+                    <Button variant="ghost" size="sm" asChild>
+                      <Link href={`/seller-dashboard/listings/${listing.id}/edit`}><Edit3 className="mr-2 h-4 w-4" />Edit</Link>
+                    </Button>
                   </div>
-                  <Button variant="ghost" size="sm" asChild>
-                    <Link href={`/seller-dashboard/listings/${listing.id}/edit`}><Edit3 className="mr-2 h-4 w-4" />Edit</Link>
-                  </Button>
                 </div>
-              </div>
-            ))}
-             <Button variant="outline" asChild className="w-full mt-4">
-                <Link href="/seller-dashboard/listings">Manage All Listings</Link>
+              ))}
+            </>
+          ) : (
+            // Show empty state when no listings
+            <div className="text-center py-8">
+              <Briefcase className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground mb-4">No active listings yet. Create your first listing to get started!</p>
+              <Button asChild>
+                <Link href="/seller-dashboard/listings/create">
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Create Your First Listing
+                </Link>
               </Button>
-          </CardContent>
-        </Card>
-      )}
+            </div>
+          )}
+          <Button variant="outline" asChild className="w-full mt-4">
+            <Link href="/seller-dashboard/listings">Manage All Listings</Link>
+          </Button>
+        </CardContent>
+      </Card>
 
-       {stats.verificationStatus === 'anonymous' && stats.activeListingsCount > 0 && (
+      {/* Verification Prompt Section - Show for anonymous sellers (regardless of listing count) */}
+      {stats.verificationStatus === 'anonymous' && (
         <Card className="shadow-md bg-primary/10 border-primary/30">
           <CardHeader>
-            <CardTitle className="text-primary flex items-center"><CheckCircle2 className="mr-2"/> Unlock Full Potential for Your Listings</CardTitle>
+            <CardTitle className="text-primary flex items-center"><CheckCircle2 className="mr-2"/> Unlock Full Potential for Your Account</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground mb-4">
-              Get your listings verified to attract serious buyers and enable them to view full business details. Verified listings gain more trust and visibility.
+              {stats.activeListingsCount > 0
+                ? 'Get your listings verified to attract serious buyers and enable them to view full business details. Verified listings gain more trust and visibility.'
+                : 'Get verified to attract serious buyers when you create listings. Verified sellers gain more trust and visibility.'
+              }
             </p>
-            <Button asChild>
-              <Link href="/seller-dashboard/verification">Request Verification for Listings</Link>
-            </Button>
+            <VerificationRequestModal userListings={userListingsForVerification}>
+              <Button>Request Verification</Button>
+            </VerificationRequestModal>
           </CardContent>
         </Card>
       )}

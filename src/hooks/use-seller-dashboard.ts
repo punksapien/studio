@@ -7,6 +7,14 @@ interface DashboardStats {
   verificationStatus: 'verified' | 'pending_verification' | 'anonymous'
 }
 
+interface Listing {
+  id: string
+  title: string
+  status: string
+  asking_price?: number
+  inquiry_count?: number
+}
+
 interface DashboardData {
   user: {
     id: string
@@ -14,7 +22,7 @@ interface DashboardData {
     verificationStatus: 'verified' | 'pending_verification' | 'anonymous'
   } | null
   stats: DashboardStats
-  recentListings: any[]
+  recentListings: Listing[]
   isLoading: boolean
   error: string | null
 }
@@ -59,9 +67,11 @@ export function useSellerDashboard(): DashboardData {
         }
         const inquiriesData = await inquiriesResponse.json()
 
-        // Calculate active listings count (verified_anonymous + verified_with_financials)
+        // Calculate active listings count - in original it was ANY status that's considered "active"
+        // Including: active, verified_anonymous, verified_with_financials, pending_verification
+        const activeStatuses = ['active', 'verified_anonymous', 'verified_with_financials', 'pending_verification']
         const activeListings = listingsData.listings?.filter(
-          (listing: any) => listing.status === 'verified_anonymous' || listing.status === 'verified_with_financials'
+          (listing: any) => activeStatuses.includes(listing.status)
         ) || []
 
         const activeListingsCount = activeListings.length
@@ -77,6 +87,15 @@ export function useSellerDashboard(): DashboardData {
           ? 'pending_verification'
           : 'anonymous'
 
+        // Format listings for display with proper field mapping
+        const formattedListings: Listing[] = activeListings.map((listing: any) => ({
+          id: listing.id,
+          title: listing.listing_title_anonymous || listing.title || 'Untitled Listing',
+          status: listing.status,
+          asking_price: listing.asking_price,
+          inquiry_count: 0 // This would need to be calculated from inquiries or added to listings table
+        }))
+
         setData({
           user: {
             id: userData.user.id,
@@ -89,7 +108,7 @@ export function useSellerDashboard(): DashboardData {
             inquiriesAwaitingEngagement,
             verificationStatus
           },
-          recentListings: activeListings.slice(0, 3), // Show first 3 active listings
+          recentListings: formattedListings.slice(0, 3), // Show first 3 active listings
           isLoading: false,
           error: null
         })
