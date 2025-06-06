@@ -1,3 +1,4 @@
+
 'use client'
 import * as React from "react";
 import { MetricCard } from "@/components/admin/metric-card";
@@ -25,63 +26,59 @@ const fetcher = (url: string) => fetch(url).then(res => res.json());
 export default function AdminDashboardPage() {
   const { data: metrics, isLoading, error } = useSWR<AdminDashboardMetrics>('/api/admin/metrics', fetcher, { refreshInterval: 300000 }); // 5-min re-fetch
 
-  // NEW: Fetch cleanup queue data
   const { data: cleanupData, isLoading: cleanupLoading, error: cleanupError } = useSWR(
     '/api/admin/cleanup-queue',
     fetcher,
-    { refreshInterval: 60000 } // 1-min refresh for cleanup queue
+    { refreshInterval: 60000 }
   );
 
-  // NEW: Fetch real verification queue data
   const { data: buyerVerificationData, isLoading: buyerVerificationLoading } = useSWR(
-    '/api/admin/verification-queue/buyers?limit=5&status=all',
+    '/api/admin/verification-queue/buyers?limit=5&status=all', // Fetch all, filter client-side for pending
     fetcher,
     { refreshInterval: 60000 }
   );
 
   const { data: sellerVerificationData, isLoading: sellerVerificationLoading } = useSWR(
-    '/api/admin/verification-queue/sellers?limit=5&status=all',
+    '/api/admin/verification-queue/sellers?limit=5&status=all', // Fetch all, filter client-side for pending
     fetcher,
     { refreshInterval: 60000 }
   );
 
   if (error) {
-    return <div className="p-8 text-red-600">Failed to load metrics: {error.message}</div>;
+    return <div className="p-8 text-destructive">Failed to load metrics: {error.message}</div>;
   }
 
   if (isLoading || !metrics) {
-    return <div className="p-8">Loading admin metrics...</div>;
+    return <div className="p-8 text-muted-foreground">Loading admin metrics...</div>;
   }
 
-  // Use real data from API instead of placeholder data
   const buyerVerificationRequests = buyerVerificationData?.requests?.filter((req: any) =>
-    req.operationalStatus !== 'approved' && req.operationalStatus !== 'rejected'
+    req.operationalStatus !== 'Approved' && req.operationalStatus !== 'Rejected'
   ) || [];
 
   const sellerVerificationRequests = sellerVerificationData?.requests?.filter((req: any) =>
-    req.operationalStatus !== 'approved' && req.operationalStatus !== 'rejected'
+    req.operationalStatus !== 'Approved' && req.operationalStatus !== 'Rejected'
   ) || [];
-
-  // Status color helper
+  
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
-      case 'new': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'contacted': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'under_review': return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'new request': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'contacted': return 'bg-sky-100 text-sky-800 border-sky-200';
+      case 'docs under review': return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'more info requested': return 'bg-orange-100 text-orange-800 border-orange-200';
       case 'approved': return 'bg-green-100 text-green-800 border-green-200';
       case 'rejected': return 'bg-red-100 text-red-800 border-red-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      default: return 'bg-muted text-muted-foreground border-border';
     }
   };
 
-  // For now, we'll show placeholder data for engagement queue since we don't have real data yet
   const adminPageReadyToEngageItems = [
-    // This will be replaced with real engagement queue data when that feature is implemented
+    // Placeholder for actual engagement queue data
   ];
 
   return (
     <div className="space-y-8">
-      <h1 className="text-3xl font-bold tracking-tight font-heading">Admin Dashboard</h1>
+      <h1 className="text-3xl font-bold tracking-tight font-heading text-foreground">Admin Dashboard</h1>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <MetricCard
@@ -157,33 +154,32 @@ export default function AdminDashboardPage() {
           description={`${metrics.activeSuccessfulConnections} active, ${metrics.closedSuccessfulConnections} closed (MTD)`}
         />
 
-        {/* NEW: Cleanup Queue Metrics */}
         <MetricCard
           title="Unverified Accounts"
           value={cleanupData?.data?.statistics?.unverified || 0}
           icon={Clock}
           description="Need email verification"
-          className={cleanupData?.data?.statistics?.unverified > 5 ? "border-orange-200 bg-orange-50/50" : ""}
+          className={cleanupData?.data?.statistics?.unverified > 5 ? "border-yellow-500/50 bg-yellow-500/5" : "bg-card"}
         />
         <MetricCard
           title="Pending Deletion"
           value={cleanupData?.data?.statistics?.pending_deletion || 0}
           icon={AlertTriangle}
           description="Scheduled for cleanup"
-          className={cleanupData?.data?.statistics?.pending_deletion > 0 ? "border-red-200 bg-red-50/50" : ""}
+          className={cleanupData?.data?.statistics?.pending_deletion > 0 ? "border-destructive/50 bg-destructive/5" : "bg-card"}
         />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-         <Card className="shadow-md">
+         <Card className="shadow-md bg-card">
           <CardHeader>
             <div className="flex justify-between items-center">
-                <CardTitle className="font-heading">Pending Buyer Verifications</CardTitle>
+                <CardTitle className="font-heading text-foreground">Pending Buyer Verifications</CardTitle>
                 <Button variant="outline" size="sm" asChild>
                     <Link href="/admin/verification-queue/buyers">View All</Link>
                 </Button>
             </div>
-            <CardDescription>
+            <CardDescription className="text-muted-foreground">
               {buyerVerificationLoading ? 'Loading...' : `${buyerVerificationRequests.length} buyers needing admin review.`}
             </CardDescription>
           </CardHeader>
@@ -191,9 +187,9 @@ export default function AdminDashboardPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Buyer Name</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Date</TableHead>
+                  <TableHead className="text-muted-foreground">Buyer Name</TableHead>
+                  <TableHead className="text-muted-foreground">Status</TableHead>
+                  <TableHead className="text-muted-foreground">Date</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -203,13 +199,13 @@ export default function AdminDashboardPage() {
                   </TableRow>
                 ) : buyerVerificationRequests.slice(0, 3).map((req: any) => (
                   <TableRow key={req.id}>
-                    <TableCell className="font-medium">{req.userName}</TableCell>
+                    <TableCell className="font-medium text-foreground">{req.userName}</TableCell>
                     <TableCell>
                       <Badge className={`text-xs ${getStatusColor(req.operationalStatus)}`}>
                         {req.operationalStatus}
                       </Badge>
                     </TableCell>
-                    <TableCell>{new Date(req.timestamp).toLocaleDateString()}</TableCell>
+                    <TableCell className="text-muted-foreground">{new Date(req.timestamp).toLocaleDateString()}</TableCell>
                   </TableRow>
                 ))}
                 {!buyerVerificationLoading && buyerVerificationRequests.length === 0 && (
@@ -224,15 +220,15 @@ export default function AdminDashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="shadow-md">
+        <Card className="shadow-md bg-card">
           <CardHeader>
             <div className="flex justify-between items-center">
-                <CardTitle className="font-heading">Pending Seller/Listing Verifications</CardTitle>
+                <CardTitle className="font-heading text-foreground">Pending Seller/Listing Verifications</CardTitle>
                 <Button variant="outline" size="sm" asChild>
                     <Link href="/admin/verification-queue/sellers">View All</Link>
                 </Button>
             </div>
-            <CardDescription>
+            <CardDescription className="text-muted-foreground">
               {sellerVerificationLoading ? 'Loading...' : `${sellerVerificationRequests.length} sellers/listings needing admin review.`}
             </CardDescription>
           </CardHeader>
@@ -240,10 +236,10 @@ export default function AdminDashboardPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Seller Name</TableHead>
-                  <TableHead>Listing</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Date</TableHead>
+                  <TableHead className="text-muted-foreground">Seller Name</TableHead>
+                  <TableHead className="text-muted-foreground">Listing</TableHead>
+                  <TableHead className="text-muted-foreground">Status</TableHead>
+                  <TableHead className="text-muted-foreground">Date</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -253,14 +249,14 @@ export default function AdminDashboardPage() {
                   </TableRow>
                 ) : sellerVerificationRequests.slice(0, 3).map((req: any) => (
                   <TableRow key={req.id}>
-                    <TableCell className="font-medium">{req.userName}</TableCell>
-                    <TableCell>{req.listingTitle || 'N/A (Profile)'}</TableCell>
+                    <TableCell className="font-medium text-foreground">{req.userName}</TableCell>
+                    <TableCell className="text-muted-foreground">{req.listingTitle || 'N/A (Profile)'}</TableCell>
                     <TableCell>
                       <Badge className={`text-xs ${getStatusColor(req.operationalStatus)}`}>
                         {req.operationalStatus}
                       </Badge>
                     </TableCell>
-                    <TableCell>{new Date(req.timestamp).toLocaleDateString()}</TableCell>
+                    <TableCell className="text-muted-foreground">{new Date(req.timestamp).toLocaleDateString()}</TableCell>
                   </TableRow>
                 ))}
                 {!sellerVerificationLoading && sellerVerificationRequests.length === 0 && (
@@ -275,33 +271,33 @@ export default function AdminDashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="shadow-md">
+        <Card className="shadow-md bg-card">
           <CardHeader>
              <div className="flex justify-between items-center">
-                <CardTitle className="font-heading">Ready for Connection</CardTitle>
+                <CardTitle className="font-heading text-foreground">Ready for Connection</CardTitle>
                 <Button variant="outline" size="sm" asChild>
                     <Link href="/admin/engagement-queue">View All</Link>
                 </Button>
             </div>
-            <CardDescription>0 engagements ready for admin facilitation.</CardDescription>
+            <CardDescription className="text-muted-foreground">{metrics.readyToEngageQueueCount} engagements ready for admin facilitation.</CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Buyer</TableHead>
-                  <TableHead>Seller</TableHead>
-                  <TableHead>Listing</TableHead>
-                   <TableHead>Date Ready</TableHead>
+                  <TableHead className="text-muted-foreground">Buyer</TableHead>
+                  <TableHead className="text-muted-foreground">Seller</TableHead>
+                  <TableHead className="text-muted-foreground">Listing</TableHead>
+                   <TableHead className="text-muted-foreground">Date Ready</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {adminPageReadyToEngageItems.slice(0,3).map(item => (
+                {adminPageReadyToEngageItems.slice(0,3).map((item: any) => (
                   <TableRow key={item.id}>
-                    <TableCell>{item.buyerName}</TableCell>
-                    <TableCell>{item.sellerName}</TableCell>
-                    <TableCell>{item.listingTitle}</TableCell>
-                    <TableCell>{item.timestamp ? new Date(item.timestamp).toLocaleDateString() : 'N/A'}</TableCell>
+                    <TableCell className="text-foreground">{item.buyerName}</TableCell>
+                    <TableCell className="text-foreground">{item.sellerName}</TableCell>
+                    <TableCell className="text-muted-foreground">{item.listingTitle}</TableCell>
+                    <TableCell className="text-muted-foreground">{item.timestamp ? new Date(item.timestamp).toLocaleDateString() : 'N/A'}</TableCell>
                   </TableRow>
                 ))}
                 {adminPageReadyToEngageItems.length === 0 && <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-4">No engagements ready for connection.</TableCell></TableRow>}
@@ -310,25 +306,24 @@ export default function AdminDashboardPage() {
           </CardContent>
         </Card>
 
-        {/* NEW: Account Cleanup Queue Card */}
-        <Card className="shadow-md">
+        <Card className="shadow-md bg-card">
           <CardHeader>
             <div className="flex justify-between items-center">
-              <CardTitle className="font-heading flex items-center gap-2">
-                <UserX className="h-5 w-5" />
+              <CardTitle className="font-heading text-foreground flex items-center gap-2">
+                <UserX className="h-5 w-5 text-destructive" />
                 Account Cleanup Queue
               </CardTitle>
               <Button variant="outline" size="sm" asChild>
                 <Link href="/admin/cleanup-queue">Manage All</Link>
               </Button>
             </div>
-            <CardDescription>
+            <CardDescription className="text-muted-foreground">
               {cleanupLoading ? 'Loading...' : `${cleanupData?.data?.statistics?.total || 0} accounts need attention`}
             </CardDescription>
           </CardHeader>
           <CardContent>
             {cleanupError && (
-              <div className="text-red-600 text-sm">Failed to load cleanup queue</div>
+              <div className="text-destructive text-sm">Failed to load cleanup queue</div>
             )}
             {cleanupLoading && (
               <div className="text-muted-foreground text-sm">Loading cleanup queue...</div>
@@ -337,21 +332,21 @@ export default function AdminDashboardPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Time Left</TableHead>
+                    <TableHead className="text-muted-foreground">Email</TableHead>
+                    <TableHead className="text-muted-foreground">Status</TableHead>
+                    <TableHead className="text-muted-foreground">Time Left</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {cleanupData.data.queue.slice(0, 3).map((account: any) => {
                     const timeLeft = account.time_until_deletion ?
-                      Math.floor(account.time_until_deletion / (1000 * 60 * 60)) : // Convert to hours
+                      Math.floor(account.time_until_deletion / (1000 * 60 * 60)) :
                       (account.time_until_permanent_deletion ?
                         Math.floor(account.time_until_permanent_deletion / (1000 * 60 * 60)) : 0);
 
                     return (
                       <TableRow key={account.id}>
-                        <TableCell className="font-medium">{account.email}</TableCell>
+                        <TableCell className="font-medium text-foreground">{account.email}</TableCell>
                         <TableCell>
                           <Badge
                             variant={account.account_status === 'unverified' ? 'secondary' : 'destructive'}
@@ -360,14 +355,8 @@ export default function AdminDashboardPage() {
                             {account.account_status === 'unverified' ? 'Unverified' : 'Pending Deletion'}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-sm">
-                          {timeLeft > 0 ? (
-                            <span className={timeLeft < 2 ? 'text-red-600 font-medium' : 'text-muted-foreground'}>
-                              {timeLeft}h
-                            </span>
-                          ) : (
-                            <span className="text-red-600 font-medium">Expired</span>
-                          )}
+                        <TableCell className={`text-sm ${timeLeft < 2 ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
+                          {timeLeft > 0 ? `${timeLeft}h` : 'Expired'}
                         </TableCell>
                       </TableRow>
                     );
@@ -386,9 +375,9 @@ export default function AdminDashboardPage() {
         </Card>
       </div>
 
-      <Card className="shadow-md">
+      <Card className="shadow-md bg-card">
         <CardHeader>
-          <CardTitle className="font-heading">Quick Links</CardTitle>
+          <CardTitle className="font-heading text-foreground">Quick Links</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
             <Button variant="outline" asChild className="flex-col h-24"><Link href="/admin/users"><Users className="mb-1"/> User Management</Link></Button>
@@ -399,3 +388,4 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
+

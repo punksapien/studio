@@ -1,3 +1,4 @@
+
 'use client'
 
 import { useState } from 'react';
@@ -52,7 +53,7 @@ export default function SellerDashboard() {
         return {
           icon: <CheckCircle2 className="h-5 w-5 text-green-600" />,
           status: 'Verified Seller',
-          description: 'Your profile has been verified by our team',
+          description: 'Your profile has been verified by our team.',
           badgeVariant: 'default' as const,
           badgeColor: 'bg-green-100 text-green-800 border-green-200',
           actionText: 'Manage Verification',
@@ -64,7 +65,7 @@ export default function SellerDashboard() {
           status: 'Verification Pending',
           description: pendingUserRequest ?
             `Your verification request is ${pendingUserRequest.status.toLowerCase()}. ${pendingUserRequest.can_bump ? 'You can bump it to the top!' : (pendingUserRequest.hours_until_can_bump && pendingUserRequest.hours_until_can_bump > 0) ? `You can bump it in ${pendingUserRequest.hours_until_can_bump} hours.` : ''}` :
-            'Your profile verification is being reviewed',
+            'Your profile verification is being reviewed.',
           badgeVariant: 'outline' as const,
           badgeColor: 'bg-yellow-100 text-yellow-800 border-yellow-200',
           actionText: pendingUserRequest?.can_bump ? 'Bump Request' : (pendingUserRequest?.hours_until_can_bump && pendingUserRequest.hours_until_can_bump > 0) ? `Bump in ${pendingUserRequest.hours_until_can_bump}h` : 'View Status',
@@ -74,25 +75,23 @@ export default function SellerDashboard() {
         };
       default: // anonymous
         const canSubmit = canSubmitNewRequest('user_verification');
-        // Better logic for action text - avoid showing "0h"
         let actionText = 'Request Verification';
         if (!canSubmit.canSubmit) {
           if (canSubmit.hoursRemaining && canSubmit.hoursRemaining > 0) {
             actionText = `Available in ${canSubmit.hoursRemaining}h`;
           } else {
-            // If no hours remaining but still can't submit, it means there's a pending request
             actionText = 'Request Pending';
           }
         }
 
         return {
-          icon: <User className="h-5 w-5 text-gray-600" />,
+          icon: <User className="h-5 w-5 text-muted-foreground" />,
           status: 'Anonymous Seller',
           description: canSubmit.canSubmit ?
-            'Get verified to build trust and increase visibility' :
-            canSubmit.message || 'Verification request pending',
+            'Get verified to build trust and increase visibility.' :
+            canSubmit.message || 'Verification request pending.',
           badgeVariant: 'outline' as const,
-          badgeColor: 'bg-gray-100 text-gray-800 border-gray-200',
+          badgeColor: 'bg-muted text-muted-foreground border-border',
           actionText,
           showButton: true,
           disabled: !canSubmit.canSubmit,
@@ -106,8 +105,8 @@ export default function SellerDashboard() {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="flex items-center gap-2">
-          <Loader2 className="h-6 w-6 animate-spin" />
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
           <span>Loading dashboard...</span>
         </div>
       </div>
@@ -118,9 +117,9 @@ export default function SellerDashboard() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center space-y-4">
-          <AlertCircle className="h-12 w-12 text-red-500 mx-auto" />
+          <AlertCircle className="h-12 w-12 text-destructive mx-auto" />
           <div>
-            <h2 className="text-xl font-semibold">Error Loading Dashboard</h2>
+            <h2 className="text-xl font-semibold text-destructive">Error Loading Dashboard</h2>
             <p className="text-muted-foreground">{error}</p>
             <Button onClick={refreshData} className="mt-4">
               <RefreshCw className="h-4 w-4 mr-2" />
@@ -135,71 +134,62 @@ export default function SellerDashboard() {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8 max-w-6xl">
-        {/* Header with Real-time Indicator */}
+        {/* Header */}
         <div className="flex justify-between items-start mb-8">
           <div>
-            <h1 className="text-3xl font-bold">Seller Dashboard</h1>
+            <h1 className="text-3xl font-bold text-foreground font-heading">Seller Dashboard</h1>
             <div className="text-muted-foreground mt-1">
-              Welcome back, {user?.fullName || 'User'}
-              {isPolling && (
-                <span className="ml-2 inline-flex items-center gap-1 text-xs text-green-600">
-                  <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse" />
-                  Live updates
-                </span>
-              )}
+              Welcome back, {user?.fullName || 'User'}!
             </div>
           </div>
           <Button onClick={refreshData} variant="outline" size="sm">
-            <RefreshCw className={`h-4 w-4 mr-2 ${isPolling ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-4 w-4 mr-2 ${isPolling && !isLoading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
         </div>
 
-        {/* Enhanced Verification Status Card - Updated */}
-        <Card className={`mb-8 border-2 ${
-          verificationInfo.badgeColor.includes('green') ? 'border-green-200 bg-green-50/50' :
-          verificationInfo.badgeColor.includes('yellow') ? 'border-yellow-200 bg-yellow-50/50' :
-          (verificationStatus === 'anonymous' && verificationRequests.some(r => r.request_type === 'user_verification' && ['New Request', 'Contacted', 'Docs Under Review', 'More Info Requested'].includes(r.status))) ? 'border-yellow-200 bg-yellow-50/50' :
-          'border-gray-200'
+        {/* Verification Status Card */}
+         <Card className={`mb-8 border-2 shadow-md ${
+          verificationStatus === 'verified' ? 'border-green-500/50 bg-green-500/5' :
+          verificationStatus === 'pending_verification' ? 'border-yellow-500/50 bg-yellow-500/5' :
+          'border-border bg-card'
         }`}>
           <CardHeader className="pb-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 {verificationInfo.icon}
                 <div>
-                  <CardTitle className="text-lg">{verificationInfo.status}</CardTitle>
-                  <CardDescription className="mt-1">
+                  <CardTitle className="text-lg text-foreground">{verificationInfo.status}</CardTitle>
+                  <CardDescription className="mt-1 text-sm">
                     {verificationInfo.description}
                   </CardDescription>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
-                <Badge className={verificationInfo.badgeColor}>
-                  {verificationStatus === 'verified' && <Verified className="h-3 w-3 mr-1" />}
-                  {verificationStatus === 'pending_verification' && <Clock className="h-3 w-3 mr-1" />}
-                  {verificationStatus === 'anonymous' && <User className="h-3 w-3 mr-1" />}
-                  {verificationInfo.status}
-                </Badge>
-              </div>
+              <Badge variant={verificationInfo.badgeVariant} className={`${verificationInfo.badgeColor} text-xs py-1 px-2.5`}>
+                {verificationStatus === 'verified' && <Verified className="h-3 w-3 mr-1.5" />}
+                {verificationStatus === 'pending_verification' && <Clock className="h-3 w-3 mr-1.5" />}
+                {verificationStatus === 'anonymous' && <User className="h-3 w-3 mr-1.5" />}
+                {verificationInfo.status}
+              </Badge>
             </div>
           </CardHeader>
 
           {verificationInfo.showButton && (
             <CardContent className="pt-0">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div className="flex-1">
                   {(verificationInfo.hoursRemaining !== undefined && verificationInfo.hoursRemaining > 0) && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                      <Timer className="h-4 w-4" />
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Timer className="h-3.5 w-3.5" />
                       <span>Cooldown: {verificationInfo.hoursRemaining} hours remaining</span>
-                      <Progress value={(24 - (verificationInfo.hoursRemaining || 0)) / 24 * 100} className="w-24 h-2" />
+                      <Progress value={(24 - (verificationInfo.hoursRemaining || 0)) / 24 * 100} className="w-20 h-1.5 bg-muted" />
                     </div>
                   )}
                   {(verificationInfo.hoursUntilBump !== undefined && verificationInfo.hoursUntilBump > 0) && (
-                    <div className="flex items-center gap-2 text-sm text-amber-600 mb-2">
-                      <Timer className="h-4 w-4" />
+                    <div className="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-400">
+                      <Timer className="h-3.5 w-3.5" />
                       <span>Can bump request in {verificationInfo.hoursUntilBump} hours</span>
-                      <Progress value={(24 - (verificationInfo.hoursUntilBump || 0)) / 24 * 100} className="w-24 h-2" />
+                      <Progress value={(24 - (verificationInfo.hoursUntilBump || 0)) / 24 * 100} className="w-20 h-1.5 bg-amber-200 dark:bg-amber-800" />
                     </div>
                   )}
                 </div>
@@ -209,21 +199,16 @@ export default function SellerDashboard() {
                   onSuccess={refreshData}
                 >
                   <Button
+                    size="sm"
                     disabled={verificationInfo.disabled && !verificationInfo.canBump}
-                    variant={verificationInfo.canBump ? "default" : "outline"}
+                    variant={verificationInfo.canBump ? "default" : "secondary"}
                     className={`
                       ${verificationInfo.canBump ? "bg-green-600 hover:bg-green-700 text-white" : ""}
-                      ${!verificationInfo.canBump && !verificationInfo.disabled ? "bg-indigo-600 hover:bg-indigo-700 text-white border-indigo-600" : ""}
+                      ${!verificationInfo.canBump && !verificationInfo.disabled ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}
                       ${verificationInfo.disabled && !verificationInfo.canBump ?
-                        "!bg-gray-200 !text-gray-500 !border-gray-300 !opacity-60 !cursor-not-allowed hover:!bg-gray-200 hover:!text-gray-500 hover:!border-gray-300" : ""
+                        "bg-muted text-muted-foreground border-border opacity-60 cursor-not-allowed hover:bg-muted" : ""
                       }
                     `}
-                    style={verificationInfo.disabled && !verificationInfo.canBump ? {
-                      pointerEvents: 'none',
-                      backgroundColor: '#f3f4f6',
-                      color: '#6b7280',
-                      borderColor: '#d1d5db'
-                    } : undefined}
                   >
                     {verificationInfo.canBump ? (
                       <>
@@ -248,41 +233,42 @@ export default function SellerDashboard() {
           )}
         </Card>
 
+
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card>
+          <Card className="shadow-md">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Listings</CardTitle>
+              <CardTitle className="text-sm font-medium text-foreground">Active Listings</CardTitle>
               <FileText className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.activeListingsCount}</div>
+              <div className="text-2xl font-bold text-primary">{stats.activeListingsCount}</div>
               <p className="text-xs text-muted-foreground">
                 Listings currently visible to buyers
               </p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="shadow-md">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Inquiries</CardTitle>
+              <CardTitle className="text-sm font-medium text-foreground">Total Inquiries</CardTitle>
               <MessageSquare className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalInquiriesReceived}</div>
+              <div className="text-2xl font-bold text-primary">{stats.totalInquiriesReceived}</div>
               <p className="text-xs text-muted-foreground">
                 All-time inquiries received
               </p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="shadow-md">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Awaiting Response</CardTitle>
+              <CardTitle className="text-sm font-medium text-foreground">Awaiting Response</CardTitle>
               <AlertCircle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.inquiriesAwaitingEngagement}</div>
+              <div className="text-2xl font-bold text-destructive">{stats.inquiriesAwaitingEngagement}</div>
               <p className="text-xs text-muted-foreground">
                 New inquiries needing attention
               </p>
@@ -292,16 +278,16 @@ export default function SellerDashboard() {
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <Card>
+          <Card className="shadow-md">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <PlusCircle className="h-5 w-5" />
+              <CardTitle className="flex items-center gap-2 text-foreground">
+                <PlusCircle className="h-5 w-5 text-accent" />
                 Quick Actions
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <Link href="/seller-dashboard/listings/create">
-                <Button className="w-full justify-start">
+                <Button className="w-full justify-start bg-primary text-primary-foreground hover:bg-primary/90">
                   <FileText className="h-4 w-4 mr-2" />
                   Create New Listing
                 </Button>
@@ -321,20 +307,20 @@ export default function SellerDashboard() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="shadow-md">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5" />
+              <CardTitle className="flex items-center gap-2 text-foreground">
+                <BarChart3 className="h-5 w-5 text-accent" />
                 Performance
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div className="flex justify-between text-sm">
-                  <span>Profile Completion</span>
-                  <span>{verificationStatus === 'verified' ? '100%' : verificationStatus === 'pending_verification' ? '80%' : '60%'}</span>
+                  <span className="text-foreground">Profile Completion</span>
+                  <span className="text-primary font-medium">{verificationStatus === 'verified' ? '100%' : verificationStatus === 'pending_verification' ? '80%' : '60%'}</span>
                 </div>
-                <Progress value={verificationStatus === 'verified' ? 100 : verificationStatus === 'pending_verification' ? 80 : 60} />
+                <Progress value={verificationStatus === 'verified' ? 100 : verificationStatus === 'pending_verification' ? 80 : 60} className="bg-muted [&>div]:bg-accent" />
                 <p className="text-xs text-muted-foreground">
                   {verificationStatus === 'verified'
                     ? 'Your profile is fully verified and optimized for maximum trust.'
@@ -349,10 +335,10 @@ export default function SellerDashboard() {
         </div>
 
         {/* Recent Listings */}
-        <Card>
+        <Card className="shadow-md">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
+            <CardTitle className="flex items-center gap-2 text-foreground">
+              <FileText className="h-5 w-5 text-accent" />
               Recent Listings
             </CardTitle>
             <Link href="/seller-dashboard/listings">
@@ -366,11 +352,11 @@ export default function SellerDashboard() {
             {recentListings.length > 0 ? (
               <div className="space-y-4">
                 {recentListings.map((listing) => (
-                  <div key={listing.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div key={listing.id} className="flex items-center justify-between p-4 border rounded-lg hover:shadow-sm transition-shadow">
                     <div className="flex-1">
-                      <h3 className="font-medium">{listing.title}</h3>
+                      <h3 className="font-medium text-foreground">{listing.title}</h3>
                       <div className="flex items-center gap-2 mt-1">
-                        <Badge variant="outline" className="text-xs">
+                        <Badge variant="secondary" className="text-xs">
                           {listing.status.replace('_', ' ')}
                         </Badge>
                         {listing.asking_price && (
@@ -383,7 +369,7 @@ export default function SellerDashboard() {
                         </span>
                       </div>
                     </div>
-                    <Link href={`/seller-dashboard/listings/${listing.id}`}>
+                    <Link href={`/seller-dashboard/listings/${listing.id}/edit`}>
                       <Button variant="ghost" size="sm">
                         <ExternalLink className="h-4 w-4" />
                       </Button>
@@ -394,12 +380,12 @@ export default function SellerDashboard() {
             ) : (
               <div className="text-center py-8">
                 <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-2">No listings yet</h3>
+                <h3 className="text-lg font-medium mb-2 text-foreground">No listings yet</h3>
                 <p className="text-muted-foreground mb-4">
                   Create your first listing to start connecting with buyers.
                 </p>
                 <Link href="/seller-dashboard/listings/create">
-                  <Button>
+                  <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
                     <PlusCircle className="h-4 w-4 mr-2" />
                     Create Your First Listing
                   </Button>
@@ -412,3 +398,4 @@ export default function SellerDashboard() {
     </div>
   );
 }
+

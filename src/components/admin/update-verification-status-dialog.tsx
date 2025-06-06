@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -45,12 +46,12 @@ interface UpdateVerificationStatusDialogProps {
 const OperationalStatusBadge = ({ status }: { status: VerificationQueueStatus }) => {
   const commonClasses = "text-xs px-2 py-0.5 rounded-full font-medium flex items-center gap-1";
   switch (status) {
-    case 'New Request': return <Badge variant="outline" className={cn(commonClasses, "bg-red-100 text-red-700 border-red-300")}><Clock className="h-3 w-3" />New</Badge>;
-    case 'Contacted': return <Badge variant="outline" className={cn(commonClasses, "bg-blue-100 text-blue-700 border-blue-300")}><UserCircle className="h-3 w-3" />Contacted</Badge>;
+    case 'New Request': return <Badge variant="outline" className={cn(commonClasses, "bg-blue-100 text-blue-700 border-blue-300")}><Clock className="h-3 w-3" />New</Badge>;
+    case 'Contacted': return <Badge variant="outline" className={cn(commonClasses, "bg-sky-100 text-sky-700 border-sky-300")}><UserCircle className="h-3 w-3" />Contacted</Badge>;
     case 'Docs Under Review': return <Badge variant="outline" className={cn(commonClasses, "bg-purple-100 text-purple-700 border-purple-300")}><ListChecks className="h-3 w-3" />Docs Review</Badge>;
     case 'More Info Requested': return <Badge variant="outline" className={cn(commonClasses, "bg-orange-100 text-orange-700 border-orange-300")}><MessageSquareWarning className="h-3 w-3" />More Info</Badge>;
     case 'Approved': return <Badge variant="outline" className={cn(commonClasses, "bg-green-100 text-green-700 border-green-300")}><CheckSquare className="h-3 w-3" />Approved</Badge>;
-    case 'Rejected': return <Badge variant="destructive" className={cn(commonClasses, "bg-red-600 text-white border-red-700")}><AlertTriangle className="h-3 w-3" />Rejected</Badge>;
+    case 'Rejected': return <Badge variant="destructive" className={cn(commonClasses, "bg-red-100 text-red-700 border-red-300")}><AlertTriangle className="h-3 w-3" />Rejected</Badge>;
     default: return <Badge className={cn(commonClasses)}>{status}</Badge>;
   }
 };
@@ -65,9 +66,9 @@ const ProfileStatusBadge = ({ status }: { status: VerificationStatus | undefined
   switch (status) {
     case 'verified': return <Badge variant="outline" className={cn(commonClasses, "bg-green-100 text-green-700 border-green-300")}><ShieldCheck className="h-3 w-3" />Verified</Badge>;
     case 'pending_verification': return <Badge variant="outline" className={cn(commonClasses, "bg-yellow-100 text-yellow-700 border-yellow-300")}><AlertTriangle className="h-3 w-3" />Pending</Badge>;
-    case 'rejected': return <Badge variant="destructive" className={cn(commonClasses, "bg-red-600 text-white border-red-700")}><AlertTriangle className="h-3 w-3" />Rejected</Badge>;
+    case 'rejected': return <Badge variant="destructive" className={cn(commonClasses, "bg-red-100 text-red-700 border-red-300")}><AlertTriangle className="h-3 w-3" />Rejected</Badge>;
     case 'anonymous':
-    default: return <Badge variant="outline" className={cn(commonClasses, "capitalize")}>{status.replace(/_/g, ' ')}</Badge>;
+    default: return <Badge variant="outline" className={cn(commonClasses, "capitalize")}>{(status as string).replace(/_/g, ' ')}</Badge>;
   }
 };
 
@@ -145,8 +146,8 @@ export function UpdateVerificationStatusDialog({
         timestamp: new Date(),
         operationalStatusAtTimeOfNote: selectedOperationalStatus,
         profileStatusAtTimeOfNote: selectedProfileStatus,
-        adminId: 'current_admin_placeholder',
-        adminName: 'Admin User',
+        adminId: 'current_admin_placeholder', // Replace with actual admin ID from auth context
+        adminName: 'Admin User', // Replace with actual admin name
       });
     }
     onSave(request.id, selectedOperationalStatus, selectedProfileStatus, finalNotes);
@@ -185,12 +186,12 @@ export function UpdateVerificationStatusDialog({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleCancel(); else onOpenChange(true);}}>
-        <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col p-0">
+        <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col p-0 bg-card text-card-foreground">
           {!showMainConfirmation ? (
             <>
               <DialogHeader className="p-6 border-b">
-                <DialogTitle className="text-xl font-semibold text-brand-dark-blue flex items-center">
-                  <Edit className="mr-2 h-5 w-5 text-primary"/>Manage Verification: {request.userName}
+                <DialogTitle className="text-xl font-semibold text-foreground flex items-center">
+                  <Edit className="mr-2 h-5 w-5 text-accent"/>Manage Verification: {request.userName}
                 </DialogTitle>
                 <DialogDescription className="text-sm text-muted-foreground">
                   Request ID: <span className="font-mono text-xs">{request.id.substring(0,8)}...</span>
@@ -206,36 +207,36 @@ export function UpdateVerificationStatusDialog({
                 {/* Left Column: Statuses and New Note */}
                 <div className="space-y-6 flex flex-col">
                   <div>
-                    <Label className="text-sm font-medium text-brand-dark-blue">Operational Status</Label>
+                    <Label className="text-sm font-medium text-foreground">Operational Status</Label>
                     <div className="flex items-center gap-2 mt-1 mb-2">
                         <span className="text-xs text-muted-foreground">Current:</span>
                         <OperationalStatusBadge status={request.operationalStatus} />
                     </div>
                     <Select value={selectedOperationalStatus} onValueChange={(value) => setSelectedOperationalStatus(value as VerificationQueueStatus)}>
-                      <SelectTrigger id="operationalStatus" className="h-9 text-sm"><SelectValue placeholder="Select new operational status" /></SelectTrigger>
+                      <SelectTrigger id="operationalStatus" className="h-9 text-sm bg-background border-input"><SelectValue placeholder="Select new operational status" /></SelectTrigger>
                       <SelectContent>{operationalStatusOptions.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
 
                   <div>
-                    <Label className="text-sm font-medium text-brand-dark-blue">Profile Status</Label>
+                    <Label className="text-sm font-medium text-foreground">Profile Status</Label>
                      <div className="flex items-center gap-2 mt-1 mb-2">
                         <span className="text-xs text-muted-foreground">Current:</span>
                         <ProfileStatusBadge status={request.profileStatus} />
                     </div>
                     <Select value={selectedProfileStatus} onValueChange={(value) => setSelectedProfileStatus(value as VerificationStatus)}>
-                      <SelectTrigger id="profileStatus" className="h-9 text-sm"><SelectValue placeholder="Select new profile status" /></SelectTrigger>
+                      <SelectTrigger id="profileStatus" className="h-9 text-sm bg-background border-input"><SelectValue placeholder="Select new profile status" /></SelectTrigger>
                       <SelectContent>{profileStatusOptions.map(s => <SelectItem key={s} value={s} className="capitalize">{s.replace('_', ' ')}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
 
                   <div className="space-y-1.5 flex-grow flex flex-col">
-                    <Label htmlFor="newAdminNoteText" className="text-sm font-medium text-brand-dark-blue">Add New Internal Note</Label>
+                    <Label htmlFor="newAdminNoteText" className="text-sm font-medium text-foreground">Add New Internal Note</Label>
                     <Textarea
                       id="newAdminNoteText"
                       value={newNoteText}
                       onChange={(e) => setNewNoteText(e.target.value)}
-                      className="flex-grow text-sm min-h-[120px] sm:min-h-[150px] bg-brand-light-gray/30 focus:ring-primary"
+                      className="flex-grow text-sm min-h-[120px] sm:min-h-[150px] bg-muted/50 focus:ring-accent border-input"
                       placeholder="Type a new internal note for this request..."
                     />
                   </div>
@@ -243,13 +244,13 @@ export function UpdateVerificationStatusDialog({
 
                 {/* Right Column: Note History */}
                 <div className="space-y-2 flex flex-col overflow-hidden">
-                  <Label className="text-sm font-medium text-brand-dark-blue">Notes History ({currentAdminNotes.length})</Label>
+                  <Label className="text-sm font-medium text-foreground">Notes History ({currentAdminNotes.length})</Label>
                   {currentAdminNotes.length > 0 ? (
-                    <ScrollArea className="border rounded-md p-3 h-80 sm:h-[calc(100%-2rem)] bg-brand-light-gray/20 flex-grow"> {/* Adjusted height */}
+                    <ScrollArea className="border rounded-md p-3 h-80 sm:h-[calc(100%-2rem)] bg-muted/30 flex-grow"> 
                       <div className="space-y-3">
                         {currentAdminNotes.slice().reverse().map(note => (
                           <div key={note.id} className="text-xs p-2.5 border rounded-md bg-background shadow-sm relative group">
-                            <p className="whitespace-pre-wrap mb-1.5 text-gray-700 text-[13px]">{note.note}</p>
+                            <p className="whitespace-pre-wrap mb-1.5 text-foreground/90 text-[13px]">{note.note}</p>
                             <div className="text-muted-foreground/80 text-[0.7rem] flex flex-wrap gap-x-2 gap-y-0.5 items-center border-t pt-1.5 mt-1.5">
                               <span><UserCircle className="inline h-3 w-3 mr-0.5" /> {note.adminName || note.adminId}</span>
                               <span>@ {new Date(note.timestamp).toLocaleString([], {dateStyle: 'short', timeStyle: 'short'})}</span>
@@ -270,7 +271,7 @@ export function UpdateVerificationStatusDialog({
                       </div>
                     </ScrollArea>
                   ) : (
-                    <div className="border rounded-md p-3 h-80 sm:h-[calc(100%-2rem)] bg-brand-light-gray/20 flex items-center justify-center text-sm text-muted-foreground">
+                    <div className="border rounded-md p-3 h-80 sm:h-[calc(100%-2rem)] bg-muted/30 flex items-center justify-center text-sm text-muted-foreground">
                       No internal notes recorded yet.
                     </div>
                   )}
@@ -286,10 +287,10 @@ export function UpdateVerificationStatusDialog({
           ) : (
             <>
               <DialogHeader className="p-6 border-b">
-                <DialogTitle className="text-xl font-semibold text-brand-dark-blue flex items-center">
-                    <Info className="mr-2 h-5 w-5 text-primary"/>Confirm Changes for {request.userName}
+                <DialogTitle className="text-xl font-semibold text-foreground flex items-center">
+                    <Info className="mr-2 h-5 w-5 text-accent"/>Confirm Changes for {request.userName}
                 </DialogTitle>
-                <DialogDescription>Please review the changes before saving.</DialogDescription>
+                <DialogDescription className="text-sm text-muted-foreground">Please review the changes before saving.</DialogDescription>
               </DialogHeader>
               <div className="p-6 space-y-4 text-sm max-h-[60vh] overflow-y-auto">
                 {operationalStatusChanged && (
@@ -315,18 +316,18 @@ export function UpdateVerificationStatusDialog({
                 {newNoteAdded && (
                   <div>
                     <p><strong>New Note to Add:</strong></p>
-                    <p className="text-muted-foreground p-3 border rounded bg-brand-light-gray/40 whitespace-pre-wrap text-xs">{newNoteText.trim()}</p>
+                    <p className="text-muted-foreground p-3 border rounded bg-muted/40 whitespace-pre-wrap text-xs">{newNoteText.trim()}</p>
                     <p className="text-xs text-muted-foreground mt-1">(Will be saved with statuses: Ops: {selectedOperationalStatus}, Profile: {selectedProfileStatus})</p>
                   </div>
                 )}
                 {notesChanged && !newNoteAdded && (JSON.stringify(currentAdminNotes) !== JSON.stringify(initialRequestStateRef.current?.adminNotes || [])) && (
-                     <p className="text-yellow-700 bg-yellow-50 p-2 rounded border border-yellow-200"><AlertTriangle className="inline h-4 w-4 mr-1"/>Notes history will be updated (e.g., notes deleted).</p>
+                     <p className="text-yellow-700 bg-yellow-100 border-yellow-200 p-2 rounded border"><AlertTriangle className="inline h-4 w-4 mr-1"/>Notes history will be updated (e.g., notes deleted).</p>
                 )}
-                {!hasAnyChange && <p>No changes were detected.</p>}
+                {!hasAnyChange && <p className="text-muted-foreground">No changes were detected.</p>}
               </div>
               <DialogFooter className="p-6 border-t">
                 <Button type="button" variant="outline" onClick={() => setShowMainConfirmation(false)}>Back to Edit</Button>
-                <Button type="button" onClick={handleConfirmSave} className="bg-green-600 text-white hover:bg-green-700">Confirm & Save All Changes</Button>
+                <Button type="button" onClick={handleConfirmSave} className="bg-accent text-accent-foreground hover:bg-accent/90">Confirm & Save All Changes</Button>
               </DialogFooter>
             </>
           )}
@@ -350,3 +351,4 @@ export function UpdateVerificationStatusDialog({
     </>
   );
 }
+
