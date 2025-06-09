@@ -216,7 +216,7 @@ export type VerificationQueueStatus = "New Request" | "Contacted" | "Docs Under 
 
 export interface AdminNote {
   id: string;
-  note: string;
+  note: string; // Renamed from 'content' to 'note' for consistency with newNoteText
   timestamp: Date;
   operationalStatusAtTimeOfNote: VerificationQueueStatus;
   profileStatusAtTimeOfNote: VerificationStatus;
@@ -311,4 +311,46 @@ export interface OnboardingDocument {
   mime_type?: string;
   uploaded_at: Date;
   metadata?: Record<string, any>;
+}
+
+// Universal Sync System Observability Types
+export interface SyncPerformanceMetrics {
+  averageProcessingTimeMs: number;
+  p95LatencyMs: number;
+  p99LatencyMs: number;
+  totalOperationsLastHour: number;
+  errorRatePercent: number;
+}
+
+export interface SyncCachePerformance {
+  hitRatioPercent: number;
+  totalEntries: number;
+  averageEntrySizeBytes?: number;
+  readThroughputPerSecond?: number;
+}
+
+export interface CircuitBreakerInfo {
+  name: string;
+  state: 'CLOSED' | 'OPEN' | 'HALF_OPEN';
+  failures: number;
+  lastFailureAt: string | null;
+}
+
+export interface SyncCircuitBreakerStatus {
+  circuitBreakers: CircuitBreakerInfo[];
+}
+
+export interface SyncAlertItem {
+  id: string;
+  ruleName: string;
+  severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+  triggeredAt: string;
+  details: string;
+  resolvedAt?: string | null;
+}
+
+export interface SyncAlertsSummary {
+  activeCriticalAlerts: number;
+  activeHighAlerts: number;
+  recentAlerts: SyncAlertItem[];
 }

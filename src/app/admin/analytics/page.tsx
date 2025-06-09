@@ -1,15 +1,18 @@
+
 'use client';
 
 import * as React from "react";
 import useSWR from 'swr';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
-import { BarChart, LineChart, PieChart, Users, Briefcase, DollarSign, CheckCircle, TrendingUp, UserMinus, UserPlus, Banknote, ShieldCheck, Handshake, ListX, ListChecks, RefreshCw, AlertCircle } from "lucide-react";
+import { BarChart, LineChart, PieChart, Users, Briefcase, DollarSign, CheckCircle, TrendingUp, UserMinus, UserPlus, Banknote, ShieldCheck, Handshake, ListX, ListChecks, RefreshCw, AlertCircle, Zap, DatabaseZap, ShieldAlert as CircuitBreakerIcon, BellRing as AlertsIcon } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Line, LineChart as RechartsLineChart, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Pie, PieChart as RechartsPieChart, Cell, LabelList } from 'recharts';
-import type { AdminDashboardMetrics } from '@/lib/types';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import type { AdminDashboardMetrics, SyncPerformanceMetrics, SyncCachePerformance, SyncCircuitBreakerStatus, CircuitBreakerInfo, SyncAlertsSummary, SyncAlertItem } from '@/lib/types';
+import { NobridgeIcon, NobridgeIconType } from '@/components/ui/nobridge-icon';
 
 // Chart color configurations
 const userGrowthChartConfig = {
@@ -50,7 +53,8 @@ const fetcher = async (url: string) => {
   });
 
   if (!res.ok) {
-    throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    const errorData = await res.json().catch(() => ({ message: `HTTP ${res.status}: ${res.statusText}` }));
+    throw new Error(errorData.error || errorData.message || `HTTP ${res.status}: ${res.statusText}`);
   }
 
   return res.json();
@@ -71,15 +75,29 @@ export default function AdminAnalyticsPage() {
     '/api/admin/user-growth',
     fetcher,
     {
-      refreshInterval: 300000, // Auto-refresh every 5 minutes (historical data changes less frequently)
+      refreshInterval: 300000, 
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
     }
   );
 
-  const handleRefresh = () => {
+  // SWR hooks for new sync observability data
+  const { data: syncPerformance, error: syncPerfError, isLoading: syncPerfLoading, mutate: mutateSyncPerf } = useSWR<SyncPerformanceMetrics>('/api/admin/sync-performance', fetcher, { refreshInterval: 30000 });
+  const { data: syncCache, error: syncCacheError, isLoading: syncCacheLoading, mutate: mutateSyncCache } = useSWR<SyncCachePerformance>('/api/admin/sync-cache', fetcher, { refreshInterval: 30000 });
+  const { data: syncCircuitBreakers, error: syncCircuitBreakersError, isLoading: syncCircuitBreakersLoading, mutate: mutateSyncCircuitBreakers } = useSWR<SyncCircuitBreakerStatus>('/api/admin/sync-circuit-breakers', fetcher, { refreshInterval: 30000 });
+  const { data: syncAlerts, error: syncAlertsError, isLoading: syncAlertsLoading, mutate: mutateSyncAlerts } = useSWR<SyncAlertsSummary>('/api/admin/sync-alerts', fetcher, { refreshInterval: 30000 });
+
+
+  const handleRefreshAll = () => {
     mutate();
+    mutateSyncPerf();
+    mutateSyncCache();
+    mutateSyncCircuitBreakers();
+    mutateSyncAlerts();
   };
+
+  const formatMs = (ms?: number) => ms ? `${ms.toFixed(1)} ms` : 'N/A';
+  const formatPercent = (val?: number) => val ? `${val.toFixed(1)}%` : 'N/A';
 
   // Loading state
   if (isLoading) {
@@ -93,7 +111,7 @@ export default function AdminAnalyticsPage() {
           </Button>
         </div>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          {[...Array(4)].map((_, i) => (
+          {[...Array(8)].map((_, i) => ( // Increased skeleton count
             <Card key={i} className="shadow-md bg-brand-white">
               <CardHeader className="animate-pulse">
                 <div className="h-4 bg-gray-200 rounded w-3/4"></div>
@@ -115,9 +133,9 @@ export default function AdminAnalyticsPage() {
       <div className="space-y-8">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold tracking-tight text-brand-dark-blue">Platform Analytics</h1>
-          <Button onClick={handleRefresh} variant="outline" size="sm">
+          <Button onClick={handleRefreshAll} variant="outline" size="sm">
             <RefreshCw className="h-4 w-4 mr-2" />
-            Retry
+            Retry All
           </Button>
         </div>
         <Card className="shadow-md bg-red-50 border-red-200">
@@ -125,7 +143,7 @@ export default function AdminAnalyticsPage() {
             <div className="flex items-center space-x-2">
               <AlertCircle className="h-5 w-5 text-red-500" />
               <div>
-                <p className="text-sm font-medium text-red-800">Failed to load analytics data</p>
+                <p className="text-sm font-medium text-red-800">Failed to load platform analytics data</p>
                 <p className="text-sm text-red-600">{error.message || 'An error occurred'}</p>
               </div>
             </div>
@@ -163,13 +181,14 @@ export default function AdminAnalyticsPage() {
           <Badge variant="outline" className="text-green-600">
             Live Data
           </Badge>
-          <Button onClick={handleRefresh} variant="outline" size="sm">
+          <Button onClick={handleRefreshAll} variant="outline" size="sm">
             <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
+            Refresh All
           </Button>
         </div>
       </div>
 
+      {/* General Platform Metrics */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <Card className="shadow-md bg-brand-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -221,7 +240,7 @@ export default function AdminAnalyticsPage() {
           </CardContent>
         </Card>
       </div>
-
+      {/* ... other existing metric sections ... */}
       <Separator className="bg-brand-light-gray/80"/>
       <h2 className="text-2xl font-semibold tracking-tight pt-4 text-brand-dark-blue">Recent Activity (7 Days)</h2>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
@@ -402,7 +421,7 @@ export default function AdminAnalyticsPage() {
             </CardContent>
         </Card>
       </div>
-
+      {/* Charts Section */}
       <Separator className="bg-brand-light-gray/80"/>
       <h2 className="text-2xl font-semibold tracking-tight pt-4 text-brand-dark-blue">Activity Charts</h2>
       <div className="grid gap-6 lg:grid-cols-2">
@@ -518,35 +537,116 @@ export default function AdminAnalyticsPage() {
             )}
           </CardContent>
         </Card>
-
-        {/* Placeholder charts for future implementation */}
-        <Card className="shadow-md bg-brand-white">
-          <CardHeader>
-            <CardTitle className="text-brand-dark-blue flex items-center justify-between">
-              Revenue Over Time
-              <Badge variant="outline" className="text-orange-600">Coming Soon</Badge>
-            </CardTitle>
-            <CardDescription className="text-brand-dark-blue/80">Monthly recurring revenue (MRR) or total revenue.</CardDescription>
-          </CardHeader>
-           <CardContent className="h-[300px] flex items-center justify-center bg-brand-light-gray/30 rounded-md">
-            <TrendingUp className="h-24 w-24 text-brand-dark-blue/50" />
-            <p className="text-brand-dark-blue/70 ml-4">Revenue Chart</p>
-          </CardContent>
-        </Card>
-        <Card className="shadow-md bg-brand-white">
-          <CardHeader>
-            <CardTitle className="text-brand-dark-blue flex items-center justify-between">
-              Listing by Industry
-              <Badge variant="outline" className="text-orange-600">Coming Soon</Badge>
-            </CardTitle>
-            <CardDescription className="text-brand-dark-blue/80">Distribution of active listings across industries.</CardDescription>
-          </CardHeader>
-           <CardContent className="h-[300px] flex items-center justify-center bg-brand-light-gray/30 rounded-md">
-            <BarChart className="h-24 w-24 text-brand-dark-blue/50" />
-            <p className="text-brand-dark-blue/70 ml-4">Listings by Industry Chart</p>
-          </CardContent>
-        </Card>
       </div>
+
+      {/* Sync System Observability Section */}
+      <Separator className="bg-brand-light-gray/80 my-8" />
+      <h2 className="text-2xl font-semibold tracking-tight pt-4 text-brand-dark-blue">Universal Sync System Observability</h2>
+      
+      {/* Sync Performance Metrics */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <MetricCard title="Avg Sync Time" value={syncPerfLoading ? 'Loading...' : formatMs(syncPerformance?.averageProcessingTimeMs)} icon={Zap} description="Avg. processing time for sync operations" />
+        <MetricCard title="P95 Latency" value={syncPerfLoading ? 'Loading...' : formatMs(syncPerformance?.p95LatencyMs)} icon={Zap} description="95th percentile latency" />
+        <MetricCard title="P99 Latency" value={syncPerfLoading ? 'Loading...' : formatMs(syncPerformance?.p99LatencyMs)} icon={Zap} description="99th percentile latency" />
+        <MetricCard title="Sync Error Rate" value={syncPerfLoading ? 'Loading...' : formatPercent(syncPerformance?.errorRatePercent)} icon={AlertCircle} description="Percentage of failed sync operations" />
+      </div>
+      {syncPerfError && <p className="text-sm text-red-500 mt-2">Error loading sync performance: {syncPerfError.message}</p>}
+
+      {/* Sync Cache Metrics */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mt-6">
+        <MetricCard title="Cache Hit Ratio" value={syncCacheLoading ? 'Loading...' : formatPercent(syncCache?.hitRatioPercent)} icon={DatabaseZap} description="Effectiveness of the sync cache" />
+        <MetricCard title="Active Cache Entries" value={syncCacheLoading ? 'Loading...' : syncCache?.totalEntries?.toLocaleString() || 'N/A'} icon={DatabaseZap} description="Total items currently cached" />
+        {syncCache?.averageEntrySizeBytes && <MetricCard title="Avg Cache Entry Size" value={syncCacheLoading ? 'Loading...' : `${(syncCache.averageEntrySizeBytes / 1024).toFixed(1)} KB`} icon={DatabaseZap} />}
+        {syncCache?.readThroughputPerSecond && <MetricCard title="Cache Reads/sec" value={syncCacheLoading ? 'Loading...' : syncCache.readThroughputPerSecond.toLocaleString()} icon={DatabaseZap} />}
+      </div>
+      {syncCacheError && <p className="text-sm text-red-500 mt-2">Error loading sync cache data: {syncCacheError.message}</p>}
+      
+      {/* Circuit Breaker Status */}
+      <Card className="mt-6 shadow-md bg-brand-white">
+        <CardHeader>
+          <CardTitle className="text-brand-dark-blue flex items-center"><CircuitBreakerIcon className="mr-2 h-5 w-5" />Sync Circuit Breaker Status</CardTitle>
+          <CardDescription>Real-time status of service circuit breakers.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {syncCircuitBreakersLoading ? <p>Loading circuit breaker status...</p> : syncCircuitBreakersError ? <p className="text-red-500">Error: {syncCircuitBreakersError.message}</p> : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Service Name</TableHead>
+                  <TableHead>State</TableHead>
+                  <TableHead>Failures</TableHead>
+                  <TableHead>Last Failure</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {syncCircuitBreakers?.circuitBreakers.map((cb) => (
+                  <TableRow key={cb.name}>
+                    <TableCell className="font-medium">{cb.name}</TableCell>
+                    <TableCell>
+                      <Badge variant={cb.state === 'OPEN' ? 'destructive' : cb.state === 'HALF_OPEN' ? 'outline' : 'default'}
+                             className={cb.state === 'CLOSED' ? 'bg-green-100 text-green-700' : cb.state === 'HALF_OPEN' ? 'bg-yellow-100 text-yellow-700' : ''}>
+                        {cb.state}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{cb.failures}</TableCell>
+                    <TableCell>{cb.lastFailureAt ? new Date(cb.lastFailureAt).toLocaleString() : 'N/A'}</TableCell>
+                  </TableRow>
+                ))}
+                 {syncCircuitBreakers?.circuitBreakers.length === 0 && (
+                    <TableRow><TableCell colSpan={4} className="text-center">No circuit breakers configured or data unavailable.</TableCell></TableRow>
+                )}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Sync Alerts Summary */}
+      <Card className="mt-6 shadow-md bg-brand-white">
+        <CardHeader>
+          <CardTitle className="text-brand-dark-blue flex items-center"><AlertsIcon className="mr-2 h-5 w-5" />Active Sync System Alerts</CardTitle>
+          <CardDescription>Overview of critical and high-priority system alerts.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {syncAlertsLoading ? <p>Loading alerts summary...</p> : syncAlertsError ? <p className="text-red-500">Error: {syncAlertsError.message}</p> : (
+            <>
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <MetricCard title="Critical Alerts" value={syncAlerts?.activeCriticalAlerts || 0} icon={AlertCircle} trendDirection={syncAlerts?.activeCriticalAlerts || 0 > 0 ? 'down' : 'neutral'} />
+                <MetricCard title="High Alerts" value={syncAlerts?.activeHighAlerts || 0} icon={AlertCircle} trendDirection={syncAlerts?.activeHighAlerts || 0 > 0 ? 'down' : 'neutral'} />
+              </div>
+              <h3 className="text-md font-semibold mb-2">Recent Alerts:</h3>
+              {syncAlerts?.recentAlerts && syncAlerts.recentAlerts.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Severity</TableHead>
+                      <TableHead>Rule Name</TableHead>
+                      <TableHead>Details</TableHead>
+                      <TableHead>Triggered At</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {syncAlerts.recentAlerts.map(alert => (
+                      <TableRow key={alert.id}>
+                        <TableCell>
+                          <Badge variant={alert.severity === 'CRITICAL' ? 'destructive' : 'outline'}
+                                 className={alert.severity === 'HIGH' ? 'bg-orange-100 text-orange-700' : ''}>
+                            {alert.severity}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{alert.ruleName}</TableCell>
+                        <TableCell className="text-xs max-w-xs truncate">{alert.details}</TableCell>
+                        <TableCell>{new Date(alert.triggeredAt).toLocaleString()}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : <p className="text-sm text-muted-foreground">No recent alerts.</p>}
+            </>
+          )}
+        </CardContent>
+      </Card>
+
     </div>
   );
 }
