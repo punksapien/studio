@@ -112,29 +112,18 @@
             <p>Welcome! Please verify your email to complete your registration.</p>
         </div>
 
-        <!-- OTP Section (Primary Method) -->
+        <!-- OTP Section (Only Method) -->
         <div class="otp-section">
             <div class="otp-label">🔢 6-Digit Verification Code</div>
             <div class="otp-code">{{ .Token }}</div>
             <p><strong>Enter this code in the app to verify your email.</strong></p>
-            <p style="color: #6b7280; font-size: 14px;">This is the fastest way to verify your account.</p>
+            <p style="color: #059669; font-size: 16px; font-weight: 600; margin-top: 16px;">
+                ✨ Simple, secure, and instant verification!
+            </p>
         </div>
 
         <div class="expires">
             ⏰ <strong>Important:</strong> This verification code expires in 15 minutes for security.
-        </div>
-
-        <div class="divider">
-            <span>OR</span>
-        </div>
-
-        <!-- Magic Link Section (Alternative) -->
-        <div style="text-align: center;">
-            <p>Prefer a one-click verification?</p>
-            <a href="{{ .ConfirmationURL }}" class="button">
-                ✨ Verify Email with One Click
-            </a>
-            <p style="color: #6b7280; font-size: 14px;">This link will automatically verify your email and log you in.</p>
         </div>
 
         <div class="footer">

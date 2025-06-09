@@ -104,6 +104,13 @@ export async function POST(request: NextRequest) {
       .insert({
         id: userId,
         ...profileData,
+        // 🚀 MVP SIMPLIFICATION: Auto-complete onboarding for new users
+        // This bypasses the multi-step onboarding flow for frictionless user experience
+        // Original logic: Users started with is_onboarding_completed: false (database default)
+        // MVP logic: All new users start with completed onboarding to access dashboards immediately
+        is_onboarding_completed: true,
+        onboarding_completed_at: new Date().toISOString(),
+        onboarding_step_completed: profileData.role === 'seller' ? 5 : 2, // Max steps for each role
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })

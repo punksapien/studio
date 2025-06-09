@@ -11,7 +11,7 @@ interface AuthStrategy {
   verify(request?: any): Promise<AuthResult>
 }
 
-interface AuthResult {
+export interface AuthResult {
   success: boolean
   user?: User
   profile?: any
@@ -199,16 +199,22 @@ export class AuthenticationService {
       const metadata = authUser.user.user_metadata || {}
       const role = metadata.role || 'buyer' // Default to buyer
 
+      // 🚀 HOTFIX: Add default full_name to prevent not-null constraint violation
+      // The profile recovery was failing because full_name is required by the database.
+      // We now generate a default name from the email if no other name is available.
+      const defaultFullName = user.email?.split('@')[0] || 'New User'
+
       // Create profile
       const newProfile = {
         id: user.id,
         email: user.email!,
+        full_name: metadata.fullName || defaultFullName,
         role: role,
         first_name: metadata.firstName || '',
         last_name: metadata.lastName || '',
         company_name: metadata.companyName || '',
-        verification_status: 'pending',
-        is_onboarding_completed: false,
+        verification_status: 'pending_verification', // 🔧 FIX: Use correct enum value
+        is_onboarding_completed: false, // Start fresh
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }

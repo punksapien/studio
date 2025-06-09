@@ -52,39 +52,75 @@ export default function LoginPage() {
       try {
         const result = await auth.signIn(values.email, values.password);
 
-        // Check if user's email is verified
-        const user = await auth.getCurrentUser();
+        // If the sign-in was successful but email is not verified, redirect to verification page.
+        if (result.user && result.profile && !result.profile.is_email_verified) {
+          console.log("User logged in but email not verified, redirecting to verify-email page.");
+          toast({
+            title: "Email Verification Required",
+            description: "Your email needs to be verified before you can access your dashboard."
+          });
+          // Generate a secure verification token for redirection
+          try {
+            // Create proper verification URL with token
+            const verifyEmailUrl = new URL(`/verify-email`, window.location.origin);
+            verifyEmailUrl.searchParams.set('email', values.email);
+            verifyEmailUrl.searchParams.set('type', 'login');
+            verifyEmailUrl.searchParams.set('redirectTo', '/dashboard');
+            verifyEmailUrl.searchParams.set('auto_send', 'true');
 
-        if (user && !user.email_confirmed_at) {
-          // User is authenticated but email not verified - redirect to verify-email
-          console.log("User logged in but email not verified, redirecting to verify-email");
-          router.push(`/verify-email?email=${encodeURIComponent(values.email)}&type=login`);
-          return;
+            // Try to generate a verification token by calling API
+            const tokenResponse = await fetch('/api/auth/generate-verification-token', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                email: values.email,
+                type: 'login',
+                redirectTo: '/dashboard'
+              })
+            });
+
+            if (tokenResponse.ok) {
+              const { token } = await tokenResponse.json();
+              if (token) {
+                verifyEmailUrl.searchParams.set('token', token);
+                console.log("Generated verification token for login redirect");
+              }
+            }
+
+            router.push(verifyEmailUrl.toString());
+          } catch (tokenError) {
+            console.error("Failed to generate verification token:", tokenError);
+            // Fallback to the old URL format without token
+            router.push(`/verify-email?email=${encodeURIComponent(values.email)}&type=login&redirectTo=/dashboard&auto_send=true`);
+          }
+          return; // Stop execution
         }
 
-        toast({
-          title: "Login Successful!",
-          description: "Welcome back!"
-        });
+        // If sign-in was successful and email is verified, redirect to the correct dashboard.
+        if (result.user && result.profile) {
+            toast({
+              title: "Login Successful!",
+              description: "Welcome back!"
+            });
 
-        // Determine redirect based on role after successful login
-        try {
-          const userProfile = await auth.getCurrentUserProfile();
-          if (userProfile?.role === 'seller') {
+            if (result.profile.role === 'seller') {
               router.push('/seller-dashboard');
-          } else if (userProfile?.role === 'buyer') {
+            } else if (result.profile.role === 'buyer') {
               router.push('/dashboard');
-          } else if (userProfile?.role === 'admin') {
+            } else if (result.profile.role === 'admin') {
                router.push('/admin');
-          } else {
-              // Profile doesn't exist or role is undefined - redirect to home page
-              console.warn('No profile or undefined role after login, redirecting to home');
+            } else {
+              console.warn('User logged in but has no role. Redirecting to home.');
               router.push('/');
-          }
-        } catch (profileError) {
-          // Profile fetch failed - redirect to home page as fallback
-          console.error('Profile fetch failed after login:', profileError);
-          router.push('/');
+            }
+            return; // Stop execution
+        }
+
+        // Handle case where sign-in succeeds but profile is missing (should be rare).
+        if(result.user && !result.profile) {
+            console.error('CRITICAL: User signed in but profile is missing. Redirecting to error page.');
+            router.push('/auth/verification-error?error=profile_missing');
+            return;
         }
 
       } catch (error) {

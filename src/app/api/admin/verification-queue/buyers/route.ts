@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
         documents_submitted,
         created_at,
         updated_at,
-        user_profiles!inner (
+        user_profiles!verification_requests_user_id_fkey!inner (
           id,
           full_name,
           email,
@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
     // Get total count for pagination
     const { count: totalCount } = await supabase
       .from('verification_requests')
-      .select('*, user_profiles!inner(*)', { count: 'exact', head: true })
+      .select('*, user_profiles!verification_requests_user_id_fkey!inner(*)', { count: 'exact', head: true })
       .eq('user_profiles.role', 'buyer')
       .eq('request_type', 'user_verification')
 

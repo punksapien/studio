@@ -46,6 +46,7 @@ export function useSellerDashboard(): DashboardData {
   })
 
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const fastPollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const [isPolling, setIsPolling] = useState(false)
   const requestInProgressRef = useRef(false)
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -190,9 +191,9 @@ export function useSellerDashboard(): DashboardData {
     setIsPolling(true)
     pollingIntervalRef.current = setInterval(() => {
       fetchDashboardData(true) // Background refresh
-    }, 30000) // Poll every 30 seconds (reduced from 15 to avoid rate limiting)
+    }, 60000) // Poll every 60 seconds (increased from 30s to reduce rate limiting)
 
-    console.log('[REAL-TIME] Started polling for verification status updates (30s interval)')
+    console.log('[REAL-TIME] Started polling for verification status updates (60s interval)')
   }, [fetchDashboardData])
 
   const stopPolling = useCallback(() => {
@@ -201,6 +202,13 @@ export function useSellerDashboard(): DashboardData {
       pollingIntervalRef.current = null
       setIsPolling(false)
       console.log('[REAL-TIME] Stopped polling for verification status updates')
+    }
+
+    // Clear fast polling interval if it exists
+    if (fastPollingIntervalRef.current) {
+      clearInterval(fastPollingIntervalRef.current)
+      fastPollingIntervalRef.current = null
+      console.log('[REAL-TIME] Stopped fast polling for verification status updates')
     }
 
     // Clear retry timeout if it exists
@@ -240,6 +248,31 @@ export function useSellerDashboard(): DashboardData {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
   }, [startPolling, stopPolling, fetchDashboardData])
+
+  // Fast polling for real-time updates when verification is pending
+  useEffect(() => {
+    const verificationStatus = data.stats.verificationStatus;
+
+    if (verificationStatus === 'pending_verification') {
+      console.log('[DASHBOARD] Starting fast polling for pending verification status');
+      fastPollingIntervalRef.current = setInterval(() => {
+        fetchDashboardData(true);
+      }, 30000); // Poll every 30 seconds for pending verification (increased from 15s)
+    } else {
+      if (fastPollingIntervalRef.current) {
+        console.log('[DASHBOARD] Stopping fast polling - verification no longer pending');
+        clearInterval(fastPollingIntervalRef.current);
+        fastPollingIntervalRef.current = null;
+      }
+    }
+
+    return () => {
+      if (fastPollingIntervalRef.current) {
+        clearInterval(fastPollingIntervalRef.current);
+        fastPollingIntervalRef.current = null;
+      }
+    };
+  }, [data.stats.verificationStatus, fetchDashboardData]);
 
   return { ...data, refreshData, isPolling };
 }

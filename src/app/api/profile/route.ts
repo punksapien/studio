@@ -1,18 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
-import { auth } from '@/lib/auth'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 
 // GET /api/profile - Fetch current user profile
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const user = await auth.getCurrentUser()
-    if (!user) {
+    const cookieStore = cookies()
+
+    // Create Supabase client with cookie support (same as middleware)
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value
+          },
+        },
+      }
+    )
+
+    // Get user from session (this works in API routes with cookies)
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+
+    if (userError || !user) {
+      console.log('[API-PROFILE] No authenticated user found:', userError?.message)
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
       )
     }
 
+    console.log('[API-PROFILE] Fetching profile for user:', user.id)
+
+    // Fetch profile using the authenticated Supabase client
     const { data: profile, error } = await supabase
       .from('user_profiles')
       .select('*')
@@ -20,16 +41,17 @@ export async function GET() {
       .single()
 
     if (error) {
-      console.error('Error fetching user profile:', error)
+      console.error('[API-PROFILE] Error fetching user profile:', error)
       return NextResponse.json(
         { error: 'Failed to fetch profile' },
         { status: 500 }
       )
     }
 
+    console.log('[API-PROFILE] Profile fetched successfully for user:', user.id, 'Role:', profile.role)
     return NextResponse.json({ profile })
   } catch (error) {
-    console.error('Profile fetch error:', error)
+    console.error('[API-PROFILE] Profile fetch error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -40,8 +62,25 @@ export async function GET() {
 // PUT /api/profile - Update user profile
 export async function PUT(request: NextRequest) {
   try {
-    const user = await auth.getCurrentUser()
-    if (!user) {
+    const cookieStore = cookies()
+
+    // Create Supabase client with cookie support
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value
+          },
+        },
+      }
+    )
+
+    // Get user from session
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+
+    if (userError || !user) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }

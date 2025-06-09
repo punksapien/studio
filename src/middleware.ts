@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { middlewareAuth, type UserProfile } from './lib/middleware-auth'
+import { validateVerificationToken, isEmailPendingVerification } from './lib/verification-token'
 
 /**
  * Production-Grade Middleware with Authentication & Onboarding Flow
@@ -31,7 +32,8 @@ export async function middleware(req: NextRequest) {
     '/auth/login', '/auth/register', '/auth/forgot-password', '/auth/update-password',
     // Misc auth related
     '/auth/verify-otp', '/auth/callback', '/auth/verification-error', '/auth/verification-success',
-    '/verify-email', // Allow unauthenticated users to verify email
+    // Special case - verify-email now requires verification
+    // '/verify-email', // REMOVED - now requires special handling
     '/about', '/contact', '/pricing', '/terms', '/privacy',
     '/api/test', '/api/auth/create-profile', // Allow create-profile API for signup process
     '/api/health', '/api/debug', // Allow health and debug endpoints
@@ -63,17 +65,68 @@ export async function middleware(req: NextRequest) {
   const authResult = await middlewareAuth.authenticateUserInMiddleware(req, res)
   const { success, user, profile, error, correlationId, strategy, executionTime } = authResult
 
-  // Special handling for /verify-email - allow unauthenticated, redirect authenticated users
+  // PRODUCTION-GRADE SECURITY: Special handling for /verify-email
+  // Only allow access if:
+  // 1. User is authenticated BUT email is not verified, OR
+  // 2. Request contains a valid verification token
   if (pathname === '/verify-email') {
-    if (success && user && profile) {
-      // User is already authenticated, redirect them to appropriate dashboard or onboarding
+    // Scenario 1: Authenticated user with unverified email - ALLOW
+    if (success && user && profile && !profile.is_email_verified) {
+      console.log(`[MIDDLEWARE] ${correlationId} | Authenticated user with unverified email accessing /verify-email - ALLOWED`)
+      return res
+    }
+
+    // Scenario 2: Authenticated user with verified email - REDIRECT to dashboard
+    if (success && user && profile && profile.is_email_verified) {
       const redirect = middlewareAuth.determineRedirectUrl(profile, pathname, correlationId)
-      console.log(`[MIDDLEWARE] ${correlationId} | Authenticated user accessing /verify-email, redirecting to ${redirect.url} (${redirect.reason})`)
+      console.log(`[MIDDLEWARE] ${correlationId} | Already verified user accessing /verify-email, redirecting to ${redirect.url}`)
       return NextResponse.redirect(new URL(redirect.url, req.url))
     }
-    // User is not authenticated, allow access to verify their email
-    console.log(`[MIDDLEWARE] ${correlationId} | Unauthenticated user accessing /verify-email - ALLOWED`)
-    return res
+
+    // Scenario 3: Unauthenticated with verification token - CHECK TOKEN
+    const token = req.nextUrl.searchParams.get('token')
+    const email = req.nextUrl.searchParams.get('email')
+
+    if (token && email) {
+      console.log(`[MIDDLEWARE] ${correlationId} | Unauthenticated access to /verify-email with token - validating`)
+
+      // Validate the token
+      const verifiedToken = await validateVerificationToken(token)
+
+      // If token is valid and matches the email in query params
+      if (verifiedToken && verifiedToken.email === email) {
+        // Additional security: Check if this email actually exists and needs verification
+        const isPending = await isEmailPendingVerification(email)
+
+        if (isPending) {
+          console.log(`[MIDDLEWARE] ${correlationId} | Valid verification token for ${email} - ALLOWED`)
+          return res
+        }
+
+        console.log(`[MIDDLEWARE] ${correlationId} | Token valid but email ${email} not pending verification - DENIED`)
+      } else {
+        console.log(`[MIDDLEWARE] ${correlationId} | Invalid verification token - DENIED`)
+      }
+    }
+
+    // Scenario 4: Registration context check - allow if coming from registration process
+    // For sessions without tokens, check for registration referrer or origin
+    const referer = req.headers.get('referer') || ''
+    const isFromRegistration = referer.includes('/auth/register') || req.nextUrl.searchParams.get('from') === 'register'
+
+    if (isFromRegistration && email) {
+      // Additional security: Check if email exists and needs verification
+      const isPending = await isEmailPendingVerification(email)
+
+      if (isPending) {
+        console.log(`[MIDDLEWARE] ${correlationId} | Access from registration flow for ${email} - ALLOWED`)
+        return res
+      }
+    }
+
+    // All security checks failed - redirect to login
+    console.log(`[MIDDLEWARE] ${correlationId} | Unauthorized access to /verify-email - redirecting to login`)
+    return NextResponse.redirect(new URL('/auth/login', req.url))
   }
 
   // Handle auth pages
@@ -152,11 +205,13 @@ export async function middleware(req: NextRequest) {
       )
     }
 
-    return NextResponse.redirect(redirectUrl)
+    const response = NextResponse.redirect(redirectUrl)
+    response.headers.set('x-middleware-rewrite', redirectUrl.toString())
+    return response
   }
 
   // User is authenticated and has profile - log current state
-  console.log(`[MIDDLEWARE] ${correlationId} | Authenticated user: ${user.id} | Role: ${profile.role} | Onboarding: ${profile.is_onboarding_completed} | Step: ${profile.onboarding_step_completed}`)
+  console.log(`[MIDDLEWARE] ${correlationId} | Authenticated user: ${user.id} | Role: ${profile.role} | Email verified: ${profile.is_email_verified} | Onboarding: ${profile.is_onboarding_completed} | Step: ${profile.onboarding_step_completed}`)
 
   middlewareAuth.logOnboardingState(
     correlationId,
@@ -166,15 +221,100 @@ export async function middleware(req: NextRequest) {
     pathname
   )
 
+  // Check email verification status for non-admin users trying to access protected routes
+  // Skip this check for: /verify-email, auth callback routes, and admins (who may not need email verification)
+  const isEmailVerificationPath = pathname === '/verify-email' || pathname.startsWith('/auth/')
+  const isAdmin = profile.role === 'admin'
+
+  // API routes that should be allowed for unverified users (needed for email verification flow)
+  const emailVerificationApiRoutes = [
+    '/api/profile',              // Needed to fetch user profile during verification
+    '/api/auth/current-user',    // Needed for authentication state
+    '/api/verification/',        // Any verification-related APIs
+    '/api/auth/resend',         // Resend verification emails
+  ]
+
+  const isEmailVerificationApiRoute = emailVerificationApiRoutes.some(route => pathname.startsWith(route))
+
+  const isProtectedRoute = !isEmailVerificationPath && !isEmailVerificationApiRoute && (
+    pathname.startsWith('/dashboard') ||
+    pathname.startsWith('/seller-dashboard') ||
+    pathname.startsWith('/onboarding') ||
+    pathname.startsWith('/admin') ||
+    pathname.startsWith('/marketplace') ||
+    pathname.startsWith('/listings/') ||
+    pathname.startsWith('/api/') || // Block other API routes for unverified users
+    (pathname !== '/' && !pathname.startsWith('/_next/') && !pathname.startsWith('/assets/'))
+  )
+
+  if (!isAdmin && !profile.is_email_verified && isProtectedRoute) {
+    console.log(`[MIDDLEWARE] ${correlationId} | Unverified user ${user.id} (${user.email}) attempting to access protected route: ${pathname}`)
+
+    middlewareAuth.logOnboardingState(
+      correlationId,
+      user.id,
+      profile,
+      'unverified_email_redirect',
+      pathname
+    )
+
+    const verifyEmailUrl = new URL('/verify-email', req.url)
+    verifyEmailUrl.searchParams.set('email', user.email || '')
+    verifyEmailUrl.searchParams.set('type', 'login')
+    verifyEmailUrl.searchParams.set('redirectTo', pathname)
+    verifyEmailUrl.searchParams.set('auto_send', 'true') // Automatically send verification email
+
+    // For API routes, return proper JSON response instead of HTML redirect
+    if (pathname.startsWith('/api/')) {
+      console.log(`[MIDDLEWARE] ${correlationId} | Unverified user accessing API route ${pathname}, returning JSON error`)
+      return new NextResponse(
+        JSON.stringify({
+          error: 'Email verification required',
+          type: 'unverified_email',
+          correlationId,
+          timestamp: new Date().toISOString(),
+          verifyEmailUrl: verifyEmailUrl.toString()
+        }),
+        {
+          status: 403,
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Correlation-ID': correlationId,
+            ...Object.fromEntries(res.headers.entries())
+          }
+        }
+      )
+    }
+
+    console.log(`[MIDDLEWARE] ${correlationId} | Redirecting unverified user to: ${verifyEmailUrl.toString()}`)
+    const response = NextResponse.redirect(verifyEmailUrl)
+    response.headers.set('x-middleware-rewrite', verifyEmailUrl.toString())
+    return response
+  }
+
   // Handle onboarding routes
   if (pathname.startsWith('/onboarding')) {
-    return handleOnboardingRoutes(req, res, profile, correlationId, pathname)
+    // 🚀 MVP SIMPLIFICATION: Redirect onboarding routes to dashboard
+    // Original logic: Complex onboarding step validation and navigation
+    // MVP logic: Redirect to appropriate dashboard since onboarding is bypassed
+    // UNCOMMENT THE LINE BELOW TO RESTORE ONBOARDING ROUTES:
+    // return handleOnboardingRoutes(req, res, profile, correlationId, pathname)
+
+    console.log(`[MIDDLEWARE] ${correlationId} | Onboarding route ${pathname} redirected to dashboard (MVP bypass)`)
+    const dashboardUrl = profile.role === 'seller' ? '/seller-dashboard' : profile.role === 'admin' ? '/admin' : '/dashboard'
+    return NextResponse.redirect(new URL(dashboardUrl, req.url))
   }
 
   // Handle dashboard routes - enforce onboarding completion
   const protectedAppRoutes = ['/dashboard', '/seller-dashboard', '/admin']
   if (protectedAppRoutes.some(route => pathname.startsWith(route))) {
-    return handleDashboardRoutes(req, res, user, profile, correlationId, pathname)
+    // 🚀 MVP SIMPLIFICATION: Bypass onboarding enforcement for dashboard access
+    // Original logic: Dashboard access required completed onboarding
+    // MVP logic: Allow direct dashboard access after email verification only
+    // UNCOMMENT THE LINE BELOW TO RESTORE ONBOARDING ENFORCEMENT:
+    // return handleDashboardRoutes(req, res, user, profile, correlationId, pathname)
+
+    console.log(`[MIDDLEWARE] ${correlationId} | Dashboard access granted (onboarding bypassed for MVP)`)
   }
 
   // Special handling for marketplace route – allow buyers, sellers, and admins

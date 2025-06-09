@@ -1,4 +1,3 @@
-
 'use client'
 
 import { useState } from 'react';
@@ -28,12 +27,52 @@ import {
 } from 'lucide-react';
 import { useSellerDashboard } from '@/hooks/use-seller-dashboard';
 import { useVerificationRequest } from '@/hooks/use-verification-request';
-import { VerificationRequestModal } from '@/components/verification/verification-request-modal';
+// 🚀 MVP SIMPLIFICATION: Removed VerificationRequestModal import (using direct API calls)
+// import { VerificationRequestModal } from '@/components/verification/verification-request-modal';
+import { VERIFICATION_CONFIG } from '@/lib/verification-config';
 import React from 'react';
 
 export default function SellerDashboard() {
   const { user, stats, recentListings, isLoading, error, refreshData, isPolling } = useSellerDashboard();
   const { requests: verificationRequests, currentStatus: verificationStatus, canSubmitNewRequest } = useVerificationRequest();
+
+  // 🚀 MVP SIMPLIFICATION: Direct verification request without modal dialog
+  const [isSubmittingVerification, setIsSubmittingVerification] = React.useState(false);
+
+  // Direct API call for verification request (bypassing modal)
+  const handleDirectVerificationRequest = async () => {
+    setIsSubmittingVerification(true);
+
+    try {
+      const response = await fetch('/api/verification/request', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          request_type: 'user_verification',
+          reason: 'MVP verification request - streamlined process for immediate verification'
+        })
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        // Refresh dashboard data to reflect the new verification status
+        await refreshData();
+
+        // Show success feedback (the API now auto-approves, so user is immediately verified)
+        // Note: You might want to add a toast notification here if available
+        console.log('✅ Verification approved instantly:', result.message);
+      } else {
+        console.error('❌ Verification request failed:', result.error || result.message);
+      }
+    } catch (error) {
+      console.error('❌ Network error during verification request:', error);
+    } finally {
+      setIsSubmittingVerification(false);
+    }
+  };
 
   // Prepare listings for verification modal
   const userListingsForVerification = recentListings.map(l => ({
@@ -64,21 +103,45 @@ export default function SellerDashboard() {
           icon: <Clock className="h-5 w-5 text-yellow-600" />,
           status: 'Verification Pending',
           description: pendingUserRequest ?
-            `Your verification request is ${pendingUserRequest.status.toLowerCase()}. ${pendingUserRequest.can_bump ? 'You can bump it to the top!' : (pendingUserRequest.hours_until_can_bump && pendingUserRequest.hours_until_can_bump > 0) ? `You can bump it in ${pendingUserRequest.hours_until_can_bump} hours.` : ''}` :
+            `Your verification request is ${pendingUserRequest.status.toLowerCase()}. ${pendingUserRequest.can_bump ? 'You can bump it to the top!' : (pendingUserRequest.hours_until_can_bump && pendingUserRequest.hours_until_can_bump > 0) ? `You can bump it in ${VERIFICATION_CONFIG.formatTimeRemaining(pendingUserRequest.hours_until_can_bump)}.` : ''}` :
             'Your profile verification is being reviewed.',
           badgeVariant: 'outline' as const,
           badgeColor: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-          actionText: pendingUserRequest?.can_bump ? 'Bump Request' : (pendingUserRequest?.hours_until_can_bump && pendingUserRequest.hours_until_can_bump > 0) ? `Bump in ${pendingUserRequest.hours_until_can_bump}h` : 'View Status',
+          actionText: pendingUserRequest?.can_bump ? 'Bump Request' : (pendingUserRequest?.hours_until_can_bump && pendingUserRequest.hours_until_can_bump > 0) ? `Bump in ${VERIFICATION_CONFIG.formatTimeRemaining(pendingUserRequest.hours_until_can_bump)}` : 'View Status',
           showButton: true,
           canBump: pendingUserRequest?.can_bump || false,
           hoursUntilBump: pendingUserRequest?.hours_until_can_bump || 0
+        };
+      case 'rejected':
+        const canSubmitAfterRejection = canSubmitNewRequest('user_verification');
+        let rejectedActionText = 'Request Verification Again';
+        if (!canSubmitAfterRejection.canSubmit) {
+          if (canSubmitAfterRejection.hoursRemaining && canSubmitAfterRejection.hoursRemaining > 0) {
+            rejectedActionText = `Available in ${VERIFICATION_CONFIG.formatTimeRemaining(canSubmitAfterRejection.hoursRemaining)}`;
+          } else {
+            rejectedActionText = 'Request Pending';
+          }
+        }
+
+        return {
+          icon: <AlertCircle className="h-5 w-5 text-red-600" />,
+          status: 'Verification Rejected',
+          description: canSubmitAfterRejection.canSubmit ?
+            'Your previous verification was rejected. You can submit a new request with additional information.' :
+            canSubmitAfterRejection.message || 'Previous verification rejected. You can resubmit after the cooldown period.',
+          badgeVariant: 'outline' as const,
+          badgeColor: 'bg-red-100 text-red-800 border-red-200',
+          actionText: rejectedActionText,
+          showButton: true,
+          disabled: !canSubmitAfterRejection.canSubmit,
+          hoursRemaining: canSubmitAfterRejection.hoursRemaining || 0
         };
       default: // anonymous
         const canSubmit = canSubmitNewRequest('user_verification');
         let actionText = 'Request Verification';
         if (!canSubmit.canSubmit) {
           if (canSubmit.hoursRemaining && canSubmit.hoursRemaining > 0) {
-            actionText = `Available in ${canSubmit.hoursRemaining}h`;
+            actionText = `Available in ${VERIFICATION_CONFIG.formatTimeRemaining(canSubmit.hoursRemaining)}`;
           } else {
             actionText = 'Request Pending';
           }
@@ -152,6 +215,7 @@ export default function SellerDashboard() {
          <Card className={`mb-8 border-2 shadow-md ${
           verificationStatus === 'verified' ? 'border-green-500/50 bg-green-500/5' :
           verificationStatus === 'pending_verification' ? 'border-yellow-500/50 bg-yellow-500/5' :
+          verificationStatus === 'rejected' ? 'border-red-500/50 bg-red-500/5' :
           'border-border bg-card'
         }`}>
           <CardHeader className="pb-4">
@@ -168,6 +232,7 @@ export default function SellerDashboard() {
               <Badge variant={verificationInfo.badgeVariant} className={`${verificationInfo.badgeColor} text-xs py-1 px-2.5`}>
                 {verificationStatus === 'verified' && <Verified className="h-3 w-3 mr-1.5" />}
                 {verificationStatus === 'pending_verification' && <Clock className="h-3 w-3 mr-1.5" />}
+                {verificationStatus === 'rejected' && <AlertCircle className="h-3 w-3 mr-1.5" />}
                 {verificationStatus === 'anonymous' && <User className="h-3 w-3 mr-1.5" />}
                 {verificationInfo.status}
               </Badge>
@@ -181,53 +246,73 @@ export default function SellerDashboard() {
                   {(verificationInfo.hoursRemaining !== undefined && verificationInfo.hoursRemaining > 0) && (
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <Timer className="h-3.5 w-3.5" />
-                      <span>Cooldown: {verificationInfo.hoursRemaining} hours remaining</span>
-                      <Progress value={(24 - (verificationInfo.hoursRemaining || 0)) / 24 * 100} className="w-20 h-1.5 bg-muted" />
+                      <span>
+                        Cooldown: {VERIFICATION_CONFIG.formatTimeRemaining(verificationInfo.hoursRemaining)} remaining
+                      </span>
+                      <Progress
+                        value={verificationInfo.hoursRemaining < 1
+                          ? (VERIFICATION_CONFIG.COOLDOWN_SECONDS - (verificationInfo.hoursRemaining * 3600)) / VERIFICATION_CONFIG.COOLDOWN_SECONDS * 100
+                          : (VERIFICATION_CONFIG.COOLDOWN_HOURS - (verificationInfo.hoursRemaining || 0)) / VERIFICATION_CONFIG.COOLDOWN_HOURS * 100
+                        }
+                        className="w-20 h-1.5 bg-muted"
+                      />
                     </div>
                   )}
                   {(verificationInfo.hoursUntilBump !== undefined && verificationInfo.hoursUntilBump > 0) && (
                     <div className="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-400">
                       <Timer className="h-3.5 w-3.5" />
-                      <span>Can bump request in {verificationInfo.hoursUntilBump} hours</span>
-                      <Progress value={(24 - (verificationInfo.hoursUntilBump || 0)) / 24 * 100} className="w-20 h-1.5 bg-amber-200 dark:bg-amber-800" />
+                      <span>
+                        Can bump request in {VERIFICATION_CONFIG.formatTimeRemaining(verificationInfo.hoursUntilBump)}
+                      </span>
+                      <Progress
+                        value={verificationInfo.hoursUntilBump < 1
+                          ? (VERIFICATION_CONFIG.COOLDOWN_SECONDS - (verificationInfo.hoursUntilBump * 3600)) / VERIFICATION_CONFIG.COOLDOWN_SECONDS * 100
+                          : (VERIFICATION_CONFIG.COOLDOWN_HOURS - (verificationInfo.hoursUntilBump || 0)) / VERIFICATION_CONFIG.COOLDOWN_HOURS * 100
+                        }
+                        className="w-20 h-1.5 bg-amber-200 dark:bg-amber-800"
+                      />
                     </div>
                   )}
                 </div>
 
-                <VerificationRequestModal
-                  userListings={userListingsForVerification}
-                  onSuccess={refreshData}
+                {/* 🚀 MVP SIMPLIFICATION: Direct verification button (no modal dialog) */}
+                {/* Original: VerificationRequestModal wrapper with complex dialog flow */}
+                {/* MVP: One-click verification with instant auto-approval */}
+                <Button
+                  size="sm"
+                  onClick={handleDirectVerificationRequest}
+                  disabled={isSubmittingVerification || (verificationInfo.disabled && !verificationInfo.canBump)}
+                  variant={verificationInfo.canBump ? "default" : "secondary"}
+                  className={`
+                    ${verificationInfo.canBump ? "bg-green-600 hover:bg-green-700 text-white" : ""}
+                    ${!verificationInfo.canBump && !verificationInfo.disabled ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}
+                    ${verificationInfo.disabled && !verificationInfo.canBump ?
+                      "bg-muted text-muted-foreground border-border opacity-60 cursor-not-allowed hover:bg-muted" : ""
+                    }
+                  `}
                 >
-                  <Button
-                    size="sm"
-                    disabled={verificationInfo.disabled && !verificationInfo.canBump}
-                    variant={verificationInfo.canBump ? "default" : "secondary"}
-                    className={`
-                      ${verificationInfo.canBump ? "bg-green-600 hover:bg-green-700 text-white" : ""}
-                      ${!verificationInfo.canBump && !verificationInfo.disabled ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}
-                      ${verificationInfo.disabled && !verificationInfo.canBump ?
-                        "bg-muted text-muted-foreground border-border opacity-60 cursor-not-allowed hover:bg-muted" : ""
-                      }
-                    `}
-                  >
-                    {verificationInfo.canBump ? (
-                      <>
-                        <TrendingUp className="h-4 w-4 mr-2" />
-                        Bump to Top
-                      </>
-                    ) : verificationInfo.disabled ? (
-                      <>
-                        <Timer className="h-4 w-4 mr-2" />
-                        {verificationInfo.actionText}
-                      </>
-                    ) : (
-                      <>
-                        <Send className="h-4 w-4 mr-2" />
-                        {verificationInfo.actionText}
-                      </>
-                    )}
-                  </Button>
-                </VerificationRequestModal>
+                  {isSubmittingVerification ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Verifying...
+                    </>
+                  ) : verificationInfo.canBump ? (
+                    <>
+                      <TrendingUp className="h-4 w-4 mr-2" />
+                      Bump to Top
+                    </>
+                  ) : verificationInfo.disabled ? (
+                    <>
+                      <Timer className="h-4 w-4 mr-2" />
+                      {verificationInfo.actionText}
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4 mr-2" />
+                      {verificationInfo.actionText}
+                    </>
+                  )}
+                </Button>
               </div>
             </CardContent>
           )}

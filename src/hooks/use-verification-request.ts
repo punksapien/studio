@@ -20,6 +20,11 @@ interface VerificationRequest {
   can_bump: boolean;
   hours_until_can_bump: number;
   is_pending: boolean;
+  bump_enabled: boolean;
+  bump_disabled_reason?: string;
+  admin_locked_at?: string;
+  admin_lock_reason?: string;
+  user_notes?: string;
   listings?: {
     listing_title_anonymous: string;
     status: string;
@@ -39,7 +44,7 @@ interface UseVerificationRequestReturn {
   isLoading: boolean;
   error: string | null;
   submitRequest: (payload: VerificationRequestPayload, onSuccessCallback?: () => void) => Promise<boolean>;
-  bumpRequest: (requestId: string, onSuccessCallback?: () => void) => Promise<boolean>;
+  bumpRequest: (requestId: string, reason?: string, onSuccessCallback?: () => void) => Promise<boolean>;
   refreshRequests: () => Promise<void>;
   canSubmitNewRequest: (requestType: 'user_verification' | 'listing_verification', listingId?: string) => { canSubmit: boolean; hoursRemaining?: number; message?: string };
 }
@@ -51,6 +56,8 @@ export function useVerificationRequest(): UseVerificationRequestReturn {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const requestInProgressRef = useRef(false);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const fastPollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -170,7 +177,7 @@ export function useVerificationRequest(): UseVerificationRequestReturn {
     }
   };
 
-  const bumpRequest = async (requestId: string, onSuccessCallback?: () => void): Promise<boolean> => {
+  const bumpRequest = async (requestId: string, reason?: string, onSuccessCallback?: () => void): Promise<boolean> => {
     try {
       setError(null);
 
@@ -179,7 +186,11 @@ export function useVerificationRequest(): UseVerificationRequestReturn {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ action: 'bump', request_id: requestId }),
+        body: JSON.stringify({
+          action: 'bump',
+          request_id: requestId,
+          reason: reason || null
+        }),
       });
 
       const data = await response.json();
@@ -222,6 +233,7 @@ export function useVerificationRequest(): UseVerificationRequestReturn {
   };
 
   const canSubmitNewRequest = useCallback((requestType: 'user_verification' | 'listing_verification', listingId?: string) => {
+    // First check if there's an existing pending request
     const existingRequest = requests.find(r => {
       if (r.request_type !== requestType) return false;
       if (requestType === 'listing_verification' && r.listing_id !== listingId) return false;
@@ -230,7 +242,46 @@ export function useVerificationRequest(): UseVerificationRequestReturn {
     });
 
     if (!existingRequest) {
-      return { canSubmit: true };
+      // No existing request - check if they can submit based on most recent request of this type
+      const mostRecentRequest = requests
+        .filter(r => {
+          if (r.request_type !== requestType) return false;
+          if (requestType === 'listing_verification' && r.listing_id !== listingId) return false;
+          if (requestType === 'user_verification' && r.listing_id !== null) return false;
+          return true;
+        })
+        .sort((a, b) => new Date(b.last_request_time).getTime() - new Date(a.last_request_time).getTime())[0];
+
+      if (!mostRecentRequest) {
+        return { canSubmit: true };
+      }
+
+      // Calculate if enough time has passed since the last request
+      const now = new Date();
+      const lastRequestTime = new Date(mostRecentRequest.last_request_time);
+      const timeDiff = (now.getTime() - lastRequestTime.getTime()) / 1000; // in seconds
+      const timeoutSeconds = 20; // This should match VERIFICATION_REQUEST_TIMEOUT
+
+      const canSubmit = timeDiff >= timeoutSeconds;
+      const hoursRemaining = canSubmit ? 0 : Math.ceil((timeoutSeconds - timeDiff) / 3600 * 100) / 100;
+
+      if (canSubmit) {
+        return { canSubmit: true };
+      } else {
+        return {
+          canSubmit: false,
+          hoursRemaining,
+          message: `You must wait ${timeoutSeconds} seconds between verification requests. Try again in ${Math.ceil(timeoutSeconds - timeDiff)} seconds.`
+        };
+      }
+    }
+
+    // There is an existing pending request - check if they can bump it
+    if (existingRequest.can_bump) {
+      return {
+        canSubmit: false,
+        message: 'You have a pending request. You can bump it to the top of the queue.'
+      };
     }
 
     if (existingRequest.hours_until_can_bump > 0) {
@@ -251,14 +302,46 @@ export function useVerificationRequest(): UseVerificationRequestReturn {
   useEffect(() => {
     fetchRequests();
 
-    // Poll every 45 seconds for real-time updates (offset from dashboard polling)
-    // Adding a 15-second delay to offset from dashboard hook timing
-    const pollInterval = setInterval(() => {
+    // Regular polling every 90 seconds for status updates (increased to avoid conflicts)
+    pollingIntervalRef.current = setInterval(() => {
       fetchRequests();
-    }, 45000); // Increased from 30s to prevent concurrent requests with dashboard
+    }, 90000);
 
-    return () => clearInterval(pollInterval);
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+    };
   }, [fetchRequests]);
+
+  // Set up fast polling for countdown timers when there are pending requests with bump timers
+  useEffect(() => {
+    const hasActiveCountdowns = requests.some(req =>
+      req.is_pending &&
+      req.hours_until_can_bump > 0 &&
+      req.hours_until_can_bump < 24 // Only fast poll if less than 24 hours remaining
+    );
+
+    if (hasActiveCountdowns) {
+      console.log('[VERIFICATION] Starting fast polling for countdown timers');
+      fastPollingIntervalRef.current = setInterval(() => {
+        fetchRequests();
+      }, 20000); // Poll every 20 seconds for countdown updates (increased from 10s)
+    } else {
+      if (fastPollingIntervalRef.current) {
+        console.log('[VERIFICATION] Stopping fast polling - no active countdowns');
+        clearInterval(fastPollingIntervalRef.current);
+        fastPollingIntervalRef.current = null;
+      }
+    }
+
+    return () => {
+      if (fastPollingIntervalRef.current) {
+        clearInterval(fastPollingIntervalRef.current);
+        fastPollingIntervalRef.current = null;
+      }
+    };
+  }, [requests, fetchRequests]);
 
   return {
     requests,

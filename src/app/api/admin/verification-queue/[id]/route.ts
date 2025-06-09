@@ -33,13 +33,16 @@ export async function PUT(
       operationalStatus,
       profileStatus,
       adminNote,
-      adminName
+      adminName,
+      lockRequest,
+      unlockRequest,
+      lockReason
     } = body;
 
     // Validate required fields
-    if (!operationalStatus && !profileStatus && !adminNote) {
+    if (!operationalStatus && !profileStatus && !adminNote && !lockRequest && !unlockRequest) {
       return NextResponse.json(
-        { error: 'At least one field (operationalStatus, profileStatus, adminNote) is required' },
+        { error: 'At least one field (operationalStatus, profileStatus, adminNote, lockRequest, unlockRequest) is required' },
         { status: 400 }
       );
     }
@@ -55,6 +58,45 @@ export async function PUT(
         }
       }
     );
+
+    // Handle admin lock/unlock requests first
+    if (lockRequest || unlockRequest) {
+      const action = lockRequest ? 'lock' : 'unlock';
+      const reason = lockReason || (lockRequest ? 'Admin is reviewing this request' : null);
+
+      const { data: lockResult, error: lockError } = await supabase
+        .rpc('admin_lock_verification_request', {
+          request_id: id,
+          admin_id: authResult.user.id,
+          action: action,
+          lock_reason: reason
+        });
+
+      if (lockError) {
+        console.error(`Error ${action}ing verification request:`, lockError);
+        return NextResponse.json(
+          { error: `Failed to ${action} verification request` },
+          { status: 500 }
+        );
+      }
+
+      const result = lockResult[0];
+      const responseTime = Date.now() - startTime;
+
+      console.log(`[ADMIN-VERIFICATION-${action.toUpperCase()}] Request ${id} ${action}ed by admin ${authResult.user.id} in ${responseTime}ms`);
+
+      return NextResponse.json({
+        success: true,
+        message: `Verification request ${action}ed successfully`,
+        data: {
+          id: id,
+          locked: action === 'lock',
+          lockReason: reason,
+          lockedAt: action === 'lock' ? new Date().toISOString() : null
+        },
+        responseTime
+      });
+    }
 
     // First, get the current verification request to check if it exists and get user info
     const { data: currentRequest, error: fetchError } = await supabase
@@ -90,6 +132,15 @@ export async function PUT(
     // Update operational status if provided
     if (operationalStatus) {
       updates.status = operationalStatus;
+    }
+
+    // Auto-sync operational status with profile status for consistency
+    if (profileStatus) {
+      if (profileStatus === 'rejected') {
+        updates.status = 'Rejected';
+      } else if (profileStatus === 'verified') {
+        updates.status = 'Approved';
+      }
     }
 
     // Handle admin notes - append new note to existing notes

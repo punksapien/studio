@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { AuthenticationService } from '@/lib/auth-service';
+import { VERIFICATION_CONFIG } from '@/lib/verification-config';
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
@@ -18,7 +19,7 @@ export async function POST(request: NextRequest) {
 
     // Parse request body
     const body = await request.json();
-    const { request_type, listing_id, reason, action } = body;
+    const { request_type, listing_id, reason, action, request_id } = body;
 
     // Handle different actions: 'submit' (new request) or 'bump' (bump existing)
     const requestAction = action || 'submit';
@@ -62,7 +63,7 @@ export async function POST(request: NextRequest) {
     // Check for existing requests
     let existingRequestQuery = supabase
       .from('verification_requests')
-      .select('id, status, last_request_time, bump_count, last_bump_time, request_type')
+      .select('id, status, last_request_time, bump_count, last_bump_time, request_type, bump_enabled, bump_disabled_reason, admin_locked_at, admin_lock_reason, user_notes')
       .eq('user_id', authResult.user.id);
 
     if (requestAction === 'submit') {
@@ -89,19 +90,18 @@ export async function POST(request: NextRequest) {
     const pendingRequest = existingRequests?.find(req => pendingStatuses.includes(req.status));
 
     if (requestAction === 'submit') {
-      // Check for 24-hour cooldown
+      // Check for cooldown using centralized config
       if (pendingRequest) {
         const lastRequestTime = new Date(pendingRequest.last_request_time);
-        const now = new Date();
-        const timeDiff = now.getTime() - lastRequestTime.getTime();
-        const hoursDiff = timeDiff / (1000 * 60 * 60);
 
-        if (hoursDiff < 24) {
-          const hoursRemaining = Math.ceil(24 - hoursDiff);
+        if (VERIFICATION_CONFIG.isCooldownActive(lastRequestTime)) {
+          const secondsRemaining = VERIFICATION_CONFIG.getCooldownRemainingSeconds(lastRequestTime);
+          const hoursRemaining = VERIFICATION_CONFIG.getCooldownRemainingHours(lastRequestTime);
+
           return NextResponse.json(
             {
               error: 'Request cooldown active',
-              message: `You can submit a new verification request in ${hoursRemaining} hours. After the cooldown, you can bump your existing request to the top of the queue.`,
+              message: `You can submit a new verification request in ${VERIFICATION_CONFIG.formatTimeRemaining(hoursRemaining)}. After the cooldown, you can bump your existing request to the top of the queue.`,
               cooldown_hours_remaining: hoursRemaining,
               can_bump: false,
               existing_request: pendingRequest
@@ -116,9 +116,13 @@ export async function POST(request: NextRequest) {
         user_id: authResult.user.id,
         listing_id: listing_id || null,
         request_type,
-        status: 'New Request',
+        // 🚀 MVP SIMPLIFICATION: Auto-approve verification requests
+        // Original logic: status: 'New Request' -> Admin review -> Manual approval
+        // MVP logic: Instant verification for frictionless user experience
+        // CHANGE STATUS BELOW TO 'New Request' TO RESTORE MANUAL APPROVAL WORKFLOW:
+        status: 'Approved', // Changed from 'New Request' for MVP auto-approval
         reason,
-        admin_notes: null,
+        admin_notes: '🚀 MVP: Auto-approved for streamlined user experience',
         documents_submitted: [],
         last_request_time: new Date().toISOString(),
         bump_count: 0,
@@ -152,6 +156,23 @@ export async function POST(request: NextRequest) {
           is_read: false
         });
 
+      // 🚀 MVP SIMPLIFICATION: Update user profile to verified status (auto-approval)
+      // Original logic: verification_status: 'pending_verification' -> Admin approval -> 'verified'
+      // MVP logic: Instant verification status update for frictionless experience
+      // CHANGE STATUS BELOW TO 'pending_verification' TO RESTORE MANUAL APPROVAL:
+      const { error: profileUpdateError } = await supabase
+        .from('user_profiles')
+        .update({
+          verification_status: 'verified', // Changed from 'pending_verification' for MVP auto-approval
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', authResult.user.id);
+
+      if (profileUpdateError) {
+        console.warn('Warning: Failed to update user profile verification status:', profileUpdateError);
+        // Don't fail the whole request for this
+      }
+
       const responseTime = Date.now() - startTime;
 
       console.log(`[VERIFICATION-REQUEST] New ${request_type} request created for user ${authResult.user.id} in ${responseTime}ms`);
@@ -159,85 +180,55 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         request: createdRequest,
-        message: `Your ${request_type.replace('_', ' ')} request has been submitted successfully. Our team will review it and contact you soon.`,
+        // 🚀 MVP SIMPLIFICATION: Updated message for instant approval
+        message: `Your ${request_type.replace('_', ' ')} has been approved instantly! You're now verified and can access all platform features.`,
         responseTime
       });
 
     } else if (requestAction === 'bump') {
-      // Handle bump request
-      if (!pendingRequest) {
-        return NextResponse.json(
-          { error: 'No pending verification request found to bump' },
-          { status: 404 }
-        );
-      }
+      // Handle bump request using new production-grade function
+      if (request_id) {
+        console.log(`[VERIFICATION-BUMP-V2] Processing bump request for ID: ${request_id}`);
 
-      // Check if user can bump (24-hour cooldown from last bump or last request)
-      const lastBumpTime = pendingRequest.last_bump_time ? new Date(pendingRequest.last_bump_time) : null;
-      const lastRequestTime = new Date(pendingRequest.last_request_time);
-      const now = new Date();
+        // Use the new database function for bump validation and execution
+        const { data: bumpResult, error: bumpError } = await supabase
+          .rpc('execute_bump_request', {
+            request_id: request_id,
+            user_id: authResult.user.id,
+            bump_reason: reason || null
+          });
 
-      const lastActionTime = lastBumpTime && lastBumpTime > lastRequestTime ? lastBumpTime : lastRequestTime;
-      const timeDiff = now.getTime() - lastActionTime.getTime();
-      const hoursDiff = timeDiff / (1000 * 60 * 60);
+        if (bumpError) {
+          console.error(`[VERIFICATION-BUMP-ERROR] Database error:`, bumpError);
+          return NextResponse.json(
+            { error: 'Database error while processing bump request' },
+            { status: 500 }
+          );
+        }
 
-      if (hoursDiff < 24) {
-        const hoursRemaining = Math.ceil(24 - hoursDiff);
-        return NextResponse.json(
-          {
-            error: 'Bump cooldown active',
-            message: `You can bump your request in ${hoursRemaining} hours.`,
-            cooldown_hours_remaining: hoursRemaining,
-            can_bump: false
-          },
-          { status: 429 }
-        );
-      }
+        const result = bumpResult[0];
+        const responseTime = Date.now() - startTime;
 
-      // Update request with bump
-      const newPriorityScore = Math.max(1, (pendingRequest.bump_count || 0) + 1) * 10;
+        if (!result.success) {
+          console.log(`[VERIFICATION-BUMP-BLOCKED] Bump request blocked for user ${authResult.user.id}: ${result.message} in ${responseTime}ms`);
+          return NextResponse.json(
+            { error: result.message },
+            { status: 400 }
+          );
+        }
 
-      const { data: bumpedRequest, error: bumpError } = await supabase
-        .from('verification_requests')
-        .update({
-          last_bump_time: new Date().toISOString(),
-          bump_count: (pendingRequest.bump_count || 0) + 1,
-          priority_score: newPriorityScore,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', pendingRequest.id)
-        .select()
-        .single();
+        console.log(`[VERIFICATION-BUMP-SUCCESS] Request ${request_id} bumped for user ${authResult.user.id} (bump #${result.new_bump_count}, priority: ${result.new_priority_score}) in ${responseTime}ms`);
 
-      if (bumpError) {
-        console.error('Error bumping verification request:', bumpError);
-        return NextResponse.json(
-          { error: 'Failed to bump verification request' },
-          { status: 500 }
-        );
-      }
-
-      // Create notification for user
-      await supabase
-        .from('notifications')
-        .insert({
-          user_id: authResult.user.id,
-          type: 'verification',
-          message: `Your verification request has been bumped to the top of the queue. Our team will prioritize your review.`,
-          link: `/seller-dashboard/verification`,
-          is_read: false
+        return NextResponse.json({
+          success: true,
+          message: result.message,
+          data: {
+            request_id: request_id,
+            bump_count: result.new_bump_count,
+            priority_score: result.new_priority_score
+          }
         });
-
-      const responseTime = Date.now() - startTime;
-
-      console.log(`[VERIFICATION-BUMP] Request ${pendingRequest.id} bumped for user ${authResult.user.id} (bump #${bumpedRequest.bump_count}) in ${responseTime}ms`);
-
-      return NextResponse.json({
-        success: true,
-        request: bumpedRequest,
-        message: `Your verification request has been bumped to the top of the queue. This is bump #${bumpedRequest.bump_count}.`,
-        responseTime
-      });
+      }
     }
 
   } catch (error) {
@@ -293,6 +284,11 @@ export async function GET(request: NextRequest) {
         bump_count,
         last_bump_time,
         priority_score,
+        bump_enabled,
+        bump_disabled_reason,
+        admin_locked_at,
+        admin_lock_reason,
+        user_notes,
         listings (
           listing_title_anonymous,
           status
@@ -309,20 +305,28 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Calculate cooldown status for each request
-    const requestsWithCooldown = requests?.map(request => {
-      const lastBumpTime = request.last_bump_time ? new Date(request.last_bump_time) : null;
-      const lastRequestTime = new Date(request.last_request_time);
-      const now = new Date();
-
-      const lastActionTime = lastBumpTime && lastBumpTime > lastRequestTime ? lastBumpTime : lastRequestTime;
-      const timeDiff = now.getTime() - lastActionTime.getTime();
-      const hoursDiff = timeDiff / (1000 * 60 * 60);
-
+    // Calculate cooldown status for each request using new database validation
+    const requestsWithCooldown = await Promise.all(requests?.map(async (request) => {
       const pendingStatuses = ['New Request', 'Contacted', 'Docs Under Review', 'More Info Requested'];
       const isPending = pendingStatuses.includes(request.status);
-      const canBump = isPending && hoursDiff >= 24;
-      const hoursUntilCanBump = isPending && hoursDiff < 24 ? Math.ceil(24 - hoursDiff) : 0;
+
+      let canBump = false;
+      let hoursUntilCanBump = 0;
+
+      if (isPending) {
+        // Use the new database function to validate bump eligibility
+        const { data: bumpValidation, error: validationError } = await supabase
+          .rpc('validate_bump_request', {
+            request_id: request.id,
+            user_id: authResult.user.id
+          });
+
+        if (!validationError && bumpValidation && bumpValidation.length > 0) {
+          const validation = bumpValidation[0];
+          canBump = validation.can_bump;
+          hoursUntilCanBump = validation.hours_until_eligible || 0;
+        }
+      }
 
       return {
         ...request,
@@ -330,7 +334,7 @@ export async function GET(request: NextRequest) {
         hours_until_can_bump: hoursUntilCanBump,
         is_pending: isPending
       };
-    }) || [];
+    }) || []);
 
     const responseTime = Date.now() - startTime;
 

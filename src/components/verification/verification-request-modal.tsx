@@ -32,6 +32,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { useVerificationRequest } from '@/hooks/use-verification-request';
+import { VERIFICATION_CONFIG } from '@/lib/verification-config';
 
 interface VerificationRequestModalProps {
   children: React.ReactNode;
@@ -115,9 +116,7 @@ export function VerificationRequestModal({ children, userListings = [], onSucces
   };
 
   const formatTimeRemaining = (hours: number): string => {
-    if (hours <= 0) return 'Available now';
-    if (hours < 1) return `${Math.ceil(hours * 60)} minutes`;
-    return `${hours} ${hours === 1 ? 'hour' : 'hours'}`;
+    return VERIFICATION_CONFIG.formatTimeRemaining(hours);
   };
 
   const pendingStatuses = ['New Request', 'Contacted', 'Docs Under Review', 'More Info Requested'];

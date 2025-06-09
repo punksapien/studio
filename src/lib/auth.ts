@@ -1,5 +1,14 @@
 import { supabase } from './supabase'
+import { createBrowserClient } from '@supabase/ssr'
 import type { User } from '@supabase/supabase-js'
+
+// Create a fresh client for auth operations that need PKCE
+function createClient() {
+  return createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+}
 
 export type UserRole = 'buyer' | 'seller' | 'admin'
 
@@ -74,149 +83,110 @@ export const auth = {
 
     console.log('Fetching profile for user ID:', user.id)
 
-    const { data, error } = await supabase
-      .from('user_profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single()
-
-    if (error) {
-      if (error.code === 'PGRST116') {
-        console.info('Profile not found for user ID:', user.id, '(PGRST116). This is expected for new users before profile creation or if profile creation failed.')
-      } else {
-        console.error('Error fetching user profile:', error)
-        console.error('Profile fetch error details:', JSON.stringify(error, null, 2))
+    try {
+      // Use API endpoint instead of direct database access to avoid client-side issues
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) {
+        console.log('No valid session found for profile fetch')
+        return null
       }
-      console.log('User ID that was queried:', user.id)
+
+      const response = await fetch('/api/profile', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        }
+      })
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          console.log('Unauthorized profile fetch - user may need to re-authenticate')
+          return null
+        }
+        throw new Error(`Profile fetch failed: ${response.status} ${response.statusText}`)
+      }
+
+      const result = await response.json()
+      console.log('Profile fetched successfully via API for user ID:', user.id)
+      return result.profile
+    } catch (error) {
+      console.error('Error fetching user profile via API:', error)
       return null
     }
-
-    console.log('Profile fetched successfully for user ID:', user.id, data ? '' : '(but data is null/undefined)')
-    return data
   },
 
   // Sign up new user
-  async signUp(userData: RegisterData) {
-    const { email, password, ...profileDataRest } = userData
+  async signUp(registerData: RegisterData) {
+    try {
+      const supabase = createClient()
+      const { email, password } = registerData
 
-    console.log('Starting registration for:', email)
-
-    // First check if this email already exists but is unverified
-    const emailStatus = await this.checkEmailStatus(email)
-
-    if (emailStatus.exists && !emailStatus.verified && emailStatus.canResend) {
-      console.log(`Email ${email} exists but is unverified. Redirecting to verification.`)
-      // Resend verification email for this zombie account
-      await this.resendVerificationForEmail(email)
-      throw new Error('UNVERIFIED_EMAIL_EXISTS')
-    }
-
-    if (emailStatus.exists && emailStatus.verified) {
-      console.log(`Email ${email} already exists and is verified.`)
-      throw new Error('An account with this email already exists and is verified. Please try logging in instead.')
-    }
-
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-        data: {
-          ...profileDataRest
-        }
-      }
-    })
-
-    console.log('Auth signup result:', { authData, authError })
-
-    if (authError) {
-      console.error('Auth signup error:', authError)
-      if (authError.message.includes('User already registered')) {
-        // This shouldn't happen now due to our pre-check, but handle it anyway
-        throw new Error('UNVERIFIED_EMAIL_EXISTS')
-      }
-      throw new Error(`Registration failed: ${authError.message}`)
-    }
-
-    if (!authData.user) {
-      console.error('No user data returned from auth signup')
-      throw new Error('Registration failed: No user data returned')
-    }
-
-    console.log('User created in auth, now creating profile:', authData.user.id)
-
-    if (authData.user) {
-      // Calculate verification deadline (24 hours from now)
-      const verificationDeadline = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-
-      const profileInsertData = {
+      const { data, error } = await supabase.auth.signUp({
         email,
-        full_name: userData.full_name,
-        phone_number: userData.phone_number || null,
-        country: userData.country || null,
-        role: userData.role,
-        verification_status: 'anonymous' as const,
-        is_paid: false,
-        // NEW: Zombie account management fields
-        account_status: 'unverified' as const,
-        verification_deadline: verificationDeadline,
-        is_email_verified: false, // Explicitly set to false for new accounts
-        initial_company_name: userData.initial_company_name || null,
-        buyer_persona_type: userData.buyer_persona_type || null,
-        buyer_persona_other: userData.buyer_persona_other || null,
-        investment_focus_description: userData.investment_focus_description || null,
-        preferred_investment_size: userData.preferred_investment_size || null,
-        key_industries_of_interest: userData.key_industries_of_interest || null
-      }
-
-      console.log('[ZOMBIE-ACCOUNT] Creating new account with 24h verification deadline:', verificationDeadline)
-      console.log('About to create profile via API:', profileInsertData)
-
-      try {
-        const response = await fetch('/api/auth/create-profile', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            userId: authData.user.id,
-            profileData: profileInsertData
-          })
-        })
-
-        let result
-        let rawText
-        try {
-          rawText = await response.text()
-          result = JSON.parse(rawText)
-        } catch (jsonError) {
-          console.error('Failed to parse API response as JSON:', jsonError)
-          console.error('Response status for profile creation:', response.status)
-          console.error('Response statusText for profile creation:', response.statusText)
-          console.error('Raw response body from profile creation:', rawText)
-          // If API response isn't valid JSON but user auth succeeded, allow process to continue.
-          // The profile might be created by a trigger or the user can complete it later.
-          console.warn('Profile creation API did not return valid JSON, but user account was created. Proceeding with authData.')
-          return authData // Return authData even if profile API response parsing fails
-        }
-
-        if (!response.ok) {
-          if (response.status === 409) {
-            console.log('Profile already exists for user (API reported 409) - continuing with registration flow.')
-          } else {
-            console.error('Profile creation API failed with status:', response.status, result)
-            console.warn('Profile creation via API failed, but user account was created. User may need to complete profile later or retry.')
+        password,
+        options: {
+          emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://127.0.0.1:9002'}/auth/callback`,
+          data: {
+            role: registerData.role || 'buyer',
+            full_name: registerData.full_name,
+            phone_number: registerData.phone_number,
+            country: registerData.country
           }
-        } else {
-          console.log('Profile created successfully via API:', result.profile)
         }
-      } catch (error) {
-        console.error('Error calling profile creation API:', error)
-        console.warn('Profile creation API call failed, but user account was created. User may need to complete profile later or retry.')
-      }
-    }
+      })
 
-    return authData
+      if (error) {
+        // 🔥 SMART SIGN-UP: If user is already registered, try to sign them in automatically.
+        if (error.message.includes('User already registered')) {
+          console.log(`Registration attempt for existing email: ${email}. Attempting automatic sign-in.`)
+          try {
+            const signInData = await this.signIn(email, password)
+            // If sign-in is successful, return that user data.
+            return { user: signInData.user, error: null, session: signInData.session }
+          } catch (signInError: any) {
+            // If sign-in fails (e.g., wrong password), return a clear, user-friendly error.
+            return { user: null, error: 'USER_EXISTS_LOGIN_FAILED' }
+          }
+        }
+        console.error('SignUp error:', error)
+        return { user: null, error: error.message }
+      }
+
+      if (data.user && !data.user.email_confirmed_at) {
+        console.log('User created but email not confirmed yet. User should check email for verification.')
+
+        // Generate a secure verification token for this registration
+        let verificationToken = '';
+        try {
+          const { generateVerificationToken } = await import('./verification-token');
+          verificationToken = await generateVerificationToken(email, {
+            type: 'register',
+            redirectTo: `/${registerData.role === 'seller' ? 'seller-' : ''}dashboard`
+          });
+          console.log(`Generated verification token for ${email} (token length: ${verificationToken.length})`);
+        } catch (tokenError) {
+          console.error('Failed to generate verification token:', tokenError);
+          // Continue without token - middleware fallback will still allow registration flow
+        }
+
+        // NOTE: Removed custom email sending since Supabase handles this automatically
+        // with the proper templates configured in supabase/config.toml
+
+        return {
+          user: data.user,
+          error: null,
+          needsVerification: true,
+          message: 'Please check your email for a verification link.',
+          verificationToken // Include the token in the response
+        }
+      }
+
+      return { user: data.user, error: null }
+    } catch (error) {
+      console.error('Unexpected error in signUp:', error)
+      return { user: null, error: 'An unexpected error occurred' }
+    }
   },
 
   // Sign in user
@@ -229,26 +199,39 @@ export const auth = {
     if (error) {
       // Handle email not confirmed error specifically
       if (error.message.includes('Email not confirmed')) {
-        console.log(`Login failed for ${email} - email not confirmed. Resending verification.`)
-        // Automatically resend verification email
+        console.log(`Login failed for ${email} - email not confirmed. Attempting to resend verification.`)
+        // Try to resend verification email, but don't block login flow if it fails
         try {
-          await this.resendVerificationForEmail(email)
+          await this.resendVerificationUnauthenticated(email)
         } catch (resendError) {
-          console.error('Failed to resend verification during login:', resendError)
+          console.error('Failed to auto-resend verification during login:', resendError)
         }
-        throw new Error('UNCONFIRMED_EMAIL')
+        // This custom error will be caught by the UI to show the right message.
+        throw new Error('UNCONFIRMED_EMAIL');
       }
       throw new Error(`Login failed: ${error.message}`)
     }
 
     if (data.user) {
-      await supabase
+      // On successful sign-in, also fetch the user's profile
+      const { data: profile, error: profileError } = await supabase
         .from('user_profiles')
-        .update({ last_login: new Date().toISOString() })
+        .select('*')
         .eq('id', data.user.id)
+        .single();
+
+      if (profileError) {
+        console.error("Sign-in success but failed to fetch profile:", profileError);
+        // Proceed without the profile, the frontend will have to handle this state.
+      } else {
+        // Update last_login timestamp, but don't await it to avoid slowing down login.
+        supabase.from('user_profiles').update({ last_login: new Date().toISOString() }).eq('id', data.user.id).then();
+      }
+
+      return { ...data, profile: profile || null };
     }
 
-    return data
+    return { ...data, profile: null };
   },
 
   // Sign out user
@@ -259,10 +242,22 @@ export const auth = {
     }
   },
 
+  // Helper function to get the base URL in a server-compatible way
+  getBaseUrl() {
+    // In production (Vercel), use VERCEL_URL
+    if (process.env.VERCEL_URL) {
+      return `https://${process.env.VERCEL_URL}`
+    }
+    // In development, use localhost with the correct port
+    // Check for PORT env var or default to the configured dev port
+    const port = process.env.PORT || '9002'
+    return `http://localhost:${port}`
+  },
+
   // Request password reset
   async requestPasswordReset(email: string) {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/update-password`,
+      redirectTo: `${this.getBaseUrl()}/auth/update-password`,
     })
 
     if (error) {
@@ -289,28 +284,47 @@ export const auth = {
       throw new Error('You must be logged in to resend verification email')
     }
 
+    const email = session.session.user.email
+    console.log(`[AUTH-SERVICE] Resending verification email for authenticated user: ${email}`);
+
+    // 🚀 SIMPLIFIED: Use Supabase for all environments (consistent and reliable)
     const { error } = await supabase.auth.resend({
       type: 'signup',
-      email: session.session.user.email,
+      email: email,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`
+        emailRedirectTo: `${this.getBaseUrl()}/auth/callback`
       }
     })
 
     if (error) {
+      console.error(`[AUTH-SERVICE] Failed to resend verification for ${email}:`, error);
       throw new Error(`Failed to resend verification email: ${error.message}`)
     }
+
+    console.log(`[AUTH-SERVICE] Successfully resent verification email for ${email}`);
   },
 
-  // Resend verification email for a specific email (for zombie accounts)
+  // Resend verification email for a specific email (SECURITY: Only for authenticated users)
   async resendVerificationForEmail(email: string) {
     console.log(`Attempting to resend verification for ${email}`)
+
+    // SECURITY CHECK: Only allow resending for the current authenticated user's email
+    const { data: session } = await supabase.auth.getSession()
+
+    if (!session?.session?.user?.email) {
+      throw new Error('You must be logged in to resend verification email')
+    }
+
+    // SECURITY: Only allow resending to the authenticated user's own email
+    if (session.session.user.email !== email) {
+      throw new Error('You can only resend verification emails to your own email address')
+    }
 
     const { error } = await supabase.auth.resend({
       type: 'signup',
       email: email,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`
+        emailRedirectTo: `${this.getBaseUrl()}/auth/callback`
       }
     })
 
@@ -322,8 +336,55 @@ export const auth = {
     console.log(`Successfully queued verification resend for ${email}`)
   },
 
+  // Unauthenticated resend for legitimate lockout scenarios (with rate limiting)
+  async resendVerificationUnauthenticated(email: string) {
+    console.log(`Attempting unauthenticated resend verification for ${email}`)
+
+    // Basic email validation to prevent abuse
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      throw new Error('Invalid email address format')
+    }
+
+    // Check if the email actually exists in our system before sending
+    const emailStatus = await this.checkEmailStatus(email)
+    if (!emailStatus.exists) {
+      // For security, don't reveal that the email doesn't exist
+      // But don't actually send an email either
+      console.log(`Email ${email} does not exist in system - not sending email but returning success for security`)
+      return // Silently succeed to prevent email enumeration
+    }
+
+    if (emailStatus.verified) {
+      throw new Error('This email is already verified. Please try logging in instead.')
+    }
+
+    // Rate limiting: Only allow unauthenticated resends for unverified accounts
+    if (!emailStatus.canResend) {
+      throw new Error('Verification email cannot be resent for this account. Please contact support.')
+    }
+
+    // 🚀 SIMPLIFIED: Use Supabase for all environments (consistent and reliable)
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: email,
+      options: {
+        emailRedirectTo: `${this.getBaseUrl()}/auth/callback`
+      }
+    })
+
+    if (error) {
+      console.error(`[AUTH-SERVICE] Failed to resend verification for ${email}:`, error)
+      throw new Error(`Failed to resend verification email: ${error.message}`)
+    }
+
+    console.log(`Successfully queued unauthenticated verification resend for ${email}`)
+  },
+
   // Verify email with OTP token
   async verifyEmailOtp(email: string, token: string, flow: 'register' | 'email_change' = 'register') {
+    console.log(`[AUTH-SERVICE] Starting email verification for ${email}, flow: ${flow}, token: ${token.substring(0, 2)}***`);
+
     const supabaseType = flow === 'register' ? 'signup' : 'email';
 
     const { data, error } = await supabase.auth.verifyOtp({
@@ -333,16 +394,44 @@ export const auth = {
     })
 
     if (error) {
+      console.error(`[AUTH-SERVICE] Email verification failed for ${email}:`, error);
       throw new Error(`Email verification failed: ${error.message}`)
     }
 
+    console.log(`[AUTH-SERVICE] OTP verification successful for ${email}:`, {
+      hasUser: !!data.user,
+      hasSession: !!data.session,
+      userId: data.user?.id,
+      sessionAccessToken: data.session?.access_token ? 'present' : 'missing'
+    });
+
     // If verification successful, mark profile as email_verified true
     if (data.user) {
-        await supabase
-            .from('user_profiles')
-            .update({ is_email_verified: true, email_verified_at: new Date().toISOString() })
-            .eq('id', data.user.id);
+      console.log(`[AUTH-SERVICE] Updating email_verified status for user ${data.user.id}`);
+
+      try {
+        const { error: updateError } = await supabase
+          .from('user_profiles')
+          .update({
+            is_email_verified: true,
+            email_verified_at: new Date().toISOString(),
+            last_login: new Date().toISOString() // Also update last login
+          })
+          .eq('id', data.user.id);
+
+        if (updateError) {
+          console.error(`[AUTH-SERVICE] Failed to update email_verified status:`, updateError);
+          // Don't throw error here - verification succeeded, profile update is secondary
+        } else {
+          console.log(`[AUTH-SERVICE] Successfully updated email_verified status for user ${data.user.id}`);
+        }
+      } catch (profileUpdateError) {
+        console.error(`[AUTH-SERVICE] Exception during profile update:`, profileUpdateError);
+        // Continue - verification was successful
+      }
     }
+
+    console.log(`[AUTH-SERVICE] Email verification completed successfully for ${email}`);
     return data
   },
 
@@ -383,32 +472,24 @@ export const auth = {
 
   async checkEmailStatus(email: string): Promise<{ exists: boolean; verified: boolean; canResend: boolean }> {
     try {
-      // Check if user exists by looking up the profile directly
-      // This is safer than triggering password reset emails
-      const { data: profile, error } = await supabase
-        .from('user_profiles')
-        .select('is_email_verified')
-        .eq('email', email)
-        .single()
+      // Use API route to check email status (bypasses RLS issues)
+      const response = await fetch('/api/email/check-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
 
-      if (error) {
-        if (error.code === 'PGRST116') {
-          // No row found - user doesn't exist
-          return { exists: false, verified: false, canResend: false }
-        }
-        // Other error - assume user doesn't exist (safer for privacy)
-        return { exists: false, verified: false, canResend: false }
+      if (!response.ok) {
+        console.error('Email status check API failed:', response.status);
+        return { exists: false, verified: false, canResend: false };
       }
 
-      // Profile found - user exists
-      return {
-        exists: true,
-        verified: profile.is_email_verified || false,
-        canResend: !profile.is_email_verified
-      }
+      const result = await response.json();
+      return result;
     } catch (error) {
+      console.error('Email status check failed:', error);
       // If any error, assume user doesn't exist (safer for privacy)
-      return { exists: false, verified: false, canResend: false }
+      return { exists: false, verified: false, canResend: false };
     }
   },
 }

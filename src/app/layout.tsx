@@ -3,6 +3,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import GlobalLayoutWrapper from '@/components/layout/GlobalLayoutWrapper';
 import NoticeListener from '@/components/NoticeListener';
+import { DebugState } from '@/components/shared/DebugState';
 
 export const metadata: Metadata = {
   title: 'Nobridge - Business Marketplace Platform',
@@ -38,6 +39,7 @@ export default function RootLayout({
         </GlobalLayoutWrapper>
         <NoticeListener />
         <Toaster />
+        <DebugState />
       </body>
     </html>
   );

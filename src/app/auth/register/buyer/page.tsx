@@ -86,50 +86,6 @@ export default function BuyerRegisterPage() {
       console.log("Buyer Register values:", values);
 
       try {
-        const emailStatus = await auth.checkEmailStatus(values.email);
-
-        if (emailStatus.exists && !emailStatus.verified && emailStatus.canResend) {
-          setError(
-            `An account with this email already exists but isn't verified. ` +
-            `Check your email for the verification link or click "Resend Verification".`
-          );
-          toast({
-            title: "Account Already Exists",
-            description: "This email is already registered but unverified. A new verification email can be sent.",
-            action: (
-              <button
-                onClick={async () => {
-                  try {
-                    await auth.resendVerificationForEmail(values.email);
-                    toast({
-                      title: "Verification Email Sent",
-                      description: "Please check your email for the verification link."
-                    });
-                    router.push(`/verify-email?email=${encodeURIComponent(values.email)}&type=register`);
-                  } catch (error) {
-                    const errorMessage = error instanceof Error ? error.message : 'Failed to resend verification';
-                    toast({
-                      variant: "destructive",
-                      title: "Resend Failed",
-                      description: errorMessage
-                    });
-                  }
-                }}
-                className="bg-white text-black px-3 py-1 rounded text-sm hover:bg-gray-100"
-              >
-                Resend Verification
-              </button>
-            )
-          });
-          return;
-        }
-
-        if (emailStatus.exists && emailStatus.verified) {
-          setError("An account with this email already exists and is verified. Please try logging in instead.");
-          setTimeout(() => router.push('/auth/login'), 3000);
-          return;
-        }
-
         const registerData: RegisterData = {
           email: values.email,
           password: values.password,
@@ -146,33 +102,53 @@ export default function BuyerRegisterPage() {
 
         const result = await auth.signUp(registerData);
 
+        if (result.error === 'USER_EXISTS_LOGIN_FAILED') {
+          setError("This email is already registered. The password you entered was incorrect. Please try logging in or reset your password.");
+          toast({
+            variant: "destructive",
+            title: "Login Failed",
+            description: "This account already exists. Please check your password or use the 'Forgot Password' link to reset it."
+          });
+          return; // Stop execution
+        }
+
+        if (result.session) {
+          toast({
+            title: "Login Successful!",
+            description: "You have been successfully logged in."
+          });
+          router.push('/dashboard?login_success=true');
+          return; // Stop execution
+        }
+
         if (result.user) {
            toast({
             title: "Registration Successful!",
-            description: "Please check your email to verify your account and then complete onboarding."
+            description: "Please check your email to verify your account."
           });
-          router.push(`/verify-email?email=${encodeURIComponent(values.email)}&type=register`);
+          // Include the verification token in the redirect URL if available
+          const verifyEmailUrl = new URL(`/verify-email`, window.location.origin);
+          verifyEmailUrl.searchParams.set('email', values.email);
+          verifyEmailUrl.searchParams.set('type', 'register');
+          verifyEmailUrl.searchParams.set('from', 'register');
+
+          // Add the secure verification token if provided
+          if (result.verificationToken) {
+            verifyEmailUrl.searchParams.set('token', result.verificationToken);
+          }
+
+          router.push(verifyEmailUrl.toString());
         } else {
+          setError(result.error || "An unknown error occurred during registration.");
           toast({
-            title: "Registration Incomplete",
-            description: "Something went wrong, but please check your email for a verification link."
+            variant: "destructive",
+            title: "Registration Failed",
+            description: result.error || "Something went wrong. Please try again."
           });
-          router.push(`/verify-email?email=${encodeURIComponent(values.email)}&type=register`);
         }
 
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Registration failed';
-
-        // Handle zombie email case - email exists but unverified (fallback from signUp)
-        if (errorMessage === 'UNVERIFIED_EMAIL_EXISTS') {
-          toast({
-            title: "Email Verification Required",
-            description: "This email already exists but is not verified. We've sent you a new verification email."
-          });
-          router.push(`/verify-email?email=${encodeURIComponent(values.email)}&type=resend`);
-          return;
-        }
-
+        const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred during registration.';
         setError(errorMessage);
         toast({
           variant: "destructive",

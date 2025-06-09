@@ -27,6 +27,9 @@ export interface UserProfile {
   first_name?: string
   last_name?: string
   company_name?: string
+  // Email verification fields
+  is_email_verified: boolean
+  email_verified_at?: string
 }
 
 export class MiddlewareAuthenticationService {
@@ -213,7 +216,9 @@ export class MiddlewareAuthenticationService {
           last_name,
           company_name,
           is_onboarding_completed,
-          onboarding_step_completed
+          onboarding_step_completed,
+          is_email_verified,
+          email_verified_at
         `)
         .eq('id', userId)
         .single()
@@ -246,7 +251,9 @@ export class MiddlewareAuthenticationService {
         updated_at: data.updated_at,
         first_name: data.first_name || '',
         last_name: data.last_name || '',
-        company_name: data.company_name || undefined
+        company_name: data.company_name || undefined,
+        is_email_verified: data.is_email_verified ?? false,
+        email_verified_at: data.email_verified_at
       }
 
       return profile

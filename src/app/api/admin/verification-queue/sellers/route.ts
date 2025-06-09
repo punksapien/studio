@@ -54,7 +54,15 @@ export async function GET(request: NextRequest) {
         documents_submitted,
         created_at,
         updated_at,
-        user_profiles!inner (
+        bump_count,
+        last_bump_time,
+        priority_score,
+        bump_enabled,
+        bump_disabled_reason,
+        admin_locked_at,
+        admin_lock_reason,
+        user_notes,
+        user_profiles!verification_requests_user_id_fkey!inner (
           id,
           full_name,
           email,
@@ -78,7 +86,7 @@ export async function GET(request: NextRequest) {
     // Get total count for pagination
     const { count: totalCount } = await supabase
       .from('verification_requests')
-      .select('*, user_profiles!inner(*)', { count: 'exact', head: true })
+      .select('*, user_profiles!verification_requests_user_id_fkey!inner(*)', { count: 'exact', head: true })
       .eq('user_profiles.role', 'seller')
       .eq('request_type', 'user_verification');
 
@@ -112,10 +120,20 @@ export async function GET(request: NextRequest) {
       timestamp: item.created_at,
       listingId: null, // Will be null for user verification requests
       listingTitle: null, // Will be null for user verification requests
+      reason: item.reason,
       documentsUrls: item.documents_submitted || [],
       adminNotes: item.admin_notes ? (typeof item.admin_notes === 'string' ?
         [{ id: '1', content: item.admin_notes, createdAt: new Date(), createdBy: 'System' }] :
         (Array.isArray(item.admin_notes) ? item.admin_notes : [])) : [],
+      // New bump state tracking fields
+      bumpCount: item.bump_count || 0,
+      lastBumpTime: item.last_bump_time,
+      priorityScore: item.priority_score || 0,
+      bumpEnabled: item.bump_enabled !== false, // Default to true if null
+      bumpDisabledReason: item.bump_disabled_reason,
+      adminLockedAt: item.admin_locked_at,
+      adminLockReason: item.admin_lock_reason,
+      userNotes: item.user_notes,
       createdAt: item.created_at,
       updatedAt: item.updated_at
     }));

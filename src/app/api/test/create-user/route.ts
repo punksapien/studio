@@ -1,16 +1,53 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, password, role = 'buyer' } = await req.json()
+    // Add better error handling for JSON parsing
+    let requestBody
+    try {
+      const text = await req.text()
+      console.log('Raw request body:', text)
+
+      if (!text || text.trim() === '') {
+        return NextResponse.json({ error: 'Request body is empty' }, { status: 400 })
+      }
+
+      requestBody = JSON.parse(text)
+    } catch (parseError) {
+      console.error('JSON parsing error:', parseError)
+      console.error('Request headers:', Object.fromEntries(req.headers.entries()))
+      return NextResponse.json({
+        error: 'Invalid JSON in request body',
+        details: parseError instanceof Error ? parseError.message : 'Unknown parsing error'
+      }, { status: 400 })
+    }
+
+    const { email, password, role = 'buyer' } = requestBody
 
     if (!email || !password) {
       return NextResponse.json({ error: 'Email and password required' }, { status: 400 })
     }
 
-    const supabase = createRouteHandlerClient({ cookies })
+    const cookieStore = await cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value
+          },
+          set(name: string, value: string, options: any) {
+            cookieStore.set({ name, value, ...options })
+          },
+          remove(name: string, options: any) {
+            cookieStore.set({ name, value: '', ...options })
+          },
+        },
+      }
+    )
 
     // Create user via Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -37,8 +74,12 @@ export async function POST(req: NextRequest) {
         id: authData.user.id,
         email: authData.user.email,
         role: role,
-        is_onboarding_completed: false,
-        onboarding_step_completed: 0,
+        // 🚀 MVP SIMPLIFICATION: Auto-complete onboarding for test users
+        // Original logic: is_onboarding_completed: false, onboarding_step_completed: 0
+        // MVP logic: Test users bypass onboarding for immediate dashboard access
+        is_onboarding_completed: true,
+        onboarding_completed_at: new Date().toISOString(),
+        onboarding_step_completed: role === 'seller' ? 5 : 2, // Max steps for each role
         verification_status: 'unverified',
         created_at: new Date().toISOString()
       })
