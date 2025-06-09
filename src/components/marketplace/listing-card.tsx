@@ -7,6 +7,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { MapPin, DollarSign, Briefcase, ShieldCheck, ExternalLink } from 'lucide-react';
+import { NobridgeIcon } from '@/components/ui/nobridge-icon';
 
 interface ListingCardProps {
   listing: Listing;
@@ -18,6 +19,16 @@ export function ListingCard({ listing }: ListingCardProps) {
     : listing.anonymousBusinessDescription;
 
   const displayPrice = listing.askingPrice ? `$${listing.askingPrice.toLocaleString()} USD` : 'Contact for Price';
+
+  const formatRevenueDisplay = (listing: Listing): string => {
+    if (typeof listing.specificAnnualRevenueLastYear === 'number' && listing.specificAnnualRevenueLastYear > 0) {
+      return `$${listing.specificAnnualRevenueLastYear.toLocaleString()} USD (Actual TTM)`;
+    }
+    if (listing.annualRevenueRange) {
+      return listing.annualRevenueRange;
+    }
+    return 'N/A';
+  };
 
   return (
     <Card className="flex flex-col h-full overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 rounded-lg bg-brand-white">
@@ -53,8 +64,8 @@ export function ListingCard({ listing }: ListingCardProps) {
             <span>{listing.locationCityRegionGeneral}, {listing.locationCountry}</span>
           </div>
           <div className="flex items-center">
-            <DollarSign className="h-4 w-4 mr-2 text-brand-dark-blue/70" />
-            <span>Revenue: {listing.annualRevenueRange}</span>
+            <NobridgeIcon icon="revenue" size="sm" className="mr-2 opacity-70" />
+            <span>Revenue: {formatRevenueDisplay(listing)}</span>
           </div>
             <div className="flex items-center">
                 <DollarSign className="h-4 w-4 mr-2 text-brand-dark-blue/70" />

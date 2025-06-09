@@ -41,7 +41,32 @@ export const profitMarginRanges = [
   "20% - 30%", "30%+"
 ];
 
-export const industries = ["Software", "Retail", "Manufacturing", "Services - Marketing", "E-commerce", "Healthcare", "Finance", "Education", "Real Estate", "Hospitality", "Agriculture", "Other"];
+export const industries = [
+  "Accounting & Legal",
+  "Agriculture",
+  "Arts & Entertainment",
+  "Automotive (Sales & Repair)",
+  "Banking & Finance",
+  "Construction & Trades",
+  "Consulting",
+  "Education",
+  "Energy & Mining",
+  "Events & Recreation",
+  "Government & Public Service",
+  "Health & Wellness",
+  "Hospitality (Hotels & Accommodations)",
+  "Information Technology (IT)",
+  "Insurance",
+  "Manufacturing & Production",
+  "Marketing & Advertising",
+  "Media & Communications",
+  "Personal Care & Services",
+  "Real Estate",
+  "Restaurants & Food Service",
+  "Retail & E-commerce",
+  "Transportation & Logistics",
+  "Other"
+];
 export const asianCountries = ["Singapore", "Malaysia", "Indonesia", "Thailand", "Vietnam", "Philippines", "Hong Kong", "Japan", "South Korea", "India", "China", "Other"];
 
 export type EmployeeCountRange = "Sole Operator" | "1-5" | "6-10" | "11-25" | "26-50" | "50+";
