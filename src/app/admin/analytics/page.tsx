@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from "react";
@@ -13,6 +14,7 @@ import { Line, LineChart as RechartsLineChart, XAxis, YAxis, CartesianGrid, Resp
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { AdminDashboardMetrics, SyncPerformanceMetrics, SyncCachePerformance, SyncCircuitBreakerStatus, CircuitBreakerInfo, SyncAlertsSummary, SyncAlertItem } from '@/lib/types';
 import { NobridgeIcon, NobridgeIconType } from '@/components/ui/nobridge-icon';
+import { MetricCard } from "@/components/admin/metric-card";
 
 // Chart color configurations
 const userGrowthChartConfig = {
@@ -650,3 +652,4 @@ export default function AdminAnalyticsPage() {
     </div>
   );
 }
+
