@@ -171,6 +171,13 @@ Clear Feedback → Success/failure states with debugging info
 - [x] **Task 1: Fix the Auto-Send Email Functionality.**
 - [x] **Task 2: Create a Developer Debug Component.**
 - [x] **Task 3: Integrate the Debug Component into the App Layout.**
+- [ ] **🚨 URGENT Task 4: Debug Admin User Creation Failure**
+  - [ ] **Task 4.1**: Verify Environment Configuration & Service Role Key
+  - [ ] **Task 4.2**: Check Database Schema Integrity & Constraints
+  - [ ] **Task 4.3**: Test Supabase Admin API Connectivity
+  - [ ] **Task 4.4**: Examine Existing Admin User State in Database
+  - [ ] **Task 4.5**: Analyze Database Constraints & Triggers Causing Failure
+- [ ] **Task 5: Implement Admin User Creation Fix** (Depends on Task 4 completion)
 
 ## Executor's Feedback or Assistance Requests
 
@@ -630,3 +637,132 @@ The system is now production-ready with enterprise-grade observability and perfo
 - Document platform-specific deployment procedures (Vercel, Docker, Kubernetes)
 - Implement monitoring and alerting for configuration issues
 - Regular secret rotation procedures for production environments
+
+## 🚨 URGENT: Admin User Creation Failure Debug
+
+### Background and Motivation
+
+**NEW CRITICAL ISSUE IDENTIFIED**: Admin user creation script (`scripts/create-admin-user.js`) is failing with:
+```
+❌ Error creating admin user: Database error creating new user
+AuthApiError: Database error creating new user
+  status: 500,
+  code: 'unexpected_failure'
+```
+
+This prevents administrative access to the system and must be resolved before other authentication fixes can proceed.
+
+**Error Context:**
+- Script attempts to create admin user via `supabase.auth.admin.createUser()`
+- Fails at line 42 during auth user creation step
+- Error code "unexpected_failure" with status 500 indicates server-side database constraint violation or configuration issue
+
+### Key Challenges and Analysis
+
+**ADMIN USER CREATION FAILURE - ROOT CAUSE HYPOTHESES:**
+
+**🔴 Hypothesis 1: Database Schema Constraints**
+- **Theory**: User profiles table has constraints that prevent admin user creation
+- **Evidence**: "Database error creating new user" suggests DB-level rejection
+- **Check Required**: Examine `user_profiles` table constraints, triggers, and RLS policies
+- **Risk**: High - Could block all user creation, not just admin
+
+**🔴 Hypothesis 2: Environment Configuration Issues**
+- **Theory**: Service role key lacks necessary permissions or database connection fails
+- **Evidence**: Script uses `SUPABASE_SERVICE_ROLE_KEY` for admin operations
+- **Check Required**: Verify environment variables and service role permissions
+- **Risk**: High - Could affect all admin operations
+
+**🟡 Hypothesis 3: Existing User Conflict**
+- **Theory**: admin@nobridge.com already exists in corrupted state
+- **Evidence**: Script has conflict handling but may not catch all edge cases
+- **Check Required**: Query auth.users and user_profiles for existing admin records
+- **Risk**: Medium - Specific to admin user, can be resolved
+
+**🟡 Hypothesis 4: Database Connection/Migration Issues**
+- **Theory**: Database schema is incomplete or migrations haven't been applied
+- **Evidence**: Recent authentication work may have left schema in inconsistent state
+- **Check Required**: Verify database schema integrity and migration status
+- **Risk**: Medium - Could affect system-wide functionality
+
+**🟢 Hypothesis 5: Supabase Local Instance Issues**
+- **Theory**: Local Supabase instance has connectivity or configuration problems
+- **Evidence**: Other authentication operations appear to work in logs
+- **Check Required**: Test basic Supabase admin API connectivity
+- **Risk**: Low - Isolated to local development environment
+
+### High-level Task Breakdown
+
+#### Phase 0: Emergency Admin Access Debug (Planner) - 🔄 ACTIVE
+| # | Task | Status | Success Criteria |
+|---|---|---|---|
+| 0.1 | **Research Supabase Auth User Creation Issues** | ⏳ PENDING | Identify common causes and solutions for "Database error creating new user" |
+| 0.2 | **Check Supabase Version and Compatibility** | ⏳ PENDING | Verify local Supabase version matches expected version for codebase |
+| 0.3 | **Examine Existing Database Schema Non-Invasively** | ⏳ PENDING | Document schema without modifying it, identify potential constraint issues |
+| 0.4 | **Review Existing Auth Flow in Codebase** | ⏳ PENDING | Understand how other users are successfully created, if any |
+| 0.5 | **Review Supabase Documentation on Admin User Creation** | ⏳ PENDING | Find official recommended approach for admin user creation |
+| 0.6 | **Create Isolated Test Environment** | ⏳ PENDING | Prepare testing environment where changes won't affect production |
+
+#### Phase 1: Safe Solution Implementation (Executor) - ⏳ PENDING
+| # | Task | Status | Success Criteria |
+|---|---|---|---|
+| 1.1 | **Create a Backup of Current Database State** | ⏳ PENDING | Database backup created and verified before making any changes |
+| 1.2 | **Implement Targeted Solution Based on Research** | ⏳ PENDING | Apply solution with minimal schema changes |
+| 1.3 | **Verify Solution Without Side Effects** | ⏳ PENDING | Solution works and doesn't affect other system functionality |
+| 1.4 | **Document Resolution for Future Reference** | ⏳ PENDING | Clear documentation of root cause and proper fix |
+
+**RESEARCH-BASED APPROACH:**
+
+**🎯 Priority 1: Understand the Issue Thoroughly**
+- Research Supabase admin user creation best practices
+- Search for similar issues in Supabase GitHub issues/forums
+- Understand the entire auth flow before making changes
+
+**🎯 Priority 2: Non-Invasive Testing**
+- Create safe tests that don't modify database schema
+- Document schema constraints without changing them
+- Try official/documented approaches first
+
+**🎯 Priority 3: Implement Minimal Changes**
+- Apply only the necessary changes based on research findings
+- Create backups before any schema modifications
+- Test thoroughly to ensure no side effects
+
+**POTENTIAL RESEARCH SOURCES:**
+- Supabase GitHub issues
+- Supabase official documentation
+- Stack Overflow for similar issues
+- Supabase Discord community
+
+#### Update 3: Deep Research Findings
+
+After extensive research, I've discovered the root cause of the "Database error creating new user" issue:
+
+1. **The Error**: `ERROR: relation "user_profiles" does not exist (SQLSTATE 42P01)`
+
+2. **Root Cause**: Schema visibility issue - the auth service cannot see the `public.user_profiles` table when executing the trigger
+
+3. **Why It Happens**:
+   - When Supabase Auth creates a user, it runs as `supabase_auth_admin` role
+   - The trigger function needs explicit schema references
+   - The search path doesn't include `public` schema when auth service executes
+
+4. **Community Findings**:
+   - This is a known issue documented in multiple GitHub issues (#563, #306)
+   - Tables created via UI sometimes have different behaviors than SQL-created tables
+   - The function must be created with `SECURITY DEFINER` and explicit schema references
+   - Some users found success creating the function in the `auth` schema instead of `public`
+
+5. **Attempted Solutions**:
+   - ✅ Added `SECURITY DEFINER` to function
+   - ✅ Granted permissions to `supabase_auth_admin`
+   - ✅ Used explicit schema references (`public.user_profiles`)
+   - ✅ Set empty search_path in function
+   - ❌ Still getting the same error
+
+6. **Final Workaround**: Since the trigger consistently fails, we need to:
+   - Option A: Create admin user via direct SQL
+   - Option B: Create the function in auth schema (as suggested by RilDev)
+   - Option C: Use a different approach entirely for admin user creation
+
+**Recommendation**: We should implement a SQL-based admin user creation that bypasses the Supabase Auth API entirely for this one-time setup.
