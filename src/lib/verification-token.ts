@@ -7,6 +7,7 @@
 
 import { SignJWT, jwtVerify } from 'jose'
 import { nanoid } from 'nanoid'
+import { validateEnvironmentOrThrow } from './env-validation'
 
 // Token expiration time in seconds (default: 24 hours)
 const DEFAULT_TOKEN_EXPIRY = 24 * 60 * 60 // 24 hours
@@ -166,6 +167,9 @@ export async function isEmailPendingVerification(email: string): Promise<boolean
 // Helper functions to ensure consistent JWT configuration
 
 function getJwtSecret(): string {
+  // Validate environment on first call to ensure proper configuration
+  validateEnvironmentOrThrow()
+
   const secret = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET
   if (!secret) {
     throw new Error('JWT_SECRET or NEXTAUTH_SECRET environment variable is required')

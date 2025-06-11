@@ -91,12 +91,12 @@ BEGIN
   -- Apply the count change if there's a delta
   IF delta != 0 THEN
     EXECUTE format(
-      'UPDATE %I SET %I = GREATEST(0, COALESCE(%I, 0) + $1), sync_version = sync_version + 1, updated_at = NOW() WHERE id = $2',
+      'UPDATE public.%I SET %I = GREATEST(0, COALESCE(%I, 0) + $1), sync_version = sync_version + 1, updated_at = NOW() WHERE id = $2',
       p_target_table, count_field, count_field
     ) USING delta, target_id;
 
     -- Log the count sync for monitoring
-    INSERT INTO sync_events (
+    INSERT INTO public.sync_events (
       event_type, source_table, target_table, target_id,
       operation, new_values, sync_status, created_at
     ) VALUES (
@@ -205,12 +205,12 @@ BEGIN
           CASE source_value
             WHEN 'verified' THEN
               update_sql := format(
-                'UPDATE %I SET %I = true, sync_version = sync_version + 1, updated_at = NOW() WHERE %I = $1',
+                'UPDATE public.%I SET %I = true, sync_version = sync_version + 1, updated_at = NOW() WHERE %I = $1',
                 p_target_table, target_field, relation_field
               );
             ELSE
               update_sql := format(
-                'UPDATE %I SET %I = false, sync_version = sync_version + 1, updated_at = NOW() WHERE %I = $1',
+                'UPDATE public.%I SET %I = false, sync_version = sync_version + 1, updated_at = NOW() WHERE %I = $1',
                 p_target_table, target_field, relation_field
               );
           END CASE;
@@ -219,12 +219,12 @@ BEGIN
           -- Map boolean to status string
           IF source_value::BOOLEAN THEN
             update_sql := format(
-              'UPDATE %I SET %I = ''verified'', sync_version = sync_version + 1, updated_at = NOW() WHERE %I = $1',
+              'UPDATE public.%I SET %I = ''verified'', sync_version = sync_version + 1, updated_at = NOW() WHERE %I = $1',
               p_target_table, target_field, relation_field
             );
           ELSE
             update_sql := format(
-              'UPDATE %I SET %I = ''unverified'', sync_version = sync_version + 1, updated_at = NOW() WHERE %I = $1',
+              'UPDATE public.%I SET %I = ''unverified'', sync_version = sync_version + 1, updated_at = NOW() WHERE %I = $1',
               p_target_table, target_field, relation_field
             );
           END IF;
@@ -232,7 +232,7 @@ BEGIN
         ELSE
           -- Direct field mapping
           update_sql := format(
-            'UPDATE %I SET %I = $2, sync_version = sync_version + 1, updated_at = NOW() WHERE %I = $1',
+            'UPDATE public.%I SET %I = $2, sync_version = sync_version + 1, updated_at = NOW() WHERE %I = $1',
             p_target_table, target_field, relation_field
           );
       END CASE;
@@ -246,7 +246,7 @@ BEGIN
         END IF;
 
         -- Log the cascade for monitoring
-        INSERT INTO sync_events (
+        INSERT INTO public.sync_events (
           event_type, source_table, target_table, target_id,
           operation, new_values, sync_status, created_at
         ) VALUES (
@@ -300,67 +300,51 @@ CREATE OR REPLACE FUNCTION sync_audit_trail(
   p_rule_config JSONB,
   p_new_record JSONB,
   p_old_record JSONB,
-  p_target_table VARCHAR(50),
+  p_target_table VARCHAR(50), -- This is the source table name, passed as target
   p_operation VARCHAR(20)
 )
 RETURNS VOID AS $$
 DECLARE
-  audit_fields TEXT[];
-  field_name TEXT;
-  user_id UUID;
   record_id UUID;
-  old_value TEXT;
-  new_value TEXT;
+  changed_by_id UUID;
+  changed_fields JSONB;
 BEGIN
-  -- Extract configuration
-  audit_fields := ARRAY(SELECT jsonb_array_elements_text(p_rule_config->'fields'));
-
-  -- Get user_id and record_id
-  user_id := COALESCE(
+  -- Determine record ID and user responsible for the change
+  record_id := COALESCE((p_new_record->>'id')::UUID, (p_old_record->>'id')::UUID);
+  changed_by_id := COALESCE(
+    (p_new_record->>'updated_by')::UUID,
+    (p_new_record->>'created_by')::UUID,
     (p_new_record->>'user_id')::UUID,
-    (p_old_record->>'user_id')::UUID,
-    (p_new_record->>'id')::UUID,
-    (p_old_record->>'id')::UUID
+    '00000000-0000-0000-0000-000000000000' -- System user
   );
 
-  record_id := COALESCE(
-    (p_new_record->>'id')::UUID,
-    (p_old_record->>'id')::UUID
-  );
-
-  IF user_id IS NULL OR record_id IS NULL THEN
-    RETURN;
+  -- Calculate changed fields for UPDATE operations
+  IF p_operation = 'UPDATE' THEN
+    changed_fields := jsonb_diff_val(to_jsonb(p_old_record), to_jsonb(p_new_record));
+  ELSE
+    changed_fields := to_jsonb(p_new_record);
   END IF;
 
-  -- Create audit entries for each tracked field
-  FOREACH field_name IN ARRAY audit_fields
-  LOOP
-    old_value := p_old_record->>field_name;
-    new_value := p_new_record->>field_name;
-
-    -- Only log if the field actually changed
-    IF old_value IS DISTINCT FROM new_value THEN
-      INSERT INTO auth_sync_logs (
-        user_id,
-        table_name,
-        record_id,
-        operation,
-        field_name,
-        old_value,
-        new_value,
-        changed_at
-      ) VALUES (
-        user_id,
-        TG_TABLE_NAME,
-        record_id,
-        p_operation,
-        field_name,
-        old_value,
-        new_value,
-        NOW()
-      );
-    END IF;
-  END LOOP;
+  -- Insert into the audit trail log
+  INSERT INTO public.audit_trail (
+    table_name,
+    record_id,
+    operation,
+    changed_by_id,
+    old_values,
+    new_values,
+    changed_fields,
+    changed_at
+  ) VALUES (
+    p_target_table,
+    record_id,
+    p_operation,
+    changed_by_id,
+    p_old_record,
+    p_new_record,
+    changed_fields,
+    NOW()
+  );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -554,3 +538,76 @@ BEGIN
   RAISE NOTICE 'Use recalculate_all_counts() to fix any existing inconsistencies';
   RAISE NOTICE 'Monitor system health with sync_health_dashboard view';
 END $$;
+
+-- Function to compare two jsonb objects and return the differences
+CREATE OR REPLACE FUNCTION jsonb_diff_val(val1 JSONB, val2 JSONB)
+RETURNS JSONB AS $$
+DECLARE
+  result JSONB;
+  v RECORD;
+BEGIN
+  result = val2;
+  FOR v IN SELECT * FROM jsonb_each(val1)
+  LOOP
+    IF result @> jsonb_build_object(v.key, v.value) THEN
+      result = result - v.key;
+    ELSIF NOT result ? v.key THEN
+      result = result || jsonb_build_object(v.key, null);
+    END IF;
+  END LOOP;
+  RETURN result;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Add a trigger to auth.users to sync to user_profiles
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.user_profiles (id, email, full_name, role)
+  VALUES (NEW.id, NEW.email, NEW.raw_user_meta_data->>'full_name', 'buyer');
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- Drop existing triggers to avoid conflicts before recreating them
+DROP TRIGGER IF EXISTS trigger_listings_count_sync ON public.listings;
+DROP TRIGGER IF EXISTS trigger_inquiries_count_sync ON public.inquiries;
+DROP TRIGGER IF EXISTS trigger_user_profiles_status_cascade ON public.user_profiles;
+DROP TRIGGER IF EXISTS trigger_user_profiles_audit_trail ON public.user_profiles;
+DROP TRIGGER IF EXISTS trigger_verification_requests_audit_trail ON public.verification_requests;
+
+-- Define triggers to call the universal sync function
+
+-- Trigger for listings count changes
+CREATE TRIGGER trigger_listings_count_sync
+  AFTER INSERT OR UPDATE OR DELETE ON public.listings
+  FOR EACH ROW
+  EXECUTE FUNCTION universal_sync_trigger('count_sync');
+
+-- Trigger for inquiries count changes
+CREATE TRIGGER trigger_inquiries_count_sync
+  AFTER INSERT OR UPDATE OR DELETE ON public.inquiries
+  FOR EACH ROW
+  EXECUTE FUNCTION universal_sync_trigger('count_sync');
+
+-- Trigger for status changes on user_profiles
+CREATE TRIGGER trigger_user_profiles_status_cascade
+  AFTER UPDATE ON public.user_profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION universal_sync_trigger('status_cascade');
+
+-- Trigger for audit trail on user_profiles
+CREATE TRIGGER trigger_user_profiles_audit_trail
+  AFTER INSERT OR UPDATE OR DELETE ON public.user_profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION universal_sync_trigger('audit_trail');
+
+-- Trigger for audit trail on verification_requests
+CREATE TRIGGER trigger_verification_requests_audit_trail
+  AFTER INSERT OR UPDATE OR DELETE ON public.verification_requests
+  FOR EACH ROW
+  EXECUTE FUNCTION universal_sync_trigger('audit_trail');
