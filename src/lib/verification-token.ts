@@ -3,106 +3,81 @@
  *
  * Provides secure token generation and validation for email verification.
  * Uses industry-standard JWT with appropriate security settings.
+ * Edge Runtime compatible - only uses Web APIs and process.env
  */
 
 import { SignJWT, jwtVerify } from 'jose'
-import { nanoid } from 'nanoid'
-import { validateEnvironmentOrThrow } from './env-validation'
-
-// Token expiration time in seconds (default: 24 hours)
-const DEFAULT_TOKEN_EXPIRY = 24 * 60 * 60 // 24 hours
-
-// Use consistent encoding for JWT operations
-const encoder = new TextEncoder()
 
 /**
- * Generate a secure verification token for email verification
- * Uses jose library (web-standard compliant) with robust security defaults
+ * Get JWT secret from environment variables
+ * Edge Runtime compatible - only uses process.env
  */
-export async function generateVerificationToken(
-  email: string,
-  options?: {
-    expiresIn?: number; // Override expiration time in seconds
-    type?: 'register' | 'email_change' | 'login'; // Type of verification
-    redirectTo?: string; // Redirect URL after verification
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET;
+
+  if (!secret) {
+    throw new Error('JWT_SECRET or NEXTAUTH_SECRET must be set in environment variables');
   }
-): Promise<string> {
-  const expiresIn = options?.expiresIn || DEFAULT_TOKEN_EXPIRY
-  const secret = getJwtSecret()
-  const tokenId = nanoid(16) // Generate unique token ID
 
-  // Create a standard JWT with secure defaults
-  const token = await new SignJWT({
-    email,
-    type: options?.type || 'register',
-    redirectTo: options?.redirectTo || '',
-    purpose: 'email_verification'
-  })
-    .setProtectedHeader({ alg: 'HS256' })
-    .setIssuedAt()
-    .setExpirationTime(Math.floor(Date.now() / 1000) + expiresIn)
-    .setJti(tokenId) // Add unique token ID to prevent replay
-    .setSubject(email)
-    .setIssuer(getIssuer())
-    .setAudience(getAudience())
-    .sign(encoder.encode(secret))
-
-  console.log(`[VERIFICATION-TOKEN] Generated token for ${email} (exp: ${expiresIn}s)`)
-  return token
+  return secret;
 }
 
 /**
- * Validate a verification token and extract its payload if valid
- *
- * Returns null if token is invalid or expired
+ * Generate a verification token for email verification
  */
-export async function validateVerificationToken(
-  token: string
-): Promise<{
-  email: string;
-  type: string;
-  redirectTo?: string;
-  exp: number;
-  iat: number;
-} | null> {
+export async function generateVerificationToken(email: string, expiresIn: number = 3600): Promise<string> {
+  const secret = getJwtSecret();
+
+  const payload = {
+    email,
+    type: 'email_verification',
+    iat: Math.floor(Date.now() / 1000),
+    exp: Math.floor(Date.now() / 1000) + expiresIn
+  };
+
+  const token = await new SignJWT(payload)
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime(new Date(Date.now() + (expiresIn * 1000)))
+    .sign(new TextEncoder().encode(secret));
+
+  console.log(`[VERIFICATION-TOKEN] Generated token for ${email} (exp: ${expiresIn}s)`)
+  return token;
+}
+
+/**
+ * Validate and decode a verification token
+ */
+export async function validateVerificationToken(token: string): Promise<{ email: string; type: string } | null> {
   try {
-    const secret = getJwtSecret()
+    const secret = getJwtSecret();
 
-    const { payload } = await jwtVerify(token, encoder.encode(secret), {
-      issuer: getIssuer(),
-      audience: getAudience(),
-    })
+    const { payload } = await jwtVerify(
+      token,
+      new TextEncoder().encode(secret)
+    );
 
-    // Type safety checks
-    if (
-      typeof payload.email !== 'string' ||
-      typeof payload.type !== 'string' ||
-      payload.purpose !== 'email_verification' ||
-      !payload.exp
-    ) {
+    // Validate payload structure
+    if (!payload.email || !payload.type || payload.type !== 'email_verification') {
       console.warn('[VERIFICATION-TOKEN] Invalid token payload structure')
-      return null
+      return null;
     }
 
-    // Check if token is expired
-    const now = Math.floor(Date.now() / 1000)
-    if (payload.exp < now) {
+    // Check expiration (jose should handle this automatically, but double-check)
+    if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
       console.warn(`[VERIFICATION-TOKEN] Token expired at ${new Date(payload.exp * 1000).toISOString()}`)
-      return null
+      return null;
     }
 
     console.log(`[VERIFICATION-TOKEN] Valid token for ${payload.email}, expires ${new Date(payload.exp * 1000).toISOString()}`)
 
     return {
       email: payload.email as string,
-      type: payload.type as string,
-      redirectTo: payload.redirectTo as string | undefined,
-      exp: payload.exp as number,
-      iat: payload.iat as number
-    }
+      type: payload.type as string
+    };
   } catch (error) {
     console.error('[VERIFICATION-TOKEN] Token validation error:', error)
-    return null
+    return null;
   }
 }
 
@@ -111,20 +86,22 @@ export async function validateVerificationToken(
  * This is used to validate that tokens are only honored for legitimate users
  */
 export async function isEmailPendingVerification(email: string): Promise<boolean> {
-  // This should query the database directly or via an API to check:
-  // 1. If the email exists in auth.users
-  // 2. If the email is NOT yet verified
-
-  // For security reasons, implement with supabase service role client
-  // to bypass RLS policies and directly access auth.users table
-
   try {
     const { createClient } = await import('@supabase/supabase-js')
 
+    // Get environment variables directly (Edge Runtime supports process.env)
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+    if (!supabaseUrl || !serviceRoleKey) {
+      console.error('[VERIFICATION-TOKEN] Missing Supabase environment variables')
+      return false
+    }
+
     // Create admin client with service role key
     const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      supabaseUrl,
+      serviceRoleKey,
       {
         auth: {
           autoRefreshToken: false,
@@ -166,21 +143,10 @@ export async function isEmailPendingVerification(email: string): Promise<boolean
 
 // Helper functions to ensure consistent JWT configuration
 
-function getJwtSecret(): string {
-  // Validate environment on first call to ensure proper configuration
-  validateEnvironmentOrThrow()
-
-  const secret = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET
-  if (!secret) {
-    throw new Error('JWT_SECRET or NEXTAUTH_SECRET environment variable is required')
-  }
-  return secret
-}
-
 function getIssuer(): string {
-  return process.env.NEXT_PUBLIC_APP_URL || 'https://nobridge.ai'
+  return getServerEnv('NEXT_PUBLIC_APP_URL') || 'https://nobridge.ai'
 }
 
 function getAudience(): string {
-  return process.env.NEXT_PUBLIC_APP_URL || 'https://nobridge.ai'
+  return getServerEnv('NEXT_PUBLIC_APP_URL') || 'https://nobridge.ai'
 }

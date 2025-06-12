@@ -9,17 +9,18 @@ interface RouteParams {
 }
 
 // GET /api/inquiries/[id] - Get specific inquiry details
-export async function GET(request: NextRequest, { params }: RouteParams) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
-    const user = await authServer.getCurrentUser(request)
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      )
+    // Auth
+    const authResult = await authServer.authenticateUser(request)
+    if (!authResult.success || !authResult.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { id } = params
+    const { id } = await params
     if (!id) {
       return NextResponse.json(
         { error: 'Inquiry ID is required' },
@@ -90,8 +91,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     // Check if user has permission to view this inquiry
     const isAuthorized =
-      inquiry.buyer_id === user.id ||
-      inquiry.seller_id === user.id ||
+      inquiry.buyer_id === authResult.user.id ||
+      inquiry.seller_id === authResult.user.id ||
       userProfile.role === 'admin'
 
     if (!isAuthorized) {
@@ -112,17 +113,17 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 }
 
 // PUT /api/inquiries/[id] - Update inquiry status or add admin notes
-export async function PUT(request: NextRequest, { params }: RouteParams) {
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
-    const user = await authServer.getCurrentUser(request)
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      )
+    const authResult = await authServer.authenticateUser(request)
+    if (!authResult.success || !authResult.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { id } = params
+    const { id } = await params
     if (!id) {
       return NextResponse.json(
         { error: 'Inquiry ID is required' },
@@ -176,7 +177,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       }
     }
     // Seller can engage with inquiry
-    else if (existingInquiry.seller_id === user.id) {
+    else if (existingInquiry.seller_id === authResult.user.id) {
       if (status === 'seller_engaged') {
         // Seller engagement logic
         updateData.status = 'seller_engaged'
@@ -196,7 +197,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       }
     }
     // Buyer can withdraw inquiry
-    else if (existingInquiry.buyer_id === user.id) {
+    else if (existingInquiry.buyer_id === authResult.user.id) {
       if (status === 'withdrawn') {
         updateData.status = 'withdrawn'
       } else if (status) {

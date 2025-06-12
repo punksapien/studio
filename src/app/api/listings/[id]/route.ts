@@ -9,9 +9,12 @@ interface RouteParams {
 }
 
 // GET /api/listings/[id] - Get single listing details
-export async function GET(request: NextRequest, { params }: RouteParams) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
-    const { id } = params
+    const { id } = await params
 
     if (!id) {
       return NextResponse.json(
@@ -29,6 +32,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       .from('listings')
       .select('*')
       .eq('id', id)
+      .is('deleted_at', null)  // Filter out soft deleted listings
 
     const { data: listing, error } = await query.single()
 
@@ -78,7 +82,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 }
 
 // PUT /api/listings/[id] - Update listing (seller only)
-export async function PUT(request: NextRequest, { params }: RouteParams) {
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
     const user = await auth.getCurrentUser()
     if (!user) {
@@ -88,7 +95,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    const { id } = params
+    const { id } = await params
     if (!id) {
       return NextResponse.json(
         { error: 'Listing ID is required' },
@@ -101,6 +108,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       .from('listings')
       .select('seller_id, status')
       .eq('id', id)
+      .is('deleted_at', null)  // Filter out soft deleted listings
       .single()
 
     if (fetchError) {
@@ -205,8 +213,11 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-// DELETE /api/listings/[id] - Delete listing (seller only)
-export async function DELETE(request: NextRequest, { params }: RouteParams) {
+// DELETE /api/listings/[id] - Soft delete listing (seller only)
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
     const user = await auth.getCurrentUser()
     if (!user) {
@@ -216,7 +227,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    const { id } = params
+    const { id } = await params
     if (!id) {
       return NextResponse.json(
         { error: 'Listing ID is required' },
@@ -229,6 +240,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       .from('listings')
       .select('seller_id')
       .eq('id', id)
+      .is('deleted_at', null)  // Only check non-deleted listings
       .single()
 
     if (fetchError) {
@@ -253,16 +265,25 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    const { error } = await supabase
-      .from('listings')
-      .delete()
-      .eq('id', id)
+    // Use the soft delete function
+    const { data, error } = await supabase
+      .rpc('soft_delete_listing', {
+        listing_id: id,
+        deleter_id: user.id
+      })
 
     if (error) {
-      console.error('Error deleting listing:', error)
+      console.error('Error soft deleting listing:', error)
       return NextResponse.json(
         { error: 'Failed to delete listing' },
         { status: 500 }
+      )
+    }
+
+    if (!data) {
+      return NextResponse.json(
+        { error: 'Failed to delete listing - permission denied' },
+        { status: 403 }
       )
     }
 

@@ -9,17 +9,21 @@ interface RouteParams {
 }
 
 // PUT /api/listings/[id]/status - Update listing status
-export async function PUT(request: NextRequest, { params }: RouteParams) {
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
-    const user = await auth.getCurrentUser()
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      )
+    // Authenticate user
+    const authResult = await auth.authenticateUser(request)
+    if (!authResult.success || !authResult.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { id } = params
+    const { user, profile } = authResult
+
+    // Get listing ID from params
+    const { id } = await params
     if (!id) {
       return NextResponse.json(
         { error: 'Listing ID is required' },
@@ -60,8 +64,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
 
     // Check ownership (unless user is admin)
-    const userProfile = await auth.getCurrentUserProfile()
-    if (userProfile?.role !== 'admin' && existingListing.seller_id !== user.id) {
+    if (profile?.role !== 'admin' && existingListing.seller_id !== user.id) {
       return NextResponse.json(
         { error: 'You can only update your own listings' },
         { status: 403 }
@@ -88,7 +91,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
       case 'verified_with_financials':
         // Only admins can mark as verified with financials
-        if (userProfile?.role !== 'admin') {
+        if (profile?.role !== 'admin') {
           return NextResponse.json(
             { error: 'Only admins can verify listings with financials' },
             { status: 403 }
@@ -99,7 +102,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
       case 'verified_anonymous':
         // Sellers can activate to anonymous, admins can verify
-        if (userProfile?.role === 'admin') {
+        if (profile?.role === 'admin') {
           updateData.verification_status = 'verified'
         } else if (existingListing.verification_status === 'pending_verification') {
           // Keep verification status as pending for seller actions

@@ -27,7 +27,7 @@ export async function PUT(
       );
     }
 
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
     const {
       operationalStatus,
@@ -106,7 +106,7 @@ export async function PUT(
         user_id,
         status,
         admin_notes,
-        user_profiles!inner (
+        user_profiles!verification_requests_user_id_fkey!inner (
           id,
           verification_status,
           full_name,
@@ -268,7 +268,7 @@ export async function GET(
       );
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     // Create Supabase service client
     const supabase = createClient(
@@ -295,7 +295,7 @@ export async function GET(
         documents_submitted,
         created_at,
         updated_at,
-        user_profiles!inner (
+        user_profiles!verification_requests_user_id_fkey!inner (
           id,
           full_name,
           email,

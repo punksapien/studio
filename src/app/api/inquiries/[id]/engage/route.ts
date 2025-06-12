@@ -9,17 +9,21 @@ interface RouteParams {
 }
 
 // POST /api/inquiries/[id]/engage - Seller engages with inquiry
-export async function POST(request: NextRequest, { params }: RouteParams) {
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
-    const user = await authServer.getCurrentUser(request)
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      )
+    // Authenticate user
+    const authResult = await authServer.authenticateUser(request)
+    if (!authResult.success || !authResult.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { id } = params
+    const { user, profile } = authResult
+
+    // Get inquiry ID from params
+    const { id } = await params
     if (!id) {
       return NextResponse.json(
         { error: 'Inquiry ID is required' },
@@ -27,8 +31,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    const userProfile = await authServer.getCurrentUserProfile(request)
-    if (!userProfile || userProfile.role !== 'seller') {
+    if (!profile || profile.role !== 'seller') {
       return NextResponse.json(
         { error: 'Only sellers can engage with inquiries' },
         { status: 403 }

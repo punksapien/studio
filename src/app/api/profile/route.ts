@@ -5,7 +5,7 @@ import { cookies } from 'next/headers'
 // GET /api/profile - Fetch current user profile
 export async function GET(request: NextRequest) {
   try {
-    const cookieStore = cookies()
+    const cookieStore = await cookies()
 
     // Create Supabase client with cookie support (same as middleware)
     const supabase = createServerClient(
@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
 // PUT /api/profile - Update user profile
 export async function PUT(request: NextRequest) {
   try {
-    const cookieStore = cookies()
+    const cookieStore = await cookies()
 
     // Create Supabase client with cookie support
     const supabase = createServerClient(

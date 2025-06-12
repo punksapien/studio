@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import * as React from "react";
@@ -77,7 +75,7 @@ export default function AdminAnalyticsPage() {
     '/api/admin/user-growth',
     fetcher,
     {
-      refreshInterval: 300000, 
+      refreshInterval: 300000,
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
     }
@@ -174,6 +172,12 @@ export default function AdminAnalyticsPage() {
       fill: COLORS.sellers,
     }
   ];
+
+  // Fallback for syncCircuitBreakers to always be an object with circuitBreakers array
+  const safeSyncCircuitBreakers: SyncCircuitBreakerStatus =
+    Array.isArray(syncCircuitBreakers)
+      ? { circuitBreakers: [] }
+      : syncCircuitBreakers ?? { circuitBreakers: [] };
 
   return (
     <div className="space-y-8">
@@ -544,7 +548,7 @@ export default function AdminAnalyticsPage() {
       {/* Sync System Observability Section */}
       <Separator className="bg-brand-light-gray/80 my-8" />
       <h2 className="text-2xl font-semibold tracking-tight pt-4 text-brand-dark-blue">Universal Sync System Observability</h2>
-      
+
       {/* Sync Performance Metrics */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <MetricCard title="Avg Sync Time" value={syncPerfLoading ? 'Loading...' : formatMs(syncPerformance?.averageProcessingTimeMs)} icon={Zap} description="Avg. processing time for sync operations" />
@@ -562,7 +566,7 @@ export default function AdminAnalyticsPage() {
         {syncCache?.readThroughputPerSecond && <MetricCard title="Cache Reads/sec" value={syncCacheLoading ? 'Loading...' : syncCache.readThroughputPerSecond.toLocaleString()} icon={DatabaseZap} />}
       </div>
       {syncCacheError && <p className="text-sm text-red-500 mt-2">Error loading sync cache data: {syncCacheError.message}</p>}
-      
+
       {/* Circuit Breaker Status */}
       <Card className="mt-6 shadow-md bg-brand-white">
         <CardHeader>
@@ -581,7 +585,7 @@ export default function AdminAnalyticsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {syncCircuitBreakers?.circuitBreakers.map((cb) => (
+                {safeSyncCircuitBreakers.circuitBreakers.map((cb) => (
                   <TableRow key={cb.name}>
                     <TableCell className="font-medium">{cb.name}</TableCell>
                     <TableCell>
@@ -594,7 +598,7 @@ export default function AdminAnalyticsPage() {
                     <TableCell>{cb.lastFailureAt ? new Date(cb.lastFailureAt).toLocaleString() : 'N/A'}</TableCell>
                   </TableRow>
                 ))}
-                 {syncCircuitBreakers?.circuitBreakers.length === 0 && (
+                 {safeSyncCircuitBreakers.circuitBreakers.length === 0 && (
                     <TableRow><TableCell colSpan={4} className="text-center">No circuit breakers configured or data unavailable.</TableCell></TableRow>
                 )}
               </TableBody>

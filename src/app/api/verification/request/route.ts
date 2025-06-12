@@ -116,13 +116,11 @@ export async function POST(request: NextRequest) {
         user_id: authResult.user.id,
         listing_id: listing_id || null,
         request_type,
-        // 🚀 MVP SIMPLIFICATION: Auto-approve verification requests
-        // Original logic: status: 'New Request' -> Admin review -> Manual approval
-        // MVP logic: Instant verification for frictionless user experience
-        // CHANGE STATUS BELOW TO 'New Request' TO RESTORE MANUAL APPROVAL WORKFLOW:
-        status: 'Approved', // Changed from 'New Request' for MVP auto-approval
+        // ✅ PRODUCTION: Requests go to admin queue for manual review
+        // Removed MVP auto-approval logic to restore proper admin workflow
+        status: 'New Request', // Changed from 'Approved' to require admin review
         reason,
-        admin_notes: '🚀 MVP: Auto-approved for streamlined user experience',
+        admin_notes: null, // Removed auto-approval message - let admin add notes
         documents_submitted: [],
         last_request_time: new Date().toISOString(),
         bump_count: 0,
@@ -156,14 +154,12 @@ export async function POST(request: NextRequest) {
           is_read: false
         });
 
-      // 🚀 MVP SIMPLIFICATION: Update user profile to verified status (auto-approval)
-      // Original logic: verification_status: 'pending_verification' -> Admin approval -> 'verified'
-      // MVP logic: Instant verification status update for frictionless experience
-      // CHANGE STATUS BELOW TO 'pending_verification' TO RESTORE MANUAL APPROVAL:
+      // ✅ PRODUCTION: Set user status to pending_verification for admin review
+      // Removed MVP auto-approval logic to restore proper admin workflow
       const { error: profileUpdateError } = await supabase
         .from('user_profiles')
         .update({
-          verification_status: 'verified', // Changed from 'pending_verification' for MVP auto-approval
+          verification_status: 'pending_verification', // Changed from 'verified' to require admin approval
           updated_at: new Date().toISOString()
         })
         .eq('id', authResult.user.id);
@@ -180,8 +176,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         request: createdRequest,
-        // 🚀 MVP SIMPLIFICATION: Updated message for instant approval
-        message: `Your ${request_type.replace('_', ' ')} has been approved instantly! You're now verified and can access all platform features.`,
+        // ✅ PRODUCTION: Updated message for admin review workflow
+        message: `Your ${request_type.replace('_', ' ')} request has been submitted successfully. Our team will review it and contact you soon.`,
         responseTime
       });
 

@@ -18,6 +18,10 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // Ensure environment variables are loaded
+  env: {
+    JWT_SECRET: process.env.JWT_SECRET,
+  },
 };
 
 export default nextConfig;
