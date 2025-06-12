@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from "react";
@@ -25,7 +26,7 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { industries, asianCountries, revenueRanges, profitMarginRanges, dealStructures, Listing, User, employeeCountRanges } from "@/lib/types";
+import { industries, asianCountries, revenueRanges, profitMarginRanges, dealStructures, Listing, User, employeeCountRanges } from "@/lib/types"; // Updated import
 import { useToast } from "@/hooks/use-toast";
 import { useTransition, useState, useEffect } from "react";
 import { Separator } from "@/components/ui/separator";
@@ -245,7 +246,7 @@ export default function EditSellerListingPage() {
               />
               <div className="grid md:grid-cols-2 gap-6">
                 <FormField control={form.control} name="industry" render={({ field }) => (
-                    <FormItem><FormLabel>Industry</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={isPending}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent>{industries.map(i => <SelectItem key={i} value={i}>{i}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Industry</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={isPending}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent>{industries.map(i => <SelectItem key={i} value={i.toLowerCase().replace(/[^a-z0-9]+/g, '-')}>{i}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
                   )}
                 />
                 <FormField control={form.control} name="locationCountry" render={({ field }) => (

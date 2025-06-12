@@ -14,7 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from "@/components/ui/checkbox";
-import { industries, asianCountries, revenueRanges, placeholderKeywords } from '@/lib/types';
+import { industries, asianCountries, revenueRanges, placeholderKeywords } from '@/lib/types'; // Updated import
 import { Filter } from 'lucide-react';
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -62,7 +62,7 @@ export function Filters() {
             <SelectContent>
               <SelectItem value="all">All Industries</SelectItem>
               {industries.map((industry) => (
-                <SelectItem key={industry} value={industry.toLowerCase().replace(/\s+/g, '-')}>
+                <SelectItem key={industry} value={industry.toLowerCase().replace(/[^a-z0-9]+/g, '-')}>
                   {industry}
                 </SelectItem>
               ))}

@@ -80,7 +80,7 @@ export const sampleUsers: User[] = [
     buyerPersonaType: BuyerPersonaTypes[1],
     investmentFocusDescription: "Mid-market companies in consumer goods and services with established revenue streams. Looking for majority stakes.",
     preferredInvestmentSize: PreferredInvestmentSizes[3],
-    keyIndustriesOfInterest: "Retail, Consumer Goods, Hospitality",
+    keyIndustriesOfInterest: "Retail & E-commerce, Hospitality (Hotels & Accommodations)", // Updated
     createdAt: new Date('2023-04-10T10:00:00Z'),
     updatedAt: new Date('2023-04-10T10:00:00Z'),
     lastLogin: new Date('2024-05-18T14:00:00Z'),
@@ -103,7 +103,7 @@ export const sampleUsers: User[] = [
     buyerPersonaType: BuyerPersonaTypes[2],
     investmentFocusDescription: "Acquiring businesses to integrate into our existing portfolio, primarily in logistics and supply chain.",
     preferredInvestmentSize: PreferredInvestmentSizes[2],
-    keyIndustriesOfInterest: "Logistics, Supply Chain, Software",
+    keyIndustriesOfInterest: "Transportation & Logistics, Information Technology (IT)", // Updated
     createdAt: new Date('2023-05-01T11:00:00Z'),
     updatedAt: new Date('2023-05-01T11:00:00Z'),
     lastLogin: new Date('2024-05-20T17:00:00Z'),
@@ -126,7 +126,7 @@ export const sampleUsers: User[] = [
     buyerPersonaType: BuyerPersonaTypes[0],
     investmentFocusDescription: "Looking for small, profitable online businesses to operate and grow.",
     preferredInvestmentSize: PreferredInvestmentSizes[0],
-    keyIndustriesOfInterest: "E-commerce, Content Websites",
+    keyIndustriesOfInterest: "Retail & E-commerce, Media & Communications", // Updated
     createdAt: new Date('2023-06-15T09:00:00Z'),
     updatedAt: new Date('2023-06-15T09:00:00Z'),
     lastLogin: new Date('2024-05-17T10:00:00Z'),
@@ -141,7 +141,7 @@ export const sampleListings: Listing[] = [
     id: '1',
     sellerId: 'user1',
     listingTitleAnonymous: 'Profitable E-commerce Store in SEA',
-    industry: 'E-commerce',
+    industry: 'Retail & E-commerce', // Updated
     locationCountry: 'Singapore',
     locationCityRegionGeneral: 'Nationwide',
     anonymousBusinessDescription: 'Thriving online retail business with a strong brand presence and loyal customer base. Specializes in eco-friendly products. Consistent growth year-over-year.',
@@ -193,7 +193,7 @@ export const sampleListings: Listing[] = [
     id: '2',
     sellerId: 'user3',
     listingTitleAnonymous: 'Established SaaS Platform - B2B Niche',
-    industry: 'Software',
+    industry: 'Information Technology (IT)', // Updated
     locationCountry: 'Vietnam',
     locationCityRegionGeneral: 'Ho Chi Minh City Area',
     anonymousBusinessDescription: 'Innovative SaaS solution catering to a specific B2B vertical. Growing subscriber base with high MRR. Lean operations, ready for scaling with marketing investment. Solid tech stack.',
@@ -218,7 +218,7 @@ export const sampleListings: Listing[] = [
     id: '3',
     sellerId: 'user1',
     listingTitleAnonymous: 'Boutique Marketing Agency',
-    industry: 'Services - Marketing',
+    industry: 'Marketing & Advertising', // Updated
     locationCountry: 'Malaysia',
     locationCityRegionGeneral: 'Kuala Lumpur',
     anonymousBusinessDescription: 'Creative marketing agency with a portfolio of SME clients. Specializes in digital marketing and content creation. Strong local reputation. Team of 5 experienced professionals.',
@@ -245,13 +245,13 @@ export const sampleListings: Listing[] = [
     id: '4',
     sellerId: 'user3',
     listingTitleAnonymous: 'Modern Cafe in Tourist Hotspot',
-    industry: 'Retail',
+    industry: 'Restaurants & Food Service', // Updated
     locationCountry: 'Thailand',
     locationCityRegionGeneral: 'Phuket',
     anonymousBusinessDescription: 'Popular cafe with excellent reviews and high foot traffic. Known for specialty coffee and unique menu. Turnkey operation with trained staff. Strong social media presence.',
     keyStrengthsAnonymous: ['Prime Location', 'Established Reputation', 'Loyal Customer Base', 'High Online Ratings'],
     annualRevenueRange: '$100K - $250K USD',
-    netProfitMarginRange: '15% - 25%',
+    netProfitMarginRange: '15% - 25%', // Added for completeness
     askingPrice: 220000,
     adjustedCashFlow: 65000,
     status: 'pending_verification',

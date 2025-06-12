@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -8,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel } from '@/components/ui/alert-dialog';
 import {
   MapPin, DollarSign, Briefcase, ShieldCheck, MessageSquare, CalendarDays, UserCircle,
   Info, TrendingUp, Tag, HandCoins, FileText, Link as LinkIconLucide, Building, Brain, Globe,
@@ -135,11 +137,14 @@ export default function ListingDetailPage() {
 
   const [listing, setListing] = React.useState<Listing | null | undefined>(undefined);
   const [seller, setSeller] = React.useState<User | null | undefined>(undefined);
-
   const [currentUser, setCurrentUser] = React.useState<User | null | undefined>(undefined);
+  const [inquirySent, setInquirySent] = React.useState(false);
+  const [isSubmittingInquiry, setIsSubmittingInquiry] = React.useState(false);
+  const [showVerificationPopup, setShowVerificationPopup] = React.useState(false);
 
   React.useEffect(() => {
-    const storedUserId = 'user1';
+    // Simulate fetching current user (placeholder)
+    const storedUserId = 'user2'; // Use user2 (Jane, verified buyer) or user6 (Anna, anonymous buyer) for testing
     const user = sampleUsers.find(u => u.id === storedUserId);
     setCurrentUser(user || null);
 
@@ -168,6 +173,53 @@ export default function ListingDetailPage() {
     currentUser &&
     currentUser.verificationStatus === 'verified' &&
     currentUser.isPaid;
+  
+  const handleInquire = async () => {
+    if (!currentUser || currentUser.role === 'seller') {
+      toast({
+        title: '⚠️ Action not available',
+        description: currentUser?.role === 'seller' ? 'Sellers cannot inquire about other businesses.' : 'Please login as a buyer to inquire.',
+        className: 'border-yellow-200 bg-yellow-50 text-yellow-800'
+      });
+      return;
+    }
+    setIsSubmittingInquiry(true);
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    setInquirySent(true);
+    setIsSubmittingInquiry(false);
+    toast({
+      title: 'Inquiry Sent!',
+      description: `Your inquiry for "${listing.listingTitleAnonymous}" has been submitted.`
+    });
+    console.log("Inquire about business clicked for listing:", listing.id);
+  };
+  
+  const handleOpenConversation = () => {
+    if (!currentUser || currentUser.role === 'seller') {
+      toast({
+        title: '⚠️ Action not available',
+        description: currentUser?.role === 'seller' ? 'Sellers cannot start conversations.' : 'Please login as a buyer.',
+        className: 'border-yellow-200 bg-yellow-50 text-yellow-800'
+      });
+      return;
+    }
+
+    // Check if the business (seller) is verified
+    if (!listing.isSellerVerified) {
+      setShowVerificationPopup(true);
+    } else {
+      // Logic to open conversation (e.g., navigate to chat page)
+      // For now, just log it and show a toast.
+      console.log("Open conversation clicked for listing:", listing.id);
+      toast({
+        title: "Opening Conversation...",
+        description: `Connecting you with the seller of "${listing.listingTitleAnonymous}".`
+      });
+      // Example: router.push(`/messages/conversation_id_here`);
+    }
+  };
+
 
   const DocumentLink = ({ href, children, docType }: { href?: string; children: React.ReactNode, docType?: string }) => {
     if (!canViewVerifiedDetails) {
@@ -182,6 +234,10 @@ export default function ListingDetailPage() {
         </Link>
     );
   };
+  
+  const cfMultiple = (listing.askingPrice && listing.adjustedCashFlow && listing.adjustedCashFlow > 0)
+    ? (listing.askingPrice / listing.adjustedCashFlow).toFixed(2) + 'x'
+    : 'N/A';
 
   return (
     <div className="container py-8 md:py-12 bg-brand-light-gray">
@@ -194,9 +250,13 @@ export default function ListingDetailPage() {
                 <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-brand-dark-blue tracking-tight">{listing.listingTitleAnonymous}</h1>
                 <div className="mt-2 flex items-center gap-2 flex-wrap">
                   <Badge variant="secondary" className="bg-brand-dark-blue/10 text-brand-dark-blue">{listing.industry}</Badge>
-                  {listing.isSellerVerified && (
+                  {listing.isSellerVerified ? (
                     <Badge variant="secondary" className="bg-green-500/10 text-green-700 border border-green-500/30">
-                      <ShieldCheck className="h-4 w-4 mr-1.5" /> Platform Verified Seller
+                      <ShieldCheck className="h-4 w-4 mr-1.5" /> Verified - Due Diligence Completed
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary" className="bg-amber-500/10 text-amber-700 border border-amber-500/30">
+                        <Info className="h-4 w-4 mr-1.5" /> Unverified
                     </Badge>
                   )}
                 </div>
@@ -207,13 +267,13 @@ export default function ListingDetailPage() {
                 {listing.isSellerVerified && !currentUser && (
                     <Card className="bg-blue-50 border-blue-300 dark:bg-blue-900/20 dark:border-blue-700">
                         <CardHeader><CardTitle className="text-blue-700 dark:text-blue-300 flex items-center"><UserCircle className="h-5 w-5 mr-2"/>Access Verified Information</CardTitle></CardHeader>
-                        <CardContent><p className="text-sm text-blue-600 dark:text-blue-400">This listing is from a Platform Verified Seller. <Link href={`/auth/login?redirect=/listings/${listing.id}`} className="font-semibold underline hover:text-blue-700">Login</Link> or <Link href={`/auth/register?redirect=/listings/${listing.id}`} className="font-semibold underline hover:text-blue-700">Register</Link> as a paid, verified buyer to view detailed company information and documents.</p></CardContent>
+                        <CardContent><p className="text-sm text-blue-600 dark:text-blue-400">This listing is from a Seller who completed Due Diligence. <Link href={`/auth/login?redirect=/listings/${listing.id}`} className="font-semibold underline hover:text-blue-700">Login</Link> or <Link href={`/auth/register?redirect=/listings/${listing.id}`} className="font-semibold underline hover:text-blue-700">Register</Link> as a paid, verified buyer to view detailed company information and documents.</p></CardContent>
                     </Card>
                 )}
                 {listing.isSellerVerified && currentUser && currentUser.role === 'buyer' && !canViewVerifiedDetails && !currentUser.isPaid && (
                     <Card className="bg-amber-50 border-amber-300 dark:bg-amber-900/20 dark:border-amber-700">
                         <CardHeader><CardTitle className="text-amber-700 dark:text-amber-300 flex items-center"><Info className="h-5 w-5 mr-2"/>Unlock Full Details</CardTitle></CardHeader>
-                        <CardContent><p className="text-sm text-amber-600 dark:text-amber-400">This listing is from a Platform Verified Seller. To view specific company details, financials, and documents, please <Link href="/dashboard/subscription" className="font-semibold underline hover:text-amber-700">upgrade to a paid buyer plan</Link>.</p></CardContent>
+                        <CardContent><p className="text-sm text-amber-600 dark:text-amber-400">This listing is from a Seller who completed Due Diligence. To view specific company details, financials, and documents, please <Link href="/dashboard/subscription" className="font-semibold underline hover:text-amber-700">upgrade to a paid buyer plan</Link>.</p></CardContent>
                     </Card>
                 )}
 
@@ -247,9 +307,10 @@ export default function ListingDetailPage() {
                   <>
                     <Separator />
                     <section id="adjusted-cash-flow">
-                      <h2 className="text-2xl font-semibold text-brand-dark-blue mb-3 flex items-center"><Banknote className="h-6 w-6 mr-2 text-primary" />Adjusted Cash Flow</h2>
-                      {listing.adjustedCashFlow !== undefined && <p className="text-xl font-semibold text-primary mb-1">{formatCurrency(listing.adjustedCashFlow)} <span className="text-sm text-muted-foreground">(Annual)</span></p>}
-                      {listing.adjustedCashFlowExplanation && <p className="text-muted-foreground text-sm leading-relaxed whitespace-pre-wrap">{listing.adjustedCashFlowExplanation}</p>}
+                      <h2 className="text-2xl font-semibold text-brand-dark-blue mb-3 flex items-center"><Banknote className="h-6 w-6 mr-2 text-primary" />Financial Highlights</h2>
+                      {listing.adjustedCashFlow !== undefined && <p className="text-lg text-primary mb-1"><span className="font-medium">Adjusted Cash Flow:</span> {formatCurrency(listing.adjustedCashFlow)} <span className="text-sm text-muted-foreground">(Annual)</span></p>}
+                      {cfMultiple !== 'N/A' && <p className="text-lg text-primary mb-1"><span className="font-medium">C.F. Multiple:</span> {cfMultiple}</p>}
+                      {listing.adjustedCashFlowExplanation && <p className="text-muted-foreground text-sm leading-relaxed whitespace-pre-wrap mt-2">{listing.adjustedCashFlowExplanation}</p>}
                     </section>
                   </>
                 )}
@@ -310,6 +371,7 @@ export default function ListingDetailPage() {
                               <div className="space-y-1">
                                 <p className="text-sm text-slate-700"><span className="font-medium text-slate-900">Specific Annual Revenue (TTM):</span> {listing.specificAnnualRevenueLastYear ? `${formatCurrency(listing.specificAnnualRevenueLastYear)}` : 'N/A'}</p>
                                 <p className="text-sm text-slate-700"><span className="font-medium text-slate-900">Specific Net Profit (TTM):</span> {listing.specificNetProfitLastYear ? `${formatCurrency(listing.specificNetProfitLastYear)}` : 'N/A'}</p>
+                                {listing.netProfitMarginRange && <p className="text-sm text-slate-700"><span className="font-medium text-slate-900">Net Profit Margin Range:</span> {listing.netProfitMarginRange}</p>}
                               </div>
                             ) : (
                               <p className="text-sm text-muted-foreground italic">Visible to paid, verified buyers.</p>
@@ -366,35 +428,35 @@ export default function ListingDetailPage() {
                             <DollarSign className="h-5 w-5 mr-3 text-primary flex-shrink-0" />
                             <div><p className="font-medium text-brand-dark-blue">Annual Revenue</p><p className="text-muted-foreground">{listing.annualRevenueRange}</p></div>
                         </div>
-                        {listing.netProfitMarginRange && (
-                             <div className="flex items-center">
-                                <DollarSign className="h-5 w-5 mr-3 text-primary flex-shrink-0" />
-                                <div><p className="font-medium text-brand-dark-blue">Net Profit Margin</p><p className="text-muted-foreground">{listing.netProfitMarginRange}</p></div>
-                            </div>
-                        )}
                          <div className="flex items-center">
                             <DollarSign className="h-5 w-5 mr-3 text-primary flex-shrink-0" />
                             <div><p className="font-medium text-brand-dark-blue">Asking Price</p><p className="text-muted-foreground">{formatCurrency(listing.askingPrice)}</p></div>
                         </div>
+                         {listing.adjustedCashFlow !== undefined && (
+                          <div className="flex items-center">
+                              <Banknote className="h-5 w-5 mr-3 text-primary flex-shrink-0" />
+                              <div><p className="font-medium text-brand-dark-blue">Adjusted Cash Flow</p><p className="text-muted-foreground">{formatCurrency(listing.adjustedCashFlow)} (Annual)</p></div>
+                          </div>
+                        )}
+                         {cfMultiple !== 'N/A' && (
+                          <div className="flex items-center">
+                              <Info className="h-5 w-5 mr-3 text-primary flex-shrink-0" />
+                              <div><p className="font-medium text-brand-dark-blue">Est. C.F. Multiple</p><p className="text-muted-foreground">{cfMultiple}</p></div>
+                          </div>
+                        )}
                         {listing.dealStructureLookingFor && listing.dealStructureLookingFor.length > 0 && (
                              <div className="flex items-start">
                                 <HandCoins className="h-5 w-5 mr-3 text-primary flex-shrink-0 mt-0.5" />
                                 <div><p className="font-medium text-brand-dark-blue">Deal Structure</p><p className="text-muted-foreground">{(listing.dealStructureLookingFor || []).join(', ')}</p></div>
                             </div>
                         )}
-                        <div className="flex items-center">
-                            <CalendarDays className="h-5 w-5 mr-3 text-primary flex-shrink-0" />
-                            <div><p className="font-medium text-brand-dark-blue">First Listed</p><p className="text-muted-foreground">{new Date(listing.createdAt).toLocaleDateString()}</p></div>
-                        </div>
                         {seller && (
                              <div className="flex items-center">
                                 <UserCircle className="h-5 w-5 mr-3 text-primary flex-shrink-0" />
                                 <div>
                                     <p className="font-medium text-brand-dark-blue">Seller Status</p>
                                     <p className="text-muted-foreground">
-                                      {listing.isSellerVerified ?
-                                        (canViewVerifiedDetails ? 'Verified (Full Details Visible)' : 'Verified (Details Restricted)')
-                                        : 'Anonymous'}
+                                      {listing.isSellerVerified ? 'Verified - Due Diligence Completed' : 'Unverified'}
                                     </p>
                                 </div>
                             </div>
@@ -403,41 +465,19 @@ export default function ListingDetailPage() {
                     <CardFooter className="flex flex-col gap-2">
                         <Button
                             className="w-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
-                            disabled={!currentUser || currentUser.role === 'seller'}
-                            onClick={() => {
-                              console.log('Button clicked! Current user:', currentUser);
-                              if (!currentUser) return; // Should not happen due to disabled state
-                              if (currentUser.role === 'seller') {
-                                console.log('Seller detected - showing toast');
-                                toast({
-                                  title: '⚠️ Action not available',
-                                  description: 'Sellers cannot inquire about other businesses.',
-                                  className: 'border-yellow-200 bg-yellow-50 text-yellow-800'
-                                });
-                                return;
-                              }
-                              console.log("Inquire about business clicked for listing:", listing.id);
-                            }}
+                            disabled={!currentUser || currentUser.role === 'seller' || inquirySent || isSubmittingInquiry}
+                            onClick={handleInquire}
                         >
                             <MessageSquare className="h-4 w-4 mr-2"/>
-                            Inquire About Business
+                            {isSubmittingInquiry ? 'Sending...' : inquirySent ? 'Inquiry Sent' : 'Inquire About Business'}
                         </Button>
-                        {canViewVerifiedDetails && (listing.status === 'verified_public' || listing.status === 'verified_anonymous') && (
+                        {/* "Open Conversation" button is conditional based on various factors (inquiry status, admin facilitation, etc.) */}
+                        {/* For now, let's assume it appears after inquiry and if business is verified OR for specific inquiry statuses */}
+                        {inquirySent && (
                            <Button
                              variant="outline"
-                             className="w-full border-primary text-primary hover:bg-primary/10 disabled:opacity-50 disabled:cursor-not-allowed"
-                             disabled={currentUser?.role === 'seller'}
-                             onClick={() => {
-                               if (currentUser?.role === 'seller') {
-                                 toast({
-                                   title: '⚠️ Action not available',
-                                   description: 'Sellers cannot start conversations with other businesses.',
-                                   className: 'border-yellow-200 bg-yellow-50 text-yellow-800'
-                                 });
-                                 return;
-                               }
-                               console.log("Open conversation clicked for listing:", listing.id);
-                             }}
+                             className="w-full border-primary text-primary hover:bg-primary/10"
+                             onClick={handleOpenConversation}
                             >
                              <ExternalLink className="h-4 w-4 mr-2" />
                              Open Conversation
@@ -468,6 +508,20 @@ export default function ListingDetailPage() {
             </aside>
         </CardContent>
       </Card>
+      <AlertDialog open={showVerificationPopup} onOpenChange={setShowVerificationPopup}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Business Verification Pending</AlertDialogTitle>
+            <AlertDialogDescription>
+              This business is currently undergoing our verification due diligence process.
+              We&apos;ll notify you once they are ready for direct communication.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>OK</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

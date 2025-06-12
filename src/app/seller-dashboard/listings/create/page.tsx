@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from "react";
@@ -25,7 +26,7 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { industries, asianCountries, revenueRanges, profitMarginRanges, dealStructures, employeeCountRanges } from "@/lib/types";
+import { industries, asianCountries, revenueRanges, profitMarginRanges, dealStructures, employeeCountRanges } from "@/lib/types"; // Updated import
 import { useToast } from "@/hooks/use-toast";
 import { useTransition, useState } from "react";
 import { Separator } from "@/components/ui/separator";
@@ -190,9 +191,9 @@ export default function CreateSellerListingPage() {
                 <FormField control={form.control} name="industry" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Industry</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isPending}>
+                      <Select onValueChange={field.onChange} value={field.value} disabled={isPending}>
                         <FormControl><SelectTrigger><SelectValue placeholder="Select industry" /></SelectTrigger></FormControl>
-                        <SelectContent>{industries.map(i => <SelectItem key={i} value={i}>{i}</SelectItem>)}</SelectContent>
+                        <SelectContent>{industries.map(i => <SelectItem key={i} value={i.toLowerCase().replace(/[^a-z0-9]+/g, '-')}>{i}</SelectItem>)}</SelectContent>
                       </Select>
                       <FormMessage />
                     </FormItem>
@@ -201,7 +202,7 @@ export default function CreateSellerListingPage() {
                 <FormField control={form.control} name="locationCountry" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Location (Country)</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isPending}>
+                      <Select onValueChange={field.onChange} value={field.value} disabled={isPending}>
                         <FormControl><SelectTrigger><SelectValue placeholder="Select country" /></SelectTrigger></FormControl>
                         <SelectContent>{asianCountries.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
                       </Select>
@@ -233,7 +234,7 @@ export default function CreateSellerListingPage() {
               <FormField
                 control={form.control}
                 name="keyStrengthsAnonymous"
-                render={() => (
+                render={() => ( 
                   <FormItem><FormLabel>Key Strengths</FormLabel><FormDescription>List 1-5 key strengths.</FormDescription>
                     {keyStrengthsFields.map((strength, index) => (
                        <div key={index} className="flex items-center gap-2">
