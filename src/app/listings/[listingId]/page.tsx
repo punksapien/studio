@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -141,13 +140,55 @@ export default function ListingDetailPage() {
   const [inquirySent, setInquirySent] = React.useState(false);
   const [isSubmittingInquiry, setIsSubmittingInquiry] = React.useState(false);
   const [showVerificationPopup, setShowVerificationPopup] = React.useState(false);
+  const [isCheckingInquiry, setIsCheckingInquiry] = React.useState(false);
 
+  // Check if user has already inquired about this listing
+  const checkExistingInquiry = React.useCallback(async () => {
+    if (!currentUser || currentUser.role !== 'buyer' || !listingId) return;
+
+    setIsCheckingInquiry(true);
+    try {
+      const response = await fetch(`/api/inquiries/check?listing_id=${listingId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setInquirySent(data.has_inquired);
+      }
+    } catch (error) {
+      console.error('Error checking inquiry status:', error);
+    } finally {
+      setIsCheckingInquiry(false);
+    }
+  }, [currentUser, listingId]);
+
+  // Fetch current user data
   React.useEffect(() => {
-    // Simulate fetching current user (placeholder)
-    const storedUserId = 'user2'; // Use user2 (Jane, verified buyer) or user6 (Anna, anonymous buyer) for testing
-    const user = sampleUsers.find(u => u.id === storedUserId);
-    setCurrentUser(user || null);
+    const fetchCurrentUser = async () => {
+      try {
+        const response = await fetch('/api/auth/current-user');
+        if (response.ok) {
+          const data = await response.json();
+          setCurrentUser(data.profile ? {
+            id: data.user.id,
+            email: data.user.email,
+            fullName: data.profile.full_name,
+            role: data.profile.role,
+            verificationStatus: data.profile.verification_status,
+            isPaid: data.profile.is_paid || false
+          } : null);
+        } else {
+          setCurrentUser(null);
+        }
+      } catch (error) {
+        console.error('Error fetching user:', error);
+        setCurrentUser(null);
+      }
+    };
 
+    fetchCurrentUser();
+  }, []);
+
+  // Fetch listing data
+  React.useEffect(() => {
     const fetchedListing = sampleListings.find(l => l.id === listingId);
     setListing(fetchedListing || null);
 
@@ -159,7 +200,14 @@ export default function ListingDetailPage() {
     }
   }, [listingId]);
 
-  if (listing === undefined || currentUser === undefined) {
+  // Check existing inquiry when user and listing are loaded
+  React.useEffect(() => {
+    if (currentUser && listing) {
+      checkExistingInquiry();
+    }
+  }, [currentUser, listing, checkExistingInquiry]);
+
+  if (listing === undefined || currentUser === undefined || isCheckingInquiry) {
     return <div className="container py-8 text-center min-h-screen flex items-center justify-center"><p>Loading listing details...</p></div>;
   }
 
@@ -173,7 +221,7 @@ export default function ListingDetailPage() {
     currentUser &&
     currentUser.verificationStatus === 'verified' &&
     currentUser.isPaid;
-  
+
   const handleInquire = async () => {
     if (!currentUser || currentUser.role === 'seller') {
       toast({
@@ -183,18 +231,59 @@ export default function ListingDetailPage() {
       });
       return;
     }
+
+    if (inquirySent) {
+      toast({
+        title: 'Already inquired',
+        description: 'You have already sent an inquiry for this listing.',
+      });
+      return;
+    }
+
     setIsSubmittingInquiry(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setInquirySent(true);
-    setIsSubmittingInquiry(false);
-    toast({
-      title: 'Inquiry Sent!',
-      description: `Your inquiry for "${listing.listingTitleAnonymous}" has been submitted.`
-    });
-    console.log("Inquire about business clicked for listing:", listing.id);
+
+    try {
+      const response = await fetch('/api/inquiries', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          listing_id: listingId,
+          message: 'I am interested in learning more about this business opportunity.'
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setInquirySent(true);
+        toast({
+          title: 'Inquiry Sent!',
+          description: `Your inquiry for "${listing.listingTitleAnonymous}" has been submitted.`
+        });
+      } else if (response.status === 409) {
+        // User already has an inquiry
+        setInquirySent(true);
+        toast({
+          title: 'Already inquired',
+          description: 'You have already sent an inquiry for this listing.',
+        });
+      } else {
+        throw new Error(data.error || 'Failed to send inquiry');
+      }
+    } catch (error) {
+      console.error('Error sending inquiry:', error);
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to send inquiry. Please try again.',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsSubmittingInquiry(false);
+    }
   };
-  
+
   const handleOpenConversation = () => {
     if (!currentUser || currentUser.role === 'seller') {
       toast({
@@ -220,7 +309,6 @@ export default function ListingDetailPage() {
     }
   };
 
-
   const DocumentLink = ({ href, children, docType }: { href?: string; children: React.ReactNode, docType?: string }) => {
     if (!canViewVerifiedDetails) {
         return <p className="text-sm text-muted-foreground italic">Details available to paid, verified buyers.</p>;
@@ -234,7 +322,7 @@ export default function ListingDetailPage() {
         </Link>
     );
   };
-  
+
   const cfMultiple = (listing.askingPrice && listing.adjustedCashFlow && listing.adjustedCashFlow > 0)
     ? (listing.askingPrice / listing.adjustedCashFlow).toFixed(2) + 'x'
     : 'N/A';
