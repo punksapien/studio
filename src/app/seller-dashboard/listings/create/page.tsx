@@ -55,7 +55,7 @@ const ListingSchema = z.object({
   locationCountry: z.string().min(1, "Country is required."),
   locationCityRegionGeneral: z.string().min(2, "City/Region is required.").max(50, "City/Region too long."),
   anonymousBusinessDescription: z.string().min(50, "Description must be at least 50 characters.").max(2000, "Description too long (max 2000 chars)."),
-  
+
   keyStrength1: z.string().min(5, "Strength must be at least 5 characters.").max(150, "Strength too long (max 150 chars).optional()").optional(),
   keyStrength2: z.string().min(5, "Strength must be at least 5 characters.").max(150, "Strength too long (max 150 chars).").optional(),
   keyStrength3: z.string().min(5, "Strength must be at least 5 characters.").max(150, "Strength too long (max 150 chars).").optional(),
@@ -91,8 +91,7 @@ const ListingSchema = z.object({
   imageFile4: fileValidation,
   imageFile5: fileValidation,
 
-  financialStatementsFile: documentFileValidation,
-  keyMetricsReportFile: documentFileValidation,
+
 }).refine(data => {
   const strengths = [data.keyStrength1, data.keyStrength2, data.keyStrength3].filter(s => s && s.trim() !== "");
   return strengths.length >= 1;
@@ -107,8 +106,26 @@ type ListingFormValues = z.infer<typeof ListingSchema>;
 export default function CreateSellerListingPage() {
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
-  // Placeholder for seller verification status. In a real app, this would come from user's profile.
-  const [isSellerVerified, setIsSellerVerified] = React.useState(false); 
+  const [isSellerVerified, setIsSellerVerified] = React.useState(false);
+  const [userProfile, setUserProfile] = React.useState<any>(null);
+
+  // Fetch user profile and verification status on component mount
+  React.useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const response = await fetch('/api/profile');
+        if (response.ok) {
+          const profile = await response.json();
+          setUserProfile(profile);
+          setIsSellerVerified(profile.verification_status === 'verified');
+        }
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+      }
+    };
+
+    fetchUserProfile();
+  }, []);
 
   const form = useForm<ListingFormValues>({
     resolver: zodResolver(ListingSchema),
@@ -144,43 +161,89 @@ export default function CreateSellerListingPage() {
       imageFile3: undefined,
       imageFile4: undefined,
       imageFile5: undefined,
-      financialStatementsFile: undefined,
-      keyMetricsReportFile: undefined,
     },
   });
 
-  const onSubmit = (values: ListingFormValues) => {
-    const keyStrengths = [values.keyStrength1, values.keyStrength2, values.keyStrength3].filter(s => s && s.trim() !== "") as string[];
-    const growthOpportunities = [values.growthOpportunity1, values.growthOpportunity2, values.growthOpportunity3].filter(s => s && s.trim() !== "") as string[];
+  const onSubmit = async (values: ListingFormValues) => {
+    try {
+      startTransition(async () => {
+        // Prepare data for API submission
+        const submissionData = {
+          // Basic Information (using API field names that match backend)
+          title: values.listingTitleAnonymous,
+          short_description: values.anonymousBusinessDescription,
+          industry: values.industry,
+          location_country: values.locationCountry,
+          location_city: values.locationCityRegionGeneral,
 
-    // In a real app, you'd handle file uploads here, e.g., to Supabase Storage or another service.
-    // For this UI-focused task, we'll just log the file objects.
-    const imageFiles = [values.imageFile1, values.imageFile2, values.imageFile3, values.imageFile4, values.imageFile5].filter(f => f) as File[];
-    const financialStatementsFile = values.financialStatementsFile;
-    const keyMetricsReportFile = values.keyMetricsReportFile;
+          // Business Details
+          business_overview: values.businessModel,
+          established_year: values.yearEstablished,
+          number_of_employees: values.numberOfEmployees,
+          website_url: values.businessWebsiteUrl,
 
+          // NEW: Individual field structure (matching our enhanced backend)
+          keyStrength1: values.keyStrength1?.trim() || null,
+          keyStrength2: values.keyStrength2?.trim() || null,
+          keyStrength3: values.keyStrength3?.trim() || null,
+          growthOpportunity1: values.growthOpportunity1?.trim() || null,
+          growthOpportunity2: values.growthOpportunity2?.trim() || null,
+          growthOpportunity3: values.growthOpportunity3?.trim() || null,
 
-    const listingDataToSubmit = {
-      ...values,
-      keyStrengthsAnonymous: keyStrengths,
-      specificGrowthOpportunities: growthOpportunities, // Changed field name
-      // Files would be handled separately for upload
-      imageFilesCount: imageFiles.length,
-      hasFinancialStatements: !!financialStatementsFile,
-      hasKeyMetricsReport: !!keyMetricsReportFile,
-    };
-    // Remove individual file fields from submission object if you only want to send the count or a combined array
-    delete (listingDataToSubmit as any).imageFile1;
-    delete (listingDataToSubmit as any).imageFile2;
-    // ... and so on for other imageFileX and document fields
+          // Financial Information
+          annual_revenue_range: values.annualRevenueRange,
+          net_profit_margin_range: values.netProfitMarginRange,
+          asking_price: values.askingPrice,
+          annual_revenue: values.specificAnnualRevenueLastYear,
+          net_profit: values.specificNetProfitLastYear,
+          monthly_cash_flow: values.adjustedCashFlow,
 
-    startTransition(async () => {
-      console.log("Create listing values (processed):", listingDataToSubmit);
-      // Placeholder for server action
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      toast({ title: "Listing Created", description: "Your business listing has been successfully created and is pending review/verification." });
-      form.reset();
-    });
+          // Deal & Seller Information
+          reason_for_selling: values.reasonForSellingAnonymous,
+          detailed_reason_for_selling: values.detailedReasonForSelling,
+
+          // Images (for now, just indicate count - file upload will be separate implementation)
+          images: [],
+
+          // Status and timestamps will be set by backend
+        };
+
+        // Submit to API
+        const response = await fetch('/api/listings', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(submissionData),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to create listing');
+        }
+
+        const result = await response.json();
+
+        toast({
+          title: "✅ Listing Created Successfully!",
+          description: "Your business listing has been created and is now active. You can view it in 'My Listings'.",
+          variant: "default"
+        });
+
+        // Reset form after successful submission
+        form.reset();
+
+        // Optional: Redirect to listings page
+        // router.push('/seller-dashboard/listings');
+      });
+    } catch (error) {
+      console.error('Error creating listing:', error);
+      toast({
+        title: "❌ Error Creating Listing",
+        description: error instanceof Error ? error.message : "An unexpected error occurred. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -252,11 +315,11 @@ export default function CreateSellerListingPage() {
                     <FormItem>
                       <FormLabel>Image {i}</FormLabel>
                       <FormControl>
-                        <Input 
-                          type="file" 
-                          onChange={(e) => field.onChange(e.target.files ? e.target.files[0] : null)} 
+                        <Input
+                          type="file"
+                          onChange={(e) => field.onChange(e.target.files ? e.target.files[0] : null)}
                           accept={ACCEPTED_IMAGE_TYPES.join(",")}
-                          disabled={isPending} 
+                          disabled={isPending}
                         />
                       </FormControl>
                       <FormMessage />
@@ -275,66 +338,28 @@ export default function CreateSellerListingPage() {
                 <FormField control={form.control} name="netProfitMarginRange" render={({ field }) => (<FormItem><FormLabel>Net Profit Margin Range (Optional)</FormLabel><Select onValueChange={field.onChange} value={field.value || ""} disabled={isPending}><FormControl><SelectTrigger><SelectValue placeholder="Select profit margin"/></SelectTrigger></FormControl><SelectContent>{profitMarginRanges.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)}/>
               </div>
               <FormField control={form.control} name="askingPrice" render={({ field }) => (<FormItem><FormLabel className="flex items-center"><NobridgeIcon icon="revenue" size="sm" className="mr-1 opacity-80"/>Asking Price (USD)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} placeholder="e.g., 750000" disabled={isPending} /></FormControl><FormDescription>Enter the specific asking price for your business.</FormDescription><FormMessage /></FormItem>)}/>
-              <FormField control={form.control} name="adjustedCashFlow" render={({ field }) => (<FormItem><FormLabel>Adjusted Cash Flow / SDE (TTM, USD)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} placeholder="e.g., 220000" disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
+              <FormField control={form.control} name="adjustedCashFlow" render={({ field }) => (<FormItem><FormLabel>Adjusted Cash Flow (TTM, USD)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} placeholder="e.g., 220000" disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
               <Separator/>
               <h3 className="text-md font-medium text-muted-foreground font-heading">Specific Financials (For Verified View)</h3>
               <FormField control={form.control} name="specificAnnualRevenueLastYear" render={({ field }) => (<FormItem><FormLabel>Actual Annual Revenue (TTM, in USD)</FormLabel><FormControl><Input type="number" {...field} value={field.value === undefined ? '' : field.value} onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} placeholder="e.g., 750000" disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
               <FormField control={form.control} name="specificNetProfitLastYear" render={({ field }) => (<FormItem><FormLabel>Actual Net Profit (TTM, in USD)</FormLabel><FormControl><Input type="number" {...field} value={field.value === undefined ? '' : field.value} onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} placeholder="e.g., 180000" disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
-              
-              <div className="space-y-2">
-                <Label className="text-md font-medium text-muted-foreground flex items-center gap-2"><NobridgeIcon icon="documents" size="sm"/>Supporting Financial Documents (For Verified Buyers Only)</Label>
-                {!isSellerVerified ? (
-                  <Card className="p-4 bg-amber-50 border-amber-200">
-                    <div className="flex items-start gap-3">
-                      <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5"/>
-                      <div>
-                        <p className="text-sm font-medium text-amber-700">Seller Verification Required</p>
-                        <p className="text-xs text-amber-600 mb-3">To upload sensitive financial documents, your seller profile must first be verified by our team.</p>
-                        <Button type="button" variant="outline" size="sm" asChild className="border-amber-500 text-amber-700 hover:bg-amber-100">
-                          <Link href="/seller-dashboard/verification">
-                            <ShieldCheck className="h-4 w-4 mr-2"/> Request Seller Verification
-                          </Link>
-                        </Button>
-                      </div>
+
+                            {!isSellerVerified && (
+                <Card className="p-4 bg-blue-50 border-blue-200">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5"/>
+                    <div>
+                      <p className="text-sm font-medium text-blue-700">Additional Financial Verification Available</p>
+                      <p className="text-xs text-blue-600 mb-3">Get your seller profile verified to access enhanced listing features and build buyer trust.</p>
+                      <Button type="button" variant="outline" size="sm" asChild className="border-blue-500 text-blue-700 hover:bg-blue-100">
+                        <Link href="/seller-dashboard/verification">
+                          <ShieldCheck className="h-4 w-4 mr-2"/> Get Verified
+                        </Link>
+                      </Button>
                     </div>
-                  </Card>
-                ) : (
-                  <>
-                    <FormField control={form.control} name="financialStatementsFile" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel htmlFor="financialStatementsFile">Financial Statements (e.g., P&amp;L, Balance Sheet)</FormLabel>
-                        <FormControl>
-                          <Input 
-                            id="financialStatementsFile" 
-                            type="file" 
-                            disabled={isPending}
-                            onChange={(e) => field.onChange(e.target.files ? e.target.files[0] : null)}
-                            accept={ACCEPTED_DOCUMENT_TYPES.join(",")}
-                          />
-                        </FormControl>
-                        <FormDescription>PDF, XLSX, CSV accepted. Max 5MB.</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-                    <FormField control={form.control} name="keyMetricsReportFile" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel htmlFor="keyMetricsReportFile">Key Metrics Report (e.g., SaaS Metrics, Analytics Summary)</FormLabel>
-                        <FormControl>
-                          <Input 
-                            id="keyMetricsReportFile" 
-                            type="file" 
-                            disabled={isPending}
-                            onChange={(e) => field.onChange(e.target.files ? e.target.files[0] : null)}
-                            accept={ACCEPTED_DOCUMENT_TYPES.join(",")}
-                          />
-                        </FormControl>
-                        <FormDescription>PDF, XLSX, CSV accepted. Max 5MB.</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-                  </>
-                )}
-              </div>
+                  </div>
+                </Card>
+              )}
             </CardContent>
           </Card>
 

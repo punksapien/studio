@@ -62,6 +62,8 @@ export async function GET(request: NextRequest) {
         admin_locked_at,
         admin_lock_reason,
         user_notes,
+        phone_number,
+        best_time_to_call,
         user_profiles!verification_requests_user_id_fkey!inner (
           id,
           full_name,
@@ -112,7 +114,7 @@ export async function GET(request: NextRequest) {
       userId: item.user_id,
       userName: item.user_profiles.full_name || 'Unknown User',
       userEmail: item.user_profiles.email,
-      userPhone: item.user_profiles.phone_number,
+      userPhone: item.phone_number || item.user_profiles.phone_number, // Use request phone first, fallback to profile
       userCountry: item.user_profiles.country,
       userRole: 'seller' as const,
       operationalStatus: item.status, // Use 'status' field to match buyer API
@@ -134,6 +136,8 @@ export async function GET(request: NextRequest) {
       adminLockedAt: item.admin_locked_at,
       adminLockReason: item.admin_lock_reason,
       userNotes: item.user_notes,
+      phoneNumber: item.phone_number, // Add phone number from request
+      bestTimeToCall: item.best_time_to_call, // Add best time to call
       createdAt: item.created_at,
       updatedAt: item.updated_at
     }));

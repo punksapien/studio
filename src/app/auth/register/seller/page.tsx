@@ -74,28 +74,46 @@ export default function SellerRegisterPage() {
 
         const result = await auth.signUp(registerData);
 
+        // Handle existing user attempting to register
         if (result.error === 'USER_EXISTS_LOGIN_FAILED') {
-          setError("This email is already registered. The password you entered was incorrect. Please try logging in or reset your password.");
+          setError("This email is already registered but the password is incorrect.");
           toast({
             variant: "destructive",
-            title: "Login Failed",
-            description: "This account already exists. Please check your password or use the 'Forgot Password' link to reset it."
+            title: "Account Exists",
+            description: (
+              <div className="space-y-2">
+                <p>This email is already registered.</p>
+                <p className="text-sm">Try logging in or reset your password if you've forgotten it.</p>
+              </div>
+            ) as any,
+            action: (
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={() => router.push('/auth/login')}>
+                  Go to Login
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => router.push('/auth/forgot-password')}>
+                  Reset Password
+                </Button>
+              </div>
+            ) as any
           });
-          return; // Stop execution
+          return;
         }
 
+        // Handle successful auto-login for existing users
         if (result.session) {
           toast({
-            title: "Login Successful!",
-            description: "You have been successfully logged in."
+            title: "Welcome Back!",
+            description: "You've been automatically logged in with your existing account."
           });
           router.push('/seller-dashboard?login_success=true');
-          return; // Stop execution
+          return;
         }
 
-        if (result.user) {
+        // Handle new registration needing email verification
+        if (result.user && result.needsVerification) {
           toast({
-            title: "Registration Successful!",
+            title: "Almost There!",
             description: "Please check your email to verify your account."
           });
           // Include the verification token in the redirect URL if available
@@ -110,14 +128,16 @@ export default function SellerRegisterPage() {
           }
 
           router.push(verifyEmailUrl.toString());
-        } else {
-           setError(result.error || "An unknown error occurred during registration.");
-           toast({
-            variant: "destructive",
-            title: "Registration Failed",
-            description: result.error || "Something went wrong. Please try again."
-          });
+          return;
         }
+
+        // Handle other errors
+        setError(result.error || "Registration failed. Please try again.");
+        toast({
+          variant: "destructive",
+          title: "Registration Failed",
+          description: result.error || "Something went wrong. Please try again."
+        });
 
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred during registration.';

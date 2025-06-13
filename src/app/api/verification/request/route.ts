@@ -19,7 +19,16 @@ export async function POST(request: NextRequest) {
 
     // Parse request body
     const body = await request.json();
-    const { request_type, listing_id, reason, action, request_id } = body;
+    const {
+      request_type,
+      listing_id,
+      reason,
+      action,
+      request_id,
+      phone_number,
+      best_time_to_call,
+      user_notes
+    } = body;
 
     // Handle different actions: 'submit' (new request) or 'bump' (bump existing)
     const requestAction = action || 'submit';
@@ -111,29 +120,17 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Create new verification request
-      const newRequest = {
-        user_id: authResult.user.id,
-        listing_id: listing_id || null,
-        request_type,
-        // ✅ PRODUCTION: Requests go to admin queue for manual review
-        // Removed MVP auto-approval logic to restore proper admin workflow
-        status: 'New Request', // Changed from 'Approved' to require admin review
-        reason,
-        admin_notes: null, // Removed auto-approval message - let admin add notes
-        documents_submitted: [],
-        last_request_time: new Date().toISOString(),
-        bump_count: 0,
-        priority_score: 0,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-
-      const { data: createdRequest, error: createError } = await supabase
-        .from('verification_requests')
-        .insert(newRequest)
-        .select()
-        .single();
+      // Use atomic function to create verification request and update user status
+      const { data: result, error: createError } = await supabase
+        .rpc('create_verification_request', {
+          p_user_id: authResult.user.id,
+          p_listing_id: listing_id || null,
+          p_request_type: request_type,
+          p_reason: reason,
+          p_phone_number: phone_number || authResult.profile.phone_number,
+          p_best_time_to_call: best_time_to_call || null,
+          p_user_notes: user_notes || null
+        });
 
       if (createError) {
         console.error('Error creating verification request:', createError);
@@ -143,39 +140,41 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Create notification for user
-      await supabase
-        .from('notifications')
-        .insert({
-          user_id: authResult.user.id,
-          type: 'verification',
-          message: `Your ${request_type.replace('_', ' ')} request has been submitted and is under review.`,
-          link: `/seller-dashboard/verification`,
-          is_read: false
-        });
+      // Check if the function returned a result
+      if (!result || result.length === 0) {
+        console.error('No result from create_verification_request function');
+        return NextResponse.json(
+          { error: 'Failed to create verification request - no result' },
+          { status: 500 }
+        );
+      }
 
-      // ✅ PRODUCTION: Set user status to pending_verification for admin review
-      // Removed MVP auto-approval logic to restore proper admin workflow
-      const { error: profileUpdateError } = await supabase
-        .from('user_profiles')
-        .update({
-          verification_status: 'pending_verification', // Changed from 'verified' to require admin approval
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', authResult.user.id);
+      const functionResult = result[0];
 
-      if (profileUpdateError) {
-        console.warn('Warning: Failed to update user profile verification status:', profileUpdateError);
-        // Don't fail the whole request for this
+      // Check if the operation was successful
+      if (!functionResult.success) {
+        return NextResponse.json(
+          { error: functionResult.message || 'Failed to create verification request' },
+          { status: 400 }
+        );
       }
 
       const responseTime = Date.now() - startTime;
 
-      console.log(`[VERIFICATION-REQUEST] New ${request_type} request created for user ${authResult.user.id} in ${responseTime}ms`);
+      console.log(`[VERIFICATION-REQUEST] New ${request_type} request created for user ${authResult.user.id} (request_id: ${functionResult.request_id}) in ${responseTime}ms`);
 
       return NextResponse.json({
         success: true,
-        request: createdRequest,
+        request: {
+          id: functionResult.request_id,
+          user_id: authResult.user.id,
+          request_type,
+          status: 'New Request',
+          reason,
+          phone_number: phone_number || authResult.profile.phone_number,
+          best_time_to_call: best_time_to_call || null,
+          user_notes: user_notes || null
+        },
         // ✅ PRODUCTION: Updated message for admin review workflow
         message: `Your ${request_type.replace('_', ' ')} request has been submitted successfully. Our team will review it and contact you soon.`,
         responseTime

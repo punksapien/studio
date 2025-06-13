@@ -98,140 +98,90 @@ export async function PUT(
       });
     }
 
-    // First, get the current verification request to check if it exists and get user info
-    const { data: currentRequest, error: fetchError } = await supabase
-      .from('verification_requests')
-      .select(`
-        id,
-        user_id,
-        status,
-        admin_notes,
-        user_profiles!verification_requests_user_id_fkey!inner (
-          id,
-          verification_status,
-          full_name,
-          email
-        )
-      `)
-      .eq('id', id)
-      .single();
+    // Use atomic function to update verification status
+    if (operationalStatus || profileStatus || adminNote) {
+      const { data: updateResult, error: updateError } = await supabase
+        .rpc('update_verification_status', {
+          p_request_id: id,
+          p_new_operational_status: operationalStatus || null,
+          p_new_profile_status: profileStatus || null,
+          p_admin_note: adminNote || null,
+          p_admin_name: adminName || authResult.profile.full_name || 'Admin'
+        });
 
-    if (fetchError || !currentRequest) {
-      console.error('Verification request not found:', fetchError);
-      return NextResponse.json(
-        { error: 'Verification request not found' },
-        { status: 404 }
-      );
-    }
-
-    // Prepare updates
-    const updates: any = {
-      updated_at: new Date().toISOString()
-    };
-
-    // Update operational status if provided
-    if (operationalStatus) {
-      updates.status = operationalStatus;
-    }
-
-    // Auto-sync operational status with profile status for consistency
-    if (profileStatus) {
-      if (profileStatus === 'rejected') {
-        updates.status = 'Rejected';
-      } else if (profileStatus === 'verified') {
-        updates.status = 'Approved';
-      }
-    }
-
-    // Handle admin notes - append new note to existing notes
-    if (adminNote) {
-      const currentNotes = currentRequest.admin_notes || [];
-      const newNote = {
-        id: Date.now().toString(),
-        content: adminNote,
-        createdAt: new Date().toISOString(),
-        createdBy: adminName || authResult.profile.full_name || 'Admin',
-        operationalStatus: operationalStatus || currentRequest.status,
-        profileStatus: profileStatus || currentRequest.user_profiles.verification_status
-      };
-
-      const updatedNotes = Array.isArray(currentNotes)
-        ? [...currentNotes, newNote]
-        : [newNote];
-
-      updates.admin_notes = updatedNotes;
-    }
-
-    // Update verification request
-    const { data: updatedRequest, error: updateError } = await supabase
-      .from('verification_requests')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (updateError) {
-      console.error('Error updating verification request:', updateError);
-      return NextResponse.json(
-        { error: 'Failed to update verification request' },
-        { status: 500 }
-      );
-    }
-
-    // Update user profile verification status if provided
-    if (profileStatus) {
-      const { error: profileUpdateError } = await supabase
-        .from('user_profiles')
-        .update({
-          verification_status: profileStatus,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', currentRequest.user_id);
-
-      if (profileUpdateError) {
-        console.error('Error updating user profile status:', profileUpdateError);
+      if (updateError) {
+        console.error('Error updating verification status:', updateError);
         return NextResponse.json(
-          { error: 'Failed to update user profile status' },
+          { error: 'Failed to update verification status: ' + updateError.message },
           { status: 500 }
         );
       }
-    }
 
-    // Create notification for user about status change
-    if (operationalStatus || profileStatus) {
-      const notificationMessage = operationalStatus
-        ? `Your verification request status has been updated to: ${operationalStatus}`
-        : `Your profile verification status has been updated to: ${profileStatus}`;
+      if (!updateResult || updateResult.length === 0) {
+        return NextResponse.json(
+          { error: 'No result from update function' },
+          { status: 500 }
+        );
+      }
 
-      await supabase
-        .from('notifications')
-        .insert({
-          user_id: currentRequest.user_id,
-          type: 'verification',
-          message: notificationMessage,
-          link: '/seller-dashboard/verification',
-          is_read: false,
-          created_at: new Date().toISOString()
+      const result = updateResult[0];
+
+      if (!result.success) {
+        return NextResponse.json(
+          { error: result.message || 'Failed to update verification status' },
+          { status: 400 }
+        );
+      }
+
+      const responseTime = Date.now() - startTime;
+
+      console.log(`[ADMIN-VERIFICATION-UPDATE] Request ${id} updated by admin ${authResult.user.id} in ${responseTime}ms`);
+      console.log(`[ADMIN-VERIFICATION-UPDATE] Changes - Operational: ${operationalStatus || 'unchanged'}, Profile: ${profileStatus || 'unchanged'}, Note: ${adminNote ? 'added' : 'none'}`);
+
+      // Fetch the updated request to return current state
+      const { data: updatedRequest, error: fetchError } = await supabase
+        .from('verification_requests')
+        .select(`
+          id,
+          status,
+          admin_notes,
+          updated_at,
+          user_profiles!verification_requests_user_id_fkey!inner (
+            verification_status
+          )
+        `)
+        .eq('id', id)
+        .single();
+
+      if (fetchError || !updatedRequest) {
+        console.error('Error fetching updated request:', fetchError);
+        // Don't fail the whole request, just return success
+        return NextResponse.json({
+          success: true,
+          message: result.message,
+          responseTime
         });
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: 'Verification status updated successfully',
+        data: {
+          id: updatedRequest.id,
+          operationalStatus: updatedRequest.status,
+          profileStatus: updatedRequest.user_profiles.verification_status,
+          adminNotes: updatedRequest.admin_notes,
+          updatedAt: updatedRequest.updated_at
+        },
+        responseTime
+      });
     }
 
-    const responseTime = Date.now() - startTime;
-
-    console.log(`[ADMIN-VERIFICATION-UPDATE] Request ${id} updated by admin ${authResult.user.id} in ${responseTime}ms`);
-    console.log(`[ADMIN-VERIFICATION-UPDATE] Changes - Operational: ${operationalStatus || 'unchanged'}, Profile: ${profileStatus || 'unchanged'}, Note: ${adminNote ? 'added' : 'none'}`);
-
-    return NextResponse.json({
-      success: true,
-      message: 'Verification request updated successfully',
-      data: {
-        id: updatedRequest.id,
-        operationalStatus: updatedRequest.status,
-        profileStatus: profileStatus || currentRequest.user_profiles.verification_status,
-        adminNotes: updatedRequest.admin_notes,
-        updatedAt: updatedRequest.updated_at
-      },
-      responseTime
-    });
+    // If no update operation was requested
+    return NextResponse.json(
+      { error: 'No update operation specified' },
+      { status: 400 }
+    );
 
   } catch (error) {
     const responseTime = Date.now() - startTime;

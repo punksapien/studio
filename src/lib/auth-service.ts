@@ -213,7 +213,7 @@ export class AuthenticationService {
         first_name: metadata.firstName || '',
         last_name: metadata.lastName || '',
         company_name: metadata.companyName || '',
-        verification_status: 'pending_verification', // 🔧 FIX: Use correct enum value
+        verification_status: 'anonymous', // ✅ FIX: New users start as anonymous, not pending
         is_onboarding_completed: false, // Start fresh
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()

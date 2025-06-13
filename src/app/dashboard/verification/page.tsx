@@ -19,7 +19,7 @@ let currentUser: User | undefined = sampleUsers.find(u => u.id === currentBuyerI
 
 export default function BuyerVerificationPage() {
   const { toast } = useToast();
-  
+
   // Local state to manage if the current user has just submitted a request
   // This is to reflect immediate UI change before a full state refresh might occur
   const [justSubmitted, setJustSubmitted] = useState(false);
@@ -55,13 +55,13 @@ export default function BuyerVerificationPage() {
     const bestTimeToCall = formData.get('bestTimeToCall') as string;
     const notes = formData.get('notes') as string;
 
-    console.log("Buyer verification request submitted:", { 
-        buyerId: userState.id, 
+    console.log("Buyer verification request submitted:", {
+        buyerId: userState.id,
         buyerName: userState.fullName,
-        bestTimeToCall, 
-        notes 
+        bestTimeToCall,
+        notes
     });
-    
+
     // Simulate API call & data update
     await new Promise(resolve => setTimeout(resolve, 1000));
 
@@ -78,13 +78,21 @@ export default function BuyerVerificationPage() {
         userId: userState.id,
         userName: userState.fullName,
         userRole: 'buyer',
+        userEmail: userState.email,
+        userPhone: userState.phoneNumber,
         reason: 'User requested profile verification.',
         operationalStatus: 'New Request',
         profileStatus: 'pending_verification',
-        adminNotes: notes,
+
+        // Contact preferences from form
+        phoneNumber: userState.phoneNumber,
+        bestTimeToCall: bestTimeToCall,
+        userNotes: notes,
+
+        adminNotes: [], // Initialize empty admin notes array
         documentsSubmitted: [], // Assuming no docs uploaded initially via this simple form
     });
-    
+
     setJustSubmitted(true); // Trigger re-render via useEffect or direct state update
     setUserState(prev => prev ? {...prev, verificationStatus: 'pending_verification'} : undefined);
 
@@ -108,7 +116,7 @@ export default function BuyerVerificationPage() {
             </CardHeader>
             <CardContent>
               <p className="text-green-600 dark:text-green-400">
-                Congratulations! Your buyer profile is fully verified. 
+                Congratulations! Your buyer profile is fully verified.
                 You have access to all platform features, including viewing detailed information on verified listings and engaging with verified sellers.
               </p>
             </CardContent>
@@ -124,7 +132,7 @@ export default function BuyerVerificationPage() {
             </CardHeader>
             <CardContent>
               <p className="text-blue-600 dark:text-blue-400">
-                Your verification request has been submitted or is being processed. Our team is reviewing your information and will contact you soon. 
+                Your verification request has been submitted or is being processed. Our team is reviewing your information and will contact you soon.
                 Please check your email for updates from our team.
               </p>
             </CardContent>
@@ -159,13 +167,13 @@ export default function BuyerVerificationPage() {
             <ShieldCheck className="h-7 w-7 text-primary" /> Become a Verified Buyer
             </CardTitle>
             <CardDescription>
-            Unlock full platform access by verifying your profile. 
+            Unlock full platform access by verifying your profile.
             Verified buyers gain trust and can view detailed information on verified listings and engage with verified sellers.
             </CardDescription>
         </CardHeader>
         <CardContent>
             <p className="mb-4 text-muted-foreground">
-            The verification process typically involves a short call with our team to confirm your details. 
+            The verification process typically involves a short call with our team to confirm your details.
             Please provide some information to help us schedule this call.
             </p>
             <form onSubmit={handleRequestVerification} className="space-y-6">
@@ -206,4 +214,3 @@ function FormItemDisabled({ label, value }: { label: string; value?: string }) {
   );
 }
 
-    

@@ -72,11 +72,45 @@ export class MiddlewareAuthenticationService {
       if (user && !error) {
         console.log(`[MIDDLEWARE-AUTH] ${correlationId} | Compatible cookie auth successful. User: ${user.id}`)
 
+        // Check if email is confirmed before proceeding
+        const { data: authUser } = await supabase.auth.admin?.getUserById?.(user.id) || { data: null }
+        const isEmailConfirmed = authUser?.user?.email_confirmed_at != null
+
+        if (!isEmailConfirmed) {
+          console.log(`[MIDDLEWARE-AUTH] ${correlationId} | User ${user.id} has unconfirmed email. Allowing limited access.`)
+          // For unconfirmed emails, we still need to get/create a basic profile
+        }
+
         // Get profile using the same client
         const profile = await this.getProfileUsingCompatibleClient(supabase, user.id, correlationId)
 
         if (!profile) {
           console.warn(`[MIDDLEWARE-AUTH] ${correlationId} | User ${user.id} found via cookie, but profile missing.`)
+
+          // Try to recover profile for unconfirmed users
+          if (!isEmailConfirmed) {
+            console.log(`[MIDDLEWARE-AUTH] ${correlationId} | Attempting profile recovery for unconfirmed user ${user.id}`)
+            // Return partial success to allow verify-email page access
+            return {
+              success: true,
+              user,
+              profile: {
+                id: user.id,
+                email: user.email || '',
+                role: 'buyer' as const,
+                is_email_verified: false,
+                is_onboarding_completed: false,
+                onboarding_step_completed: 0,
+                verification_status: 'anonymous',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              },
+              correlationId,
+              strategy: 'compatible-cookie-unconfirmed',
+              executionTime: Date.now() - startTime
+            }
+          }
+
           const authError = AuthErrorFactory.createError(
             AuthErrorType.PROFILE_NOT_FOUND,
             'User profile not found after cookie authentication.',

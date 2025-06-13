@@ -28,17 +28,24 @@ function getJwtSecret(): string {
 export async function generateVerificationToken(email: string, expiresIn: number = 3600): Promise<string> {
   const secret = getJwtSecret();
 
+  // Validate expiry parameter
+  if (typeof expiresIn !== 'number' || isNaN(expiresIn) || expiresIn <= 0) {
+    console.error(`[VERIFICATION-TOKEN] Invalid expiresIn value: ${expiresIn}, using default 3600s`);
+    expiresIn = 3600;
+  }
+
   const payload = {
     email,
-    type: 'email_verification',
-    iat: Math.floor(Date.now() / 1000),
-    exp: Math.floor(Date.now() / 1000) + expiresIn
+    type: 'email_verification'
   };
+
+  // Use string format for expiration time (e.g., '1h' for 1 hour)
+  const expiryString = `${expiresIn}s`;
 
   const token = await new SignJWT(payload)
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
-    .setExpirationTime(new Date(Date.now() + (expiresIn * 1000)))
+    .setExpirationTime(expiryString)
     .sign(new TextEncoder().encode(secret));
 
   console.log(`[VERIFICATION-TOKEN] Generated token for ${email} (exp: ${expiresIn}s)`)
@@ -144,9 +151,9 @@ export async function isEmailPendingVerification(email: string): Promise<boolean
 // Helper functions to ensure consistent JWT configuration
 
 function getIssuer(): string {
-  return getServerEnv('NEXT_PUBLIC_APP_URL') || 'https://nobridge.ai'
+  return process.env.NEXT_PUBLIC_APP_URL || 'https://nobridge.ai'
 }
 
 function getAudience(): string {
-  return getServerEnv('NEXT_PUBLIC_APP_URL') || 'https://nobridge.ai'
+  return process.env.NEXT_PUBLIC_APP_URL || 'https://nobridge.ai'
 }

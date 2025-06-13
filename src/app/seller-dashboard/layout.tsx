@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import * as React from 'react';
+import { useCurrentUser } from '@/hooks/use-current-user';
 import {
   SidebarProvider,
   Sidebar,
@@ -36,8 +37,7 @@ import {
 } from 'lucide-react';
 import type { UserRole } from '@/lib/types';
 import LogoutButton from '@/components/auth/LogoutButton';
-
-const currentUserRole: UserRole | null = 'seller';
+import { Loader2 } from 'lucide-react';
 
 const sellerSidebarNavItems = [
   { title: 'Overview', href: '/seller-dashboard', icon: LayoutDashboard, tooltip: "Dashboard Overview" },
@@ -64,13 +64,36 @@ export default function SellerDashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const { user, profile, loading, error } = useCurrentUser();
 
-  if (currentUserRole !== 'seller') {
-     return (
+  // Show loading state while fetching user data - but don't block access
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="mt-4 text-lg text-muted-foreground">Loading dashboard...</p>
+      </div>
+    );
+  }
+
+  // If we have profile data, check role-based access
+  // If no profile data, trust middleware and render dashboard (middleware handles auth)
+  if (profile && profile.role !== 'seller') {
+    return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background">
         <Logo size="2xl" forceTheme="light"/>
-        <p className="mt-4 text-lg text-muted-foreground">Access Denied or incorrect role. This is the Seller Dashboard.</p>
-        <Button asChild className="mt-4"><Link href="/">Go to Homepage</Link></Button>
+        <h1 className="mt-4 text-2xl font-bold text-foreground">Access Denied</h1>
+        <p className="mt-2 text-lg text-muted-foreground">
+          You must be logged in as a seller to view this page.
+        </p>
+        <p className="text-sm text-muted-foreground mb-4">
+          Your current role: {profile.role}
+        </p>
+        <Button asChild className="mt-4">
+          <Link href={profile.role === 'admin' ? '/admin' : '/dashboard'}>
+            Go to {profile.role === 'admin' ? 'Admin' : 'Buyer'} Dashboard
+          </Link>
+        </Button>
       </div>
     );
   }

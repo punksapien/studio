@@ -160,10 +160,8 @@ export const auth = {
         let verificationToken = '';
         try {
           const { generateVerificationToken } = await import('./verification-token');
-          verificationToken = await generateVerificationToken(email, {
-            type: 'register',
-            redirectTo: `/${registerData.role === 'seller' ? 'seller-' : ''}dashboard`
-          });
+          // Pass the correct parameters - generateVerificationToken expects (email, expiresIn)
+          verificationToken = await generateVerificationToken(email, 3600); // 1 hour expiry
           console.log(`Generated verification token for ${email} (token length: ${verificationToken.length})`);
         } catch (tokenError) {
           console.error('Failed to generate verification token:', tokenError);

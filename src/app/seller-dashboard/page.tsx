@@ -275,44 +275,76 @@ export default function SellerDashboard() {
                   )}
                 </div>
 
-                {/* 🚀 MVP SIMPLIFICATION: Direct verification button (no modal dialog) */}
-                {/* Original: VerificationRequestModal wrapper with complex dialog flow */}
-                {/* MVP: One-click verification with instant auto-approval */}
-                <Button
-                  size="sm"
-                  onClick={handleDirectVerificationRequest}
-                  disabled={isSubmittingVerification || (verificationInfo.disabled && !verificationInfo.canBump)}
-                  variant={verificationInfo.canBump ? "default" : "secondary"}
-                  className={`
-                    ${verificationInfo.canBump ? "bg-green-600 hover:bg-green-700 text-white" : ""}
-                    ${!verificationInfo.canBump && !verificationInfo.disabled ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}
-                    ${verificationInfo.disabled && !verificationInfo.canBump ?
-                      "bg-muted text-muted-foreground border-border opacity-60 cursor-not-allowed hover:bg-muted" : ""
-                    }
-                  `}
-                >
-                  {isSubmittingVerification ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Verifying...
-                    </>
-                  ) : verificationInfo.canBump ? (
-                    <>
-                      <TrendingUp className="h-4 w-4 mr-2" />
-                      Bump to Top
-                    </>
-                  ) : verificationInfo.disabled ? (
-                    <>
-                      <Timer className="h-4 w-4 mr-2" />
-                      {verificationInfo.actionText}
-                    </>
-                  ) : (
-                    <>
-                      <Send className="h-4 w-4 mr-2" />
-                      {verificationInfo.actionText}
-                    </>
-                  )}
-                </Button>
+                {/* Proper verification workflow: redirect to form page */}
+                {verificationStatus === 'anonymous' ? (
+                  <Link href="/seller-dashboard/verification">
+                    <Button
+                      size="sm"
+                      disabled={verificationInfo.disabled}
+                      variant="secondary"
+                      className={`
+                        ${!verificationInfo.disabled ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}
+                        ${verificationInfo.disabled ?
+                          "bg-muted text-muted-foreground border-border opacity-60 cursor-not-allowed hover:bg-muted" : ""
+                        }
+                      `}
+                    >
+                      {verificationInfo.disabled ? (
+                        <>
+                          <Timer className="h-4 w-4 mr-2" />
+                          {verificationInfo.actionText}
+                        </>
+                      ) : (
+                        <>
+                          <Send className="h-4 w-4 mr-2" />
+                          {verificationInfo.actionText}
+                        </>
+                      )}
+                    </Button>
+                  </Link>
+                ) : verificationStatus === 'pending_verification' ? (
+                  <Link href="/seller-dashboard/verification">
+                    <Button
+                      size="sm"
+                      variant={verificationInfo.canBump ? "default" : "secondary"}
+                      className={`
+                        ${verificationInfo.canBump ? "bg-green-600 hover:bg-green-700 text-white" : ""}
+                      `}
+                    >
+                      {verificationInfo.canBump ? (
+                        <>
+                          <TrendingUp className="h-4 w-4 mr-2" />
+                          Bump to Top
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="h-4 w-4 mr-2" />
+                          {verificationInfo.actionText}
+                        </>
+                      )}
+                    </Button>
+                  </Link>
+                ) : (
+                  <Link href="/seller-dashboard/verification">
+                    <Button
+                      size="sm"
+                      disabled={verificationInfo.disabled}
+                      variant="secondary"
+                    >
+                      {verificationInfo.disabled ? (
+                        <>
+                          <Timer className="h-4 w-4 mr-2" />
+                          {verificationInfo.actionText}
+                        </>
+                      ) : (
+                        <>
+                          <Send className="h-4 w-4 mr-2" />
+                          {verificationInfo.actionText}
+                        </>
+                      )}
+                    </Button>
+                  </Link>
+                )}
               </div>
             </CardContent>
           )}

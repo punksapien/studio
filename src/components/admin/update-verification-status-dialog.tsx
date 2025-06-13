@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -201,6 +200,34 @@ export function UpdateVerificationStatusDialog({
                   <span className="text-sm text-muted-foreground">Role:</span>
                   <Badge variant="outline" className="capitalize text-xs">{request.userRole}</Badge>
                 </div>
+
+                {/* User Contact Information Section */}
+                <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md border border-blue-200 dark:border-blue-800">
+                  <h4 className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2 flex items-center">
+                    <UserCircle className="h-4 w-4 mr-1" />
+                    Contact Information & Preferences
+                  </h4>
+                  <div className="grid sm:grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <span className="font-medium text-blue-800 dark:text-blue-200">Phone:</span>
+                      <span className="ml-1 text-blue-700 dark:text-blue-300">
+                        {request.phoneNumber || request.userPhone || 'Not provided'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="font-medium text-blue-800 dark:text-blue-200">Best time to call:</span>
+                      <span className="ml-1 text-blue-700 dark:text-blue-300">
+                        {request.bestTimeToCall || 'No preference'}
+                      </span>
+                    </div>
+                  </div>
+                  {request.userNotes && (
+                    <div className="mt-2">
+                      <span className="font-medium text-blue-800 dark:text-blue-200">User Notes:</span>
+                      <p className="text-blue-700 dark:text-blue-300 text-xs mt-1 whitespace-pre-wrap">{request.userNotes}</p>
+                    </div>
+                  )}
+                </div>
               </DialogHeader>
 
               <div className="grid md:grid-cols-2 gap-6 p-6 flex-grow overflow-y-auto">
@@ -246,7 +273,7 @@ export function UpdateVerificationStatusDialog({
                 <div className="space-y-2 flex flex-col overflow-hidden">
                   <Label className="text-sm font-medium text-foreground">Notes History ({currentAdminNotes.length})</Label>
                   {currentAdminNotes.length > 0 ? (
-                    <ScrollArea className="border rounded-md p-3 h-80 sm:h-[calc(100%-2rem)] bg-muted/30 flex-grow"> 
+                    <ScrollArea className="border rounded-md p-3 h-80 sm:h-[calc(100%-2rem)] bg-muted/30 flex-grow">
                       <div className="space-y-3">
                         {currentAdminNotes.slice().reverse().map(note => (
                           <div key={note.id} className="text-xs p-2.5 border rounded-md bg-background shadow-sm relative group">

@@ -268,6 +268,11 @@ export interface VerificationRequestItem {
   adminNotes?: AdminNote[];
   documentsSubmitted?: { name: string, type: 'id_proof' | 'business_reg' | 'financials' }[];
   updatedAt?: Date;
+
+  // Contact preferences from verification form
+  phoneNumber?: string;  // Alternative to userPhone for consistency
+  bestTimeToCall?: string;
+  userNotes?: string;  // User's additional notes/questions
 }
 
 

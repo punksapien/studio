@@ -24,34 +24,49 @@ export function DebugState() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
 
+  const fetchDebugInfo = async () => {
+    setIsLoading(true);
+    try {
+      const profile = await auth.getCurrentUserProfile();
+      const { data: sessionData } = await auth.getCurrentUserAndSession();
+      const session = sessionData.session;
+
+      setDebugInfo({
+        isAuthenticated: !!session?.user,
+        userId: session?.user?.id,
+        role: profile?.role,
+        email: session?.user?.email,
+        isEmailVerified: profile?.is_email_verified,
+        onboardingComplete: profile?.onboarding_complete,
+        profileId: profile?.id,
+        pathname: pathname,
+      });
+    } catch (error) {
+      console.error('[DebugState] Error fetching state:', error);
+      setDebugInfo({ isAuthenticated: false, pathname });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchDebugInfo = async () => {
-      setIsLoading(true);
-      try {
-        const profile = await auth.getCurrentUserProfile();
-        const { data: sessionData } = await auth.getCurrentUserAndSession();
-        const session = sessionData.session;
-
-        setDebugInfo({
-          isAuthenticated: !!session?.user,
-          userId: session?.user?.id,
-          role: profile?.role,
-          email: session?.user?.email,
-          isEmailVerified: profile?.is_email_verified,
-          onboardingComplete: profile?.onboarding_complete,
-          profileId: profile?.id,
-          pathname: pathname,
-        });
-      } catch (error) {
-        console.error('[DebugState] Error fetching state:', error);
-        setDebugInfo({ isAuthenticated: false, pathname });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchDebugInfo();
   }, [pathname]); // Refetch when path changes
+
+  // Subscribe to auth state changes for real-time updates
+  useEffect(() => {
+    const { data: authListener } = auth.onAuthStateChange(() => {
+      fetchDebugInfo();
+    });
+
+    // Poll every 3 seconds for extra freshness (catches edge cases)
+    const interval = setInterval(fetchDebugInfo, 3000);
+
+    return () => {
+      authListener?.subscription?.unsubscribe();
+      clearInterval(interval);
+    };
+  }, []);
 
   // Only render in development environment
   if (process.env.NODE_ENV !== 'development') {

@@ -60,7 +60,18 @@ export function useSellerDashboard(): DashboardData {
 
         // Handle rate limiting with exponential backoff
         if (response.status === 429) {
-          if (i === retries - 1) throw new Error('Rate limited - please try again in a moment')
+          // Don't throw error on last retry - return a mock response instead
+          if (i === retries - 1) {
+            console.warn(`[RATE-LIMIT] Max retries reached for ${url}, returning cached/default data`)
+            // Return a mock response that won't crash the app
+            return new Response(JSON.stringify({
+              error: 'rate_limited',
+              message: 'Data temporarily unavailable due to rate limiting'
+            }), {
+              status: 429,
+              headers: { 'Content-Type': 'application/json' }
+            })
+          }
 
           console.log(`[RATE-LIMIT] Request rate limited, retrying in ${delay}ms (attempt ${i + 1}/${retries})`)
           await sleep(delay)
@@ -70,12 +81,29 @@ export function useSellerDashboard(): DashboardData {
 
         return response
       } catch (error) {
-        if (i === retries - 1) throw error
+        if (i === retries - 1) {
+          // Return error response instead of throwing
+          console.error(`[FETCH-ERROR] Failed to fetch ${url} after ${retries} attempts:`, error)
+          return new Response(JSON.stringify({
+            error: 'network_error',
+            message: 'Network error - please check your connection'
+          }), {
+            status: 503,
+            headers: { 'Content-Type': 'application/json' }
+          })
+        }
         await sleep(delay)
         delay *= 2
       }
     }
-    throw new Error('Max retries exceeded')
+    // This should never be reached, but just in case
+    return new Response(JSON.stringify({
+      error: 'unknown_error',
+      message: 'An unexpected error occurred'
+    }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    })
   }
 
   const fetchDashboardData = useCallback(async (isBackgroundRefresh = false) => {
@@ -94,31 +122,53 @@ export function useSellerDashboard(): DashboardData {
 
       // Use retry logic for all requests
       const userResponse = await fetchWithRetry('/api/auth/current-user')
-      if (!userResponse.ok) {
-        throw new Error(userResponse.status === 429 ? 'Too many requests - please wait a moment' : 'Failed to fetch user data')
-      }
       const userData = await userResponse.json()
 
-      const listingsResponse = await fetchWithRetry('/api/user/listings?limit=50&sort_by=updated_at&sort_order=desc')
-      if (!listingsResponse.ok) {
-        throw new Error(listingsResponse.status === 429 ? 'Too many requests - please wait a moment' : 'Failed to fetch listings')
+      // Handle rate limited or error responses gracefully
+      if (userData.error === 'rate_limited') {
+        console.log('[DASHBOARD] User data rate limited, using cached data')
+        // Don't crash - just skip update if we don't have cached data
+        if (!data.user) {
+          setData(prev => ({
+            ...prev,
+            isLoading: false,
+            error: 'Loading data... Please wait a moment.'
+          }))
+          return
+        }
+        // Otherwise continue with cached user data
+      } else if (!userResponse.ok || userData.error) {
+        console.warn('[DASHBOARD] Failed to fetch user data, continuing with cached data')
+        if (!data.user) {
+          setData(prev => ({
+            ...prev,
+            isLoading: false,
+            error: 'Unable to load user data. Please refresh the page.'
+          }))
+          return
+        }
       }
+
+      const listingsResponse = await fetchWithRetry('/api/user/listings?limit=50&sort_by=updated_at&sort_order=desc')
       const listingsData = await listingsResponse.json()
 
+      // Handle errors gracefully - use empty data instead of crashing
+      const listings = (listingsData.error || !listingsResponse.ok) ? [] : (listingsData.listings || [])
+
       const inquiriesResponse = await fetchWithRetry('/api/inquiries?role=seller&limit=100')
-      if (!inquiriesResponse.ok) {
-        throw new Error(inquiriesResponse.status === 429 ? 'Too many requests - please wait a moment' : 'Failed to fetch inquiries')
-      }
       const inquiriesData = await inquiriesResponse.json()
 
+      // Handle errors gracefully
+      const inquiries = (inquiriesData.error || !inquiriesResponse.ok) ? [] : (inquiriesData.inquiries || [])
+
       const activeStatuses = ['active', 'verified_anonymous', 'verified_with_financials', 'pending_verification']
-      const activeListings = listingsData.listings?.filter(
+      const activeListings = listings.filter(
         (listing: any) => activeStatuses.includes(listing.status)
       ) || []
 
       const activeListingsCount = activeListings.length
       const totalInquiriesReceived = inquiriesData.pagination?.total || 0
-      const inquiriesAwaitingEngagement = inquiriesData.inquiries?.filter(
+      const inquiriesAwaitingEngagement = inquiries.filter(
         (inq: any) => inq.status === 'new_inquiry'
       ).length || 0
 
@@ -133,7 +183,7 @@ export function useSellerDashboard(): DashboardData {
         title: listing.listing_title_anonymous || listing.title || 'Untitled Listing',
         status: listing.status,
         asking_price: listing.asking_price,
-        inquiry_count: inquiriesData.inquiries?.filter((inq: any) => inq.listing_id === listing.id).length || 0
+        inquiry_count: inquiries.filter((inq: any) => inq.listing_id === listing.id).length || 0
       }))
 
       const newData = {

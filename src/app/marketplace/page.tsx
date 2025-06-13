@@ -9,40 +9,70 @@ import { ListingCard } from '@/components/marketplace/listing-card';
 import { Filters } from '@/components/marketplace/filters';
 import { SortDropdown } from '@/components/marketplace/sort-dropdown';
 import { PaginationControls } from '@/components/shared/pagination-controls';
-import { sampleListings } from '@/lib/placeholder-data';
-import type { Listing } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
-import { SlidersHorizontal, Briefcase } from 'lucide-react';
+import { SlidersHorizontal, Briefcase, AlertCircle } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
-// Simulate fetching data for the full marketplace with pagination
-async function getPaginatedListings(page: number = 1, limit: number = 9): Promise<{ listings: Listing[], totalPages: number, totalListings: number }> {
-  await new Promise(resolve => setTimeout(resolve, 300)); 
-  
-  const totalListings = sampleListings.length;
-  const startIndex = (page - 1) * limit;
-  const endIndex = startIndex + limit;
-  const paginatedListings = sampleListings.slice(startIndex, endIndex);
-  const totalPages = Math.ceil(totalListings / limit);
-  return { listings: paginatedListings, totalPages, totalListings };
+// Real API function to fetch marketplace listings with filters and pagination
+async function getMarketplaceListings(
+  page: number = 1,
+  limit: number = 9,
+  filters: {
+    search?: string;
+    industry?: string;
+    country?: string;
+    minPrice?: string;
+    maxPrice?: string;
+    sortBy?: string;
+    sortOrder?: string;
+  } = {}
+): Promise<{ listings: any[], totalPages: number, totalListings: number }> {
+  const searchParams = new URLSearchParams({
+    page: page.toString(),
+    limit: limit.toString(),
+    ...(filters.search && { search: filters.search }),
+    ...(filters.industry && { industry: filters.industry }),
+    ...(filters.country && { country: filters.country }),
+    ...(filters.minPrice && { minPrice: filters.minPrice }),
+    ...(filters.maxPrice && { maxPrice: filters.maxPrice }),
+    ...(filters.sortBy && { sort_by: filters.sortBy }),
+    ...(filters.sortOrder && { sort_order: filters.sortOrder }),
+  });
+
+  const response = await fetch(`/api/listings?${searchParams.toString()}`);
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch listings: ${response.status} ${response.statusText}`);
+  }
+
+  const data = await response.json();
+
+  return {
+    listings: data.listings || [],
+    totalPages: data.pagination?.totalPages || 0,
+    totalListings: data.pagination?.total || 0
+  };
 }
 
 export default function MarketplacePage() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { toast } = useToast();
 
-  const [listings, setListings] = useState<Listing[]>([]);
+  const [listings, setListings] = useState<any[]>([]);
   const [totalPages, setTotalPages] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [totalListings, setTotalListings] = useState(0);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Placeholder for authentication - in a real app, use Clerk's useAuth hook
-  const [isAuthenticated, setIsAuthenticated] = useState(true); // Default to true for dev
-  const [authLoading, setAuthLoading] = useState(false); // Simulate auth check loading
+  // Authentication can be added later - for now allow public access
+  const [isAuthenticated, setIsAuthenticated] = useState(true);
+  const [authLoading, setAuthLoading] = useState(false);
 
   useEffect(() => {
     // Simulate auth check
@@ -57,23 +87,43 @@ export default function MarketplacePage() {
   }, [authLoading, isAuthenticated, router, pathname, searchParams]);
 
   useEffect(() => {
-    if (authLoading || !isAuthenticated) return; // Don't fetch if auth is loading or not authenticated
+    if (authLoading || !isAuthenticated) return;
 
     setIsLoading(true);
-    const pageQuery = searchParams.get('page');
-    const page = pageQuery ? parseInt(pageQuery, 10) : 1;
+    setError(null);
+
+    // Extract filters from URL params
+    const page = parseInt(searchParams.get('page') || '1', 10);
+    const filters = {
+      search: searchParams.get('search') || undefined,
+      industry: searchParams.get('industry') || undefined,
+      country: searchParams.get('country') || undefined,
+      minPrice: searchParams.get('minPrice') || undefined,
+      maxPrice: searchParams.get('maxPrice') || undefined,
+      sortBy: searchParams.get('sort_by') || 'created_at',
+      sortOrder: searchParams.get('sort_order') || 'desc',
+    };
+
     setCurrentPage(page);
 
-    getPaginatedListings(page).then(data => {
-      setListings(data.listings);
-      setTotalPages(data.totalPages);
-      setTotalListings(data.totalListings);
-      setIsLoading(false);
-    }).catch(error => {
-      console.error("Failed to fetch listings:", error);
-      setIsLoading(false);
-    });
-  }, [searchParams, authLoading, isAuthenticated]);
+    getMarketplaceListings(page, 9, filters)
+      .then(data => {
+        setListings(data.listings);
+        setTotalPages(data.totalPages);
+        setTotalListings(data.totalListings);
+        setIsLoading(false);
+      })
+      .catch(error => {
+        console.error("Failed to fetch listings:", error);
+        setError(error.message || 'Failed to load listings');
+        setIsLoading(false);
+        toast({
+          title: "Error Loading Listings",
+          description: "Unable to load marketplace listings. Please try again.",
+          variant: "destructive"
+        });
+      });
+  }, [searchParams, authLoading, isAuthenticated, toast]);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -126,7 +176,20 @@ export default function MarketplacePage() {
           <Filters />
         </aside>
         <main className="md:col-span-9">
-          {isLoading ? (
+          {error ? (
+            <div className="text-center py-12 col-span-full flex flex-col items-center justify-center h-[400px] bg-red-50 dark:bg-red-950/10 rounded-md border border-red-200 dark:border-red-800">
+              <AlertCircle className="h-16 w-16 text-red-500 mb-4" />
+              <p className="text-xl text-red-700 dark:text-red-400 font-semibold mb-2">Failed to Load Listings</p>
+              <p className="text-sm text-red-600 dark:text-red-500 mb-4">{error}</p>
+              <Button
+                onClick={() => window.location.reload()}
+                variant="outline"
+                className="border-red-300 text-red-700 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-950/20"
+              >
+                Try Again
+              </Button>
+            </div>
+          ) : isLoading ? (
              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-96 w-full rounded-lg" />)}
             </div>
@@ -146,7 +209,7 @@ export default function MarketplacePage() {
               </Button>
             </div>
           )}
-          {!isLoading && totalListings > 0 && totalPages > 1 && (
+          {!isLoading && !error && totalListings > 0 && totalPages > 1 && (
             <PaginationControls currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
           )}
         </main>

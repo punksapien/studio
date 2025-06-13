@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
     // Check if the email exists in our system first
     const { data: profile, error: profileError } = await supabase
       .from('user_profiles')
-      .select('is_email_verified, email')
+      .select('is_email_verified, email, role')
       .eq('email', email)
       .single();
 
@@ -98,6 +98,16 @@ export async function POST(request: NextRequest) {
         });
       }
       throw profileError;
+    }
+
+    // Check if user is admin - admins don't need email verification
+    if (profile.role === 'admin') {
+      console.log(`[EMAIL-RESEND] Admin user ${email} doesn't need email verification`);
+      return NextResponse.json({
+        success: true,
+        message: 'Admin accounts are automatically verified.',
+        debugInfo: process.env.NODE_ENV === 'development' ? 'Admin user - no verification needed' : undefined
+      });
     }
 
     // Check if already verified (log for debugging but still allow resend for testing)

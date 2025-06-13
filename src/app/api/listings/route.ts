@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     const sortBy = searchParams.get('sort_by') || 'created_at'
     const sortOrder = searchParams.get('sort_order') || 'desc'
 
-    // Build the query - using correct field names from schema
+    // Build the query - using correct field names from schema including new individual fields
     let query = supabase
       .from('listings')
       .select(`
@@ -43,7 +43,15 @@ export async function GET(request: NextRequest) {
         net_profit_margin_range,
         specific_annual_revenue_last_year,
         specific_net_profit_last_year,
-        adjusted_cash_flow
+        adjusted_cash_flow,
+        key_strengths_anonymous,
+        key_strength_1,
+        key_strength_2,
+        key_strength_3,
+        growth_opportunity_1,
+        growth_opportunity_2,
+        growth_opportunity_3,
+        specific_growth_opportunities
       `, { count: 'exact' })
 
     // Apply status filter (default to verified_anonymous for public access)
@@ -69,9 +77,9 @@ export async function GET(request: NextRequest) {
       query = query.lte('asking_price', parseInt(maxPrice))
     }
 
-    // Apply text search (searches in title and description)
+    // Apply text search (searches in title, description, and key strengths/opportunities)
     if (search) {
-      query = query.or(`listing_title_anonymous.ilike.%${search}%,anonymous_business_description.ilike.%${search}%`)
+      query = query.or(`listing_title_anonymous.ilike.%${search}%,anonymous_business_description.ilike.%${search}%,key_strength_1.ilike.%${search}%,key_strength_2.ilike.%${search}%,key_strength_3.ilike.%${search}%,growth_opportunity_1.ilike.%${search}%,growth_opportunity_2.ilike.%${search}%,growth_opportunity_3.ilike.%${search}%`)
     }
 
     // Apply sorting
@@ -97,7 +105,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Transform the data to match the expected API format
+    // Transform the data to match the expected API format (supporting both new and legacy formats)
     const transformedListings = listings?.map(listing => ({
       id: listing.id,
       title: listing.listing_title_anonymous,
@@ -119,7 +127,30 @@ export async function GET(request: NextRequest) {
       net_profit_margin_range: listing.net_profit_margin_range,
       verified_annual_revenue: listing.specific_annual_revenue_last_year,
       verified_net_profit: listing.specific_net_profit_last_year,
-      verified_cash_flow: listing.adjusted_cash_flow
+      verified_cash_flow: listing.adjusted_cash_flow,
+
+      // NEW: Individual key strength fields (preferred format for enhanced UI)
+      key_strength_1: listing.key_strength_1,
+      key_strength_2: listing.key_strength_2,
+      key_strength_3: listing.key_strength_3,
+
+      // NEW: Individual growth opportunity fields (preferred format for enhanced UI)
+      growth_opportunity_1: listing.growth_opportunity_1,
+      growth_opportunity_2: listing.growth_opportunity_2,
+      growth_opportunity_3: listing.growth_opportunity_3,
+
+      // LEGACY: Support for existing JSONB format (backward compatibility)
+      key_strengths_anonymous: listing.key_strengths_anonymous ||
+        (listing.key_strength_1 ?
+          [listing.key_strength_1, listing.key_strength_2, listing.key_strength_3].filter(Boolean) :
+          null),
+      specific_growth_opportunities: listing.specific_growth_opportunities ||
+        (listing.growth_opportunity_1 ?
+          [listing.growth_opportunity_1, listing.growth_opportunity_2, listing.growth_opportunity_3]
+            .filter(Boolean)
+            .map(opp => `• ${opp}`)
+            .join('\n') :
+          null)
     }))
 
     // Calculate pagination info
@@ -190,36 +221,55 @@ export async function POST(request: NextRequest) {
     // Prepare listing data - mapping API fields to DB fields
     const listingData = {
       seller_id: user.id,
-      listing_title_anonymous: body.title,
-      anonymous_business_description: body.short_description,
-      asking_price: parseInt(body.asking_price),
+      listing_title_anonymous: body.title || body.listingTitleAnonymous,
+      anonymous_business_description: body.short_description || body.anonymousBusinessDescription,
+      asking_price: body.asking_price ? parseFloat(body.asking_price) : (body.askingPrice ? parseFloat(body.askingPrice) : null),
       industry: body.industry,
-      location_country: body.location_country,
-      location_city_region_general: body.location_city,
+      location_country: body.location_country || body.locationCountry,
+      location_city_region_general: body.location_city || body.locationCityRegionGeneral,
 
       // Optional fields
-      year_established: body.established_year ? parseInt(body.established_year) : null,
-      number_of_employees: body.number_of_employees || null,
-      business_website_url: body.website_url || null,
-      image_urls: body.images || [],
+      year_established: body.established_year ? parseInt(body.established_year) : (body.yearEstablished ? parseInt(body.yearEstablished) : null),
+      number_of_employees: body.number_of_employees || body.numberOfEmployees || null,
+      business_website_url: body.website_url || body.businessWebsiteUrl || null,
+      image_urls: body.images || body.imageUrls || [],
 
       // Business details
-      business_model: body.business_overview || null,
-      annual_revenue_range: body.annual_revenue_range || null,
-      net_profit_margin_range: body.net_profit_margin_range || null,
-      specific_annual_revenue_last_year: body.annual_revenue ? parseInt(body.annual_revenue) : null,
-      specific_net_profit_last_year: body.net_profit ? parseInt(body.net_profit) : null,
-      adjusted_cash_flow: body.monthly_cash_flow ? parseInt(body.monthly_cash_flow) : null,
+      business_model: body.business_overview || body.businessModel || null,
+      annual_revenue_range: body.annual_revenue_range || body.annualRevenueRange || null,
+      net_profit_margin_range: body.net_profit_margin_range || body.netProfitMarginRange || null,
+      specific_annual_revenue_last_year: body.annual_revenue ? parseFloat(body.annual_revenue) : (body.specificAnnualRevenueLastYear ? parseFloat(body.specificAnnualRevenueLastYear) : null),
+      specific_net_profit_last_year: body.net_profit ? parseFloat(body.net_profit) : (body.specificNetProfitLastYear ? parseFloat(body.specificNetProfitLastYear) : null),
+      adjusted_cash_flow: body.monthly_cash_flow ? parseFloat(body.monthly_cash_flow) : (body.adjustedCashFlow ? parseFloat(body.adjustedCashFlow) : null),
+
+      // NEW: Individual key strength fields (enhanced form structure)
+      key_strength_1: body.keyStrength1 ? String(body.keyStrength1).substring(0, 200) : null,
+      key_strength_2: body.keyStrength2 ? String(body.keyStrength2).substring(0, 200) : null,
+      key_strength_3: body.keyStrength3 ? String(body.keyStrength3).substring(0, 200) : null,
+
+      // NEW: Individual growth opportunity fields (enhanced form structure)
+      growth_opportunity_1: body.growthOpportunity1 ? String(body.growthOpportunity1).substring(0, 200) : null,
+      growth_opportunity_2: body.growthOpportunity2 ? String(body.growthOpportunity2).substring(0, 200) : null,
+      growth_opportunity_3: body.growthOpportunity3 ? String(body.growthOpportunity3).substring(0, 200) : null,
+
+      // BACKWARD COMPATIBILITY: Support legacy JSONB format if individual fields not provided
+      key_strengths_anonymous: body.keyStrengthsAnonymous ||
+        (body.keyStrength1 ?
+          [body.keyStrength1, body.keyStrength2, body.keyStrength3].filter(Boolean) :
+          null),
 
       // Additional details
-      reason_for_selling_anonymous: body.reason_for_selling || null,
-      detailed_reason_for_selling: body.reason_for_selling || null,
-      post_sale_transition_support: body.support_training_offered || null,
-      specific_growth_opportunities: body.growth_opportunities || null,
+      reason_for_selling_anonymous: body.reason_for_selling || body.reasonForSellingAnonymous || null,
+      detailed_reason_for_selling: body.detailed_reason_for_selling || body.detailedReasonForSelling || null,
 
-      // Set initial status
-      status: 'verified_anonymous', // New listings start as verified_anonymous
-      is_seller_verified: false,
+      // REMOVED FIELDS (per client requirements):
+      // - technology_stack (client said "rarely relevant to real SMBs")
+      // - seller_role_and_time_commitment (client said "no need")
+      // - post_sale_transition_support (client said "no need")
+
+      // Set initial status based on seller verification
+      status: userProfile.verification_status === 'verified' ? 'verified_anonymous' : 'active',
+      is_seller_verified: userProfile.verification_status === 'verified',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     }
