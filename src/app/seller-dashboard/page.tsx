@@ -1,3 +1,4 @@
+
 'use client'
 
 import { useState } from 'react';
@@ -27,19 +28,16 @@ import {
 } from 'lucide-react';
 import { useSellerDashboard } from '@/hooks/use-seller-dashboard';
 import { useVerificationRequest } from '@/hooks/use-verification-request';
-// 🚀 MVP SIMPLIFICATION: Removed VerificationRequestModal import (using direct API calls)
-// import { VerificationRequestModal } from '@/components/verification/verification-request-modal';
 import { VERIFICATION_CONFIG } from '@/lib/verification-config';
 import React from 'react';
+import { NobridgeIcon } from '@/components/ui/nobridge-icon';
 
 export default function SellerDashboard() {
   const { user, stats, recentListings, isLoading, error, refreshData, isPolling } = useSellerDashboard();
   const { requests: verificationRequests, currentStatus: verificationStatus, canSubmitNewRequest } = useVerificationRequest();
 
-  // 🚀 MVP SIMPLIFICATION: Direct verification request without modal dialog
   const [isSubmittingVerification, setIsSubmittingVerification] = React.useState(false);
 
-  // Direct API call for verification request (bypassing modal)
   const handleDirectVerificationRequest = async () => {
     setIsSubmittingVerification(true);
 
@@ -58,11 +56,7 @@ export default function SellerDashboard() {
       const result = await response.json();
 
       if (response.ok && result.success) {
-        // Refresh dashboard data to reflect the new verification status
         await refreshData();
-
-        // Show success feedback (the API now auto-approves, so user is immediately verified)
-        // Note: You might want to add a toast notification here if available
         console.log('✅ Verification approved instantly:', result.message);
       } else {
         console.error('❌ Verification request failed:', result.error || result.message);
@@ -73,13 +67,6 @@ export default function SellerDashboard() {
       setIsSubmittingVerification(false);
     }
   };
-
-  // Prepare listings for verification modal
-  const userListingsForVerification = recentListings.map(l => ({
-    id: l.id,
-    listing_title_anonymous: l.title,
-    status: l.status
-  }));
 
   const getVerificationStatusInfo = () => {
     const pendingUserRequest = verificationRequests.find(r =>
@@ -96,7 +83,10 @@ export default function SellerDashboard() {
           badgeVariant: 'default' as const,
           badgeColor: 'bg-green-100 text-green-800 border-green-200',
           actionText: 'Manage Verification',
-          showButton: false
+          showButton: false,
+          progress: 100,
+          progressColor: 'bg-green-500',
+          progressText: 'Profile 100% Verified & Optimized!'
         };
       case 'pending_verification':
         return {
@@ -110,7 +100,10 @@ export default function SellerDashboard() {
           actionText: pendingUserRequest?.can_bump ? 'Bump Request' : (pendingUserRequest?.hours_until_can_bump && pendingUserRequest.hours_until_can_bump > 0) ? `Bump in ${VERIFICATION_CONFIG.formatTimeRemaining(pendingUserRequest.hours_until_can_bump)}` : 'View Status',
           showButton: true,
           canBump: pendingUserRequest?.can_bump || false,
-          hoursUntilBump: pendingUserRequest?.hours_until_can_bump || 0
+          hoursUntilBump: pendingUserRequest?.hours_until_can_bump || 0,
+          progress: 80,
+          progressColor: 'bg-yellow-500',
+          progressText: 'Profile 80% Complete (Verification Pending)'
         };
       case 'rejected':
         const canSubmitAfterRejection = canSubmitNewRequest('user_verification');
@@ -134,7 +127,10 @@ export default function SellerDashboard() {
           actionText: rejectedActionText,
           showButton: true,
           disabled: !canSubmitAfterRejection.canSubmit,
-          hoursRemaining: canSubmitAfterRejection.hoursRemaining || 0
+          hoursRemaining: canSubmitAfterRejection.hoursRemaining || 0,
+          progress: 40,
+          progressColor: 'bg-red-500',
+          progressText: 'Profile Needs Attention (Verification Rejected)'
         };
       default: // anonymous
         const canSubmit = canSubmitNewRequest('user_verification');
@@ -158,7 +154,10 @@ export default function SellerDashboard() {
           actionText,
           showButton: true,
           disabled: !canSubmit.canSubmit,
-          hoursRemaining: canSubmit.hoursRemaining || 0
+          hoursRemaining: canSubmit.hoursRemaining || 0,
+          progress: 60,
+          progressColor: 'bg-primary',
+          progressText: 'Profile 60% Complete (Verification Needed)'
         };
     }
   };
@@ -249,13 +248,6 @@ export default function SellerDashboard() {
                       <span>
                         Cooldown: {VERIFICATION_CONFIG.formatTimeRemaining(verificationInfo.hoursRemaining)} remaining
                       </span>
-                      <Progress
-                        value={verificationInfo.hoursRemaining < 1
-                          ? (VERIFICATION_CONFIG.COOLDOWN_SECONDS - (verificationInfo.hoursRemaining * 3600)) / VERIFICATION_CONFIG.COOLDOWN_SECONDS * 100
-                          : (VERIFICATION_CONFIG.COOLDOWN_HOURS - (verificationInfo.hoursRemaining || 0)) / VERIFICATION_CONFIG.COOLDOWN_HOURS * 100
-                        }
-                        className="w-20 h-1.5 bg-muted"
-                      />
                     </div>
                   )}
                   {(verificationInfo.hoursUntilBump !== undefined && verificationInfo.hoursUntilBump > 0) && (
@@ -264,24 +256,15 @@ export default function SellerDashboard() {
                       <span>
                         Can bump request in {VERIFICATION_CONFIG.formatTimeRemaining(verificationInfo.hoursUntilBump)}
                       </span>
-                      <Progress
-                        value={verificationInfo.hoursUntilBump < 1
-                          ? (VERIFICATION_CONFIG.COOLDOWN_SECONDS - (verificationInfo.hoursUntilBump * 3600)) / VERIFICATION_CONFIG.COOLDOWN_SECONDS * 100
-                          : (VERIFICATION_CONFIG.COOLDOWN_HOURS - (verificationInfo.hoursUntilBump || 0)) / VERIFICATION_CONFIG.COOLDOWN_HOURS * 100
-                        }
-                        className="w-20 h-1.5 bg-amber-200 dark:bg-amber-800"
-                      />
                     </div>
                   )}
                 </div>
 
-                {/* Proper verification workflow: redirect to form page */}
-                {verificationStatus === 'anonymous' ? (
+                {verificationStatus === 'anonymous' || verificationStatus === 'rejected' ? (
                   <Link href="/seller-dashboard/verification">
                     <Button
                       size="sm"
                       disabled={verificationInfo.disabled}
-                      variant="secondary"
                       className={`
                         ${!verificationInfo.disabled ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}
                         ${verificationInfo.disabled ?
@@ -324,27 +307,7 @@ export default function SellerDashboard() {
                       )}
                     </Button>
                   </Link>
-                ) : (
-                  <Link href="/seller-dashboard/verification">
-                    <Button
-                      size="sm"
-                      disabled={verificationInfo.disabled}
-                      variant="secondary"
-                    >
-                      {verificationInfo.disabled ? (
-                        <>
-                          <Timer className="h-4 w-4 mr-2" />
-                          {verificationInfo.actionText}
-                        </>
-                      ) : (
-                        <>
-                          <Send className="h-4 w-4 mr-2" />
-                          {verificationInfo.actionText}
-                        </>
-                      )}
-                    </Button>
-                  </Link>
-                )}
+                ) : null}
               </div>
             </CardContent>
           )}
@@ -353,10 +316,10 @@ export default function SellerDashboard() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="shadow-md">
+          <Card className="shadow-md bg-card">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-foreground">Active Listings</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
+              <NobridgeIcon icon="business-listing" size="sm" className="text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-primary">{stats.activeListingsCount}</div>
@@ -366,10 +329,10 @@ export default function SellerDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="shadow-md">
+          <Card className="shadow-md bg-card">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-foreground">Total Inquiries</CardTitle>
-              <MessageSquare className="h-4 w-4 text-muted-foreground" />
+              <NobridgeIcon icon="interaction" size="sm" className="text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-primary">{stats.totalInquiriesReceived}</div>
@@ -379,10 +342,10 @@ export default function SellerDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="shadow-md">
+          <Card className="shadow-md bg-card">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-foreground">Awaiting Response</CardTitle>
-              <AlertCircle className="h-4 w-4 text-muted-foreground" />
+              <NobridgeIcon icon="verification" size="sm" className="text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-destructive">{stats.inquiriesAwaitingEngagement}</div>
@@ -393,19 +356,19 @@ export default function SellerDashboard() {
           </Card>
         </div>
 
-        {/* Quick Actions */}
+        {/* Quick Actions & Performance */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <Card className="shadow-md">
+          <Card className="shadow-md bg-card">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-foreground">
-                <PlusCircle className="h-5 w-5 text-accent" />
+              <CardTitle className="flex items-center gap-2 text-foreground font-heading">
+                <NobridgeIcon icon="core-details" size="md" className="text-accent" />
                 Quick Actions
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <Link href="/seller-dashboard/listings/create">
                 <Button className="w-full justify-start bg-primary text-primary-foreground hover:bg-primary/90">
-                  <FileText className="h-4 w-4 mr-2" />
+                  <PlusCircle className="h-4 w-4 mr-2" />
                   Create New Listing
                 </Button>
               </Link>
@@ -424,25 +387,29 @@ export default function SellerDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="shadow-md">
+          <Card className="shadow-md bg-card">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-foreground">
-                <BarChart3 className="h-5 w-5 text-accent" />
-                Performance
+              <CardTitle className="flex items-center gap-2 text-foreground font-heading">
+                <NobridgeIcon icon="growth" size="md" className="text-accent" />
+                Profile Performance
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div className="flex justify-between text-sm">
-                  <span className="text-foreground">Profile Completion</span>
-                  <span className="text-primary font-medium">{verificationStatus === 'verified' ? '100%' : verificationStatus === 'pending_verification' ? '80%' : '60%'}</span>
+                  <span className="text-foreground">{verificationInfo.progressText}</span>
+                  <span className={`font-medium ${verificationStatus === 'verified' ? 'text-green-600' : verificationStatus === 'pending_verification' ? 'text-yellow-600' : verificationStatus === 'rejected' ? 'text-red-600' : 'text-primary'}`}>
+                    {verificationInfo.progress}%
+                  </span>
                 </div>
-                <Progress value={verificationStatus === 'verified' ? 100 : verificationStatus === 'pending_verification' ? 80 : 60} className="bg-muted [&>div]:bg-accent" />
+                <Progress value={verificationInfo.progress} className={`[&>div]:${verificationInfo.progressColor} bg-muted`} />
                 <p className="text-xs text-muted-foreground">
                   {verificationStatus === 'verified'
                     ? 'Your profile is fully verified and optimized for maximum trust.'
                     : verificationStatus === 'pending_verification'
-                    ? 'Your verification is pending. Verified profiles get 3x more inquiries.'
+                    ? 'Your verification is pending. Verified profiles get more inquiries.'
+                    : verificationStatus === 'rejected'
+                    ? 'Action required. Update your information to complete verification.'
                     : 'Complete verification to increase buyer trust and inquiry rates.'
                   }
                 </p>
@@ -452,10 +419,10 @@ export default function SellerDashboard() {
         </div>
 
         {/* Recent Listings */}
-        <Card className="shadow-md">
+        <Card className="shadow-md bg-card">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-foreground">
-              <FileText className="h-5 w-5 text-accent" />
+            <CardTitle className="flex items-center gap-2 text-foreground font-heading">
+              <NobridgeIcon icon="transactions" size="md" className="text-accent" />
               Recent Listings
             </CardTitle>
             <Link href="/seller-dashboard/listings">
