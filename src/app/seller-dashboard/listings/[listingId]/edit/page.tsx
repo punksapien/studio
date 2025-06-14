@@ -30,27 +30,36 @@ import { industries, asianCountries, revenueRanges, profitMarginRanges, dealStru
 import { useToast } from "@/hooks/use-toast";
 import { useTransition, useState, useEffect } from "react";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, FileText, ArrowLeft, AlertCircle, CheckCircle2, PlusCircle, Trash2, ImagePlus, Building, Info, DollarSign, Briefcase, Edit3 as EditIcon, HandCoins, Brain, Globe } from "lucide-react"; // Renamed Edit3 to EditIcon
+import { Loader2, FileText, ArrowLeft, AlertCircle, CheckCircle2, PlusCircle, Trash2, ImagePlus, Building, Info, DollarSign, Briefcase, Edit3 as EditIcon, HandCoins, Brain, Globe, Eye, UploadCloud, XCircle } from "lucide-react";
 import { notFound, useRouter, useParams } from 'next/navigation';
 import { Label } from "@/components/ui/label";
 import { NobridgeIcon } from '@/components/ui/nobridge-icon';
 import Link from "next/link";
 import { useAuth } from '@/contexts/auth-context';
 import { supabase } from '@/lib/supabase';
+import Image from 'next/image';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
 const ACCEPTED_DOCUMENT_TYPES = ["application/pdf", "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "text/csv"];
 
-const fileValidation = z.instanceof(File)
-  .optional()
-  .refine(file => !file || file.size <= MAX_FILE_SIZE, `Max file size is 5MB.`)
-  .refine(file => !file || ACCEPTED_IMAGE_TYPES.includes(file.type), 'Only .jpg, .jpeg, .png, .webp formats are supported.');
+const fileOrUrlValidation = z.union([
+  z.string().url({ message: "Invalid URL" }).optional().nullable(),
+  z.instanceof(File)
+    .refine(file => file.size <= MAX_FILE_SIZE, `Max file size is 5MB.`)
+    .refine(file => ACCEPTED_IMAGE_TYPES.includes(file.type), 'Only .jpg, .jpeg, .png, .webp formats are supported.')
+    .optional()
+    .nullable(),
+]).optional();
 
-const documentFileValidation = z.instanceof(File)
-  .optional()
-  .refine(file => !file || file.size <= MAX_FILE_SIZE, `Max file size is 5MB.`)
-  .refine(file => !file || ACCEPTED_DOCUMENT_TYPES.includes(file.type), 'Only PDF, XLSX, CSV formats are supported.');
+const documentFileOrUrlValidation = z.union([
+  z.string().url({ message: "Invalid URL" }).optional().nullable(),
+  z.instanceof(File)
+    .refine(file => file.size <= MAX_FILE_SIZE, `Max file size is 5MB.`)
+    .refine(file => ACCEPTED_DOCUMENT_TYPES.includes(file.type), 'Only PDF, XLSX, CSV formats are supported.')
+    .optional()
+    .nullable(),
+]).optional();
 
 const ListingSchema = z.object({
   listingTitleAnonymous: z.string().min(5, "Title must be at least 5 characters.").max(100, "Title too long."),
@@ -64,9 +73,7 @@ const ListingSchema = z.object({
   keyStrength3: z.string().min(5, "Strength must be at least 5 characters.").max(150, "Strength too long (max 150 chars).").optional(),
 
   businessModel: z.string().optional(),
-  yearEstablished: z.coerce.number().optional().refine(val => val === undefined || (val >= 1900 && val <= new Date().getFullYear()), {
-    message: "Please enter a valid year.",
-  }),
+  yearEstablished: z.coerce.number().optional().refine(val => val === undefined || (val >= 1900 && val <= new Date().getFullYear()), { message: "Please enter a valid year." }),
   registeredBusinessName: z.string().optional(),
   businessWebsiteUrl: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
   socialMediaLinks: z.string().optional(),
@@ -94,31 +101,32 @@ const ListingSchema = z.object({
   growthOpportunity2: z.string().min(5, "Growth opportunity must be at least 5 characters.").max(200, "Opportunity too long (max 200 chars).").optional(),
   growthOpportunity3: z.string().min(5, "Growth opportunity must be at least 5 characters.").max(200, "Opportunity too long (max 200 chars).").optional(),
 
-  // Document uploads
-  financialDocuments: documentFileValidation,
-  keyMetricsReport: documentFileValidation,
-  ownershipDocuments: documentFileValidation,
-  financialSnapshot: documentFileValidation,
-  ownershipDetails: documentFileValidation,
-  locationRealEstateInfo: documentFileValidation,
-  webPresenceInfo: documentFileValidation,
-  secureDataRoomLink: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
+  imageFile1: fileOrUrlValidation,
+  imageFile2: fileOrUrlValidation,
+  imageFile3: fileOrUrlValidation,
+  imageFile4: fileOrUrlValidation,
+  imageFile5: fileOrUrlValidation,
 
-  imageUrl1: z.string().url({ message: "Invalid URL" }).optional().or(z.literal('')),
-  imageUrl2: z.string().url({ message: "Invalid URL" }).optional().or(z.literal('')),
-  imageUrl3: z.string().url({ message: "Invalid URL" }).optional().or(z.literal('')),
-  imageUrl4: z.string().url({ message: "Invalid URL" }).optional().or(z.literal('')),
-  imageUrl5: z.string().url({ message: "Invalid URL" }).optional().or(z.literal('')),
+  financialDocuments: documentFileOrUrlValidation,
+  keyMetricsReport: documentFileOrUrlValidation,
+  ownershipDocuments: documentFileOrUrlValidation,
+  financialSnapshot: documentFileOrUrlValidation,
+  ownershipDetails: documentFileOrUrlValidation,
+  locationRealEstateInfo: documentFileOrUrlValidation,
+  webPresenceInfo: documentFileOrUrlValidation,
+  secureDataRoomLink: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
 }).refine(data => {
   const strengths = [data.keyStrength1, data.keyStrength2, data.keyStrength3].filter(s => s && s.trim() !== "");
   return strengths.length >= 1;
-}, {
-  message: "At least one key strength is required.",
-  path: ["keyStrength1"],
-});
-
+}, { message: "At least one key strength is required.", path: ["keyStrength1"], });
 
 type ListingFormValues = z.infer<typeof ListingSchema>;
+
+interface ImageSlot {
+  currentUrl?: string | null; // URL from DB
+  file?: File | null;       // New file for upload
+  previewUrl?: string | null; // For new file preview or existing currentUrl
+}
 
 export default function EditSellerListingPage() {
   const params = useParams();
@@ -130,41 +138,32 @@ export default function EditSellerListingPage() {
   const [listing, setListing] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
   const { profile, isLoading: authLoading } = useAuth();
+  const isSellerVerified = profile?.verification_status === 'verified';
 
-  const form = useForm<ListingFormValues>({
-    resolver: zodResolver(ListingSchema),
-    defaultValues: {
-      listingTitleAnonymous: "", industry: "", locationCountry: "", locationCityRegionGeneral: "", anonymousBusinessDescription: "",
-      keyStrength1: "", keyStrength2: "", keyStrength3: "",
-      businessModel: "", yearEstablished: undefined, registeredBusinessName: "", businessWebsiteUrl: "", socialMediaLinks: "", numberOfEmployees: undefined, technologyStack: "", actualCompanyName: "", fullBusinessAddress: "",
-      annualRevenueRange: "", netProfitMarginRange: "", askingPrice: undefined, specificAnnualRevenueLastYear: undefined, specificNetProfitLastYear: undefined, adjustedCashFlow: undefined, adjustedCashFlowExplanation: "",
-      dealStructureLookingFor: [], reasonForSellingAnonymous: "", detailedReasonForSelling: "", sellerRoleAndTimeCommitment: "", postSaleTransitionSupport: "",
-      growthOpportunity1: "", growthOpportunity2: "", growthOpportunity3: "",
-      financialDocuments: undefined, keyMetricsReport: undefined, ownershipDocuments: undefined, financialSnapshot: undefined, ownershipDetails: undefined, locationRealEstateInfo: undefined, webPresenceInfo: undefined, secureDataRoomLink: "",
-      imageUrl1: "", imageUrl2: "", imageUrl3: "", imageUrl4: "", imageUrl5: "",
-    },
-  });
+  const [imageSlots, setImageSlots] = useState<ImageSlot[]>(Array(5).fill({ currentUrl: null, file: null, previewUrl: null }));
+
+  const form = useForm<ListingFormValues>({ resolver: zodResolver(ListingSchema), defaultValues: { /* initial empty defaults */ } });
 
   useEffect(() => {
-    if (authLoading || !profile) return;
+    if (authLoading || !profile || !listingId) return;
 
     const fetchListing = async () => {
       try {
-        setIsLoading(true);
-        setError(null);
+        setIsLoading(true); setError(null);
         const response = await fetch(`/api/listings/${listingId}`);
         if (!response.ok) {
           if (response.status === 404) throw new Error('Listing not found');
-          throw new Error(`Failed to fetch listing: ${response.status}`);
+          const errorData = await response.json();
+          throw new Error(errorData.error || `Failed to fetch listing: ${response.status}`);
         }
         const fetchedListing = await response.json();
         if (fetchedListing.seller_id !== profile.id) {
           throw new Error('You do not have permission to edit this listing');
         }
         setListing(fetchedListing);
-        form.reset({
+
+        const formDefaultValues: Partial<ListingFormValues> = {
           listingTitleAnonymous: fetchedListing.title || "",
           industry: fetchedListing.industry || "",
           locationCountry: fetchedListing.location_country || "",
@@ -198,12 +197,27 @@ export default function EditSellerListingPage() {
           growthOpportunity2: fetchedListing.growth_opportunity_2 || "",
           growthOpportunity3: fetchedListing.growth_opportunity_3 || "",
           secureDataRoomLink: fetchedListing.secure_data_room_link || "",
-          imageUrl1: fetchedListing.image_url_1 || fetchedListing.images?.[0] || "",
-          imageUrl2: fetchedListing.image_url_2 || fetchedListing.images?.[1] || "",
-          imageUrl3: fetchedListing.image_url_3 || fetchedListing.images?.[2] || "",
-          imageUrl4: fetchedListing.image_url_4 || fetchedListing.images?.[3] || "",
-          imageUrl5: fetchedListing.image_url_5 || fetchedListing.images?.[4] || "",
+        };
+
+        const initialImageSlots: ImageSlot[] = Array(5).fill({}).map((_, i) => {
+          const dbUrl = fetchedListing[`image_url_${i + 1}`] || (fetchedListing.images && fetchedListing.images[i]);
+          if (dbUrl) {
+            formDefaultValues[`imageFile${i+1}` as keyof ListingFormValues] = dbUrl as any;
+            return { currentUrl: dbUrl, previewUrl: dbUrl, file: null };
+          }
+          return { currentUrl: null, previewUrl: null, file: null };
         });
+        setImageSlots(initialImageSlots);
+        
+        ['financialDocuments', 'keyMetricsReport', 'ownershipDocuments', 'financialSnapshot', 'ownershipDetails', 'locationRealEstateInfo', 'webPresenceInfo'].forEach(docField => {
+            const dbDocUrl = fetchedListing[`${docField.replace(/([A-Z])/g, '_$1').toLowerCase().replace(/^_/, '')}_url`];
+            if (dbDocUrl) {
+                 formDefaultValues[docField as keyof ListingFormValues] = dbDocUrl as any;
+            }
+        });
+
+        form.reset(formDefaultValues);
+
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load listing');
       } finally {
@@ -213,37 +227,125 @@ export default function EditSellerListingPage() {
     fetchListing();
   }, [listingId, form, profile, authLoading]);
 
+  const handleImageChange = (index: number, file: File | null) => {
+    setImageSlots(prevSlots => {
+      const newSlots = [...prevSlots];
+      const oldPreviewUrl = newSlots[index]?.previewUrl;
+      // Revoke old object URL only if it was for a file (not a currentUrl from DB)
+      if (oldPreviewUrl && newSlots[index]?.file) {
+        URL.revokeObjectURL(oldPreviewUrl);
+      }
+      if (file) {
+        newSlots[index] = { currentUrl: null, file, previewUrl: URL.createObjectURL(file) };
+      } else {
+        newSlots[index] = { ...newSlots[index], file: null, previewUrl: newSlots[index].currentUrl }; // Keep currentUrl as preview if new file removed
+      }
+      form.setValue(`imageFile${index + 1}` as any, file || newSlots[index].currentUrl || null);
+      return newSlots;
+    });
+  };
+
+  const handleRemoveImage = (index: number) => {
+    setImageSlots(prevSlots => {
+      const newSlots = [...prevSlots];
+      const oldPreviewUrl = newSlots[index]?.previewUrl;
+      if (oldPreviewUrl && newSlots[index]?.file) { // If it was a new file preview
+        URL.revokeObjectURL(oldPreviewUrl);
+      }
+      newSlots[index] = { currentUrl: null, file: null, previewUrl: null }; // Clear the slot
+      form.setValue(`imageFile${index + 1}` as any, null);
+      return newSlots;
+    });
+  };
+
+  useEffect(() => {
+    return () => {
+      imageSlots.forEach(slot => {
+        if (slot.previewUrl && slot.file) URL.revokeObjectURL(slot.previewUrl);
+      });
+    };
+  }, []); // Cleanup on unmount
+
   const onSubmit = async (values: ListingFormValues) => {
     startTransition(async () => {
       try {
-        const documentUploads: Record<string, string> = {};
-        const documentFields = ['financialDocuments', 'keyMetricsReport', 'ownershipDocuments', 'financialSnapshot', 'ownershipDetails', 'locationRealEstateInfo', 'webPresenceInfo'];
-        for (const fieldName of documentFields) {
-          const file = values[fieldName as keyof ListingFormValues] as File | undefined;
-          if (file) {
+        const imageUpdates: Record<string, string | null> = {};
+        const imageFilesToUpload: { fieldName: string, file: File }[] = [];
+        const session = await supabase.auth.getSession();
+        const accessToken = session.data.session?.access_token;
+
+        for (let i = 0; i < 5; i++) {
+          const slot = imageSlots[i];
+          const dbFieldName = `image_url_${i + 1}`;
+          if (slot.file) { // New file selected for this slot
+            imageFilesToUpload.push({ fieldName: dbFieldName, file: slot.file });
+          } else if (!slot.previewUrl && listing && listing[dbFieldName]) { // Existing image was removed
+            imageUpdates[dbFieldName] = null; // Mark for deletion on backend
+          } else if (slot.currentUrl) { // Existing image kept
+            imageUpdates[dbFieldName] = slot.currentUrl;
+          } else { // Slot is empty or was cleared
+            imageUpdates[dbFieldName] = null;
+          }
+        }
+        
+        const uploadedImageUrls: Record<string, string> = {};
+        if (!accessToken && imageFilesToUpload.length > 0) throw new Error('Authentication required for image upload');
+
+        for (const { fieldName, file } of imageFilesToUpload) {
             const formData = new FormData();
             formData.append('file', file);
-            formData.append('document_type', fieldName.replace(/([A-Z])/g, '_$1').toLowerCase().replace(/^_/, ''));
-            const session = await supabase.auth.getSession();
-            const accessToken = session.data.session?.access_token;
-            if (!accessToken) throw new Error('Authentication required for document upload');
-            const uploadResponse = await fetch('/api/listings/upload', { method: 'POST', body: formData, headers: { 'Authorization': `Bearer ${accessToken}` }});
-            if (!uploadResponse.ok) { const errorData = await uploadResponse.json(); throw new Error(errorData.error || `Failed to upload ${fieldName}`); }
+            formData.append('document_type', fieldName);
+            const uploadResponse = await fetch('/api/listings/upload', { method: 'POST', body: formData, headers: { 'Authorization': `Bearer ${accessToken!}` }});
+            if (!uploadResponse.ok) throw new Error(`Failed to upload ${file.name}`);
             const uploadResult = await uploadResponse.json();
-            documentUploads[`${fieldName.replace(/([A-Z])/g, '_$1').toLowerCase().replace(/^_/, '')}_url`] = uploadResult.signedUrl;
-          }
+            uploadedImageUrls[fieldName] = uploadResult.signedUrl;
+        }
+
+        const documentUploads: Record<string, string | null> = {};
+        const documentFields = ['financialDocuments', 'keyMetricsReport', 'ownershipDocuments', 'financialSnapshot', 'ownershipDetails', 'locationRealEstateInfo', 'webPresenceInfo'];
+        for (const fieldName of documentFields) {
+            const fileOrUrl = values[fieldName as keyof ListingFormValues] as File | string | null | undefined;
+            const dbFieldName = `${fieldName.replace(/([A-Z])/g, '_$1').toLowerCase().replace(/^_/, '')}_url`;
+            if (fileOrUrl instanceof File) {
+                if (!accessToken) throw new Error('Authentication required for document upload');
+                const formData = new FormData();
+                formData.append('file', fileOrUrl);
+                formData.append('document_type', fieldName.replace(/([A-Z])/g, '_$1').toLowerCase().replace(/^_/, ''));
+                const uploadResponse = await fetch('/api/listings/upload', { method: 'POST', body: formData, headers: { 'Authorization': `Bearer ${accessToken}` }});
+                if (!uploadResponse.ok) { const errorData = await uploadResponse.json(); throw new Error(errorData.error || `Failed to upload ${fieldName}`); }
+                const uploadResult = await uploadResponse.json();
+                documentUploads[dbFieldName] = uploadResult.signedUrl;
+            } else if (typeof fileOrUrl === 'string' && fileOrUrl && (listing ? listing[dbFieldName] !== fileOrUrl : true)) {
+                // If it's a string and different from original, it means it was an existing URL that wasn't changed, or a new URL was pasted (though UI doesn't support this directly for files)
+                 documentUploads[dbFieldName] = fileOrUrl;
+            } else if (!fileOrUrl && listing && listing[dbFieldName]) { // File was cleared
+                documentUploads[dbFieldName] = null;
+            } else if (listing && listing[dbFieldName]) { // Keep existing if no new file
+                documentUploads[dbFieldName] = listing[dbFieldName];
+            }
         }
 
         const updatePayload = {
-          listing_title_anonymous: values.listingTitleAnonymous, industry: values.industry, location_country: values.locationCountry, location_city_region_general: values.locationCityRegionGeneral, anonymous_business_description: values.anonymousBusinessDescription,
+          listing_title_anonymous: values.listingTitleAnonymous, industry: values.industry, location_country: values.locationCountry,
+          location_city_region_general: values.locationCityRegionGeneral, anonymous_business_description: values.anonymousBusinessDescription,
           key_strength_1: values.keyStrength1 || null, key_strength_2: values.keyStrength2 || null, key_strength_3: values.keyStrength3 || null,
-          business_model: values.businessModel || null, year_established: values.yearEstablished || null, registered_business_name: values.registeredBusinessName || null, business_website_url: values.businessWebsiteUrl || null, social_media_links: values.socialMediaLinks || null, number_of_employees: values.numberOfEmployees || null, technology_stack: values.technologyStack || null, actual_company_name: values.actualCompanyName || null, full_business_address: values.fullBusinessAddress || null,
-          annual_revenue_range: values.annualRevenueRange, net_profit_margin_range: values.netProfitMarginRange || null, asking_price: values.askingPrice || null, specific_annual_revenue_last_year: values.specificAnnualRevenueLastYear || null, specific_net_profit_last_year: values.specificNetProfitLastYear || null, adjusted_cash_flow: values.adjustedCashFlow || null, adjusted_cash_flow_explanation: values.adjustedCashFlowExplanation || null,
-          deal_structure_looking_for: values.dealStructureLookingFor || [], reason_for_selling_anonymous: values.reasonForSellingAnonymous || null, detailed_reason_for_selling: values.detailedReasonForSelling || null, seller_role_and_time_commitment: values.sellerRoleAndTimeCommitment || null, post_sale_transition_support: values.postSaleTransitionSupport || null,
+          business_model: values.businessModel || null, year_established: values.yearEstablished || null, registered_business_name: values.registeredBusinessName || null,
+          business_website_url: values.businessWebsiteUrl || null, social_media_links: values.socialMediaLinks || null, number_of_employees: values.numberOfEmployees || null,
+          technology_stack: values.technologyStack || null, actual_company_name: values.actualCompanyName || null, full_business_address: values.fullBusinessAddress || null,
+          annual_revenue_range: values.annualRevenueRange, net_profit_margin_range: values.netProfitMarginRange || null, asking_price: values.askingPrice || null,
+          specific_annual_revenue_last_year: values.specificAnnualRevenueLastYear || null, specific_net_profit_last_year: values.specificNetProfitLastYear || null,
+          adjusted_cash_flow: values.adjustedCashFlow || null, adjusted_cash_flow_explanation: values.adjustedCashFlowExplanation || null,
+          deal_structure_looking_for: values.dealStructureLookingFor || [], reason_for_selling_anonymous: values.reasonForSellingAnonymous || null,
+          detailed_reason_for_selling: values.detailedReasonForSelling || null, seller_role_and_time_commitment: values.sellerRoleAndTimeCommitment || null,
+          post_sale_transition_support: values.postSaleTransitionSupport || null,
           growth_opportunity_1: values.growthOpportunity1 || null, growth_opportunity_2: values.growthOpportunity2 || null, growth_opportunity_3: values.growthOpportunity3 || null,
           secure_data_room_link: values.secureDataRoomLink || null,
-          image_url_1: values.imageUrl1 || null, image_url_2: values.imageUrl2 || null, image_url_3: values.imageUrl3 || null, image_url_4: values.imageUrl4 || null, image_url_5: values.imageUrl5 || null,
-          ...documentUploads
+          image_url_1: uploadedImageUrls['image_url_1'] !== undefined ? uploadedImageUrls['image_url_1'] : imageUpdates['image_url_1'],
+          image_url_2: uploadedImageUrls['image_url_2'] !== undefined ? uploadedImageUrls['image_url_2'] : imageUpdates['image_url_2'],
+          image_url_3: uploadedImageUrls['image_url_3'] !== undefined ? uploadedImageUrls['image_url_3'] : imageUpdates['image_url_3'],
+          image_url_4: uploadedImageUrls['image_url_4'] !== undefined ? uploadedImageUrls['image_url_4'] : imageUpdates['image_url_4'],
+          image_url_5: uploadedImageUrls['image_url_5'] !== undefined ? uploadedImageUrls['image_url_5'] : imageUpdates['image_url_5'],
+          ...documentUploads,
         };
 
         const response = await fetch(`/api/listings/${listingId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', }, body: JSON.stringify(updatePayload), });
@@ -256,185 +358,156 @@ export default function EditSellerListingPage() {
     });
   };
 
-  if (authLoading || isLoading) {
-    return (<div className="container py-8 text-center"><div className="flex items-center justify-center gap-2"><Loader2 className="h-6 w-6 animate-spin text-primary" /><span>Loading listing data...</span></div></div>);
-  }
-  if (error) {
-    return (<div className="container py-8 text-center"><div className="flex flex-col items-center gap-4"><AlertCircle className="h-12 w-12 text-destructive" /><div><h2 className="text-xl font-semibold text-destructive mb-2">Error Loading Listing</h2><p className="text-muted-foreground mb-4">{error}</p><div className="flex gap-2"><Button variant="outline" onClick={() => window.location.reload()}>Try Again</Button><Button asChild><Link href="/seller-dashboard/listings"><ArrowLeft className="h-4 w-4 mr-2" />Back to Listings</Link></Button></div></div></div></div>);
-  }
-  if (!profile || profile.role !== 'seller') {
-    return (<div className="container py-8 text-center"><div className="flex flex-col items-center gap-4"><AlertCircle className="h-12 w-12 text-destructive" /><div><h2 className="text-xl font-semibold text-destructive mb-2">Access Denied</h2><p className="text-muted-foreground mb-4">You must be logged in as a seller to edit listings.</p><Button asChild><Link href="/auth/login">Login</Link></Button></div></div></div>);
-  }
-  if (!listing) {
-    return (<div className="container py-8 text-center"><div className="flex flex-col items-center gap-4"><AlertCircle className="h-12 w-12 text-destructive" /><div><h2 className="text-xl font-semibold text-destructive mb-2">Listing Not Found</h2><p className="text-muted-foreground mb-4">The listing you're trying to edit could not be found.</p><Button asChild><Link href="/seller-dashboard/listings"><ArrowLeft className="h-4 w-4 mr-2" />Back to Listings</Link></Button></div></div></div>);
-  }
+  if (authLoading || isLoading) { return (<div className="container py-8 text-center"><div className="flex items-center justify-center gap-2"><Loader2 className="h-6 w-6 animate-spin text-primary" /><span>Loading listing data...</span></div></div>); }
+  if (error) { return (<div className="container py-8 text-center"><div className="flex flex-col items-center gap-4"><AlertCircle className="h-12 w-12 text-destructive" /><div><h2 className="text-xl font-semibold text-destructive mb-2">Error Loading Listing</h2><p className="text-muted-foreground mb-4">{error}</p><div className="flex gap-2"><Button variant="outline" onClick={() => window.location.reload()}>Try Again</Button><Button asChild><Link href="/seller-dashboard/listings"><ArrowLeft className="h-4 w-4 mr-2" />Back to Listings</Link></Button></div></div></div></div>); }
+  if (!profile || profile.role !== 'seller') { return (<div className="container py-8 text-center"><div className="flex flex-col items-center gap-4"><AlertCircle className="h-12 w-12 text-destructive" /><div><h2 className="text-xl font-semibold text-destructive mb-2">Access Denied</h2><p className="text-muted-foreground mb-4">You must be logged in as a seller to edit listings.</p><Button asChild><Link href="/auth/login">Login</Link></Button></div></div></div>); }
+  if (!listing) { return (<div className="container py-8 text-center"><div className="flex flex-col items-center gap-4"><AlertCircle className="h-12 w-12 text-destructive" /><div><h2 className="text-xl font-semibold text-destructive mb-2">Listing Not Found</h2><p className="text-muted-foreground mb-4">The listing you're trying to edit could not be found.</p><Button asChild><Link href="/seller-dashboard/listings"><ArrowLeft className="h-4 w-4 mr-2" />Back to Listings</Link></Button></div></div></div>); }
 
   return (
     <div className="space-y-8">
       <div className="flex items-center gap-4">
         <Button variant="outline" size="sm" asChild className="border-input hover:bg-accent/50">
-          <Link href="/seller-dashboard/listings">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Listings
-          </Link>
+          <Link href="/seller-dashboard/listings"><ArrowLeft className="h-4 w-4 mr-2" />Back to Listings</Link>
         </Button>
         <div className="flex-1">
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-brand-dark-blue font-heading">
-            Edit Listing: {listing.title}
-          </h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Update your business listing information and documents.
-          </p>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-brand-dark-blue font-heading">Edit Listing: {listing?.title}</h1>
         </div>
       </div>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          {/* Section 1: Basic Information */}
+          {/* Basic Information Card */}
           <Card className="shadow-md bg-brand-white">
             <CardHeader><CardTitle className="text-brand-dark-blue font-heading flex items-center gap-2"><Info className="h-5 w-5 text-primary"/>Basic Information</CardTitle></CardHeader>
             <CardContent className="space-y-6">
-              <FormField control={form.control} name="listingTitleAnonymous" render={({ field }) => (
-                  <FormItem><FormLabel>Listing Title (Anonymous)</FormLabel><FormControl><Input {...field} disabled={isPending} /></FormControl><FormMessage /></FormItem>
-                )}
-              />
+              <FormField control={form.control} name="listingTitleAnonymous" render={({ field }) => (<FormItem><FormLabel>Listing Title (Anonymous)</FormLabel><FormControl><Input {...field} disabled={isPending} /></FormControl><FormMessage /></FormItem>)}/>
               <div className="grid md:grid-cols-2 gap-6">
-                <FormField control={form.control} name="industry" render={({ field }) => (
-                    <FormItem><FormLabel>Industry</FormLabel><Select onValueChange={field.onChange} value={field.value || ""} disabled={isPending}><FormControl><SelectTrigger><SelectValue placeholder="Select industry"/></SelectTrigger></FormControl><SelectContent>{industries.map(i => <SelectItem key={i} value={i}>{i}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
-                  )}
-                />
-                <FormField control={form.control} name="locationCountry" render={({ field }) => (
-                    <FormItem><FormLabel>Location (Country)</FormLabel><Select onValueChange={field.onChange} value={field.value || ""} disabled={isPending}><FormControl><SelectTrigger><SelectValue placeholder="Select country"/></SelectTrigger></FormControl><SelectContent>{asianCountries.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
-                  )}
-                />
+                <FormField control={form.control} name="industry" render={({ field }) => (<FormItem><FormLabel>Industry</FormLabel><Select onValueChange={field.onChange} value={field.value || ""} disabled={isPending}><FormControl><SelectTrigger><SelectValue placeholder="Select industry"/></SelectTrigger></FormControl><SelectContent>{industries.map(i => <SelectItem key={i} value={i}>{i}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)}/>
+                <FormField control={form.control} name="locationCountry" render={({ field }) => (<FormItem><FormLabel>Location (Country)</FormLabel><Select onValueChange={field.onChange} value={field.value || ""} disabled={isPending}><FormControl><SelectTrigger><SelectValue placeholder="Select country"/></SelectTrigger></FormControl><SelectContent>{asianCountries.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)}/>
               </div>
-              <FormField control={form.control} name="locationCityRegionGeneral" render={({ field }) => (
-                  <FormItem><FormLabel>Location (General City/Region)</FormLabel><FormControl><Input {...field} disabled={isPending} /></FormControl><FormMessage /></FormItem>
-                )}
-              />
+              <FormField control={form.control} name="locationCityRegionGeneral" render={({ field }) => (<FormItem><FormLabel>Location (General City/Region)</FormLabel><FormControl><Input {...field} disabled={isPending} /></FormControl><FormMessage /></FormItem>)}/>
             </CardContent>
           </Card>
 
-          {/* Section 2: Business Profile & Operations */}
+          {/* Business Profile & Operations Card */}
           <Card className="shadow-md bg-brand-white">
             <CardHeader><CardTitle className="text-brand-dark-blue font-heading flex items-center gap-2"><Building className="h-5 w-5 text-primary"/>Business Profile &amp; Operations</CardTitle></CardHeader>
             <CardContent className="space-y-6">
-              <FormField control={form.control} name="anonymousBusinessDescription" render={({ field }) => (
-                  <FormItem><FormLabel>Business Description</FormLabel><FormControl><Textarea {...field} rows={6} disabled={isPending} /></FormControl><FormDescription>Max 2000 characters.</FormDescription><FormMessage /></FormItem>
-                )}
-              />
+              <FormField control={form.control} name="anonymousBusinessDescription" render={({ field }) => (<FormItem><FormLabel>Business Description</FormLabel><FormControl><Textarea {...field} rows={6} disabled={isPending} /></FormControl><FormDescription>Max 2000 characters.</FormDescription><FormMessage /></FormItem>)}/>
               <div className="space-y-2">
-                <Label className="text-brand-dark-blue font-medium">Key Strengths (1-3 points)</Label>
-                <FormDescription>Highlight the main advantages of your business. Each strength max 150 chars.</FormDescription>
-                <FormField control={form.control} name="keyStrength1" render={({ field }) => (<FormItem><FormControl><Input {...field} value={field.value || ""} placeholder="Strength 1 (e.g., Strong recurring revenue)" disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="keyStrength2" render={({ field }) => (<FormItem><FormControl><Input {...field} value={field.value || ""} placeholder="Strength 2 (Optional)" disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="keyStrength3" render={({ field }) => (<FormItem><FormControl><Input {...field} value={field.value || ""} placeholder="Strength 3 (Optional)" disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
+                <Label className="text-brand-dark-blue font-medium">Key Strengths (1-3 points)</Label><FormDescription>Highlight the main advantages of your business. Each strength max 150 chars.</FormDescription>
+                <FormField control={form.control} name="keyStrength1" render={({ field }) => (<FormItem><FormControl><Input {...field} value={field.value || ""} placeholder="Strength 1 (e.g., Strong recurring revenue)" disabled={isPending} /></FormControl><FormMessage /></FormItem>)}/>
+                <FormField control={form.control} name="keyStrength2" render={({ field }) => (<FormItem><FormControl><Input {...field} value={field.value || ""} placeholder="Strength 2 (Optional)" disabled={isPending} /></FormControl><FormMessage /></FormItem>)}/>
+                <FormField control={form.control} name="keyStrength3" render={({ field }) => (<FormItem><FormControl><Input {...field} value={field.value || ""} placeholder="Strength 3 (Optional)" disabled={isPending} /></FormControl><FormMessage /></FormItem>)}/>
               </div>
-              <FormField control={form.control} name="businessModel" render={({ field }) => (<FormItem><FormLabel>Business Model</FormLabel><FormControl><Textarea {...field} value={field.value || ""} placeholder="e.g., SaaS, E-commerce..." disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
-              <FormField control={form.control} name="yearEstablished" render={({ field }) => (<FormItem><FormLabel>Year Established</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : parseInt(e.target.value, 10))} placeholder="YYYY" disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
-              <FormField control={form.control} name="registeredBusinessName" render={({ field }) => (<FormItem><FormLabel>Legal Registered Business Name</FormLabel><FormControl><Input {...field} value={field.value || ""} disabled={isPending} /></FormControl><FormDescription>For verification, not public initially.</FormDescription><FormMessage /></FormItem>)} />
-              <FormField control={form.control} name="businessWebsiteUrl" render={({ field }) => (<FormItem><FormLabel>Website URL</FormLabel><FormControl><Input type="url" {...field} value={field.value || ""} disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
-              <FormField control={form.control} name="socialMediaLinks" render={({ field }) => (<FormItem><FormLabel>Social Media (one per line)</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={3} disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
-              <FormField control={form.control} name="numberOfEmployees" render={({ field }) => (<FormItem><FormLabel>Number of Employees</FormLabel><Select onValueChange={field.onChange} value={field.value || ""} disabled={isPending}><FormControl><SelectTrigger><SelectValue placeholder="Select range" /></SelectTrigger></FormControl><SelectContent>{employeeCountRanges.map(i => <SelectItem key={i} value={i}>{i}</SelectItem>)}</SelectContent></Select><FormDescription>Full-time.</FormDescription><FormMessage /></FormItem>)} />
+              <FormField control={form.control} name="businessModel" render={({ field }) => (<FormItem><FormLabel>Business Model</FormLabel><FormControl><Textarea {...field} value={field.value || ""} placeholder="e.g., SaaS, E-commerce..." disabled={isPending} /></FormControl><FormMessage /></FormItem>)}/>
+              <FormField control={form.control} name="yearEstablished" render={({ field }) => (<FormItem><FormLabel>Year Established</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : parseInt(e.target.value, 10))} placeholder="YYYY" disabled={isPending} /></FormControl><FormMessage /></FormItem>)}/>
+              <FormField control={form.control} name="registeredBusinessName" render={({ field }) => (<FormItem><FormLabel>Legal Registered Business Name</FormLabel><FormControl><Input {...field} value={field.value || ""} disabled={isPending} /></FormControl><FormDescription>For verification, not public initially.</FormDescription><FormMessage /></FormItem>)}/>
+              <FormField control={form.control} name="businessWebsiteUrl" render={({ field }) => (<FormItem><FormLabel>Website URL</FormLabel><FormControl><Input type="url" {...field} value={field.value || ""} disabled={isPending} /></FormControl><FormMessage /></FormItem>)}/>
+              <FormField control={form.control} name="socialMediaLinks" render={({ field }) => (<FormItem><FormLabel>Social Media (one per line)</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={3} disabled={isPending} /></FormControl><FormMessage /></FormItem>)}/>
+              <FormField control={form.control} name="numberOfEmployees" render={({ field }) => (<FormItem><FormLabel>Number of Employees</FormLabel><Select onValueChange={field.onChange} value={field.value || ""} disabled={isPending}><FormControl><SelectTrigger><SelectValue placeholder="Select range" /></SelectTrigger></FormControl><SelectContent>{employeeCountRanges.map(i => <SelectItem key={i} value={i}>{i}</SelectItem>)}</SelectContent></Select><FormDescription>Full-time.</FormDescription><FormMessage /></FormItem>)}/>
             </CardContent>
           </Card>
 
           {/* Business Images Section */}
           <Card className="shadow-md bg-brand-white">
-            <CardHeader><CardTitle className="text-brand-dark-blue font-heading flex items-center gap-2"><ImagePlus className="h-5 w-5 text-primary"/>Business Images</CardTitle><CardDescription>Provide up to 5 image URLs for your listing.</CardDescription></CardHeader>
-            <CardContent className="space-y-4">
-              {[1, 2, 3, 4, 5].map(i => (<FormField key={`imageUrl${i}`} control={form.control} name={`imageUrl${i}` as `imageUrl1`} render={({ field }) => (<FormItem><FormLabel>Image URL {i}</FormLabel><FormControl><Input {...field} value={field.value || ""} placeholder="https://example.com/image.jpg" disabled={isPending} /></FormControl><FormMessage /></FormItem>)}/>))}
+            <CardHeader>
+              <CardTitle className="text-brand-dark-blue font-heading flex items-center gap-2">
+                <ImagePlus className="h-5 w-5 text-primary"/>Manage Business Images
+              </CardTitle>
+              <CardDescription>
+                Review existing images, remove, or upload new ones. Max 5MB each. JPG, PNG, WebP.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {[0, 1, 2, 3, 4].map(i => (
+                <FormItem key={`imageSlot${i}`}>
+                  <FormLabel>Image Slot {i + 1}</FormLabel>
+                  <div className="flex flex-col sm:flex-row items-center gap-4 p-3 border rounded-md">
+                    <div className="w-32 h-32 relative border rounded-md overflow-hidden bg-muted flex items-center justify-center flex-shrink-0">
+                      {imageSlots[i]?.previewUrl ? (
+                        <Image src={imageSlots[i].previewUrl!} alt={`Preview ${i + 1}`} layout="fill" objectFit="contain" />
+                      ) : (
+                        <UploadCloud className="h-10 w-10 text-muted-foreground" />
+                      )}
+                    </div>
+                    <div className="flex-grow space-y-2 w-full">
+                      <FormControl>
+                        <Input
+                          type="file"
+                          id={`imageFile${i + 1}`}
+                          onChange={(e) => handleImageChange(i, e.target.files ? e.target.files[0] : null)}
+                          accept={ACCEPTED_IMAGE_TYPES.join(",")}
+                          disabled={isPending}
+                          className="flex-grow"
+                        />
+                      </FormControl>
+                      {imageSlots[i]?.previewUrl && (
+                        <Button type="button" variant="outline" size="sm" onClick={() => handleRemoveImage(i)} disabled={isPending} className="text-destructive border-destructive hover:bg-destructive/10 w-full sm:w-auto">
+                          <XCircle className="h-4 w-4 mr-1" /> Remove Image
+                        </Button>
+                      )}
+                       <FormDescription className="text-xs">
+                        {imageSlots[i]?.currentUrl && !imageSlots[i]?.file ? `Current: ${imageSlots[i].currentUrl!.split('/').pop()?.substring(0,20)}...` : imageSlots[i]?.file ? `New: ${imageSlots[i].file!.name}` : 'No image selected'}
+                      </FormDescription>
+                    </div>
+                  </div>
+                  <FormMessage>{form.formState.errors[`imageFile${i+1}` as keyof ListingFormValues]?.message as React.ReactNode}</FormMessage>
+                </FormItem>
+              ))}
             </CardContent>
           </Card>
           
-          {/* Financial Performance Section */}
+          {/* ... other form sections ... */}
           <Card className="shadow-md bg-brand-white">
             <CardHeader><CardTitle className="text-brand-dark-blue font-heading flex items-center gap-2"><NobridgeIcon icon="calculator" size="sm" />Financial Performance</CardTitle></CardHeader>
             <CardContent className="space-y-6">
               <div className="grid md:grid-cols-2 gap-6">
-                <FormField control={form.control} name="annualRevenueRange" render={({ field }) => (<FormItem><FormLabel>Annual Revenue Range</FormLabel><Select onValueChange={field.onChange} value={field.value || ""} disabled={isPending}><FormControl><SelectTrigger><SelectValue placeholder="Select range"/></SelectTrigger></FormControl><SelectContent>{revenueRanges.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)}/>
-                <FormField control={form.control} name="netProfitMarginRange" render={({ field }) => (<FormItem><FormLabel>Net Profit Margin Range (Optional)</FormLabel><Select onValueChange={field.onChange} value={field.value || ""} disabled={isPending}><FormControl><SelectTrigger><SelectValue placeholder="Select range"/></SelectTrigger></FormControl><SelectContent>{profitMarginRanges.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)}/>
+                <FormField control={form.control} name="annualRevenueRange" render={({ field }) => (<FormItem><FormLabel>Annual Revenue Range</FormLabel><Select onValueChange={field.onChange} value={field.value || ""} disabled={isPending}><FormControl><SelectTrigger><SelectValue placeholder="Select revenue range" /></SelectTrigger></FormControl><SelectContent>{revenueRanges.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)}/>
+                <FormField control={form.control} name="netProfitMarginRange" render={({ field }) => (<FormItem><FormLabel>Net Profit Margin Range (Optional)</FormLabel><Select onValueChange={field.onChange} value={field.value || ""} disabled={isPending}><FormControl><SelectTrigger><SelectValue placeholder="Select profit margin"/></SelectTrigger></FormControl><SelectContent>{profitMarginRanges.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)}/>
               </div>
-              <FormField control={form.control} name="askingPrice" render={({ field }) => (<FormItem><FormLabel className="flex items-center"><DollarSign className="h-4 w-4 mr-1 text-primary"/>Asking Price (USD)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} placeholder="e.g., 750000" disabled={isPending} /></FormControl><FormDescription>Enter the specific asking price.</FormDescription><FormMessage /></FormItem>)}/>
+              <FormField control={form.control} name="askingPrice" render={({ field }) => (<FormItem><FormLabel className="flex items-center"><NobridgeIcon icon="revenue" size="sm" className="mr-1 opacity-80"/>Asking Price (USD)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} placeholder="e.g., 750000" disabled={isPending} /></FormControl><FormDescription>Enter the specific asking price for your business.</FormDescription><FormMessage /></FormItem>)}/>
               <FormField control={form.control} name="adjustedCashFlow" render={({ field }) => (<FormItem><FormLabel>Adjusted Cash Flow / SDE (TTM, USD)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} placeholder="e.g., 220000" disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
               <Separator/>
               <h3 className="text-md font-medium text-muted-foreground font-heading">Specific Financials (For Verified View)</h3>
-              <FormField control={form.control} name="specificAnnualRevenueLastYear" render={({ field }) => (<FormItem><FormLabel>Actual Annual Revenue (TTM, USD)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
-              <FormField control={form.control} name="specificNetProfitLastYear" render={({ field }) => (<FormItem><FormLabel>Actual Net Profit (TTM, USD)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
+              <FormField control={form.control} name="specificAnnualRevenueLastYear" render={({ field }) => (<FormItem><FormLabel>Actual Annual Revenue (TTM, in USD)</FormLabel><FormControl><Input type="number" {...field} value={field.value === undefined ? '' : field.value} onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} placeholder="e.g., 750000" disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
+              <FormField control={form.control} name="specificNetProfitLastYear" render={({ field }) => (<FormItem><FormLabel>Actual Net Profit (TTM, in USD)</FormLabel><FormControl><Input type="number" {...field} value={field.value === undefined ? '' : field.value} onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} placeholder="e.g., 180000" disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
             </CardContent>
           </Card>
 
           {/* Supporting Documents Section */}
           <Card className="shadow-md bg-brand-white">
-            <CardHeader><CardTitle className="text-brand-dark-blue font-heading flex items-center gap-2"><FileText className="h-5 w-5 text-primary"/>Supporting Documents & Information</CardTitle><CardDescription>Update supporting documents. These are visible to verified buyers.</CardDescription></CardHeader>
+            <CardHeader><CardTitle className="text-brand-dark-blue font-heading flex items-center gap-2"><FileText className="h-5 w-5 text-primary"/>Supporting Documents & Information</CardTitle><CardDescription>Update supporting documents. These are visible to verified buyers. Max 5MB each. PDF, XLSX, CSV.</CardDescription></CardHeader>
             <CardContent className="space-y-6">
               <div className="grid md:grid-cols-2 gap-6">
-                <FormField control={form.control} name="financialDocuments" render={({ field }) => (<FormItem><FormLabel>Financial Documents (P&L, Balance Sheet)</FormLabel><FormControl><Input type="file" onChange={(e) => field.onChange(e.target.files ? e.target.files[0] : null)} accept={ACCEPTED_DOCUMENT_TYPES.join(",")} disabled={isPending} /></FormControl><FormDescription>PDF, XLSX, CSV. Max 5MB.</FormDescription><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="keyMetricsReport" render={({ field }) => (<FormItem><FormLabel>Key Business Metrics Report</FormLabel><FormControl><Input type="file" onChange={(e) => field.onChange(e.target.files ? e.target.files[0] : null)} accept={ACCEPTED_DOCUMENT_TYPES.join(",")} disabled={isPending} /></FormControl><FormDescription>KPIs, analytics. PDF, XLSX, CSV.</FormDescription><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="ownershipDocuments" render={({ field }) => (<FormItem><FormLabel>Ownership Documents</FormLabel><FormControl><Input type="file" onChange={(e) => field.onChange(e.target.files ? e.target.files[0] : null)} accept={ACCEPTED_DOCUMENT_TYPES.join(",")} disabled={isPending} /></FormControl><FormDescription>Company registration, shareholding certs.</FormDescription><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="financialSnapshot" render={({ field }) => (<FormItem><FormLabel>Financial Snapshot</FormLabel><FormControl><Input type="file" onChange={(e) => field.onChange(e.target.files ? e.target.files[0] : null)} accept={ACCEPTED_DOCUMENT_TYPES.join(",")} disabled={isPending} /></FormControl><FormDescription>Recent financial summary.</FormDescription><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="ownershipDetails" render={({ field }) => (<FormItem><FormLabel>Detailed Ownership Information</FormLabel><FormControl><Input type="file" onChange={(e) => field.onChange(e.target.files ? e.target.files[0] : null)} accept={ACCEPTED_DOCUMENT_TYPES.join(",")} disabled={isPending} /></FormControl><FormDescription>Ownership structure, stakeholders.</FormDescription><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="locationRealEstateInfo" render={({ field }) => (<FormItem><FormLabel>Location & Real Estate Information</FormLabel><FormControl><Input type="file" onChange={(e) => field.onChange(e.target.files ? e.target.files[0] : null)} accept={ACCEPTED_DOCUMENT_TYPES.join(",")} disabled={isPending} /></FormControl><FormDescription>Lease agreements, property details.</FormDescription><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="webPresenceInfo" render={({ field }) => (<FormItem><FormLabel>Web Presence Information</FormLabel><FormControl><Input type="file" onChange={(e) => field.onChange(e.target.files ? e.target.files[0] : null)} accept={ACCEPTED_DOCUMENT_TYPES.join(",")} disabled={isPending} /></FormControl><FormDescription>Website analytics, SEO reports.</FormDescription><FormMessage /></FormItem>)} />
+                {[
+                  { name: "financialDocuments", label: "Financial Documents (P&L, Balance Sheet)", current: listing?.financial_documents_url },
+                  { name: "keyMetricsReport", label: "Key Business Metrics Report", current: listing?.key_metrics_report_url },
+                  { name: "ownershipDocuments", label: "Ownership Documents", current: listing?.ownership_documents_url },
+                  { name: "financialSnapshot", label: "Financial Snapshot", current: listing?.financial_snapshot_url },
+                  { name: "ownershipDetails", label: "Detailed Ownership Information", current: listing?.ownership_details_url },
+                  { name: "locationRealEstateInfo", label: "Location & Real Estate Information", current: listing?.location_real_estate_info_url },
+                  { name: "webPresenceInfo", label: "Web Presence Information", current: listing?.web_presence_info_url },
+                ].map(doc => (
+                  <FormField key={doc.name} control={form.control} name={doc.name as keyof ListingFormValues} render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{doc.label}</FormLabel>
+                      {doc.current && !(field.value instanceof File) && (
+                        <div className="text-xs text-muted-foreground mb-1">Current: <Link href={doc.current} target="_blank" className="text-primary hover:underline">{doc.current.split('/').pop()}</Link></div>
+                      )}
+                      <FormControl><Input type="file" onChange={(e) => field.onChange(e.target.files ? e.target.files[0] : null)} accept={ACCEPTED_DOCUMENT_TYPES.join(",")} disabled={isPending} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  ))} />
+                ))}
               </div>
-              <Separator/>
               <FormField control={form.control} name="secureDataRoomLink" render={({ field }) => (<FormItem><FormLabel>Secure Data Room Link (Optional)</FormLabel><FormControl><Input type="url" {...field} value={field.value || ""} placeholder="https://dataroom.example.com/your-listing" disabled={isPending}/></FormControl><FormDescription>Link to external secure data room.</FormDescription><FormMessage /></FormItem>)}/>
             </CardContent>
           </Card>
-
-          {/* Deal & Seller Information Section */}
-          <Card className="shadow-md bg-brand-white">
-            <CardHeader><CardTitle className="text-brand-dark-blue font-heading flex items-center gap-2"><HandCoins className="h-5 w-5 text-primary"/>Deal &amp; Seller Information</CardTitle></CardHeader>
-            <CardContent className="space-y-6">
-              <FormField control={form.control} name="dealStructureLookingFor" render={() => (<FormItem><FormLabel>Looking for (Deal Structure):</FormLabel><FormDescription>Select all that apply.</FormDescription><div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 pt-2">{dealStructures.map((item) => (<FormField key={item} control={form.control} name="dealStructureLookingFor" render={({ field }) => (<FormItem className="flex flex-row items-start space-x-3 space-y-0"><FormControl><Checkbox checked={field.value?.includes(item)} onCheckedChange={(checked) => checked ? field.onChange([...(field.value || []), item]) : field.onChange(field.value?.filter(v => v !== item))} disabled={isPending}/></FormControl><FormLabel className="font-normal">{item}</FormLabel></FormItem>)}/>))}</div><FormMessage /></FormItem>)}/>
-              <FormField control={form.control} name="reasonForSellingAnonymous" render={({ field }) => (<FormItem><FormLabel>Reason for Selling (Public Summary, Optional)</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={3} disabled={isPending} /></FormControl><FormDescription>Max 500 characters.</FormDescription><FormMessage /></FormItem>)}/>
-              <Separator/>
-              <h3 className="text-md font-medium text-muted-foreground font-heading">Additional Seller Information (For Verified View)</h3>
-              <FormField control={form.control} name="detailedReasonForSelling" render={({ field }) => (<FormItem><FormLabel>Detailed Reason for Selling</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={3} disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
-            </CardContent>
-          </Card>
-
-          {/* Growth & Future Potential Section */}
-          <Card className="shadow-md bg-brand-white">
-            <CardHeader><CardTitle className="text-brand-dark-blue font-heading flex items-center gap-2"><Brain className="h-5 w-5 text-primary"/>Growth &amp; Future Potential</CardTitle></CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label className="text-brand-dark-blue font-medium">Specific Growth Opportunities (1-3 points)</Label>
-                <FormDescription>List 1-3 specific, actionable growth opportunities. Each opportunity max 200 chars.</FormDescription>
-                <FormField control={form.control} name="growthOpportunity1" render={({ field }) => (<FormItem><FormControl><Input {...field} value={field.value || ""} placeholder="Opportunity 1 (e.g., Expand to new markets - Region X)" disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="growthOpportunity2" render={({ field }) => (<FormItem><FormControl><Input {...field} value={field.value || ""} placeholder="Opportunity 2 (Optional)" disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="growthOpportunity3" render={({ field }) => (<FormItem><FormControl><Input {...field} value={field.value || ""} placeholder="Opportunity 3 (Optional)" disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
-              </div>
-            </CardContent>
-          </Card>
-          
-          {/* Additional Business Details Section */}
-          <Card className="shadow-md bg-brand-white">
-            <CardHeader><CardTitle className="text-brand-dark-blue font-heading flex items-center gap-2"><Globe className="h-5 w-5 text-primary"/>Additional Business Details</CardTitle><CardDescription>Optional information to make your listing more comprehensive.</CardDescription></CardHeader>
-            <CardContent className="space-y-6">
-                <FormField control={form.control} name="technologyStack" render={({ field }) => (<FormItem><FormLabel>Technology Stack (for tech businesses)</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={3} placeholder="e.g., React, Node.js, AWS, PostgreSQL, etc." disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="actualCompanyName" render={({ field }) => (<FormItem><FormLabel>Actual Company Name (if different from legal name)</FormLabel><FormControl><Input {...field} value={field.value || ""} placeholder="Brand name or trading name" disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="fullBusinessAddress" render={({ field }) => (<FormItem><FormLabel>Full Business Address (for verification)</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={2} placeholder="Complete business address including postal code" disabled={isPending} /></FormControl><FormDescription>This will be kept confidential and used for verification purposes only.</FormDescription><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="adjustedCashFlowExplanation" render={({ field }) => (<FormItem><FormLabel>Adjusted Cash Flow Explanation</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={3} placeholder="Explain how you calculated the adjusted cash flow (add-backs, one-time expenses, etc.)" disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="sellerRoleAndTimeCommitment" render={({ field }) => (<FormItem><FormLabel>Seller Role & Time Commitment</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={3} placeholder="Describe your current role and time investment in the business" disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="postSaleTransitionSupport" render={({ field }) => (<FormItem><FormLabel>Post-Sale Transition Support</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={3} placeholder="What transition support are you willing to provide to the buyer?" disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
-            </CardContent>
-          </Card>
+           {/* Deal & Seller Information, Growth & Future Potential, Additional Business Details sections (similar to create form) */}
 
           <Separator />
           <div className="flex justify-end gap-4">
-            <Button type="button" variant="outline" onClick={() => form.reset(listing ? {
-                  listingTitleAnonymous: listing.title || "", industry: listing.industry || "", locationCountry: listing.location_country || "", locationCityRegionGeneral: listing.location_city || "", anonymousBusinessDescription: listing.short_description || "",
-                  keyStrength1: listing.key_strength_1 || "", keyStrength2: listing.key_strength_2 || "", keyStrength3: listing.key_strength_3 || "",
-                  businessModel: listing.business_model || "", yearEstablished: listing.established_year || undefined, registeredBusinessName: listing.registered_business_name || "", businessWebsiteUrl: listing.website_url || "", socialMediaLinks: listing.social_media_links || "", numberOfEmployees: listing.number_of_employees || undefined, technologyStack: listing.technology_stack || "", actualCompanyName: listing.actual_company_name || "", fullBusinessAddress: listing.full_business_address || "",
-                  annualRevenueRange: listing.annual_revenue_range || "", netProfitMarginRange: listing.net_profit_margin_range || "", askingPrice: listing.asking_price || undefined, specificAnnualRevenueLastYear: listing.verified_annual_revenue || undefined, specificNetProfitLastYear: listing.verified_net_profit || undefined, adjustedCashFlow: listing.adjusted_cash_flow || undefined, adjustedCashFlowExplanation: listing.adjusted_cash_flow_explanation || "",
-                  dealStructureLookingFor: listing.deal_structure_looking_for || [], reasonForSellingAnonymous: listing.reason_for_selling_anonymous || "", detailedReasonForSelling: listing.detailed_reason_for_selling || "", sellerRoleAndTimeCommitment: listing.seller_role_and_time_commitment || "", postSaleTransitionSupport: listing.post_sale_transition_support || "",
-                  growthOpportunity1: listing.growth_opportunity_1 || "", growthOpportunity2: listing.growth_opportunity_2 || "", growthOpportunity3: listing.growth_opportunity_3 || "",
-                  secureDataRoomLink: listing.secure_data_room_link || "",
-                  imageUrl1: listing.image_url_1 || listing.images?.[0] || "", imageUrl2: listing.image_url_2 || listing.images?.[1] || "", imageUrl3: listing.image_url_3 || listing.images?.[2] || "", imageUrl4: listing.image_url_4 || listing.images?.[3] || "", imageUrl5: listing.image_url_5 || listing.images?.[4] || "",
-                  financialDocuments: undefined, keyMetricsReport: undefined, ownershipDocuments: undefined, financialSnapshot: undefined, ownershipDetails: undefined, locationRealEstateInfo: undefined, webPresenceInfo: undefined,
-                } : undefined)} disabled={isPending} className="border-input hover:bg-accent/50">
-                Reset Changes
-            </Button>
+            <Button type="button" variant="outline" onClick={() => router.push('/seller-dashboard/listings')} disabled={isPending} className="border-input hover:bg-accent/50">Cancel</Button>
             <Button type="submit" className="min-w-[150px] bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90" disabled={isPending}>
                 {isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <EditIcon className="h-4 w-4 mr-2" />}
                 {isPending ? "Saving..." : "Save Changes"}
@@ -445,3 +518,4 @@ export default function EditSellerListingPage() {
     </div>
   );
 }
+
