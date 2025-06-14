@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import GlobalLayoutWrapper from '@/components/layout/GlobalLayoutWrapper';
 import NoticeListener from '@/components/NoticeListener';
 import { DebugState } from '@/components/shared/DebugState';
+import { AuthProvider } from '@/contexts/auth-context';
 
 export const metadata: Metadata = {
   title: 'Nobridge - Business Marketplace Platform',
@@ -34,12 +35,14 @@ export default function RootLayout({
         />
       </head>
       <body className="font-sans antialiased flex flex-col min-h-screen bg-background text-foreground">
-        <GlobalLayoutWrapper>
-          {children}
-        </GlobalLayoutWrapper>
-        <NoticeListener />
-        <Toaster />
-        <DebugState />
+        <AuthProvider>
+          <GlobalLayoutWrapper>
+            {children}
+          </GlobalLayoutWrapper>
+          <NoticeListener />
+          <Toaster />
+          <DebugState />
+        </AuthProvider>
       </body>
     </html>
   );

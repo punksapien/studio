@@ -1,15 +1,48 @@
 import { NextRequest } from 'next/server'
-import { supabase } from './supabase'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import type { User } from '@supabase/supabase-js'
 import { UserProfile } from './auth'
 
 // Server-side authentication helpers for API routes
 export const authServer = {
-  // Get current user from request headers
-  async getCurrentUser(request?: NextRequest): Promise<User | null> {
+  // Create Supabase client that can read cookies from request
+  createServerClient(request: NextRequest) {
+    let response = new Response()
+
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return request.cookies.get(name)?.value
+          },
+          set(name: string, value: string, options: CookieOptions) {
+            // We can't set cookies in API routes, but this is required by the interface
+            response.cookies.set({ name, value, ...options })
+          },
+          remove(name: string, options: CookieOptions) {
+            // We can't remove cookies in API routes, but this is required by the interface
+            response.cookies.set({ name, value: '', ...options })
+          },
+        },
+      }
+    )
+
+    return { supabase, response }
+  },
+
+  // Get current user from request cookies
+  async getCurrentUser(request: NextRequest): Promise<User | null> {
     try {
-      // In API routes, we need to get the session from the request
-      const { data: { user } } = await supabase.auth.getUser()
+      const { supabase } = this.createServerClient(request)
+      const { data: { user }, error } = await supabase.auth.getUser()
+
+      if (error) {
+        console.error('Error getting current user:', error)
+        return null
+      }
+
       return user
     } catch (error) {
       console.error('Error getting current user:', error)
@@ -18,11 +51,12 @@ export const authServer = {
   },
 
   // Get current user's profile (server-safe)
-  async getCurrentUserProfile(request?: NextRequest): Promise<UserProfile | null> {
+  async getCurrentUserProfile(request: NextRequest): Promise<UserProfile | null> {
     const user = await this.getCurrentUser(request)
     if (!user) return null
 
     try {
+      const { supabase } = this.createServerClient(request)
       const { data, error } = await supabase
         .from('user_profiles')
         .select('*')
@@ -42,8 +76,9 @@ export const authServer = {
   },
 
   // Update password (server-safe)
-  async updatePassword(newPassword: string) {
+  async updatePassword(newPassword: string, request: NextRequest) {
     try {
+      const { supabase } = this.createServerClient(request)
       const { error } = await supabase.auth.updateUser({
         password: newPassword,
       })

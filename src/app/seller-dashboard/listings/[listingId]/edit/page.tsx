@@ -26,15 +26,25 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { industries, asianCountries, revenueRanges, profitMarginRanges, dealStructures, Listing, User, employeeCountRanges } from "@/lib/types"; // Updated import
+import { industries, asianCountries, revenueRanges, profitMarginRanges, dealStructures, employeeCountRanges } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { useTransition, useState, useEffect } from "react";
 import { Separator } from "@/components/ui/separator";
-import { sampleListings, sampleUsers } from "@/lib/placeholder-data";
-import { PlusCircle, Trash2, ImagePlus } from "lucide-react";
+import { Loader2, FileText, ArrowLeft, AlertCircle, CheckCircle2, PlusCircle, Trash2, ImagePlus } from "lucide-react";
 import { notFound, useRouter, useParams } from 'next/navigation';
 import { Label } from "@/components/ui/label";
-import { NobridgeIcon, NobridgeIconType } from '@/components/ui/nobridge-icon';
+import { NobridgeIcon } from '@/components/ui/nobridge-icon';
+import Link from "next/link";
+import { useAuth } from '@/contexts/auth-context';
+import { supabase } from '@/lib/supabase';
+
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const ACCEPTED_DOCUMENT_TYPES = ["application/pdf", "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "text/csv"];
+
+const documentFileValidation = z.instanceof(File)
+  .optional()
+  .refine(file => !file || file.size <= MAX_FILE_SIZE, `Max file size is 5MB.`)
+  .refine(file => !file || ACCEPTED_DOCUMENT_TYPES.includes(file.type), 'Only PDF, XLSX, CSV formats are supported.');
 
 const ListingSchema = z.object({
   listingTitleAnonymous: z.string().min(5, "Title must be at least 5 characters.").max(100, "Title too long."),
@@ -53,6 +63,8 @@ const ListingSchema = z.object({
   socialMediaLinks: z.string().optional(),
   numberOfEmployees: z.string().optional(),
   technologyStack: z.string().optional(),
+  actualCompanyName: z.string().optional(),
+  fullBusinessAddress: z.string().optional(),
 
   annualRevenueRange: z.string().min(1, "Annual revenue range is required."),
   netProfitMarginRange: z.string().optional(),
@@ -71,6 +83,16 @@ const ListingSchema = z.object({
 
   specificGrowthOpportunities: z.string().optional(),
 
+  // Document uploads
+  financialDocuments: documentFileValidation,
+  keyMetricsReport: documentFileValidation,
+  ownershipDocuments: documentFileValidation,
+  financialSnapshot: documentFileValidation,
+  ownershipDetails: documentFileValidation,
+  locationRealEstateInfo: documentFileValidation,
+  webPresenceInfo: documentFileValidation,
+  secureDataRoomLink: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
+
   imageUrl1: z.string().url({ message: "Invalid URL" }).optional().or(z.literal('')),
   imageUrl2: z.string().url({ message: "Invalid URL" }).optional().or(z.literal('')),
   imageUrl3: z.string().url({ message: "Invalid URL" }).optional().or(z.literal('')),
@@ -80,9 +102,6 @@ const ListingSchema = z.object({
 
 type ListingFormValues = z.infer<typeof ListingSchema>;
 
-const currentSellerId = 'user1';
-const currentUser: User | undefined = sampleUsers.find(u => u.id === currentSellerId && u.role === 'seller');
-
 export default function EditSellerListingPage() {
   const params = useParams();
   const listingId = typeof params.listingId === 'string' ? params.listingId : '';
@@ -90,8 +109,13 @@ export default function EditSellerListingPage() {
   const { toast } = useToast();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [listing, setListing] = useState<Listing | null>(null);
+  const [listing, setListing] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [keyStrengthsFields, setKeyStrengthsFields] = useState<string[]>(['']);
+
+  // Use cached auth context
+  const { profile, isLoading: authLoading } = useAuth();
 
   const form = useForm<ListingFormValues>({
     resolver: zodResolver(ListingSchema),
@@ -109,6 +133,8 @@ export default function EditSellerListingPage() {
       socialMediaLinks: "",
       numberOfEmployees: undefined,
       technologyStack: "",
+      actualCompanyName: "",
+      fullBusinessAddress: "",
       annualRevenueRange: "",
       netProfitMarginRange: "",
       askingPrice: undefined,
@@ -122,53 +148,108 @@ export default function EditSellerListingPage() {
       sellerRoleAndTimeCommitment: "",
       postSaleTransitionSupport: "",
       specificGrowthOpportunities: "",
+
+      // Document uploads
+      financialDocuments: undefined,
+      keyMetricsReport: undefined,
+      ownershipDocuments: undefined,
+      financialSnapshot: undefined,
+      ownershipDetails: undefined,
+      locationRealEstateInfo: undefined,
+      webPresenceInfo: undefined,
+      secureDataRoomLink: "",
+
       imageUrl1: "", imageUrl2: "", imageUrl3: "", imageUrl4: "", imageUrl5: "",
     },
   });
 
+  // Fetch listing data from API
   useEffect(() => {
-    const fetchedListing = sampleListings.find(l => l.id === listingId && l.sellerId === currentUser?.id);
-    if (fetchedListing) {
-      setListing(fetchedListing);
-      const initialImageUrls = fetchedListing.imageUrls || [];
-      form.reset({
-        listingTitleAnonymous: fetchedListing.listingTitleAnonymous || "",
-        industry: fetchedListing.industry || "",
-        locationCountry: fetchedListing.locationCountry || "",
-        locationCityRegionGeneral: fetchedListing.locationCityRegionGeneral || "",
-        anonymousBusinessDescription: fetchedListing.anonymousBusinessDescription || "",
-        keyStrengthsAnonymous: fetchedListing.keyStrengthsAnonymous?.length > 0 ? fetchedListing.keyStrengthsAnonymous : [''],
-        businessModel: fetchedListing.businessModel || "",
-        yearEstablished: fetchedListing.yearEstablished || undefined,
-        registeredBusinessName: fetchedListing.registeredBusinessName || "",
-        businessWebsiteUrl: fetchedListing.businessWebsiteUrl || "",
-        socialMediaLinks: fetchedListing.socialMediaLinks || "",
-        numberOfEmployees: fetchedListing.numberOfEmployees || undefined,
-        technologyStack: fetchedListing.technologyStack || "",
-        annualRevenueRange: fetchedListing.annualRevenueRange || "",
-        netProfitMarginRange: fetchedListing.netProfitMarginRange || "",
-        askingPrice: fetchedListing.askingPrice === undefined ? undefined : Number(fetchedListing.askingPrice),
-        specificAnnualRevenueLastYear: fetchedListing.specificAnnualRevenueLastYear === undefined ? undefined : Number(fetchedListing.specificAnnualRevenueLastYear),
-        specificNetProfitLastYear: fetchedListing.specificNetProfitLastYear === undefined ? undefined : Number(fetchedListing.specificNetProfitLastYear),
-        adjustedCashFlow: fetchedListing.adjustedCashFlow === undefined ? undefined : Number(fetchedListing.adjustedCashFlow),
-        adjustedCashFlowExplanation: fetchedListing.adjustedCashFlowExplanation || "",
-        dealStructureLookingFor: fetchedListing.dealStructureLookingFor || [],
-        reasonForSellingAnonymous: fetchedListing.reasonForSellingAnonymous || "",
-        detailedReasonForSelling: fetchedListing.detailedReasonForSelling || "",
-        sellerRoleAndTimeCommitment: fetchedListing.sellerRoleAndTimeCommitment || "",
-        postSaleTransitionSupport: fetchedListing.postSaleTransitionSupport || "",
-        specificGrowthOpportunities: fetchedListing.specificGrowthOpportunities || "",
-        imageUrl1: initialImageUrls[0] || "",
-        imageUrl2: initialImageUrls[1] || "",
-        imageUrl3: initialImageUrls[2] || "",
-        imageUrl4: initialImageUrls[3] || "",
-        imageUrl5: initialImageUrls[4] || "",
-      });
-      setKeyStrengthsFields(fetchedListing.keyStrengthsAnonymous?.length > 0 ? fetchedListing.keyStrengthsAnonymous : ['']);
-    } else {
-      notFound();
-    }
-  }, [listingId, form, currentUser?.id]);
+    if (authLoading || !profile) return;
+
+    const fetchListing = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        console.log('[EDIT-PAGE] Fetching listing:', listingId);
+        const response = await fetch(`/api/listings/${listingId}`);
+
+        if (!response.ok) {
+          if (response.status === 404) {
+            throw new Error('Listing not found');
+          }
+          throw new Error(`Failed to fetch listing: ${response.status}`);
+        }
+
+                const listing = await response.json();
+        console.log('[EDIT-PAGE] Listing fetched:', listing);
+
+        // Verify ownership
+        if (listing.seller_id !== profile.id) {
+          throw new Error('You do not have permission to edit this listing');
+        }
+
+        setListing(listing);
+
+        // Populate form with fetched data
+        const keyStrengths = [
+          listing.key_strength_1,
+          listing.key_strength_2,
+          listing.key_strength_3
+        ].filter(Boolean);
+
+              // The API returns different field names than the database
+        // Map API response fields to form fields
+        form.reset({
+          listingTitleAnonymous: listing.title || "",
+          industry: listing.industry || "",
+          locationCountry: listing.location_country || "",
+          locationCityRegionGeneral: listing.location_city || "",
+          anonymousBusinessDescription: listing.short_description || "",
+          keyStrengthsAnonymous: keyStrengths.length > 0 ? keyStrengths : [''],
+          businessModel: listing.business_model || "",
+          yearEstablished: listing.established_year || undefined,
+          registeredBusinessName: listing.registered_business_name || "",
+          businessWebsiteUrl: listing.website_url || "",
+          socialMediaLinks: listing.social_media_links || "",
+          numberOfEmployees: listing.number_of_employees || undefined,
+          technologyStack: listing.technology_stack || "",
+          actualCompanyName: listing.actual_company_name || "",
+          fullBusinessAddress: listing.full_business_address || "",
+          annualRevenueRange: listing.annual_revenue_range || "",
+          netProfitMarginRange: listing.net_profit_margin_range || "",
+          askingPrice: listing.asking_price || undefined,
+          specificAnnualRevenueLastYear: listing.verified_annual_revenue || undefined,
+          specificNetProfitLastYear: listing.verified_net_profit || undefined,
+          adjustedCashFlow: listing.adjusted_cash_flow || undefined,
+          adjustedCashFlowExplanation: listing.adjusted_cash_flow_explanation || "",
+          dealStructureLookingFor: listing.deal_structure_looking_for || [],
+          reasonForSellingAnonymous: listing.reason_for_selling_anonymous || "",
+          detailedReasonForSelling: listing.detailed_reason_for_selling || "",
+          sellerRoleAndTimeCommitment: listing.seller_role_and_time_commitment || "",
+          postSaleTransitionSupport: listing.post_sale_transition_support || "",
+          specificGrowthOpportunities: listing.specific_growth_opportunities || "",
+          secureDataRoomLink: listing.secure_data_room_link || "",
+          imageUrl1: listing.image_url_1 || "",
+          imageUrl2: listing.image_url_2 || "",
+          imageUrl3: listing.image_url_3 || "",
+          imageUrl4: listing.image_url_4 || "",
+          imageUrl5: listing.image_url_5 || "",
+        });
+
+        setKeyStrengthsFields(keyStrengths.length > 0 ? keyStrengths : ['']);
+
+      } catch (err) {
+        console.error('[EDIT-PAGE] Error fetching listing:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load listing');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchListing();
+  }, [listingId, form, profile, authLoading]);
 
 
   const handleAddStrength = () => {
@@ -195,30 +276,220 @@ export default function EditSellerListingPage() {
   };
 
 
-  const onSubmit = (values: ListingFormValues) => {
-    const imageUrls = [values.imageUrl1, values.imageUrl2, values.imageUrl3, values.imageUrl4, values.imageUrl5].filter(url => url && url.trim() !== "") as string[];
-     const cleanedValues = {
-      ...values,
-      keyStrengthsAnonymous: values.keyStrengthsAnonymous.filter(strength => strength && strength.trim() !== ""),
-      imageUrls: imageUrls,
-    };
-    delete (cleanedValues as any).imageUrl1;
-    delete (cleanedValues as any).imageUrl2;
-    delete (cleanedValues as any).imageUrl3;
-    delete (cleanedValues as any).imageUrl4;
-    delete (cleanedValues as any).imageUrl5;
+  const onSubmit = async (values: ListingFormValues) => {
+    console.log('[EDIT-PAGE] Starting update with values:', Object.keys(values));
 
-    startTransition(async () => {
-      console.log("Update listing values:", cleanedValues);
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      toast({ title: "Listing Updated", description: "Your business listing has been successfully updated." });
-    });
+    try {
+      await startTransition(async () => {
+        // Upload new documents if provided
+        const documentUploads: Record<string, string> = {};
+        const documentFields = [
+          'financialDocuments', 'keyMetricsReport', 'ownershipDocuments',
+          'financialSnapshot', 'ownershipDetails', 'locationRealEstateInfo', 'webPresenceInfo'
+        ];
+
+        try {
+          for (const fieldName of documentFields) {
+            const file = values[fieldName as keyof ListingFormValues] as File | undefined;
+            if (file) {
+              console.log(`[EDIT-PAGE] Uploading ${fieldName}:`, file.name);
+
+              const formData = new FormData();
+              formData.append('file', file);
+              formData.append('document_type', fieldName.replace(/([A-Z])/g, '_$1').toLowerCase().replace(/^_/, ''));
+
+              const session = await supabase.auth.getSession();
+              const accessToken = session.data.session?.access_token;
+
+              if (!accessToken) {
+                throw new Error('Authentication required for document upload');
+              }
+
+              const uploadResponse = await fetch('/api/listings/upload', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                  'Authorization': `Bearer ${accessToken}`
+                }
+              });
+
+              if (!uploadResponse.ok) {
+                const errorData = await uploadResponse.json();
+                throw new Error(errorData.error || `Failed to upload ${fieldName}`);
+              }
+
+              const uploadResult = await uploadResponse.json();
+              documentUploads[`${fieldName}Url`] = uploadResult.signedUrl;
+              console.log(`[EDIT-PAGE] Successfully uploaded ${fieldName}`);
+            }
+          }
+        } catch (uploadError) {
+          console.error('[EDIT-PAGE] Document upload failed:', uploadError);
+          toast({
+            title: "❌ Document Upload Failed",
+            description: `Error uploading documents: ${uploadError.message}`,
+            variant: "destructive"
+          });
+          return;
+        }
+
+                        // Prepare update payload - use database field names (snake_case)
+        const keyStrengths = values.keyStrengthsAnonymous.filter(strength => strength && strength.trim() !== "");
+
+        // Convert growth opportunities to individual fields
+        const growthOpportunitiesArray = values.specificGrowthOpportunities
+          ? values.specificGrowthOpportunities.split('\n').map(opp => opp.replace(/^[•\-\*]\s*/, '').trim()).filter(Boolean)
+          : [];
+
+        const updatePayload = {
+          // Core fields
+          listing_title_anonymous: values.listingTitleAnonymous,
+          industry: values.industry,
+          location_country: values.locationCountry,
+          location_city_region_general: values.locationCityRegionGeneral,
+          anonymous_business_description: values.anonymousBusinessDescription,
+
+          // Key strengths
+          key_strength_1: keyStrengths[0] || null,
+          key_strength_2: keyStrengths[1] || null,
+          key_strength_3: keyStrengths[2] || null,
+
+          // Business details
+          business_model: values.businessModel || null,
+          year_established: values.yearEstablished || null,
+          registered_business_name: values.registeredBusinessName || null,
+          business_website_url: values.businessWebsiteUrl || null,
+          social_media_links: values.socialMediaLinks || null,
+          number_of_employees: values.numberOfEmployees || null,
+          technology_stack: values.technologyStack || null,
+          actual_company_name: values.actualCompanyName || null,
+          full_business_address: values.fullBusinessAddress || null,
+
+          // Financial data
+          annual_revenue_range: values.annualRevenueRange,
+          net_profit_margin_range: values.netProfitMarginRange || null,
+          asking_price: values.askingPrice || null,
+          specific_annual_revenue_last_year: values.specificAnnualRevenueLastYear || null,
+          specific_net_profit_last_year: values.specificNetProfitLastYear || null,
+          adjusted_cash_flow: values.adjustedCashFlow || null,
+          adjusted_cash_flow_explanation: values.adjustedCashFlowExplanation || null,
+
+          // Deal structure and seller info
+          deal_structure_looking_for: values.dealStructureLookingFor || [],
+          reason_for_selling_anonymous: values.reasonForSellingAnonymous || null,
+          detailed_reason_for_selling: values.detailedReasonForSelling || null,
+          seller_role_and_time_commitment: values.sellerRoleAndTimeCommitment || null,
+          post_sale_transition_support: values.postSaleTransitionSupport || null,
+
+          // Growth opportunities
+          specific_growth_opportunities: values.specificGrowthOpportunities || null,
+          growth_opportunity_1: growthOpportunitiesArray[0] || null,
+          growth_opportunity_2: growthOpportunitiesArray[1] || null,
+          growth_opportunity_3: growthOpportunitiesArray[2] || null,
+
+          // Images and documents
+          secure_data_room_link: values.secureDataRoomLink || null,
+          image_url_1: values.imageUrl1 || null,
+          image_url_2: values.imageUrl2 || null,
+          image_url_3: values.imageUrl3 || null,
+          image_url_4: values.imageUrl4 || null,
+          image_url_5: values.imageUrl5 || null,
+
+          // Include any newly uploaded documents
+          ...Object.fromEntries(
+            Object.entries(documentUploads).map(([key, value]) => [
+              key.replace(/([A-Z])/g, '_$1').toLowerCase().replace(/^_/, '').replace(/_url$/, '_url'),
+              value
+            ])
+          )
+        };
+
+        console.log('[EDIT-PAGE] Updating listing with payload:', updatePayload);
+
+        const response = await fetch(`/api/listings/${listingId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(updatePayload),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to update listing');
+        }
+
+        const result = await response.json();
+        console.log('[EDIT-PAGE] Listing updated successfully:', result);
+
+        toast({
+          title: "✅ Listing Updated",
+          description: "Your business listing has been successfully updated.",
+        });
+
+        // Redirect to listings page
+        router.push('/seller-dashboard/listings');
+      });
+    } catch (error) {
+      console.error('[EDIT-PAGE] Update failed:', error);
+      toast({
+        title: "❌ Update Failed",
+        description: error instanceof Error ? error.message : "Failed to update listing. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
-  if (!currentUser) {
+  // Loading and error states
+  if (authLoading || isLoading) {
     return (
       <div className="container py-8 text-center">
-        Please login as a seller to edit listings.
+        <div className="flex items-center justify-center gap-2">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span>Loading listing data...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container py-8 text-center">
+        <div className="flex flex-col items-center gap-4">
+          <AlertCircle className="h-12 w-12 text-destructive" />
+          <div>
+            <h2 className="text-xl font-semibold text-destructive mb-2">Error Loading Listing</h2>
+            <p className="text-muted-foreground mb-4">{error}</p>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => window.location.reload()}>
+                Try Again
+              </Button>
+              <Button asChild>
+                <Link href="/seller-dashboard/listings">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Listings
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!profile || profile.role !== 'seller') {
+    return (
+      <div className="container py-8 text-center">
+        <div className="flex flex-col items-center gap-4">
+          <AlertCircle className="h-12 w-12 text-destructive" />
+          <div>
+            <h2 className="text-xl font-semibold text-destructive mb-2">Access Denied</h2>
+            <p className="text-muted-foreground mb-4">You must be logged in as a seller to edit listings.</p>
+            <Button asChild>
+              <Link href="/auth/login">Login</Link>
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -226,14 +497,42 @@ export default function EditSellerListingPage() {
   if (!listing) {
     return (
       <div className="container py-8 text-center">
-        Loading listing data or listing not found...
+        <div className="flex flex-col items-center gap-4">
+          <AlertCircle className="h-12 w-12 text-destructive" />
+          <div>
+            <h2 className="text-xl font-semibold text-destructive mb-2">Listing Not Found</h2>
+            <p className="text-muted-foreground mb-4">The listing you're trying to edit could not be found.</p>
+            <Button asChild>
+              <Link href="/seller-dashboard/listings">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Listings
+              </Link>
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-8">
-      <h1 className="text-3xl font-bold tracking-tight text-brand-dark-blue font-heading">Edit Listing: {listing.listingTitleAnonymous}</h1>
+      {/* Header with navigation */}
+      <div className="flex items-center gap-4">
+        <Button variant="outline" size="sm" asChild>
+          <Link href="/seller-dashboard/listings">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Listings
+          </Link>
+        </Button>
+        <div className="flex-1">
+          <h1 className="text-3xl font-bold tracking-tight text-brand-dark-blue font-heading">
+            Edit Listing: {listing.title}
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Update your business listing information and documents
+          </p>
+        </div>
+      </div>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
           {/* Section 1: Basic Information */}
@@ -312,7 +611,155 @@ export default function EditSellerListingPage() {
               <h3 className="text-md font-medium text-muted-foreground font-heading">Specific Financials (For Verified View)</h3>
               <FormField control={form.control} name="specificAnnualRevenueLastYear" render={({ field }) => (<FormItem><FormLabel>Actual Annual Revenue (TTM, USD)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
               <FormField control={form.control} name="specificNetProfitLastYear" render={({ field }) => (<FormItem><FormLabel>Actual Net Profit (TTM, USD)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
-              <div className="space-y-2"><Label className="text-md font-medium text-muted-foreground flex items-center gap-2"><NobridgeIcon icon="documents" size="sm"/>Supporting Financial Documents</Label><FormItem><Label htmlFor="financialStatements">Financial Statements</Label><Input id="financialStatements" type="file" disabled={isPending} /><FormDescription>PDF, XLSX accepted.</FormDescription></FormItem><FormItem><Label htmlFor="keyMetricsReport">Key Metrics Report</Label><Input id="keyMetricsReport" type="file" disabled={isPending} /><FormDescription>PDF, XLSX accepted.</FormDescription></FormItem></div>
+            </CardContent>
+          </Card>
+
+          {/* Supporting Documents Section */}
+          <Card className="shadow-md bg-brand-white">
+            <CardHeader>
+              <CardTitle className="text-brand-dark-blue font-heading flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Supporting Documents & Information
+              </CardTitle>
+              <CardDescription>
+                Update supporting documents to build buyer trust and provide transparency. All documents are optional but highly recommended for verified listings.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid md:grid-cols-2 gap-6">
+                <FormField control={form.control} name="financialDocuments" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Financial Documents (P&L, Balance Sheet)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="file"
+                        onChange={(e) => field.onChange(e.target.files ? e.target.files[0] : null)}
+                        accept={ACCEPTED_DOCUMENT_TYPES.join(",")}
+                        disabled={isPending}
+                      />
+                    </FormControl>
+                    <FormDescription>PDF, XLSX, or CSV format. Max 5MB.</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+
+                <FormField control={form.control} name="keyMetricsReport" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Key Business Metrics Report</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="file"
+                        onChange={(e) => field.onChange(e.target.files ? e.target.files[0] : null)}
+                        accept={ACCEPTED_DOCUMENT_TYPES.join(",")}
+                        disabled={isPending}
+                      />
+                    </FormControl>
+                    <FormDescription>KPIs, analytics, performance metrics. PDF, XLSX, or CSV format.</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+
+                <FormField control={form.control} name="ownershipDocuments" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Ownership Documents</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="file"
+                        onChange={(e) => field.onChange(e.target.files ? e.target.files[0] : null)}
+                        accept={ACCEPTED_DOCUMENT_TYPES.join(",")}
+                        disabled={isPending}
+                      />
+                    </FormControl>
+                    <FormDescription>Company registration, shareholding certificates, etc.</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+
+                <FormField control={form.control} name="financialSnapshot" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Financial Snapshot</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="file"
+                        onChange={(e) => field.onChange(e.target.files ? e.target.files[0] : null)}
+                        accept={ACCEPTED_DOCUMENT_TYPES.join(",")}
+                        disabled={isPending}
+                      />
+                    </FormControl>
+                    <FormDescription>Recent financial summary or cash flow statement.</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+
+                <FormField control={form.control} name="ownershipDetails" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Detailed Ownership Information</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="file"
+                        onChange={(e) => field.onChange(e.target.files ? e.target.files[0] : null)}
+                        accept={ACCEPTED_DOCUMENT_TYPES.join(",")}
+                        disabled={isPending}
+                      />
+                    </FormControl>
+                    <FormDescription>Detailed ownership structure and stakeholder information.</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+
+                <FormField control={form.control} name="locationRealEstateInfo" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Location & Real Estate Information</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="file"
+                        onChange={(e) => field.onChange(e.target.files ? e.target.files[0] : null)}
+                        accept={ACCEPTED_DOCUMENT_TYPES.join(",")}
+                        disabled={isPending}
+                      />
+                    </FormControl>
+                    <FormDescription>Lease agreements, property details, location information.</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+
+                <FormField control={form.control} name="webPresenceInfo" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Web Presence Information</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="file"
+                        onChange={(e) => field.onChange(e.target.files ? e.target.files[0] : null)}
+                        accept={ACCEPTED_DOCUMENT_TYPES.join(",")}
+                        disabled={isPending}
+                      />
+                    </FormControl>
+                    <FormDescription>Website analytics, SEO reports, digital marketing data.</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              </div>
+
+              <Separator />
+
+              <FormField control={form.control} name="secureDataRoomLink" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Secure Data Room Link (Optional)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="url"
+                      {...field}
+                      value={field.value || ""}
+                      placeholder="https://dataroom.example.com/your-listing"
+                      disabled={isPending}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Link to external secure data room with additional business documents.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )} />
             </CardContent>
           </Card>
 
@@ -326,7 +773,7 @@ export default function EditSellerListingPage() {
               <FormField control={form.control} name="detailedReasonForSelling" render={({ field }) => (<FormItem><FormLabel>Detailed Reason for Selling</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={3} disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
               <FormField control={form.control} name="sellerRoleAndTimeCommitment" render={({ field }) => (<FormItem><FormLabel>Seller&apos;s Current Role &amp; Time Commitment</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={3} disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
               <FormField control={form.control} name="postSaleTransitionSupport" render={({ field }) => (<FormItem><FormLabel>Post-Sale Transition Support Offered</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={3} disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
-              <div className="space-y-2"><Label className="text-md font-medium text-muted-foreground flex items-center gap-2"><NobridgeIcon icon="secure-docs" size="sm"/>Ownership &amp; Legal Documents</Label><FormItem><Label htmlFor="ownershipDocs">Proof of Ownership / Incorporation</Label><Input id="ownershipDocs" type="file" disabled={isPending} /><FormDescription>PDF accepted.</FormDescription></FormItem></div>
+
             </CardContent>
           </Card>
 
@@ -340,41 +787,60 @@ export default function EditSellerListingPage() {
           <Separator />
           <div className="flex justify-end gap-4">
             <Button type="button" variant="outline" onClick={() => {
-                const initialImageUrls = listing?.imageUrls || [];
+                // Re-populate form with original listing data
+                const keyStrengths = [
+                  listing?.key_strength_1,
+                  listing?.key_strength_2,
+                  listing?.key_strength_3
+                ].filter(Boolean);
+
                 form.reset({
-                  listingTitleAnonymous: listing?.listingTitleAnonymous || "",
+                  listingTitleAnonymous: listing?.title || "",
                   industry: listing?.industry || "",
-                  locationCountry: listing?.locationCountry || "",
-                  locationCityRegionGeneral: listing?.locationCityRegionGeneral || "",
-                  anonymousBusinessDescription: listing?.anonymousBusinessDescription || "",
-                  keyStrengthsAnonymous: listing?.keyStrengthsAnonymous?.length ? listing.keyStrengthsAnonymous : [''],
-                  businessModel: listing?.businessModel || "",
-                  yearEstablished: listing?.yearEstablished || undefined,
-                  registeredBusinessName: listing?.registeredBusinessName || "",
-                  businessWebsiteUrl: listing?.businessWebsiteUrl || "",
-                  socialMediaLinks: listing?.socialMediaLinks || "",
-                  numberOfEmployees: listing?.numberOfEmployees || undefined,
-                  technologyStack: listing?.technologyStack || "",
-                  annualRevenueRange: listing?.annualRevenueRange || "",
-                  netProfitMarginRange: listing?.netProfitMarginRange || "",
-                  askingPrice: listing?.askingPrice === undefined ? undefined : Number(listing.askingPrice),
-                  specificAnnualRevenueLastYear: listing?.specificAnnualRevenueLastYear === undefined ? undefined : Number(listing.specificAnnualRevenueLastYear),
-                  specificNetProfitLastYear: listing?.specificNetProfitLastYear === undefined ? undefined : Number(listing.specificNetProfitLastYear),
-                  adjustedCashFlow: listing?.adjustedCashFlow === undefined ? undefined : Number(listing.adjustedCashFlow),
-                  adjustedCashFlowExplanation: listing?.adjustedCashFlowExplanation || "",
-                  dealStructureLookingFor: listing?.dealStructureLookingFor || [],
-                  reasonForSellingAnonymous: listing?.reasonForSellingAnonymous || "",
-                  detailedReasonForSelling: listing?.detailedReasonForSelling || "",
-                  sellerRoleAndTimeCommitment: listing?.sellerRoleAndTimeCommitment || "",
-                  postSaleTransitionSupport: listing?.postSaleTransitionSupport || "",
-                  specificGrowthOpportunities: listing?.specificGrowthOpportunities || "",
-                  imageUrl1: initialImageUrls[0] || "",
-                  imageUrl2: initialImageUrls[1] || "",
-                  imageUrl3: initialImageUrls[2] || "",
-                  imageUrl4: initialImageUrls[3] || "",
-                  imageUrl5: initialImageUrls[4] || "",
+                  locationCountry: listing?.location_country || "",
+                  locationCityRegionGeneral: listing?.location_city || "",
+                  anonymousBusinessDescription: listing?.short_description || "",
+                  keyStrengthsAnonymous: keyStrengths.length > 0 ? keyStrengths : [''],
+                  businessModel: listing?.business_model || "",
+                  yearEstablished: listing?.established_year || undefined,
+                  registeredBusinessName: listing?.registered_business_name || "",
+                  businessWebsiteUrl: listing?.website_url || "",
+                  socialMediaLinks: listing?.social_media_links || "",
+                  numberOfEmployees: listing?.number_of_employees || undefined,
+                  technologyStack: listing?.technology_stack || "",
+                  actualCompanyName: listing?.actual_company_name || "",
+                  fullBusinessAddress: listing?.full_business_address || "",
+                  annualRevenueRange: listing?.annual_revenue_range || "",
+                  netProfitMarginRange: listing?.net_profit_margin_range || "",
+                  askingPrice: listing?.asking_price || undefined,
+                  specificAnnualRevenueLastYear: listing?.verified_annual_revenue || undefined,
+                  specificNetProfitLastYear: listing?.verified_net_profit || undefined,
+                  adjustedCashFlow: listing?.adjusted_cash_flow || undefined,
+                  adjustedCashFlowExplanation: listing?.adjusted_cash_flow_explanation || "",
+                  dealStructureLookingFor: listing?.deal_structure_looking_for || [],
+                  reasonForSellingAnonymous: listing?.reason_for_selling_anonymous || "",
+                  detailedReasonForSelling: listing?.detailed_reason_for_selling || "",
+                  sellerRoleAndTimeCommitment: listing?.seller_role_and_time_commitment || "",
+                  postSaleTransitionSupport: listing?.post_sale_transition_support || "",
+                  specificGrowthOpportunities: listing?.specific_growth_opportunities || "",
+                  secureDataRoomLink: listing?.secure_data_room_link || "",
+                  imageUrl1: listing?.image_url_1 || "",
+                  imageUrl2: listing?.image_url_2 || "",
+                  imageUrl3: listing?.image_url_3 || "",
+                  imageUrl4: listing?.image_url_4 || "",
+                  imageUrl5: listing?.image_url_5 || "",
+
+                  // Reset file inputs to undefined (can't populate existing files)
+                  financialDocuments: undefined,
+                  keyMetricsReport: undefined,
+                  ownershipDocuments: undefined,
+                  financialSnapshot: undefined,
+                  ownershipDetails: undefined,
+                  locationRealEstateInfo: undefined,
+                  webPresenceInfo: undefined,
                 });
-                setKeyStrengthsFields(listing?.keyStrengthsAnonymous?.length ? listing.keyStrengthsAnonymous : ['']);
+
+                setKeyStrengthsFields(keyStrengths.length > 0 ? keyStrengths : ['']);
               }}
               disabled={isPending}>
                 Reset Changes

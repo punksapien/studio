@@ -78,26 +78,30 @@ export default function ManageSellerListingsPage() {
   const handleDeactivate = async (listingId: string, listingTitle: string) => {
     setIsUpdating(listingId);
     try {
-      const response = await fetch(`/api/listings/${listingId}`, {
-        method: 'PATCH', // Should be PATCH for partial updates like status
+      const response = await fetch(`/api/listings/${listingId}/status`, {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'inactive' }), // Assuming 'inactive' is the correct status
+        body: JSON.stringify({ status: 'inactive' }), // Use 'inactive' status for deactivation
       });
+
       if (response.ok) {
+        const result = await response.json();
         setListings(prev => prev.map(listing =>
           listing.id === listingId ? { ...listing, status: 'inactive' } : listing
         ));
         toast({
-          title: "Listing Deactivated",
-          description: `'${listingTitle}' has been deactivated.`
+          title: "✅ Listing Deactivated",
+          description: `'${listingTitle}' has been deactivated and withdrawn from the marketplace.`
         });
       } else {
-        throw new Error('Failed to deactivate listing');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to deactivate listing');
       }
     } catch (error) {
+      console.error('Deactivate error:', error);
       toast({
-        title: "Error",
-        description: "Failed to deactivate listing. Please try again.",
+        title: "❌ Error",
+        description: error instanceof Error ? error.message : "Failed to deactivate listing. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -108,26 +112,30 @@ export default function ManageSellerListingsPage() {
   const handleReactivate = async (listingId: string, listingTitle: string) => {
     setIsUpdating(listingId);
     try {
-      const response = await fetch(`/api/listings/${listingId}`, {
-        method: 'PATCH',
+      const response = await fetch(`/api/listings/${listingId}/status`, {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'active' }),
+        body: JSON.stringify({ status: 'active' }), // Reactivate to active status
       });
+
       if (response.ok) {
+        const result = await response.json();
         setListings(prev => prev.map(listing =>
           listing.id === listingId ? { ...listing, status: 'active' } : listing
         ));
         toast({
-          title: "Listing Reactivated",
-          description: `'${listingTitle}' is now active.`
+          title: "✅ Listing Reactivated",
+          description: `'${listingTitle}' is now active and visible to buyers.`
         });
       } else {
-        throw new Error('Failed to reactivate listing');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to reactivate listing');
       }
     } catch (error) {
+      console.error('Reactivate error:', error);
       toast({
-        title: "Error",
-        description: "Failed to reactivate listing. Please try again.",
+        title: "❌ Error",
+        description: error instanceof Error ? error.message : "Failed to reactivate listing. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -229,10 +237,16 @@ export default function ManageSellerListingsPage() {
                 <p className="text-sm text-muted-foreground">Asking Price: ${listing.asking_price?.toLocaleString() || 'Not specified'}</p>
                 <p className="text-xs text-muted-foreground">Created: {new Date(listing.created_at).toLocaleDateString()}</p>
                 <Badge
-                  variant={listing.status === 'active' || listing.status === 'verified_public' || listing.status === 'verified_anonymous' ? 'default' : 'secondary'}
-                  className={`mt-2 text-xs ${listing.status === 'active' || listing.status === 'verified_public' || listing.status === 'verified_anonymous' ? 'bg-accent text-accent-foreground' : listing.status === 'pending_verification' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-700/20 dark:text-yellow-300' :'bg-muted text-muted-foreground'}`}
+                  variant={listing.status === 'active' ? 'default' : 'secondary'}
+                  className={`mt-2 text-xs ${
+                    listing.status === 'active'
+                      ? 'bg-green-100 text-green-700 dark:bg-green-700/20 dark:text-green-300'
+                      : listing.status === 'withdrawn' || listing.status === 'inactive'
+                        ? 'bg-red-100 text-red-700 dark:bg-red-700/20 dark:text-red-300'
+                        : 'bg-muted text-muted-foreground'
+                  }`}
                 >
-                  Status: {listing.status.charAt(0).toUpperCase() + listing.status.slice(1).replace(/_/g, ' ')}
+                  Status: {listing.status === 'active' ? 'Active' : listing.status === 'withdrawn' ? 'Withdrawn' : 'Inactive'}
                 </Badge>
               </CardContent>
               <CardFooter className="p-4 border-t border-border bg-muted/30">
@@ -252,7 +266,7 @@ export default function ManageSellerListingsPage() {
                         <MessageSquare className="h-4 w-4 mr-1 sm:mr-2" /> Inquiries
                         </Link>
                     </Button>
-                    {listing.status === 'active' || listing.status === 'verified_public' || listing.status === 'verified_anonymous' ? (
+                    {listing.status === 'active' ? (
                         <Button
                           variant="outline"
                           size="sm"

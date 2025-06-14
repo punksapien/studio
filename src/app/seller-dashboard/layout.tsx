@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import * as React from 'react';
-import { useCurrentUser } from '@/hooks/use-current-user';
+import { useAuth } from '@/contexts/auth-context';
 import {
   SidebarProvider,
   Sidebar,
@@ -64,10 +64,10 @@ export default function SellerDashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const { user, profile, loading, error } = useCurrentUser();
+  const { profile, isLoading, error } = useAuth();
 
   // Show loading state while fetching user data - but don't block access
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

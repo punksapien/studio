@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     const minPrice = searchParams.get('min_price')
     const maxPrice = searchParams.get('max_price')
     const search = searchParams.get('search')
-    const status = searchParams.get('status') || 'verified_anonymous'
+    const status = searchParams.get('status') // Don't default here
     const sortBy = searchParams.get('sort_by') || 'created_at'
     const sortOrder = searchParams.get('sort_order') || 'desc'
 
@@ -54,9 +54,12 @@ export async function GET(request: NextRequest) {
         specific_growth_opportunities
       `, { count: 'exact' })
 
-    // Apply status filter (default to verified_anonymous for public access)
+    // Apply status filter - if no specific status is requested, show both active and verified_anonymous listings
     if (status) {
       query = query.eq('status', status)
+    } else {
+      // Show listings that are publicly viewable by default
+      query = query.in('status', ['active', 'verified_anonymous', 'verified_public'])
     }
 
     // Apply industry filter
@@ -179,93 +182,127 @@ export async function GET(request: NextRequest) {
 // POST /api/listings - Create new listing (sellers only)
 export async function POST(request: NextRequest) {
   try {
+    // Authenticate user and get profile
     const user = await authServer.getCurrentUser(request)
     if (!user) {
+      console.error('[LISTINGS-CREATE] Authentication failed - no user found')
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
       )
     }
 
+    console.log(`[LISTINGS-CREATE] Authenticated user: ${user.id}`)
+
     // Check if user is a seller
     const userProfile = await authServer.getCurrentUserProfile(request)
     if (!userProfile || userProfile.role !== 'seller') {
+      console.error(`[LISTINGS-CREATE] Access denied - user ${user.id} is not a seller. Role: ${userProfile?.role || 'none'}`)
       return NextResponse.json(
         { error: 'Only sellers can create listings' },
         { status: 403 }
       )
     }
 
-    const body = await request.json()
+    console.log(`[LISTINGS-CREATE] Seller verified: ${user.id}, verification status: ${userProfile.verification_status}`)
+
+    // Parse and validate request body
+    let body: any
+    try {
+      body = await request.json()
+    } catch (error) {
+      console.error('[LISTINGS-CREATE] Invalid JSON in request body:', error)
+      return NextResponse.json(
+        { error: 'Invalid request body - must be valid JSON' },
+        { status: 400 }
+      )
+    }
 
     // Define required fields (using API names but mapping to DB names)
     const requiredFields = [
-      'title',
-      'short_description',
-      'asking_price',
+      'listingTitleAnonymous',
+      'anonymousBusinessDescription',
+      'askingPrice',
       'industry',
-      'location_country',
-      'location_city'
+      'locationCountry',
+      'locationCityRegionGeneral'
     ]
 
     // Check for required fields
-    for (const field of requiredFields) {
-      if (!body[field]) {
-        return NextResponse.json(
-          { error: `Field '${field}' is required` },
-          { status: 400 }
-        )
-      }
+    const missingFields = requiredFields.filter(field => !body[field])
+    if (missingFields.length > 0) {
+      console.error(`[LISTINGS-CREATE] Missing required fields: ${missingFields.join(', ')}`)
+      return NextResponse.json(
+        { error: `Missing required fields: ${missingFields.join(', ')}` },
+        { status: 400 }
+      )
     }
 
-    // Prepare listing data - mapping API fields to DB fields
+    // Validate asking price
+    const askingPrice = parseFloat(body.askingPrice)
+    if (isNaN(askingPrice) || askingPrice <= 0) {
+      console.error(`[LISTINGS-CREATE] Invalid asking price: ${body.askingPrice}`)
+      return NextResponse.json(
+        { error: 'Asking price must be a positive number' },
+        { status: 400 }
+      )
+    }
+
+    // Prepare listing data - mapping form field names to DB field names
     const listingData = {
       seller_id: user.id,
-      listing_title_anonymous: body.title || body.listingTitleAnonymous,
-      anonymous_business_description: body.short_description || body.anonymousBusinessDescription,
-      asking_price: body.asking_price ? parseFloat(body.asking_price) : (body.askingPrice ? parseFloat(body.askingPrice) : null),
-      industry: body.industry,
-      location_country: body.location_country || body.locationCountry,
-      location_city_region_general: body.location_city || body.locationCityRegionGeneral,
+      listing_title_anonymous: String(body.listingTitleAnonymous).trim(),
+      anonymous_business_description: String(body.anonymousBusinessDescription).trim(),
+      asking_price: askingPrice,
+      industry: String(body.industry).trim(),
+      location_country: String(body.locationCountry).trim(),
+      location_city_region_general: String(body.locationCityRegionGeneral).trim(),
 
-      // Optional fields
-      year_established: body.established_year ? parseInt(body.established_year) : (body.yearEstablished ? parseInt(body.yearEstablished) : null),
-      number_of_employees: body.number_of_employees || body.numberOfEmployees || null,
-      business_website_url: body.website_url || body.businessWebsiteUrl || null,
-      image_urls: body.images || body.imageUrls || [],
+      // Optional fields with proper validation
+      year_established: body.yearEstablished ? parseInt(body.yearEstablished) : null,
+      number_of_employees: body.numberOfEmployees || null,
+      business_website_url: body.businessWebsiteUrl ? String(body.businessWebsiteUrl).trim() : null,
+      image_urls: Array.isArray(body.imageUrls) ? body.imageUrls : [],
 
       // Business details
-      business_model: body.business_overview || body.businessModel || null,
-      annual_revenue_range: body.annual_revenue_range || body.annualRevenueRange || null,
-      net_profit_margin_range: body.net_profit_margin_range || body.netProfitMarginRange || null,
-      specific_annual_revenue_last_year: body.annual_revenue ? parseFloat(body.annual_revenue) : (body.specificAnnualRevenueLastYear ? parseFloat(body.specificAnnualRevenueLastYear) : null),
-      specific_net_profit_last_year: body.net_profit ? parseFloat(body.net_profit) : (body.specificNetProfitLastYear ? parseFloat(body.specificNetProfitLastYear) : null),
-      adjusted_cash_flow: body.monthly_cash_flow ? parseFloat(body.monthly_cash_flow) : (body.adjustedCashFlow ? parseFloat(body.adjustedCashFlow) : null),
+      business_model: body.businessModel ? String(body.businessModel).trim() : null,
+      annual_revenue_range: body.annualRevenueRange || null,
+      net_profit_margin_range: body.netProfitMarginRange || null,
+      specific_annual_revenue_last_year: body.specificAnnualRevenueLastYear ? parseFloat(body.specificAnnualRevenueLastYear) : null,
+      specific_net_profit_last_year: body.specificNetProfitLastYear ? parseFloat(body.specificNetProfitLastYear) : null,
+      adjusted_cash_flow: body.adjustedCashFlow ? parseFloat(body.adjustedCashFlow) : null,
 
-      // NEW: Individual key strength fields (enhanced form structure)
+      // Individual key strength fields (enhanced form structure)
       key_strength_1: body.keyStrength1 ? String(body.keyStrength1).substring(0, 200) : null,
       key_strength_2: body.keyStrength2 ? String(body.keyStrength2).substring(0, 200) : null,
       key_strength_3: body.keyStrength3 ? String(body.keyStrength3).substring(0, 200) : null,
 
-      // NEW: Individual growth opportunity fields (enhanced form structure)
+      // Individual growth opportunity fields (enhanced form structure)
       growth_opportunity_1: body.growthOpportunity1 ? String(body.growthOpportunity1).substring(0, 200) : null,
       growth_opportunity_2: body.growthOpportunity2 ? String(body.growthOpportunity2).substring(0, 200) : null,
       growth_opportunity_3: body.growthOpportunity3 ? String(body.growthOpportunity3).substring(0, 200) : null,
 
-      // BACKWARD COMPATIBILITY: Support legacy JSONB format if individual fields not provided
-      key_strengths_anonymous: body.keyStrengthsAnonymous ||
-        (body.keyStrength1 ?
-          [body.keyStrength1, body.keyStrength2, body.keyStrength3].filter(Boolean) :
-          null),
-
       // Additional details
-      reason_for_selling_anonymous: body.reason_for_selling || body.reasonForSellingAnonymous || null,
-      detailed_reason_for_selling: body.detailed_reason_for_selling || body.detailedReasonForSelling || null,
+      reason_for_selling_anonymous: body.reasonForSellingAnonymous ? String(body.reasonForSellingAnonymous).trim() : null,
+      detailed_reason_for_selling: body.detailedReasonForSelling ? String(body.detailedReasonForSelling).trim() : null,
 
-      // REMOVED FIELDS (per client requirements):
-      // - technology_stack (client said "rarely relevant to real SMBs")
-      // - seller_role_and_time_commitment (client said "no need")
-      // - post_sale_transition_support (client said "no need")
+      // NEW: Additional business details
+      technology_stack: body.technologyStack ? String(body.technologyStack).trim() : null,
+      actual_company_name: body.actualCompanyName ? String(body.actualCompanyName).trim() : null,
+      full_business_address: body.fullBusinessAddress ? String(body.fullBusinessAddress).trim() : null,
+      adjusted_cash_flow_explanation: body.adjustedCashFlowExplanation ? String(body.adjustedCashFlowExplanation).trim() : null,
+      seller_role_and_time_commitment: body.sellerRoleAndTimeCommitment ? String(body.sellerRoleAndTimeCommitment).trim() : null,
+      post_sale_transition_support: body.postSaleTransitionSupport ? String(body.postSaleTransitionSupport).trim() : null,
+
+      // NEW: Document URLs (these will be populated via file upload endpoint)
+      financial_documents_url: body.financialDocumentsUrl || null,
+      key_metrics_report_url: body.keyMetricsReportUrl || null,
+      ownership_documents_url: body.ownershipDocumentsUrl || null,
+      financial_snapshot_url: body.financialSnapshotUrl || null,
+      ownership_details_url: body.ownershipDetailsUrl || null,
+      location_real_estate_info_url: body.locationRealEstateInfoUrl || null,
+      web_presence_info_url: body.webPresenceInfoUrl || null,
+      secure_data_room_link: body.secureDataRoomLink ? String(body.secureDataRoomLink).trim() : null,
 
       // Set initial status based on seller verification
       status: userProfile.verification_status === 'verified' ? 'verified_anonymous' : 'active',
@@ -274,28 +311,65 @@ export async function POST(request: NextRequest) {
       updated_at: new Date().toISOString()
     }
 
-    const { data: newListing, error } = await supabase
+    console.log(`[LISTINGS-CREATE] Prepared listing data for user ${user.id}:`, {
+      title: listingData.listing_title_anonymous,
+      industry: listingData.industry,
+      asking_price: listingData.asking_price,
+      status: listingData.status
+    })
+
+    // Use authenticated Supabase client to respect RLS policies
+    const { supabase: authenticatedSupabase } = authServer.createServerClient(request)
+
+    const { data: newListing, error } = await authenticatedSupabase
       .from('listings')
       .insert(listingData)
       .select('*')
       .single()
 
     if (error) {
-      console.error('Error creating listing:', error)
-      return NextResponse.json(
-        { error: 'Failed to create listing' },
-        { status: 500 }
-      )
+      console.error(`[LISTINGS-CREATE] Database error for user ${user.id}:`, error)
+
+      // Provide specific error messages for common issues
+      if (error.code === '42501') {
+        return NextResponse.json(
+          { error: 'Permission denied. Please ensure you are logged in as a seller.' },
+          { status: 403 }
+        )
+      } else if (error.code === '23505') {
+        return NextResponse.json(
+          { error: 'A listing with this information already exists.' },
+          { status: 409 }
+        )
+      } else if (error.code === '23514') {
+        return NextResponse.json(
+          { error: 'Invalid data provided. Please check all fields and try again.' },
+          { status: 400 }
+        )
+      } else {
+        return NextResponse.json(
+          { error: 'Failed to create listing. Please try again.' },
+          { status: 500 }
+        )
+      }
     }
+
+    console.log(`[LISTINGS-CREATE] Successfully created listing ${newListing.id} for user ${user.id}`)
 
     return NextResponse.json({
       message: 'Listing created successfully',
-      listing: newListing
+      listing: {
+        id: newListing.id,
+        title: newListing.listing_title_anonymous,
+        status: newListing.status,
+        created_at: newListing.created_at
+      }
     }, { status: 201 })
+
   } catch (error) {
-    console.error('Listing creation error:', error)
+    console.error('[LISTINGS-CREATE] Unexpected error:', error)
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'An unexpected error occurred. Please try again.' },
       { status: 500 }
     )
   }
