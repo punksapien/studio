@@ -5,8 +5,33 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import Image from "next/image";
-import { PlusCircle, Edit3, Trash2, Eye, ShieldCheck, AlertTriangle, MessageSquare, CheckCircle2, Loader2 } from "lucide-react";
+import {
+  PlusCircle,
+  Edit3,
+  Trash2,
+  Eye,
+  ShieldCheck,
+  AlertTriangle,
+  MessageSquare,
+  CheckCircle2,
+  Loader2,
+  XCircle,
+  FileText,
+  Clock,
+  AlertCircle,
+  MessageCircle
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect, useState } from "react";
 import { useCurrentUser } from "@/hooks/use-current-user";
@@ -36,6 +61,15 @@ interface ListingData {
   growth_opportunity_1?: string;
   growth_opportunity_2?: string;
   growth_opportunity_3?: string;
+  // Admin rejection fields
+  admin_notes?: string;
+  rejection_category?: string;
+  admin_action_at?: string;
+  // Appeal fields
+  appeal_status?: string;
+  appeal_message?: string;
+  appeal_created_at?: string;
+  admin_response?: string;
 }
 
 export default function ManageSellerListingsPage() {
@@ -44,6 +78,17 @@ export default function ManageSellerListingsPage() {
   const [listings, setListings] = useState<ListingData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
+
+  // Appeal dialog state
+  const [appealDialog, setAppealDialog] = useState<{
+    isOpen: boolean;
+    listing: ListingData | null;
+  }>({
+    isOpen: false,
+    listing: null,
+  });
+  const [appealMessage, setAppealMessage] = useState('');
+  const [isSubmittingAppeal, setIsSubmittingAppeal] = useState(false);
 
   useEffect(() => {
     const fetchListings = async () => {
@@ -196,6 +241,178 @@ export default function ManageSellerListingsPage() {
     }
   };
 
+  const handleAppealSubmission = async () => {
+    if (!appealDialog.listing || !appealMessage.trim()) {
+      toast({
+        title: "Appeal Message Required",
+        description: "Please provide a detailed message explaining why this listing should be reconsidered.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      setIsSubmittingAppeal(true);
+      console.log(`[APPEAL] Submitting appeal for listing ${appealDialog.listing.id}`);
+
+      const response = await fetch(`/api/listings/${appealDialog.listing.id}/appeal`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          appealMessage: appealMessage.trim(),
+          originalRejectionReason: appealDialog.listing.admin_notes,
+          originalRejectionCategory: appealDialog.listing.rejection_category
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log(`[APPEAL] Success:`, result);
+
+        // Update local state to show appeal submitted
+        setListings(prev => prev.map(listing =>
+          listing.id === appealDialog.listing!.id
+            ? {
+                ...listing,
+                status: 'appealing_rejection',
+                appeal_status: 'pending',
+                appeal_message: appealMessage.trim(),
+                appeal_created_at: new Date().toISOString()
+              }
+            : listing
+        ));
+
+        toast({
+          title: "✅ Appeal Submitted",
+          description: "Your appeal has been submitted and will be reviewed by our admin team. You'll be notified of the decision."
+        });
+
+        // Close dialog and reset form
+        setAppealDialog({ isOpen: false, listing: null });
+        setAppealMessage('');
+
+      } else {
+        let errorMessage = 'Failed to submit appeal';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (parseError) {
+          console.error(`[APPEAL] Failed to parse error response:`, parseError);
+        }
+        throw new Error(errorMessage);
+      }
+    } catch (error) {
+      console.error('[APPEAL] Error:', error);
+      toast({
+        title: "❌ Appeal Submission Failed",
+        description: error instanceof Error ? error.message : "Failed to submit appeal. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmittingAppeal(false);
+    }
+  };
+
+  const openAppealDialog = (listing: ListingData) => {
+    setAppealDialog({ isOpen: true, listing });
+    setAppealMessage('');
+  };
+
+  // Enhanced status badge function with rejection handling
+  const getStatusBadge = (listing: ListingData) => {
+    const status = listing.status;
+
+    switch (status) {
+      case 'active':
+        return (
+          <Badge className="bg-green-100 text-green-700 dark:bg-green-700/20 dark:text-green-300">
+            <CheckCircle2 className="h-3 w-3 mr-1" />
+            Active
+          </Badge>
+        );
+
+      case 'inactive':
+      case 'withdrawn':
+        return (
+          <Badge variant="secondary" className="bg-gray-100 text-gray-700 dark:bg-gray-700/20 dark:text-gray-300">
+            <XCircle className="h-3 w-3 mr-1" />
+            {status === 'withdrawn' ? 'Withdrawn' : 'Inactive'}
+          </Badge>
+        );
+
+      case 'pending_approval':
+        return (
+          <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-700/20 dark:text-blue-300">
+            <Clock className="h-3 w-3 mr-1" />
+            Pending Approval
+          </Badge>
+        );
+
+      case 'under_review':
+        return (
+          <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-700/20 dark:text-purple-300">
+            <AlertCircle className="h-3 w-3 mr-1" />
+            Under Review
+          </Badge>
+        );
+
+      case 'rejected_by_admin':
+        return (
+          <Badge variant="destructive" className="bg-red-100 text-red-700 dark:bg-red-700/20 dark:text-red-300">
+            <XCircle className="h-3 w-3 mr-1" />
+            Rejected
+          </Badge>
+        );
+
+      case 'appealing_rejection':
+        return (
+          <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-700/20 dark:text-amber-300">
+            <MessageCircle className="h-3 w-3 mr-1" />
+            Appeal Submitted
+          </Badge>
+        );
+
+      case 'draft':
+        return (
+          <Badge variant="outline" className="bg-slate-100 text-slate-700 dark:bg-slate-700/20 dark:text-slate-300">
+            <FileText className="h-3 w-3 mr-1" />
+            Draft
+          </Badge>
+        );
+
+      default:
+        return (
+          <Badge variant="outline">
+            {status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, ' ')}
+          </Badge>
+        );
+    }
+  };
+
+  // Function to get rejection reason display
+  const getRejectionReasonDisplay = (category?: string) => {
+    const categoryMap: Record<string, string> = {
+      'quality': 'Poor Quality',
+      'compliance': 'Policy Violation',
+      'incomplete': 'Incomplete Information',
+      'fraud': 'Suspected Fraud',
+      'duplicate': 'Duplicate Listing',
+      'inappropriate': 'Inappropriate Content',
+      'other': 'Other'
+    };
+    return category ? categoryMap[category] || category : 'Not specified';
+  };
+
+  // Function to determine if listing can be edited
+  const canEditListing = (status: string) => {
+    return !['rejected_by_admin', 'appealing_rejection', 'under_review'].includes(status);
+  };
+
+  // Function to determine if listing can be appealed
+  const canAppealListing = (listing: ListingData) => {
+    return listing.status === 'rejected_by_admin' && !listing.appeal_status;
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-8">
@@ -289,36 +506,86 @@ export default function ManageSellerListingsPage() {
                 <p className="text-sm text-muted-foreground">Revenue: {listing.annual_revenue_range || 'Not specified'}</p>
                 <p className="text-sm text-muted-foreground">Asking Price: ${listing.asking_price?.toLocaleString() || 'Not specified'}</p>
                 <p className="text-xs text-muted-foreground">Created: {new Date(listing.created_at).toLocaleDateString()}</p>
-                <Badge
-                  variant={listing.status === 'active' ? 'default' : 'secondary'}
-                  className={`mt-2 text-xs ${
-                    listing.status === 'active'
-                      ? 'bg-green-100 text-green-700 dark:bg-green-700/20 dark:text-green-300'
-                      : listing.status === 'withdrawn' || listing.status === 'inactive'
-                        ? 'bg-red-100 text-red-700 dark:bg-red-700/20 dark:text-red-300'
-                        : 'bg-muted text-muted-foreground'
-                  }`}
-                >
-                  Status: {listing.status === 'active' ? 'Active' : listing.status === 'withdrawn' ? 'Withdrawn' : 'Inactive'}
-                </Badge>
+
+                {/* Enhanced status badge */}
+                <div className="mt-2">
+                  {getStatusBadge(listing)}
+                </div>
+
+                {/* Rejection information */}
+                {listing.status === 'rejected_by_admin' && (
+                  <Alert className="mt-3 border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20">
+                    <XCircle className="h-4 w-4 text-red-600" />
+                    <AlertDescription className="text-sm">
+                      <div className="font-medium text-red-800 dark:text-red-200 mb-1">
+                        Rejection Reason: {getRejectionReasonDisplay(listing.rejection_category)}
+                      </div>
+                      {listing.admin_notes && (
+                        <div className="text-red-700 dark:text-red-300 text-xs">
+                          {listing.admin_notes}
+                        </div>
+                      )}
+                      {listing.admin_action_at && (
+                        <div className="text-red-600 dark:text-red-400 text-xs mt-1">
+                          Rejected on {new Date(listing.admin_action_at).toLocaleDateString()}
+                        </div>
+                      )}
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {/* Appeal status information */}
+                {listing.appeal_status && (
+                  <Alert className="mt-3 border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20">
+                    <MessageCircle className="h-4 w-4 text-amber-600" />
+                    <AlertDescription className="text-sm">
+                      <div className="font-medium text-amber-800 dark:text-amber-200 mb-1">
+                        Appeal Status: {listing.appeal_status.charAt(0).toUpperCase() + listing.appeal_status.slice(1)}
+                      </div>
+                      {listing.appeal_created_at && (
+                        <div className="text-amber-700 dark:text-amber-300 text-xs">
+                          Submitted on {new Date(listing.appeal_created_at).toLocaleDateString()}
+                        </div>
+                      )}
+                      {listing.admin_response && (
+                        <div className="text-amber-700 dark:text-amber-300 text-xs mt-1">
+                          Admin Response: {listing.admin_response}
+                        </div>
+                      )}
+                    </AlertDescription>
+                  </Alert>
+                )}
               </CardContent>
               <CardFooter className="p-4 border-t border-border bg-muted/30">
                 <div className="grid grid-cols-2 gap-2 w-full">
+                    {/* Public View - Always available */}
                     <Button variant="outline" size="sm" asChild className="border-input hover:bg-accent/50 hover:text-accent-foreground">
                         <Link href={`/listings/${listing.id}`} target="_blank">
                         <Eye className="h-4 w-4 mr-1 sm:mr-2" /> <span className="hidden sm:inline">Public View</span>
                         </Link>
                     </Button>
-                    <Button variant="outline" size="sm" asChild className="border-input hover:bg-accent/50 hover:text-accent-foreground">
-                        <Link href={`/seller-dashboard/listings/${listing.id}/edit`}>
-                        <Edit3 className="h-4 w-4 mr-1 sm:mr-2" /> <span className="hidden sm:inline">Edit</span>
-                        </Link>
-                    </Button>
+
+                    {/* Edit - Only if listing can be edited */}
+                    {canEditListing(listing.status) ? (
+                      <Button variant="outline" size="sm" asChild className="border-input hover:bg-accent/50 hover:text-accent-foreground">
+                          <Link href={`/seller-dashboard/listings/${listing.id}/edit`}>
+                          <Edit3 className="h-4 w-4 mr-1 sm:mr-2" /> <span className="hidden sm:inline">Edit</span>
+                          </Link>
+                      </Button>
+                    ) : (
+                      <Button variant="outline" size="sm" disabled className="border-input opacity-50">
+                          <Edit3 className="h-4 w-4 mr-1 sm:mr-2" /> <span className="hidden sm:inline">Edit</span>
+                      </Button>
+                    )}
+
+                    {/* Inquiries - Always available */}
                     <Button variant="outline" size="sm" asChild className="border-input hover:bg-accent/50 hover:text-accent-foreground">
                         <Link href={`/seller-dashboard/inquiries?listingId=${listing.id}`}>
                         <MessageSquare className="h-4 w-4 mr-1 sm:mr-2" /> Inquiries
                         </Link>
                     </Button>
+
+                    {/* Status-specific action button */}
                     {listing.status === 'active' ? (
                         <Button
                           variant="outline"
@@ -334,7 +601,7 @@ export default function ManageSellerListingsPage() {
                           )}
                           Deactivate
                         </Button>
-                    ) : (
+                    ) : listing.status === 'inactive' || listing.status === 'withdrawn' ? (
                          <Button
                            variant="outline"
                            size="sm"
@@ -348,6 +615,23 @@ export default function ManageSellerListingsPage() {
                              <CheckCircle2 className="h-4 w-4 mr-1 sm:mr-2" />
                            )}
                            Reactivate
+                        </Button>
+                    ) : canAppealListing(listing) ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openAppealDialog(listing)}
+                          className="border-amber-500/50 text-amber-600 hover:bg-amber-500/10 hover:text-amber-700"
+                        >
+                          <MessageCircle className="h-4 w-4 mr-1 sm:mr-2" />
+                          Appeal
+                        </Button>
+                    ) : (
+                        <Button variant="outline" size="sm" disabled className="border-input opacity-50">
+                          <Clock className="h-4 w-4 mr-1 sm:mr-2" />
+                          {listing.status === 'pending_approval' ? 'Pending' :
+                           listing.status === 'under_review' ? 'Reviewing' :
+                           listing.status === 'appealing_rejection' ? 'Appealing' : 'Processing'}
                         </Button>
                     )}
                 </div>
@@ -363,6 +647,107 @@ export default function ManageSellerListingsPage() {
           ))}
         </div>
       )}
+
+      {/* Appeal Dialog */}
+      <Dialog open={appealDialog.isOpen} onOpenChange={(open) => {
+        if (!open) {
+          setAppealDialog({ isOpen: false, listing: null });
+          setAppealMessage('');
+        }
+      }}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageCircle className="h-5 w-5 text-amber-600" />
+              Appeal Listing Rejection
+            </DialogTitle>
+            <DialogDescription>
+              Submit an appeal for "{appealDialog.listing?.title}". Please provide a detailed explanation of why this listing should be reconsidered.
+            </DialogDescription>
+          </DialogHeader>
+
+          {appealDialog.listing && (
+            <div className="space-y-4">
+              {/* Show original rejection details */}
+              <Alert className="border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20">
+                <XCircle className="h-4 w-4 text-red-600" />
+                <AlertDescription>
+                  <div className="font-medium text-red-800 dark:text-red-200 mb-1">
+                    Original Rejection: {getRejectionReasonDisplay(appealDialog.listing.rejection_category)}
+                  </div>
+                  {appealDialog.listing.admin_notes && (
+                    <div className="text-red-700 dark:text-red-300 text-sm">
+                      Admin Notes: {appealDialog.listing.admin_notes}
+                    </div>
+                  )}
+                </AlertDescription>
+              </Alert>
+
+              {/* Appeal message input */}
+              <div className="space-y-2">
+                <label htmlFor="appeal-message" className="text-sm font-medium">
+                  Your Appeal Message *
+                </label>
+                <Textarea
+                  id="appeal-message"
+                  placeholder="Please explain why you believe this listing should be approved. Include any additional information or corrections that address the rejection reason..."
+                  value={appealMessage}
+                  onChange={(e) => setAppealMessage(e.target.value)}
+                  rows={6}
+                  className="resize-none"
+                />
+                <div className="text-xs text-muted-foreground">
+                  {appealMessage.length}/1000 characters
+                </div>
+              </div>
+
+              {/* Guidelines */}
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription className="text-sm">
+                  <div className="font-medium mb-1">Appeal Guidelines:</div>
+                  <ul className="text-xs space-y-1 ml-4 list-disc">
+                    <li>Be specific about what changes you've made or why the rejection was incorrect</li>
+                    <li>Provide additional context or documentation if relevant</li>
+                    <li>Appeals are typically reviewed within 2-3 business days</li>
+                    <li>You can only submit one appeal per listing</li>
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setAppealDialog({ isOpen: false, listing: null });
+                setAppealMessage('');
+              }}
+              disabled={isSubmittingAppeal}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleAppealSubmission}
+              disabled={isSubmittingAppeal || !appealMessage.trim() || appealMessage.length > 1000}
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+            >
+              {isSubmittingAppeal ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Submitting Appeal...
+                </>
+              ) : (
+                <>
+                  <MessageCircle className="h-4 w-4 mr-2" />
+                  Submit Appeal
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

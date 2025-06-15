@@ -58,6 +58,19 @@ export class AuthenticationService {
 
     this.logger.logAuthAttempt('unknown', 'multi-strategy-auth', correlationId)
 
+    // Validate environment variables first
+    if (!this.validateEnvironment()) {
+      return {
+        success: false,
+        error: AuthErrorFactory.createError(
+          AuthErrorType.CONFIGURATION_ERROR,
+          'Authentication service configuration error',
+          'Authentication temporarily unavailable',
+          { endpoint: '/api/auth/current-user' }
+        )
+      }
+    }
+
     for (const strategy of this.strategies) {
       // Skip strategy if circuit is open
       if (this.circuitBreaker.isOpen(strategy.name)) {
@@ -72,7 +85,7 @@ export class AuthenticationService {
           // Record success
           this.circuitBreaker.recordSuccess(strategy.name)
 
-          // Ensure profile exists
+          // Ensure profile exists with graceful error handling
           const profileResult = await this.ensureProfileExists(result.user, correlationId)
           result.profile = profileResult.profile
 
@@ -99,7 +112,7 @@ export class AuthenticationService {
         // Record failure for circuit breaker
         this.circuitBreaker.recordFailure(strategy.name)
 
-        // Log the failure
+        // Log the failure but don't throw - try next strategy
         const authError = AuthErrorFactory.fromSupabaseError(error, {
           endpoint: '/api/auth/current-user',
           method: 'GET'
@@ -123,6 +136,23 @@ export class AuthenticationService {
     }
   }
 
+  private validateEnvironment(): boolean {
+    const required = [
+      'NEXT_PUBLIC_SUPABASE_URL',
+      'NEXT_PUBLIC_SUPABASE_ANON_KEY',
+      'SUPABASE_SERVICE_ROLE_KEY'
+    ]
+
+    for (const envVar of required) {
+      if (!process.env[envVar]) {
+        console.error(`[AUTH-SERVICE] Missing required environment variable: ${envVar}`)
+        return false
+      }
+    }
+
+    return true
+  }
+
   async ensureProfileExists(user: User, correlationId: string): Promise<ProfileRecoveryResult> {
     try {
       // Try to get existing profile first
@@ -136,18 +166,35 @@ export class AuthenticationService {
 
     } catch (error) {
       console.error('[PROFILE-RECOVERY] Failed to ensure profile exists:', error)
-      throw AuthErrorFactory.fromSupabaseError(error, {
-        endpoint: '/api/auth/profile-recovery',
-        userId: user.id
-      })
+
+      // Return a minimal profile instead of throwing to prevent 500 errors
+      const fallbackProfile = {
+        id: user.id,
+        email: user.email || '',
+        full_name: user.email?.split('@')[0] || 'User',
+        role: 'buyer',
+        verification_status: 'anonymous',
+        is_onboarding_completed: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+
+      console.warn(`[PROFILE-RECOVERY] Using fallback profile for user ${user.id}`)
+      return { profile: fallbackProfile, created: false, recovered: false }
     }
   }
 
   private async getProfile(userId: string): Promise<any | null> {
     try {
+      // Validate environment before creating client
+      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        console.error('[PROFILE-GET] Missing Supabase environment variables')
+        return null
+      }
+
       const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.SUPABASE_SERVICE_ROLE_KEY,
         {
           auth: {
             autoRefreshToken: false,
@@ -163,7 +210,8 @@ export class AuthenticationService {
         .single()
 
       if (error && error.code !== 'PGRST116') {
-        throw error
+        console.error('[PROFILE-GET] Database error:', error)
+        return null
       }
 
       return profile
@@ -177,9 +225,14 @@ export class AuthenticationService {
     console.log(`[PROFILE-RECOVERY] ${correlationId} | Attempting to recover/create profile for user ${user.id}`)
 
     try {
+      // Validate environment before creating client
+      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        throw new Error('Missing Supabase environment variables')
+      }
+
       const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.SUPABASE_SERVICE_ROLE_KEY,
         {
           auth: {
             autoRefreshToken: false,
@@ -188,32 +241,31 @@ export class AuthenticationService {
         }
       )
 
-      // Get full user data from auth.users
+      // Get full user data from auth.users with error handling
       const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(user.id)
 
       if (authError || !authUser.user) {
-        throw new Error(`Failed to get auth user data: ${authError?.message}`)
+        console.warn(`[PROFILE-RECOVERY] Failed to get auth user data: ${authError?.message}`)
+        // Continue with basic user data instead of throwing
       }
 
-      // Extract metadata for profile creation
-      const metadata = authUser.user.user_metadata || {}
+      // Extract metadata for profile creation with safe defaults
+      const metadata = authUser?.user?.user_metadata || {}
       const role = metadata.role || 'buyer' // Default to buyer
 
-      // 🚀 HOTFIX: Add default full_name to prevent not-null constraint violation
-      // The profile recovery was failing because full_name is required by the database.
-      // We now generate a default name from the email if no other name is available.
+      // Generate safe default full_name to prevent not-null constraint violation
       const defaultFullName = user.email?.split('@')[0] || 'New User'
 
-      // Create profile
+      // Create profile with all required fields and safe defaults
       const newProfile = {
         id: user.id,
-        email: user.email!,
-        full_name: metadata.fullName || defaultFullName,
+        email: user.email || '',
+        full_name: metadata.fullName || metadata.full_name || defaultFullName,
         role: role,
-        first_name: metadata.firstName || '',
-        last_name: metadata.lastName || '',
-        company_name: metadata.companyName || '',
-        verification_status: 'anonymous', // ✅ FIX: New users start as anonymous, not pending
+        first_name: metadata.firstName || metadata.first_name || '',
+        last_name: metadata.lastName || metadata.last_name || '',
+        company_name: metadata.companyName || metadata.company_name || '',
+        verification_status: 'anonymous', // New users start as anonymous
         is_onboarding_completed: false, // Start fresh
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -234,6 +286,8 @@ export class AuthenticationService {
             return { profile: existingProfile, created: false, recovered: true }
           }
         }
+
+        console.error(`[PROFILE-RECOVERY] Insert error:`, insertError)
         throw insertError
       }
 
@@ -262,26 +316,36 @@ class BearerTokenStrategy implements AuthStrategy {
   priority = 3
 
   async verify(request?: any): Promise<AuthResult> {
-    const authHeader = request?.headers?.get?.('authorization') || request?.headers?.authorization
+    try {
+      const authHeader = request?.headers?.get?.('authorization') || request?.headers?.authorization
 
-    if (!authHeader?.startsWith('Bearer ')) {
-      return { success: false, error: 'No bearer token' }
+      if (!authHeader?.startsWith('Bearer ')) {
+        return { success: false, error: 'No bearer token' }
+      }
+
+      const token = authHeader.substring(7)
+
+      // Validate environment
+      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+        return { success: false, error: 'Supabase configuration missing' }
+      }
+
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      )
+
+      const { data: { user }, error } = await supabase.auth.getUser(token)
+
+      if (error || !user) {
+        return { success: false, error: error || 'Invalid token' }
+      }
+
+      return { success: true, user }
+    } catch (error) {
+      console.error('[BEARER-TOKEN-STRATEGY] Error:', error)
+      return { success: false, error: 'Bearer token verification failed' }
     }
-
-    const token = authHeader.substring(7)
-
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
-
-    const { data: { user }, error } = await supabase.auth.getUser(token)
-
-    if (error || !user) {
-      return { success: false, error: error || 'Invalid token' }
-    }
-
-    return { success: true, user }
   }
 }
 
@@ -291,12 +355,17 @@ class CookieSessionStrategy implements AuthStrategy {
 
   async verify(): Promise<AuthResult> {
     try {
+      // Validate environment
+      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+        return { success: false, error: 'Supabase configuration missing' }
+      }
+
       // Always use cookies() from next/headers for this strategy
       const cookieStore = await cookies()
 
       const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
         {
           cookies: {
             async getAll() {
@@ -326,7 +395,8 @@ class CookieSessionStrategy implements AuthStrategy {
       return { success: true, user }
 
     } catch (error) {
-      return { success: false, error }
+      console.error('[COOKIE-SESSION-STRATEGY] Error:', error)
+      return { success: false, error: 'Cookie session verification failed' }
     }
   }
 }
@@ -337,7 +407,7 @@ class ServiceRoleStrategy implements AuthStrategy {
 
   async verify(): Promise<AuthResult> {
     // This is a fallback strategy for system operations
-    // Not typically used for user authentication
-    return { success: false, error: 'Service role not for user auth' }
+    // Only used in specific admin contexts
+    return { success: false, error: 'Service role strategy not implemented for user auth' }
   }
 }

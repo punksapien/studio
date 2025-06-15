@@ -113,7 +113,19 @@ export interface User {
   submitted_documents?: Record<string, any>; // e.g. { "identity_proof_path": "path/to/id.pdf", "business_reg_path": "path/to/reg.pdf" }
 }
 
-export type ListingStatus = 'active' | 'inactive' | 'pending_verification' | 'verified_anonymous' | 'verified_public' | 'rejected_by_admin' | 'closed_deal';
+export type ListingStatus =
+  | 'active'
+  | 'inactive'
+  | 'pending_verification'
+  | 'verified_anonymous'
+  | 'verified_public'
+  | 'rejected_by_admin'
+  | 'closed_deal'
+  // New admin workflow states
+  | 'draft'                // Seller is still editing, not submitted
+  | 'pending_approval'     // Submitted and waiting for admin review
+  | 'under_review'         // Admin is actively reviewing
+  | 'appealing_rejection'; // Seller has appealed a rejection
 
 export interface Listing {
   id: string;
@@ -306,6 +318,60 @@ export interface NotificationItem {
   isRead: boolean;
   userId: string;
   type: NotificationType;
+}
+
+// Admin Listing Management Types
+export type AdminActionType = 'approved' | 'rejected' | 'status_changed' | 'appeal_reviewed' | 'notes_updated' | 'bulk_action';
+
+export type RejectionCategory = 'quality' | 'compliance' | 'incomplete' | 'fraud' | 'duplicate' | 'inappropriate' | 'other';
+
+export interface AdminListingAction {
+  id: string;
+  listingId: string;
+  adminUserId: string;
+  adminName?: string;
+  actionType: AdminActionType;
+  previousStatus?: ListingStatus;
+  newStatus?: ListingStatus;
+  reasonCategory?: RejectionCategory;
+  adminNotes?: string;
+  createdAt: Date;
+}
+
+export type AppealStatus = 'pending' | 'under_review' | 'approved' | 'denied' | 'withdrawn';
+
+export interface ListingAppeal {
+  id: string;
+  listingId: string;
+  sellerId: string;
+  originalRejectionReason?: string;
+  originalRejectionCategory?: RejectionCategory;
+  appealMessage: string;
+  status: AppealStatus;
+  adminResponse?: string;
+  reviewedBy?: string;
+  reviewedByName?: string;
+  createdAt: Date;
+  reviewedAt?: Date;
+}
+
+export interface AdminListingWithContext {
+  listing: Listing & {
+    adminNotes?: string;
+    adminActionBy?: string;
+    adminActionAt?: Date;
+    rejectionCategory?: RejectionCategory;
+  };
+  seller: {
+    id: string;
+    fullName: string;
+    email: string;
+    verificationStatus: VerificationStatus;
+    isPaid: boolean;
+    createdAt: Date;
+  };
+  adminHistory: AdminListingAction[];
+  appeal?: ListingAppeal;
 }
 
 export type ConversationStatus = 'ACTIVE' | 'ARCHIVED_BY_ADMIN' | 'CLOSED_BY_PARTICIPANT';

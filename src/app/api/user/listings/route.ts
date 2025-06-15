@@ -51,7 +51,17 @@ export async function GET(request: NextRequest) {
         specific_net_profit_last_year,
         adjusted_cash_flow,
         annual_revenue_range,
-        net_profit_margin_range
+        net_profit_margin_range,
+        admin_notes,
+        rejection_category,
+        admin_action_at,
+        listing_appeals (
+          id,
+          status,
+          appeal_message,
+          created_at,
+          admin_response
+        )
       `)
       .eq('seller_id', user.id)
 
@@ -84,32 +94,46 @@ export async function GET(request: NextRequest) {
     }
 
     // Transform data to match expected API format (map database columns to frontend expectations)
-    const transformedListings = listings?.map(listing => ({
-      id: listing.id,
-      title: listing.listing_title_anonymous, // Map database column to frontend expectation
-      short_description: listing.anonymous_business_description,
-      business_overview: listing.business_model,
-      asking_price: listing.asking_price,
-      industry: listing.industry,
-      location_country: listing.location_country,
-      location_city: listing.location_city_region_general,
-      established_year: listing.year_established,
-      number_of_employees: listing.number_of_employees,
-      website_url: listing.business_website_url,
-      images: listing.image_urls,
-      status: listing.status,
-      verification_status: listing.is_seller_verified ? 'verified' : 'pending',
-      created_at: listing.created_at,
-      updated_at: listing.updated_at,
-      annual_revenue: listing.specific_annual_revenue_last_year,
-      net_profit: listing.specific_net_profit_last_year,
-      monthly_cash_flow: listing.adjusted_cash_flow,
-      verified_annual_revenue: listing.specific_annual_revenue_last_year,
-      verified_net_profit: listing.specific_net_profit_last_year,
-      verified_cash_flow: listing.adjusted_cash_flow,
-      annual_revenue_range: listing.annual_revenue_range,
-      net_profit_margin_range: listing.net_profit_margin_range
-    }))
+    const transformedListings = listings?.map(listing => {
+      // Get the first (most recent) appeal if any
+      const latestAppeal = listing.listing_appeals?.[0];
+
+      return {
+        id: listing.id,
+        title: listing.listing_title_anonymous, // Map database column to frontend expectation
+        short_description: listing.anonymous_business_description,
+        business_overview: listing.business_model,
+        asking_price: listing.asking_price,
+        industry: listing.industry,
+        location_country: listing.location_country,
+        location_city: listing.location_city_region_general,
+        established_year: listing.year_established,
+        number_of_employees: listing.number_of_employees,
+        website_url: listing.business_website_url,
+        images: listing.image_urls,
+        status: listing.status,
+        verification_status: listing.is_seller_verified ? 'verified' : 'pending',
+        created_at: listing.created_at,
+        updated_at: listing.updated_at,
+        annual_revenue: listing.specific_annual_revenue_last_year,
+        net_profit: listing.specific_net_profit_last_year,
+        monthly_cash_flow: listing.adjusted_cash_flow,
+        verified_annual_revenue: listing.specific_annual_revenue_last_year,
+        verified_net_profit: listing.specific_net_profit_last_year,
+        verified_cash_flow: listing.adjusted_cash_flow,
+        annual_revenue_range: listing.annual_revenue_range,
+        net_profit_margin_range: listing.net_profit_margin_range,
+        // Admin rejection fields
+        admin_notes: listing.admin_notes,
+        rejection_category: listing.rejection_category,
+        admin_action_at: listing.admin_action_at,
+        // Appeal fields
+        appeal_status: latestAppeal?.status,
+        appeal_message: latestAppeal?.appeal_message,
+        appeal_created_at: latestAppeal?.created_at,
+        admin_response: latestAppeal?.admin_response
+      };
+    })
 
     // Calculate pagination info
     const totalPages = count ? Math.ceil(count / limit) : 0

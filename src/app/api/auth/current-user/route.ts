@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
   const { ip } = getClientIdentifier(request)
 
   try {
-    // Apply rate limiting
+    // Apply rate limiting with graceful handling
     const rateLimitResult = await rateLimiter.checkRateLimit(ip, 'auth-per-ip')
 
     if (!rateLimitResult.allowed) {
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.json(
         {
-          error: rateLimitResult.message,
+          error: 'Too many requests',
           type: 'rate_limited',
           retryAfter: Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000)
         },
@@ -27,7 +27,22 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const authService = AuthenticationService.getInstance()
+    // Get auth service with error handling
+    let authService: AuthenticationService
+    try {
+      authService = AuthenticationService.getInstance()
+    } catch (error) {
+      console.error('[CURRENT-USER] Failed to get auth service:', error)
+      return NextResponse.json(
+        {
+          error: 'Authentication service temporarily unavailable',
+          type: 'service_unavailable'
+        },
+        { status: 503 }
+      )
+    }
+
+    // Authenticate user with comprehensive error handling
     const result = await authService.authenticateUser(request)
 
     if (!result.success) {
@@ -48,7 +63,7 @@ export async function GET(request: NextRequest) {
       if (error?.type === AuthErrorType.RATE_LIMITED) {
         return NextResponse.json(
           {
-            error: error.userMessage,
+            error: 'Too many authentication attempts',
             type: 'rate_limited',
             retryAfter: 60
           },
@@ -59,7 +74,7 @@ export async function GET(request: NextRequest) {
       // Add rate limit headers even for failed requests
       const headers = rateLimiter.getRateLimitHeaders(rateLimitResult)
 
-      // Generic unauthorized response
+      // Generic unauthorized response - don't expose internal errors
       return NextResponse.json(
         {
           error: 'Not authenticated',
@@ -69,17 +84,36 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Success - return user and profile data
+    // Validate result data before sending response
+    if (!result.user || !result.user.id) {
+      console.error('[CURRENT-USER] Invalid user data in auth result')
+      return NextResponse.json(
+        {
+          error: 'Invalid authentication data',
+          type: 'internal_error'
+        },
+        { status: 500 }
+      )
+    }
+
+    // Success - return user and profile data with safe defaults
     const response = {
       user: {
-        id: result.user!.id,
-        email: result.user!.email,
-        emailConfirmed: !!result.user!.email_confirmed_at,
-        lastSignIn: result.user!.last_sign_in_at
+        id: result.user.id,
+        email: result.user.email || '',
+        emailConfirmed: !!result.user.email_confirmed_at,
+        lastSignIn: result.user.last_sign_in_at || null
       },
-      profile: result.profile,
+      profile: result.profile || {
+        id: result.user.id,
+        email: result.user.email || '',
+        full_name: result.user.email?.split('@')[0] || 'User',
+        role: 'buyer',
+        verification_status: 'anonymous',
+        is_onboarding_completed: false
+      },
       metadata: {
-        strategy: result.strategy,
+        strategy: result.strategy || 'unknown',
         timestamp: new Date().toISOString()
       }
     }
@@ -98,19 +132,12 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('[CURRENT-USER] Unexpected error:', error)
 
-    // Create structured error response
-    const authError = AuthErrorFactory.fromSupabaseError(error, {
-      endpoint: '/api/auth/current-user',
-      method: 'GET',
-      userAgent: request.headers.get('user-agent') || undefined,
-      ip
-    })
-
+    // Never expose internal errors to client - always return generic error
     return NextResponse.json(
       {
-        error: authError.userMessage,
+        error: 'Authentication service temporarily unavailable',
         type: 'internal_error',
-        correlationId: authError.correlationId
+        message: 'Please try again later'
       },
       { status: 500 }
     )

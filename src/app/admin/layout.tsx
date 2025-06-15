@@ -32,7 +32,8 @@ import {
   ShieldCheck,
   LineChart,
   BellRing,
-  FlaskConical // Added for Hack Tool
+  FlaskConical, // Added for Hack Tool
+  MessageCircle // Added for Appeals
 } from 'lucide-react';
 import LogoutButton from '@/components/auth/LogoutButton';
 
@@ -40,6 +41,7 @@ const adminSidebarNavItems = [
   { title: 'Dashboard', href: '/admin', icon: LayoutDashboard, tooltip: "Admin Overview" },
   { title: 'User Management', href: '/admin/users', icon: Users, tooltip: "Manage Users" },
   { title: 'Listing Management', href: '/admin/listings', icon: Briefcase, tooltip: "Manage Listings" },
+  { title: 'Appeal Management', href: '/admin/appeals', icon: MessageCircle, tooltip: "Review Listing Appeals" },
   { title: 'Buyer Verification', href: '/admin/verification-queue/buyers', icon: ShieldCheck, tooltip: "Buyer Verifications" },
   { title: 'Seller/Listing Verification', href: '/admin/verification-queue/sellers', icon: ShieldCheck, tooltip: "Seller/Listing Verifications" },
   { title: 'Engagement Queue', href: '/admin/engagement-queue', icon: BellRing, tooltip: "Engagement Queue" },

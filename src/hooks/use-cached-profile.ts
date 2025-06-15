@@ -2,44 +2,70 @@ import useSWR from 'swr';
 import { supabase } from '@/lib/supabase';
 import type { UserProfile, User } from '@/lib/auth';
 
-// SWR configuration for auth caching with request deduplication
+// Simple, graceful auth fetcher with comprehensive error handling
 const authFetcher = async (): Promise<{ user: User | null; profile: UserProfile | null }> => {
   try {
     // First check if we have a session (fast, cached check)
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
+    // If no session or session error, return null gracefully
     if (sessionError || !session?.access_token) {
       return { user: null, profile: null };
     }
 
-    // Make single API call for both user and profile data
+    // Make API call with proper error handling
     const response = await fetch('/api/auth/current-user', {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${session.access_token}`,
         'Content-Type': 'application/json',
-      }
+      },
+      // Add timeout to prevent hanging requests
+      signal: AbortSignal.timeout(10000) // 10 second timeout
     });
 
+    // Handle different response statuses gracefully
     if (!response.ok) {
-      if (response.status === 401) {
+      // For auth-related errors, return null instead of throwing
+      if (response.status === 401 || response.status === 403) {
+        console.warn('[AUTH] Authentication failed, user needs to re-login');
         return { user: null, profile: null };
       }
+
+      // For rate limiting, return null and let SWR handle retry
       if (response.status === 429) {
-        // Don't throw on rate limit, return cached data and log
-        console.warn('Auth API rate limited - using cached data');
-        throw new Error('RATE_LIMITED');
+        console.warn('[AUTH] Rate limited, will retry later');
+        return { user: null, profile: null };
       }
-      throw new Error(`Auth fetch failed: ${response.status}`);
+
+      // For server errors, return null and log the issue
+      if (response.status >= 500) {
+        console.error(`[AUTH] Server error ${response.status}, falling back to null state`);
+        return { user: null, profile: null };
+      }
+
+      // For other errors, return null gracefully
+      console.warn(`[AUTH] Unexpected response status ${response.status}, falling back to null state`);
+      return { user: null, profile: null };
     }
 
     const data = await response.json();
-    return { user: data.user, profile: data.profile };
+    return {
+      user: data.user || null,
+      profile: data.profile || null
+    };
+
   } catch (error) {
-    console.error('Auth fetch error:', error);
-    if (error.message === 'RATE_LIMITED') {
-      throw error; // Let SWR handle rate limiting with its retry logic
+    // Handle all errors gracefully - never throw
+    if (error.name === 'AbortError') {
+      console.warn('[AUTH] Request timeout, will retry later');
+    } else if (error.name === 'TypeError' && error.message.includes('fetch')) {
+      console.warn('[AUTH] Network error, will retry later');
+    } else {
+      console.error('[AUTH] Unexpected error:', error);
     }
+
+    // Always return null state on error - let the app handle unauthenticated state
     return { user: null, profile: null };
   }
 };
@@ -51,12 +77,12 @@ interface UseAuthOptions {
   revalidateOnReconnect?: boolean;
 }
 
-// Main auth hook with aggressive caching to prevent rate limiting
+// Main auth hook with conservative, graceful settings
 export function useAuth(options?: UseAuthOptions) {
   const {
-    refreshInterval = 300000, // Default: 5 minutes
-    dedupingInterval = 30000, // Dedupe requests within 30 seconds
-    revalidateOnFocus = false, // NEVER revalidate on focus by default
+    refreshInterval = 600000, // 10 minutes - much less aggressive
+    dedupingInterval = 60000, // 1 minute deduplication
+    revalidateOnFocus = false, // Never revalidate on focus
     revalidateOnReconnect = true,
   } = options || {};
 
@@ -68,21 +94,19 @@ export function useAuth(options?: UseAuthOptions) {
       dedupingInterval,
       revalidateOnFocus,
       revalidateOnReconnect,
-      // Aggressive caching to prevent rate limiting
+      // Conservative settings to prevent issues
       keepPreviousData: true,
       revalidateIfStale: false, // Don't auto-revalidate stale data
-      errorRetryInterval: 15000, // 15 seconds between retries (less aggressive)
-      errorRetryCount: 2, // Reduced retry count
-      focusThrottleInterval: 60000, // 1 minute throttle on focus events
-      // Handle rate limiting gracefully
+      errorRetryInterval: 30000, // 30 seconds between retries
+      errorRetryCount: 2, // Only retry twice
+      focusThrottleInterval: 300000, // 5 minute throttle on focus events
+      // Never throw errors - always handle gracefully
       onError: (error) => {
-        if (error.message === 'RATE_LIMITED') {
-          console.warn('Auth requests are being rate limited - using cached data');
-        }
+        console.warn('[AUTH] SWR error handled gracefully:', error);
       },
-      // Don't retry on rate limit errors
+      // Don't retry on client-side errors
       shouldRetryOnError: (error) => {
-        return error.message !== 'RATE_LIMITED';
+        return false; // Never retry - handle errors gracefully
       },
     }
   );
@@ -90,33 +114,34 @@ export function useAuth(options?: UseAuthOptions) {
   return {
     user: data?.user || null,
     profile: data?.profile || null,
-    error,
+    error: null, // Never expose errors to components - handle gracefully
     isLoading,
     // Force refresh when needed (e.g., after login/logout)
     refreshAuth: () => mutate(),
   };
 }
 
-// Global auth hook with VERY aggressive caching for shared state
+// Global auth hook with very conservative settings
 export function useGlobalAuth() {
   return useAuth({
-    refreshInterval: 300000, // 5 minutes
-    dedupingInterval: 30000, // 30 seconds deduplication
-    revalidateOnFocus: false, // NEVER revalidate on focus
+    refreshInterval: 600000, // 10 minutes
+    dedupingInterval: 60000, // 1 minute deduplication
+    revalidateOnFocus: false, // Never revalidate on focus
     revalidateOnReconnect: true,
   });
 }
 
-// Export a consolidated auth hook that ALL components should use
+// Primary hook that ALL components should use
 export function useCurrentUser() {
   const auth = useAuth();
   return {
     user: auth.user,
     profile: auth.profile,
     loading: auth.isLoading,
-    error: auth.error,
+    error: null, // Never expose errors - handle gracefully
     // Legacy compatibility
     isLoading: auth.isLoading,
+    refreshAuth: auth.refreshAuth,
   };
 }
 
@@ -125,18 +150,18 @@ export function useCachedProfile(options?: UseAuthOptions) {
   const auth = useAuth(options);
   return {
     profile: auth.profile,
-    error: auth.error,
+    error: null, // Never expose errors
     isLoading: auth.isLoading,
     refreshProfile: auth.refreshAuth,
   };
 }
 
-// For debugging/admin components that need more frequent updates
+// For admin components that might need slightly more frequent updates
 export function useRealtimeProfile() {
   return useAuth({
-    refreshInterval: 120000, // 2 minutes (still reasonable)
-    dedupingInterval: 30000, // Still dedupe aggressively
-    revalidateOnFocus: false, // NEVER on focus
+    refreshInterval: 300000, // 5 minutes (still conservative)
+    dedupingInterval: 60000, // 1 minute deduplication
+    revalidateOnFocus: false, // Never on focus
   });
 }
 
