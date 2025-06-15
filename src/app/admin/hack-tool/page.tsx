@@ -158,7 +158,7 @@ export default function HackToolPage() {
       <header className="mb-12 text-center">
         <div className="flex items-center justify-center gap-4 mb-4">
           <BrainCircuit className="h-12 w-12 text-green-400 animate-pulse" />
-          <h1 className="text-4xl md:text-5xl font-bold text-green-300 font-mono tracking-tighter">
+          <h1 className="text-4xl md:text-5xl font-bold text-green-300 font-mono tracking-tighter animate-subtle-glow">
             NOBRIDGE DATA_INJECTION_TERMINAL
           </h1>
           <Settings2 className="h-12 w-12 text-green-400 animate-spin-slow" />
@@ -218,7 +218,7 @@ export default function HackToolPage() {
                 <div className={logAreaClasses}>
                   {userLog.map((line, index) => (
                     <p key={index} className={line.startsWith('ERROR:') ? 'text-red-400' : line.startsWith('Warning:') ? 'text-yellow-400' : 'text-green-400'}>
-                      <span className="text-green-600">{`> `}</span>{line}
+                      <span className="text-green-600 animate-pulse-subtle-prefix">{`> `}</span>{line}
                     </p>
                   ))}
                 </div>
@@ -252,7 +252,7 @@ export default function HackToolPage() {
                 <div className={logAreaClasses}>
                   {listingLog.map((line, index) => (
                      <p key={index} className={line.startsWith('ERROR:') ? 'text-red-400' : line.startsWith('Warning:') ? 'text-yellow-400' : 'text-green-400'}>
-                      <span className="text-green-600">{`> `}</span>{line}
+                      <span className="text-green-600 animate-pulse-subtle-prefix">{`> `}</span>{line}
                     </p>
                   ))}
                 </div>

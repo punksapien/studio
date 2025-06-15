@@ -30,6 +30,7 @@ export default {
         'brand-dark-blue': 'hsl(var(--brand-dark-blue-hsl))',      // #0D0D39
         'brand-light-gray': 'hsl(var(--brand-light-gray-hsl))',   // #F4F6FC
         'brand-white': 'hsl(var(--brand-white-hsl))',           // #FFFFFF
+        'brand-green': 'hsl(var(--brand-green-hsl))', // For hack tool glow
 
         // ShadCN UI theme colors mapped to CSS variables from globals.css
   			background: 'hsl(var(--background))',
@@ -104,15 +105,29 @@ export default {
   				to: {
   					height: '0'
   				}
-  			}
+  			},
+        subtleGlow: {
+          '0%, 100%': { textShadow: '0 0 5px hsl(var(--brand-green-hsl) / 0.4)', opacity: '0.95' },
+          '50%': { textShadow: '0 0 15px hsl(var(--brand-green-hsl) / 0.6)', opacity: '1' },
+        },
+        pulseSubtlePrefix: {
+          '0%, 100%': { opacity: '0.6' },
+          '50%': { opacity: '1' },
+        },
+        spin: { // Ensure spin is defined if spin-slow is used
+          to: {
+            transform: 'rotate(360deg)',
+          },
+        },
   		},
   		animation: {
   			'accordion-down': 'accordion-down 0.2s ease-out',
-  			'accordion-up': 'accordion-up 0.2s ease-out'
+  			'accordion-up': 'accordion-up 0.2s ease-out',
+        'subtle-glow': 'subtleGlow 3s infinite ease-in-out',
+        'pulse-subtle-prefix': 'pulseSubtlePrefix 1.5s infinite ease-in-out',
+        'spin-slow': 'spin 3s linear infinite',
   		}
   	}
   },
   plugins: [require("tailwindcss-animate")],
 } satisfies Config;
-
-    
