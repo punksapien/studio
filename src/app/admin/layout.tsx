@@ -32,8 +32,7 @@ import {
   ShieldCheck,
   LineChart,
   BellRing,
-  FlaskConical, // Added for Hack Tool
-  MessageCircle // Added for Appeals
+  DatabaseZap, // Changed from FlaskConical for Data Injection Hub
 } from 'lucide-react';
 import LogoutButton from '@/components/auth/LogoutButton';
 
@@ -41,13 +40,13 @@ const adminSidebarNavItems = [
   { title: 'Dashboard', href: '/admin', icon: LayoutDashboard, tooltip: "Admin Overview" },
   { title: 'User Management', href: '/admin/users', icon: Users, tooltip: "Manage Users" },
   { title: 'Listing Management', href: '/admin/listings', icon: Briefcase, tooltip: "Manage Listings" },
-  { title: 'Appeal Management', href: '/admin/appeals', icon: MessageCircle, tooltip: "Review Listing Appeals" },
+  { title: 'Appeal Management', href: '/admin/appeals', icon: MessageSquare, tooltip: "Review Listing Appeals" },
   { title: 'Buyer Verification', href: '/admin/verification-queue/buyers', icon: ShieldCheck, tooltip: "Buyer Verifications" },
   { title: 'Seller/Listing Verification', href: '/admin/verification-queue/sellers', icon: ShieldCheck, tooltip: "Seller/Listing Verifications" },
   { title: 'Engagement Queue', href: '/admin/engagement-queue', icon: BellRing, tooltip: "Engagement Queue" },
   { title: 'Conversations', href: '/admin/conversations', icon: MessageSquare, tooltip: "Platform Conversations" },
   { title: 'Analytics', href: '/admin/analytics', icon: LineChart, tooltip: "Platform Analytics" },
-  { title: 'Data Injection Hub', href: '/admin/hack-tool', icon: FlaskConical, tooltip: "Batch Data Tool" }, // New Item
+  { title: 'Data Injection Hub', href: '/admin/hack-tool', icon: DatabaseZap, tooltip: "Batch Data Tool" },
 ];
 
 const utilityNavItems = [
@@ -69,7 +68,6 @@ export default function AdminLayout({
 
   React.useEffect(() => {
     if (!isAdminAuthenticated && pathname !== '/admin/login') {
-      // console.warn("Admin not authenticated, redirecting to /admin/login.");
       router.push('/admin/login');
     }
   }, [pathname, router]);
@@ -152,7 +150,8 @@ export default function AdminLayout({
               <Logo size="lg" forceTheme="light" />
               <SidebarTrigger/>
            </header>
-           <div className={pathname === '/admin/hack-tool' ? "flex-1 overflow-y-auto" : "p-6 md:p-8 lg:p-10 flex-1 overflow-y-auto"}>
+           {/* Reverted padding change for hack-tool page */}
+           <div className="p-6 md:p-8 lg:p-10 flex-1 overflow-y-auto">
             {children}
            </div>
         </SidebarInset>
