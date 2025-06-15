@@ -12,15 +12,18 @@ import { useMarketplaceFilters } from '@/hooks/use-marketplace-filters';
 import { apiToSortOption, sortOptionToAPI, SORT_OPTIONS } from '@/lib/marketplace-utils';
 
 export function SortDropdown() {
-  const { effectiveFilters, updateFilters, isLoading } = useMarketplaceFilters();
+  const { appliedFilters, updateDraftFilters, applyFilters, isLoading } = useMarketplaceFilters();
 
-  // Convert current API sorting to display value
-  const currentSortOption = apiToSortOption(effectiveFilters.sortBy, effectiveFilters.sortOrder);
+  // Convert current API sorting to display value - use appliedFilters, not effectiveFilters
+  const currentSortOption = apiToSortOption(appliedFilters.sortBy, appliedFilters.sortOrder);
 
   const handleSortChange = (value: string) => {
     try {
       const { sortBy, sortOrder } = sortOptionToAPI(value);
-      updateFilters({ sortBy, sortOrder });
+      // Update draft filters and immediately apply for sorting (sorting is immediate action)
+      updateDraftFilters({ sortBy, sortOrder });
+      // Apply immediately for sorting since it's a direct action like pagination
+      setTimeout(() => applyFilters(), 0);
     } catch (error) {
       console.error('Error updating sort:', error);
       // Graceful fallback - don't update if there's an error

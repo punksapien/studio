@@ -10,6 +10,48 @@
  * - Comprehensive error handling and fallbacks
  */
 
+// Industry mappings for consistent display and API values
+export const INDUSTRIES = {
+  'accounting-legal': 'Accounting & Legal',
+  'agriculture': 'Agriculture',
+  'automotive': 'Automotive',
+  'construction': 'Construction',
+  'consulting': 'Consulting',
+  'e-commerce': 'E-commerce',
+  'education': 'Education',
+  'energy': 'Energy',
+  'entertainment': 'Entertainment',
+  'finance': 'Finance',
+  'food-beverage': 'Food & Beverage',
+  'healthcare': 'Healthcare',
+  'hospitality': 'Hospitality',
+  'insurance': 'Insurance',
+  'manufacturing': 'Manufacturing',
+  'marketing': 'Marketing',
+  'real-estate': 'Real Estate',
+  'retail': 'Retail',
+  'saas': 'SaaS',
+  'technology': 'Technology',
+  'transportation': 'Transportation',
+} as const;
+
+// Country mappings for consistent display and API values
+export const COUNTRIES = {
+  'australia': 'Australia',
+  'canada': 'Canada',
+  'china': 'China',
+  'france': 'France',
+  'germany': 'Germany',
+  'india': 'India',
+  'japan': 'Japan',
+  'singapore': 'Singapore',
+  'south-korea': 'South Korea',
+  'thailand': 'Thailand',
+  'united-kingdom': 'United Kingdom',
+  'united-states': 'United States',
+  'vietnam': 'Vietnam',
+} as const;
+
 // Sort option mappings
 export const SORT_OPTIONS = {
   newest: { sortBy: 'created_at', sortOrder: 'desc' as const },
@@ -160,6 +202,71 @@ export function formatPriceForDisplay(price: number | undefined): string {
   }
 
   return price.toLocaleString();
+}
+
+/**
+ * Enhanced price formatting for input fields
+ * - Formats numbers with commas for readability
+ * - Handles undefined/null values gracefully
+ */
+export function formatPrice(price: number | undefined): string {
+  if (price === undefined || price === null) {
+    return '';
+  }
+  return price.toLocaleString('en-US');
+}
+
+/**
+ * Parses price input from user
+ * - Removes commas and formatting
+ * - Converts to number or undefined
+ * - Handles invalid inputs gracefully
+ */
+export function parsePriceInput(input: string): number | undefined {
+  if (!input || input.trim() === '') {
+    return undefined;
+  }
+
+  // Remove commas, dollar signs, and other formatting
+  const cleanInput = input.replace(/[$,\s]/g, '');
+  const numericValue = parseFloat(cleanInput);
+
+  if (isNaN(numericValue) || numericValue < 0) {
+    return undefined;
+  }
+
+  return Math.floor(numericValue);
+}
+
+/**
+ * Validates price range and provides specific error messages
+ * - Checks for logical price range
+ * - Provides user-friendly error messages
+ */
+export function validatePriceRange(
+  minPrice: number | undefined,
+  maxPrice: number | undefined
+): { isValid: boolean; errors: { min?: string; max?: string } } {
+  const errors: { min?: string; max?: string } = {};
+
+  // Validate individual prices
+  if (minPrice !== undefined && minPrice < 0) {
+    errors.min = 'Minimum price must be positive';
+  }
+
+  if (maxPrice !== undefined && maxPrice < 0) {
+    errors.max = 'Maximum price must be positive';
+  }
+
+  // Validate price range logic
+  if (minPrice !== undefined && maxPrice !== undefined && minPrice > maxPrice) {
+    errors.min = 'Minimum price cannot exceed maximum price';
+  }
+
+  return {
+    isValid: Object.keys(errors).length === 0,
+    errors
+  };
 }
 
 /**

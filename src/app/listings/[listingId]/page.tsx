@@ -341,11 +341,17 @@ export default function ListingDetailPage() {
     return null;
   }
 
+  // Sellers should always be able to view their own listings with full details
+  // Buyers need to be paid and verified to view verified seller details
   const canViewVerifiedDetails =
     listing.is_seller_verified &&
     currentUser &&
-    currentUser.verificationStatus === 'verified' &&
-    currentUser.isPaid;
+    (
+      // Seller viewing their own listing
+      (currentUser.id === listing.seller_id) ||
+      // Paid, verified buyer viewing verified seller's listing
+      (currentUser.verificationStatus === 'verified' && currentUser.isPaid)
+    );
 
   const handleInquire = async () => {
     if (!currentUser || currentUser.role === 'seller') {
@@ -482,6 +488,13 @@ export default function ListingDetailPage() {
                     <Card className="bg-amber-50 border-amber-300 dark:bg-amber-900/20 dark:border-amber-700">
                         <CardHeader><CardTitle className="text-amber-700 dark:text-amber-300 flex items-center"><Info className="h-5 w-5 mr-2"/>Unlock Full Details</CardTitle></CardHeader>
                         <CardContent><p className="text-sm text-amber-600 dark:text-amber-400">This listing is from a Seller who completed Due Diligence. To view specific company details, financials, and documents, please <Link href="/dashboard/subscription" className="font-semibold underline hover:text-amber-700">upgrade to a paid buyer plan</Link>.</p></CardContent>
+                    </Card>
+                )}
+
+                {listing.is_seller_verified && currentUser && currentUser.id === listing.seller_id && (
+                    <Card className="bg-green-50 border-green-300 dark:bg-green-900/20 dark:border-green-700">
+                        <CardHeader><CardTitle className="text-green-700 dark:text-green-300 flex items-center"><Eye className="h-5 w-5 mr-2"/>Your Verified Listing</CardTitle></CardHeader>
+                        <CardContent><p className="text-sm text-green-600 dark:text-green-400">You are viewing your own verified listing. All details and documents are visible to you. Buyers will need to be paid and verified to see this level of detail.</p></CardContent>
                     </Card>
                 )}
 

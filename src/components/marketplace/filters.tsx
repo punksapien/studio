@@ -1,8 +1,8 @@
-
 'use client';
 
-import * as React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useCallback, useMemo } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -11,131 +11,175 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Checkbox } from "@/components/ui/checkbox";
-import { industries, asianCountries, placeholderKeywords } from '@/lib/types';
-import { Filter, Loader2, AlertCircle, RotateCcw } from 'lucide-react';
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
+import { X, Search, RotateCcw, Filter, Plus } from 'lucide-react';
 import { useMarketplaceFilters } from '@/hooks/use-marketplace-filters';
 import {
-  industryToSelectValue,
-  countryToSelectValue,
-  formatPriceForDisplay,
-  validateFilters,
-  createFilterSummary
+  INDUSTRIES,
+  COUNTRIES,
+  validatePriceRange,
+  formatPrice,
+  parsePriceInput
 } from '@/lib/marketplace-utils';
+import { placeholderKeywords } from '@/lib/types';
 
 export function Filters() {
-  const { toast } = useToast();
   const {
     draftFilters,
     appliedFilters,
     updateDraftFilter,
+    updateDraftFilters,
     applyFilters,
     resetAndApplyFilters,
     isLoading,
-    hasActiveFilters
+    hasActiveFilters,
   } = useMarketplaceFilters();
 
-  // Local state for form inputs that are directly bound to draftFilters
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>, filterKey: 'search' | 'minPrice' | 'maxPrice') => {
-    const value = e.target.value;
-    if (filterKey === 'search') {
-      updateDraftFilter('search', value || undefined);
+  // Local state for custom keyword input
+  const [customKeywordInput, setCustomKeywordInput] = useState('');
+  const [priceErrors, setPriceErrors] = useState<{ min?: string; max?: string }>({});
+
+  // Check if there are unsaved changes
+  const hasUnsavedChanges = useMemo(() => {
+    return JSON.stringify(draftFilters) !== JSON.stringify(appliedFilters);
+  }, [draftFilters, appliedFilters]);
+
+  // Handle price input with validation
+  const handlePriceChange = useCallback((type: 'min' | 'max', value: string) => {
+    const numericValue = parsePriceInput(value);
+
+    if (type === 'min') {
+      updateDraftFilter('minPrice', numericValue);
     } else {
-      const numericValue = value ? parseFloat(value.replace(/,/g, '')) : undefined;
-      updateDraftFilter(filterKey, numericValue);
+      updateDraftFilter('maxPrice', numericValue);
     }
-  };
 
-  const handleSelectChange = (value: string, filterKey: 'industry' | 'country') => {
-    updateDraftFilter(filterKey, value === 'all' ? undefined : value);
-  };
+    // Validate price range
+    const minPrice = type === 'min' ? numericValue : draftFilters.minPrice;
+    const maxPrice = type === 'max' ? numericValue : draftFilters.maxPrice;
 
-  const handleKeywordChange = (keyword: string, checked: boolean) => {
+    const validation = validatePriceRange(minPrice, maxPrice);
+    setPriceErrors(validation.errors);
+  }, [draftFilters.minPrice, draftFilters.maxPrice, updateDraftFilter]);
+
+  // Handle predefined keyword toggle
+  const handlePredefinedKeywordToggle = useCallback((keyword: string) => {
     const currentKeywords = draftFilters.keywords || [];
-    const newKeywords = checked
-      ? [...currentKeywords, keyword]
-      : currentKeywords.filter(k => k !== keyword);
+    const isSelected = currentKeywords.includes(keyword);
+
+    const newKeywords = isSelected
+      ? currentKeywords.filter(k => k !== keyword)
+      : [...currentKeywords, keyword];
+
     updateDraftFilter('keywords', newKeywords);
-  };
+  }, [draftFilters.keywords, updateDraftFilter]);
 
-  const validation = React.useMemo(() => {
-    return validateFilters({
-      industry: draftFilters.industry,
-      country: draftFilters.country,
-      minPrice: draftFilters.minPrice,
-      maxPrice: draftFilters.maxPrice,
-      keywords: draftFilters.keywords,
-      search: draftFilters.search,
-    });
-  }, [draftFilters]);
+  // Handle custom keyword addition
+  const handleAddCustomKeyword = useCallback(() => {
+    const trimmedKeyword = customKeywordInput.trim();
+    if (!trimmedKeyword) return;
 
-  const handleApply = () => {
-    if (!validation.isValid) {
-      toast({
-        title: "Invalid Filters",
-        description: validation.errors.join(' '),
-        variant: "destructive",
-      });
+    const currentKeywords = draftFilters.keywords || [];
+
+    // Avoid duplicates (case-insensitive)
+    const keywordExists = currentKeywords.some(
+      k => k.toLowerCase() === trimmedKeyword.toLowerCase()
+    );
+
+    if (!keywordExists) {
+      updateDraftFilter('keywords', [...currentKeywords, trimmedKeyword]);
+    }
+
+    setCustomKeywordInput('');
+  }, [customKeywordInput, draftFilters.keywords, updateDraftFilter]);
+
+  // Handle keyword removal
+  const handleRemoveKeyword = useCallback((keywordToRemove: string) => {
+    const currentKeywords = draftFilters.keywords || [];
+    const newKeywords = currentKeywords.filter(k => k !== keywordToRemove);
+    updateDraftFilter('keywords', newKeywords);
+  }, [draftFilters.keywords, updateDraftFilter]);
+
+  // Handle form submission
+  const handleSubmit = useCallback((e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Don't submit if there are price validation errors
+    if (priceErrors.min || priceErrors.max) {
       return;
     }
+
     applyFilters();
-    toast({
-      title: "Filters Applied",
-      description: "Marketplace listings have been updated.",
-    });
-  };
+  }, [applyFilters, priceErrors]);
+
+  // Handle reset
+  const handleReset = useCallback(() => {
+    resetAndApplyFilters();
+    setCustomKeywordInput('');
+    setPriceErrors({});
+  }, [resetAndApplyFilters]);
 
   return (
-    <Card className="sticky top-20 shadow-md bg-brand-white">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-brand-dark-blue">
+    <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-2">
           <Filter className="h-5 w-5 text-brand-dark-blue" />
-          Filter Listings
-          {isLoading && (
-            <Loader2 className="h-4 w-4 animate-spin text-brand-sky-blue" />
+          <h3 className="text-lg font-semibold text-brand-dark-blue">Filter Listings</h3>
+          {hasActiveFilters && (
+            <Badge variant="secondary" className="ml-2">
+              {Object.values(appliedFilters).filter(v =>
+                v !== undefined && v !== '' &&
+                (Array.isArray(v) ? v.length > 0 : true)
+              ).length} active
+            </Badge>
           )}
-        </CardTitle>
+        </div>
         {hasActiveFilters && (
-          <p className="text-xs text-muted-foreground">
-            Currently active: {createFilterSummary(appliedFilters)}
-          </p>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleReset}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            <RotateCcw className="h-4 w-4 mr-1" />
+            Clear all
+          </Button>
         )}
-      </CardHeader>
-      <CardContent className="space-y-6">
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
         {/* Search Input */}
         <div className="space-y-2">
-          <Label htmlFor="search" className="text-brand-dark-blue">Search & Custom Keywords</Label>
+          <Label htmlFor="search" className="text-sm font-medium text-gray-700">
+            Search
+          </Label>
           <Input
             id="search"
             type="text"
-            placeholder="Search listings or add keywords..."
+            placeholder="Search listings..."
             value={draftFilters.search || ''}
-            onChange={(e) => handleInputChange(e, 'search')}
-            disabled={isLoading}
-            className="bg-brand-light-gray/30 border-brand-light-gray focus:ring-brand-sky-blue disabled:opacity-50"
+            onChange={(e) => updateDraftFilter('search', e.target.value || undefined)}
+            className="w-full"
           />
         </div>
 
         {/* Industry Filter */}
         <div className="space-y-2">
-          <Label htmlFor="industry" className="text-brand-dark-blue">Industry</Label>
+          <Label htmlFor="industry" className="text-sm font-medium text-gray-700">
+            Industry
+          </Label>
           <Select
             value={draftFilters.industry || 'all'}
-            onValueChange={(value) => handleSelectChange(value, 'industry')}
-            disabled={isLoading}
+            onValueChange={(value) => updateDraftFilter('industry', value === 'all' ? undefined : value)}
           >
-            <SelectTrigger id="industry" className="bg-brand-light-gray/30 border-brand-light-gray focus:ring-brand-sky-blue disabled:opacity-50">
-              <SelectValue placeholder="All Industries" />
+            <SelectTrigger id="industry" className="w-full">
+              <SelectValue placeholder="Select industry" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Industries</SelectItem>
-              {industries.map((industry) => (
-                <SelectItem key={industry} value={industryToSelectValue(industry)}>
-                  {industry}
+              {Object.entries(INDUSTRIES).map(([key, label]) => (
+                <SelectItem key={key} value={key}>
+                  {label}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -144,121 +188,184 @@ export function Filters() {
 
         {/* Country Filter */}
         <div className="space-y-2">
-          <Label htmlFor="country" className="text-brand-dark-blue">Country</Label>
+          <Label htmlFor="country" className="text-sm font-medium text-gray-700">
+            Country
+          </Label>
           <Select
             value={draftFilters.country || 'all'}
-            onValueChange={(value) => handleSelectChange(value, 'country')}
-            disabled={isLoading}
+            onValueChange={(value) => updateDraftFilter('country', value === 'all' ? undefined : value)}
           >
-            <SelectTrigger id="country" className="bg-brand-light-gray/30 border-brand-light-gray focus:ring-brand-sky-blue disabled:opacity-50">
-              <SelectValue placeholder="All Countries" />
+            <SelectTrigger id="country" className="w-full">
+              <SelectValue placeholder="Select country" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Countries</SelectItem>
-              {asianCountries.map((country) => (
-                <SelectItem key={country} value={countryToSelectValue(country)}>
-                  {country}
+              {Object.entries(COUNTRIES).map(([key, label]) => (
+                <SelectItem key={key} value={key}>
+                  {label}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
 
-        {/* Price Range Filters */}
+        {/* Price Range */}
         <div className="space-y-2">
-          <Label className="text-brand-dark-blue">Price Range (USD)</Label>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <Label htmlFor="minPrice" className="text-xs text-muted-foreground">Min</Label>
+          <Label className="text-sm font-medium text-gray-700">
+            Asking Price Range (USD)
+          </Label>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
               <Input
-                id="minPrice"
-                type="number"
-                placeholder="0"
-                value={draftFilters.minPrice === undefined ? '' : draftFilters.minPrice}
-                onChange={(e) => handleInputChange(e, 'minPrice')}
-                disabled={isLoading}
-                className="bg-brand-light-gray/30 border-brand-light-gray focus:ring-brand-sky-blue disabled:opacity-50"
+                type="text"
+                placeholder="Min price"
+                value={draftFilters.minPrice ? formatPrice(draftFilters.minPrice) : ''}
+                onChange={(e) => handlePriceChange('min', e.target.value)}
+                className={priceErrors.min ? 'border-red-500' : ''}
               />
+              {priceErrors.min && (
+                <p className="text-xs text-red-600">{priceErrors.min}</p>
+              )}
             </div>
-            <div>
-              <Label htmlFor="maxPrice" className="text-xs text-muted-foreground">Max</Label>
+            <div className="space-y-1">
               <Input
-                id="maxPrice"
-                type="number"
-                placeholder="1,000,000"
-                value={draftFilters.maxPrice === undefined ? '' : draftFilters.maxPrice}
-                onChange={(e) => handleInputChange(e, 'maxPrice')}
-                disabled={isLoading}
-                className="bg-brand-light-gray/30 border-brand-light-gray focus:ring-brand-sky-blue disabled:opacity-50"
+                type="text"
+                placeholder="Max price"
+                value={draftFilters.maxPrice ? formatPrice(draftFilters.maxPrice) : ''}
+                onChange={(e) => handlePriceChange('max', e.target.value)}
+                className={priceErrors.max ? 'border-red-500' : ''}
               />
+              {priceErrors.max && (
+                <p className="text-xs text-red-600">{priceErrors.max}</p>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Keywords Filter */}
-        <div className="space-y-2">
-          <Label className="text-brand-dark-blue">Predefined Keywords</Label>
-          <ScrollArea className="h-40 rounded-md border border-brand-light-gray p-3 bg-brand-light-gray/20">
-            <div className="space-y-2">
-              {placeholderKeywords.map((keyword) => (
-                <div key={keyword} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`keyword-${keyword.toLowerCase().replace(/\s+/g, '-')}`}
-                    checked={(draftFilters.keywords || []).includes(keyword)}
-                    onCheckedChange={(checked) => handleKeywordChange(keyword, checked as boolean)}
-                    disabled={isLoading}
-                  />
-                  <Label
-                    htmlFor={`keyword-${keyword.toLowerCase().replace(/\s+/g, '-')}`}
-                    className="text-sm font-normal text-brand-dark-blue/90 cursor-pointer"
+        {/* Keywords Section */}
+        <div className="space-y-4">
+          <Label className="text-sm font-medium text-gray-700">
+            Keywords
+          </Label>
+
+          {/* Custom Keyword Input */}
+          <div className="space-y-2">
+            <Label htmlFor="custom-keyword" className="text-xs font-medium text-gray-600">
+              Add Custom Keywords
+            </Label>
+            <div className="flex space-x-2">
+              <Input
+                id="custom-keyword"
+                type="text"
+                placeholder="Enter custom keyword..."
+                value={customKeywordInput}
+                onChange={(e) => setCustomKeywordInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddCustomKeyword();
+                  }
+                }}
+                className="flex-1"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleAddCustomKeyword}
+                disabled={!customKeywordInput.trim()}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Predefined Keywords */}
+          <div className="space-y-2">
+            <Label className="text-xs font-medium text-gray-600">
+              Popular Keywords
+            </Label>
+            <div className="flex flex-wrap gap-2">
+              {placeholderKeywords.map((keyword) => {
+                const isSelected = draftFilters.keywords?.includes(keyword) || false;
+                return (
+                  <Button
+                    key={keyword}
+                    type="button"
+                    variant={isSelected ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handlePredefinedKeywordToggle(keyword)}
+                    className="text-xs"
                   >
                     {keyword}
-                  </Label>
-                </div>
-              ))}
+                  </Button>
+                );
+              })}
             </div>
-          </ScrollArea>
-        </div>
-
-        {/* Validation Errors */}
-        {!validation.isValid && (
-          <div className="space-y-1">
-            {validation.errors.map((error, index) => (
-              <div key={index} className="flex items-center gap-2 text-red-600 text-sm">
-                <AlertCircle className="h-4 w-4" />
-                {error}
-              </div>
-            ))}
           </div>
-        )}
+
+          {/* Selected Keywords Display */}
+          {draftFilters.keywords && draftFilters.keywords.length > 0 && (
+            <div className="space-y-2">
+              <Label className="text-xs font-medium text-gray-600">
+                Selected Keywords ({draftFilters.keywords.length})
+              </Label>
+              <div className="flex flex-wrap gap-2">
+                {draftFilters.keywords.map((keyword) => (
+                  <Badge
+                    key={keyword}
+                    variant="secondary"
+                    className="flex items-center space-x-1"
+                  >
+                    <span>{keyword}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveKeyword(keyword)}
+                      className="ml-1 hover:bg-gray-300 rounded-full p-0.5"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Action Buttons */}
-        <div className="space-y-2 pt-4 border-t">
+        <div className="flex space-x-3 pt-4 border-t border-gray-200">
           <Button
-            onClick={handleApply}
-            className="w-full bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90 disabled:opacity-50"
-            disabled={isLoading || !validation.isValid}
+            type="submit"
+            disabled={isLoading || (priceErrors.min || priceErrors.max) ? true : false}
+            className="flex-1"
           >
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Applying...
-              </>
-            ) : (
-              'Apply Filters'
-            )}
+            <Search className="h-4 w-4 mr-2" />
+            {isLoading ? 'Searching...' : 'Apply Filters'}
           </Button>
-          <Button
-            onClick={resetAndApplyFilters}
-            variant="outline"
-            className="w-full border-brand-dark-blue/50 text-brand-dark-blue hover:bg-brand-light-gray disabled:opacity-50"
-            disabled={isLoading}
-          >
-            <RotateCcw className="mr-2 h-4 w-4" />
-            Reset Filters
-          </Button>
+
+          {hasUnsavedChanges && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                // Reset draft to applied (discard changes)
+                updateDraftFilters(appliedFilters);
+                setCustomKeywordInput('');
+                setPriceErrors({});
+              }}
+            >
+              Cancel
+            </Button>
+          )}
         </div>
-      </CardContent>
-    </Card>
+
+        {/* Unsaved Changes Indicator */}
+        {hasUnsavedChanges && (
+          <div className="text-xs text-amber-600 bg-amber-50 p-2 rounded border border-amber-200">
+            You have unsaved filter changes. Click "Apply Filters" to search with these settings.
+          </div>
+        )}
+      </form>
+    </div>
   );
 }

@@ -22,19 +22,26 @@ async function getUserFromToken(request: NextRequest) {
   return supabaseAdmin.auth.getUser(token);
 }
 
-// POST /api/listings/upload - Handle listing document uploads
+// POST /api/listings/upload - Handle listing document and image uploads
 export async function POST(request: NextRequest) {
   try {
+    console.log('[UPLOAD] Starting upload request');
     const { data: { user }, error: authError } = await getUserFromToken(request);
     if (authError || !user) {
+      console.log('[UPLOAD] Auth error:', authError?.message);
       return NextResponse.json({ error: authError?.message || 'Invalid token' }, { status: 401 });
     }
+    console.log('[UPLOAD] User authenticated:', user.id);
 
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
     const documentType = formData.get('document_type') as string | null;
 
+    console.log('[UPLOAD] File:', file?.name, 'Type:', file?.type, 'Size:', file?.size);
+    console.log('[UPLOAD] Document type:', documentType);
+
     if (!file || !documentType) {
+      console.log('[UPLOAD] Missing file or document_type');
       return NextResponse.json({ error: 'Missing file or document_type' }, { status: 400 });
     }
 
@@ -65,20 +72,33 @@ export async function POST(request: NextRequest) {
       'financial_snapshot',
       'ownership_details',
       'location_real_estate_info',
-      'web_presence_info'
+      'web_presence_info',
+      // Image upload types
+      'image_url_1',
+      'image_url_2',
+      'image_url_3',
+      'image_url_4',
+      'image_url_5'
     ];
 
     if (!validDocumentTypes.includes(documentType)) {
+      console.log('[UPLOAD] Invalid document type:', documentType, 'Valid types:', validDocumentTypes);
       return NextResponse.json({
-        error: 'Invalid document type'
+        error: `Invalid document type: ${documentType}. Valid types: ${validDocumentTypes.join(', ')}`
       }, { status: 400 });
     }
 
     const fileExtension = file.name.split('.').pop();
-    const storagePath = `listing-documents/${user.id}/${documentType}_${Date.now()}.${fileExtension}`;
+
+    // Determine storage bucket and path based on document type
+    const isImage = documentType.startsWith('image_url_');
+    const bucketName = isImage ? 'listing-images' : 'listing-documents';
+    const storagePath = `${isImage ? 'images' : 'documents'}/${user.id}/${documentType}_${Date.now()}.${fileExtension}`;
+
+    console.log('[UPLOAD] Storage details:', { isImage, bucketName, storagePath });
 
     const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
-      .from('listing-documents')
+      .from(bucketName)
       .upload(storagePath, file, {
         contentType: file.type,
         cacheControl: '3600',
@@ -95,7 +115,7 @@ export async function POST(request: NextRequest) {
 
     // Get signed URL for future access
     const { data: urlData } = await supabaseAdmin.storage
-      .from('listing-documents')
+      .from(bucketName)
       .createSignedUrl(storagePath, 60 * 60 * 24 * 365); // Valid for 1 year
 
     return NextResponse.json({
