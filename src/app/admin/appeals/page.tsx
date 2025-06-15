@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +24,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { MetricCard } from "@/components/admin/metric-card"; // Import MetricCard
@@ -249,7 +251,7 @@ export default function AdminAppealsPage() {
                   <div className="space-y-1">
                     <CardTitle className="text-lg flex items-center gap-2 text-foreground">
                       <Building className="h-4 w-4 text-primary" />
-                      <Link href={`/admin/listings/${appeal.listing_id}`} className="hover:underline">{appeal.listing?.title || 'Unknown Listing'}</Link>
+                      <Link href={`/listings/${appeal.listing_id}`} className="hover:underline">{appeal.listing?.title || 'Unknown Listing'}</Link>
                     </CardTitle>
                     <CardDescription className="text-xs text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1">
                       <span className="flex items-center gap-1"><User className="h-3 w-3" />Seller: <Link href={`/admin/users/${appeal.seller_id}`} className="hover:underline text-primary/80">{appeal.seller?.first_name} {appeal.seller?.last_name}</Link></span>

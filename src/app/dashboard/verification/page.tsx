@@ -1,50 +1,93 @@
-
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ShieldCheck, User, CheckCircle2, Loader2, ArrowRight, Clock, AlertCircle, MessageSquare, FileText, Send, TrendingUp, Timer } from "lucide-react"; // Added icons
-import { useState, useEffect, Suspense } from "react";
+import { ShieldCheck, CheckCircle2, Loader2, Mail } from "lucide-react";
+import { useState, Suspense } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import Link from "next/link";
 import { useCurrentUser } from "@/hooks/use-current-user";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useVerificationRequest } from "@/hooks/use-verification-request"; // Import the specific hook
-import VerificationRequestCard from "@/components/verification/VerificationRequestCard"; // Import the new card
-import { VERIFICATION_CONFIG } from "@/lib/verification-config";
+import { useVerificationRequest } from "@/hooks/use-verification-request";
 
 // Fallback if Suspense is not wrapping this page for searchParams
 function BuyerVerificationContent() {
   const { toast } = useToast();
-  const { profile, loading: isLoadingUser } = useCurrentUser();
+  const { user, profile, loading: isLoadingUser } = useCurrentUser();
   const {
     requests,
     currentStatus: userProfileVerificationStatus,
     isLoading: isLoadingRequests,
-    bumpRequest, // Using bumpRequest from the hook
+    bumpRequest,
     refreshRequests
-  } = useVerificationRequest(); // Use the specific hook for verification logic
-  const router = useRouter();
+  } = useVerificationRequest();
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isLoading = isLoadingUser || isLoadingRequests;
 
-  useEffect(() => {
-    if (!isLoading && profile && profile.role === 'buyer') {
-      // If user is anonymous or rejected, AND onboarding is not complete (step 0 means not started or reset)
-      // guide them to the onboarding start.
-      // If onboarding_step_completed is 1 or more, it implies they are in or have passed the onboarding process.
-      if ((userProfileVerificationStatus === 'anonymous' || userProfileVerificationStatus === 'rejected') && 
-          (profile.onboarding_step_completed || 0) < 2) { // Buyer onboarding has 2 steps before success
-        router.replace('/onboarding/buyer/1');
-      }
-    }
-  }, [profile, userProfileVerificationStatus, isLoading, router]);
+  // Remove the problematic redirect logic - MVP has onboarding bypass
+  // Let users access verification form regardless of onboarding status (like seller dashboard does)
 
   const handleBump = async (requestId: string, reason?: string) => {
     const success = await bumpRequest(requestId, reason, () => {
       refreshRequests(); // Refresh after successful bump
     });
     return success;
+  };
+
+  const handleRequestVerification = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!user || !profile) return;
+
+    const formData = new FormData(event.currentTarget);
+    const bestTimeToCall = formData.get('bestTimeToCall') as string;
+    const notes = formData.get('notes') as string;
+
+    setIsSubmitting(true);
+
+    try {
+      const requestData = {
+        request_type: 'user_verification',
+        reason: 'Buyer profile verification request',
+        phone_number: profile?.phone_number || '', // Use phone number from profile
+        best_time_to_call: bestTimeToCall,
+        user_notes: notes
+      };
+
+      const response = await fetch('/api/verification/request', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData),
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        toast({
+          title: "Verification Request Submitted",
+          description: "Our team has received your request and will contact you soon.",
+        });
+
+        // Refresh verification requests to show updated status
+        refreshRequests();
+      } else {
+        throw new Error(result.error || 'Failed to submit verification request');
+      }
+    } catch (error) {
+      console.error('Verification request error:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to submit verification request. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (isLoading) {
@@ -66,95 +109,134 @@ function BuyerVerificationContent() {
     );
   }
 
-  const renderStatusCard = () => {
-    const pendingUserRequests = requests.filter(r => 
-        r.request_type === 'user_verification' && 
-        ['New Request', 'Contacted', 'Docs Under Review', 'More Info Requested'].includes(r.status)
-    );
+  // Check if user has a pending verification request
+  const hasPendingRequest = requests.some(r =>
+    r.request_type === 'user_verification' &&
+    ['New Request', 'Contacted', 'Docs Under Review', 'More Info Requested'].includes(r.status)
+  );
 
-    switch (userProfileVerificationStatus) {
-      case 'verified':
-        return (
-          <Card className="shadow-lg bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-700/50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-300 font-heading">
-                <CheckCircle2 className="h-7 w-7" /> You are a Verified Buyer!
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-green-600 dark:text-green-400 mb-4">
-                Congratulations! Your buyer profile is fully verified.
-                You have access to all platform features.
+      const renderStatusCard = () => {
+    // If user already has a pending request, show pending status
+    if (hasPendingRequest || userProfileVerificationStatus === 'pending_verification') {
+      const pendingRequest = requests.find(r =>
+        ['New Request', 'Contacted', 'Docs Under Review', 'More Info Requested'].includes(r.status)
+      );
+
+      return (
+        <Card className="shadow-lg bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-700/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+              <Mail className="h-7 w-7" /> Verification Pending
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-blue-600 dark:text-blue-400">
+              Your verification request has been submitted and is currently {pendingRequest?.status.toLowerCase() || 'being processed'}.
+              Our team will contact you at the phone number provided.
+            </p>
+            {pendingRequest?.best_time_to_call && (
+              <p className="text-sm text-blue-500 dark:text-blue-300 mt-2">
+                Best time to call: {pendingRequest.best_time_to_call}
               </p>
-              <Button asChild className="bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90">
-                <Link href="/marketplace">
-                  Explore Marketplace <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
-        );
-      case 'pending_verification':
-        return (
-          <Card className="shadow-lg bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-700/50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-blue-700 dark:text-blue-300 font-heading">
-                <Clock className="h-7 w-7" /> Verification Pending
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-blue-600 dark:text-blue-400 mb-1">
-                Your verification request is currently being processed.
-              </p>
-              <p className="text-sm text-blue-500 dark:text-blue-300 mb-4">
-                Our team is reviewing your information and will contact you soon. Please check your email for updates.
-              </p>
-              {pendingUserRequests.length > 0 ? (
-                pendingUserRequests.map(req => (
-                  <VerificationRequestCard key={req.id} request={req} onBump={handleBump} isProcessing={isLoadingRequests} />
-                ))
-              ) : (
-                <p className="text-sm text-blue-500 dark:text-blue-300">No active verification request details found, but your profile is pending review.</p>
-              )}
-              <Button asChild variant="outline" className="mt-3">
-                  <Link href="/dashboard">Back to Dashboard</Link>
-              </Button>
-            </CardContent>
-          </Card>
-        );
-      // If anonymous or rejected, user should have been redirected by useEffect.
-      // This is a fallback if redirect hasn't happened yet or for direct navigation.
-      default:
-        return (
-          <Card className="shadow-lg">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 font-heading">
-                <User className="h-7 w-7 text-primary" /> Start Your Verification
-              </CardTitle>
-              <CardDescription>
-                Complete a few simple steps to become a verified buyer on Nobridge.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground mb-4">
-                {userProfileVerificationStatus === 'rejected'
-                  ? 'Your previous verification was rejected. Please restart the process.'
-                  : 'Please complete your profile verification to access more features.'}
-              </p>
-              <Button asChild className="bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90">
-                <Link href="/onboarding/buyer/1">
-                   Start Buyer Verification <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
-        );
+            )}
+          </CardContent>
+        </Card>
+      );
     }
+
+    // If user is already verified
+    if (userProfileVerificationStatus === 'verified') {
+      return (
+        <Card className="shadow-lg bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-700/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-300">
+              <CheckCircle2 className="h-7 w-7" /> You are a Verified Buyer!
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-green-600 dark:text-green-400">
+              Congratulations! Your buyer profile is fully verified.
+              You now have access to all platform features and can view complete listing details.
+            </p>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    // Show verification form for anonymous or rejected users
+    return renderVerificationForm();
   };
 
-  return (
-    <div className="space-y-8 max-w-2xl mx-auto">
-      <h1 className="text-3xl font-bold tracking-tight text-center text-brand-dark-blue font-heading">Buyer Account Verification</h1>
+    const renderVerificationForm = () => (
+    <Card className="shadow-lg">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <ShieldCheck className="h-7 w-7 text-primary" /> Become a Verified Buyer
+        </CardTitle>
+        <CardDescription>
+          Unlock full platform access and build trust. Verified buyers gain access to detailed listings and seller contact information.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleRequestVerification} className="space-y-6">
+          <div className="grid sm:grid-cols-2 gap-4">
+            <FormItemDisabled label="Full Name" value={profile?.full_name} />
+            <FormItemDisabled label="Email" value={profile?.email || user?.email} />
+            <FormItemDisabled label="Phone Number" value={profile?.phone_number} />
+          </div>
+
+          <div>
+            <Label htmlFor="bestTimeToCall">Best Time to Call (Optional)</Label>
+            <Input
+              id="bestTimeToCall"
+              name="bestTimeToCall"
+              placeholder="e.g., Weekdays 2-4 PM SGT"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="notes">Additional Notes (Optional)</Label>
+            <Textarea
+              id="notes"
+              name="notes"
+              placeholder="Any specific information or questions for our team?"
+              className="resize-none"
+              rows={4}
+            />
+          </div>
+
+          <Button
+            type="submit"
+            className="w-full md:w-auto"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Submitting...
+              </>
+            ) : (
+              'Request Verification Call'
+            )}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
+  );
+
+  // Helper component to match seller pattern
+  function FormItemDisabled({ label, value }: { label: string; value?: string }) {
+    return (
+      <div>
+        <Label className="text-sm text-muted-foreground">{label}</Label>
+        <Input value={value || 'N/A'} disabled className="mt-1 bg-muted/50" />
+      </div>
+    );
+  }
+
+    return (
+    <div className="space-y-8">
+      <h1 className="text-3xl font-bold tracking-tight">Buyer Account Verification</h1>
       {renderStatusCard()}
     </div>
   );

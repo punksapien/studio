@@ -458,11 +458,7 @@ export async function PATCH(
       'growth_opportunity_2',
       'growth_opportunity_3',
       'secure_data_room_link',
-      'image_url_1',
-      'image_url_2',
-      'image_url_3',
-      'image_url_4',
-      'image_url_5',
+      'image_urls',  // JSONB array for images
       // Document URLs
       'financial_documents_url',
       'key_metrics_report_url',

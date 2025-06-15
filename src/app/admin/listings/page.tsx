@@ -432,7 +432,7 @@ export default function AdminListingsPage() {
                         return (
                           <TableRow key={listing.id}>
                             <TableCell className="font-medium max-w-[200px] sm:max-w-xs truncate" title={listing.listingTitleAnonymous}>
-                              <Link href={`/admin/listings/${listing.id}`} className="text-primary hover:underline">
+                              <Link href={`/listings/${listing.id}`} className="text-primary hover:underline">
                                 {listing.listingTitleAnonymous}
                               </Link>
                             </TableCell>
@@ -457,7 +457,7 @@ export default function AdminListingsPage() {
                             <TableCell className="text-right whitespace-nowrap">
                               <div className="flex items-center justify-end gap-1">
                                 <Button variant="ghost" size="icon" asChild title="View Listing Details">
-                                  <Link href={`/admin/listings/${listing.id}`}>
+                                  <Link href={`/listings/${listing.id}`}>
                                     <Eye className="h-4 w-4" />
                                   </Link>
                                 </Button>

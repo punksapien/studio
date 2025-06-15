@@ -7,7 +7,7 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const listingId = params.id;
+    const { id: listingId } = await params;
 
     // Get current user
     const user = await authServer.getCurrentUser(request);
@@ -40,7 +40,7 @@ export async function POST(
     // Verify listing exists and belongs to user
     const { data: listing, error: listingError } = await supabaseAdmin
       .from('listings')
-      .select('id, title, status, seller_id, admin_notes, rejection_category')
+      .select('id, listing_title_anonymous, status, seller_id, admin_notes, rejection_category')
       .eq('id', listingId)
       .eq('seller_id', user.id)
       .single();
@@ -117,7 +117,7 @@ export async function POST(
       listingId,
       sellerId: user.id,
       appealId: appeal.id,
-      listingTitle: listing.title
+      listingTitle: listing.listing_title_anonymous
     });
 
     return NextResponse.json({
@@ -131,7 +131,7 @@ export async function POST(
       },
       listing: {
         id: listing.id,
-        title: listing.title,
+        title: listing.listing_title_anonymous,
         new_status: 'appealing_rejection'
       }
     });

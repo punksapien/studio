@@ -1,22 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
-import { AuthenticationService } from '@/lib/auth-service'
+import { authServer } from '@/lib/auth-server'
 
 // GET /api/user/listings - Get current user's listings
 export async function GET(request: NextRequest) {
   try {
-    const authService = AuthenticationService.getInstance()
-    const result = await authService.authenticateUser(request)
-
-    if (!result.success) {
+    // Use the reliable authServer instead of problematic AuthenticationService
+    const user = await authServer.getCurrentUser(request)
+    if (!user) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
       )
     }
 
-    const user = result.user!
-    const profile = result.profile!
+    const profile = await authServer.getCurrentUserProfile(request)
+    if (!profile) {
+      return NextResponse.json(
+        { error: 'User profile not found' },
+        { status: 404 }
+      )
+    }
+
+    // Create authenticated Supabase client
+    const { supabase } = authServer.createServerClient(request)
 
     const { searchParams } = new URL(request.url)
 
@@ -64,6 +70,7 @@ export async function GET(request: NextRequest) {
         )
       `)
       .eq('seller_id', user.id)
+      .is('deleted_at', null)  // Exclude soft-deleted listings
 
     // Apply status filter if provided
     if (status) {
@@ -84,6 +91,11 @@ export async function GET(request: NextRequest) {
     query = query.range(from, to)
 
     const { data: listings, error, count } = await query
+
+    // Debug logging
+    console.log(`[USER-LISTINGS] User ${user.id} fetching listings:`)
+    console.log(`[USER-LISTINGS] Query result: ${listings?.length || 0} listings found`)
+    console.log(`[USER-LISTINGS] Listings data:`, listings?.map(l => ({ id: l.id, title: l.listing_title_anonymous, status: l.status })))
 
     if (error) {
       console.error('Error fetching user listings:', error)
@@ -144,6 +156,7 @@ export async function GET(request: NextRequest) {
       .from('listings')
       .select('status')
       .eq('seller_id', user.id)
+      .is('deleted_at', null)  // Exclude soft-deleted listings
 
     const summary = {
       total: summaryData?.length || 0,
@@ -151,6 +164,7 @@ export async function GET(request: NextRequest) {
       verified_anonymous: summaryData?.filter(l => l.status === 'verified_anonymous').length || 0,
       verified_public: summaryData?.filter(l => l.status === 'verified_public').length || 0,
       pending_verification: summaryData?.filter(l => l.status === 'pending_verification').length || 0,
+      rejected_by_admin: summaryData?.filter(l => l.status === 'rejected_by_admin').length || 0,
       closed_deal: summaryData?.filter(l => l.status === 'closed_deal').length || 0
     }
 

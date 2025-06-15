@@ -1,7 +1,5 @@
-
 'use client';
 
-import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -25,58 +23,40 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  asianCountries,
-  User,
-  BuyerPersonaTypes,
-  PreferredInvestmentSizes,
-  UserRole
-} from "@/lib/types";
-import { useState, useTransition, useEffect } from "react";
+import { asianCountries, BuyerPersonaTypes, PreferredInvestmentSizes } from "@/lib/types";
+import { useTransition, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
-import { sampleUsers } from "@/lib/placeholder-data";
+import { useCurrentUser } from "@/hooks/use-cached-profile";
+import { Loader2, User } from "lucide-react";
 import Link from "next/link";
-
-const currentBuyerId = 'user2';
-const currentUserServerData: User | undefined = sampleUsers.find(u => u.id === currentBuyerId && u.role === 'buyer');
+import { supabase } from "@/lib/supabase";
 
 const ProfileSchema = z.object({
   fullName: z.string().min(1, { message: "Full name is required." }),
   phoneNumber: z.string().min(1, { message: "Phone number is required." }),
   country: z.string().min(1, { message: "Country is required." }),
-  role: z.enum(['seller', 'buyer'] as [UserRole, ...UserRole[]], { required_error: "Role is required." }),
-  initialCompanyName: z.string().optional(),
-  buyerPersonaType: z.enum(BuyerPersonaTypes).optional(),
+  buyerPersonaType: z.enum(BuyerPersonaTypes, { required_error: "Buyer persona type is required." }),
   buyerPersonaOther: z.string().optional(),
   investmentFocusDescription: z.string().optional(),
   preferredInvestmentSize: z.enum(PreferredInvestmentSizes).optional(),
   keyIndustriesOfInterest: z.string().optional(),
 }).superRefine((data, ctx) => {
-  if (data.role === 'buyer') {
-    if (!data.buyerPersonaType) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Buyer persona type is required for buyers.",
-        path: ["buyerPersonaType"],
-      });
-    }
-    if (data.buyerPersonaType === "Other" && (!data.buyerPersonaOther || data.buyerPersonaOther.trim().length < 1)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Please specify your role if 'Other' is selected for Buyer Persona.",
-        path: ["buyerPersonaOther"],
-      });
-    }
+  if (data.buyerPersonaType === "Other" && (!data.buyerPersonaOther || data.buyerPersonaOther.trim().length < 1)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Please specify your role if 'Other' is selected for Buyer Persona.",
+      path: ["buyerPersonaOther"],
+    });
   }
 });
+
+
 
 const defaultProfileValues: Partial<z.infer<typeof ProfileSchema>> = {
   fullName: "",
   phoneNumber: "",
   country: "",
-  role: "buyer",
-  initialCompanyName: "",
   buyerPersonaType: undefined,
   buyerPersonaOther: "",
   investmentFocusDescription: "",
@@ -84,133 +64,348 @@ const defaultProfileValues: Partial<z.infer<typeof ProfileSchema>> = {
   keyIndustriesOfInterest: "",
 };
 
-export default function ProfilePage() {
+export default function BuyerProfilePage() {
   const { toast } = useToast();
   const [isProfilePending, startProfileTransition] = useTransition();
+
+  const { user, profile, loading: isLoading, refreshAuth } = useCurrentUser();
 
   const profileForm = useForm<z.infer<typeof ProfileSchema>>({
     resolver: zodResolver(ProfileSchema),
     defaultValues: defaultProfileValues,
   });
 
+
+
+  // Load profile data into form when available
   useEffect(() => {
-    if (currentUserServerData) {
+    if (profile) {
       profileForm.reset({
-        fullName: currentUserServerData.fullName || "",
-        phoneNumber: currentUserServerData.phoneNumber || "",
-        country: currentUserServerData.country || "",
-        role: currentUserServerData.role,
-        initialCompanyName: "",
-        buyerPersonaType: currentUserServerData.buyerPersonaType || undefined,
-        buyerPersonaOther: currentUserServerData.buyerPersonaOther || "",
-        investmentFocusDescription: currentUserServerData.investmentFocusDescription || "",
-        preferredInvestmentSize: currentUserServerData.preferredInvestmentSize || undefined,
-        keyIndustriesOfInterest: currentUserServerData.keyIndustriesOfInterest || "",
+        fullName: profile.full_name || "",
+        phoneNumber: profile.phone_number || "",
+        country: profile.country || "",
+        buyerPersonaType: profile.buyer_persona_type as any || undefined,
+        buyerPersonaOther: profile.buyer_persona_other || "",
+        investmentFocusDescription: profile.investment_focus_description || "",
+        preferredInvestmentSize: profile.preferred_investment_size as any || undefined,
+        keyIndustriesOfInterest: profile.key_industries_of_interest || "",
       });
     }
-  }, [profileForm, currentUserServerData]);
+  }, [profile, profileForm]);
+
+  const updateProfile = async (profileData: z.infer<typeof ProfileSchema>) => {
+    try {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session?.access_token) {
+        throw new Error('Not authenticated - please log in again');
+      }
+
+      const response = await fetch('/api/auth/update-profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          full_name: profileData.fullName,
+          phone_number: profileData.phoneNumber,
+          country: profileData.country,
+          buyer_persona_type: profileData.buyerPersonaType,
+          buyer_persona_other: profileData.buyerPersonaOther,
+          investment_focus_description: profileData.investmentFocusDescription,
+          preferred_investment_size: profileData.preferredInvestmentSize,
+          key_industries_of_interest: profileData.keyIndustriesOfInterest,
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update profile');
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Profile update error:', error);
+      throw error;
+    }
+  };
+
 
 
   const onProfileSubmit = (values: z.infer<typeof ProfileSchema>) => {
     startProfileTransition(async () => {
-      console.log("Profile update values:", values);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      toast({ title: "Profile Updated", description: "Your profile information has been successfully updated." });
+      try {
+        await updateProfile(values);
+        toast({
+          title: "Profile Updated",
+          description: "Your profile information has been successfully updated."
+        });
+        // Refresh the auth data to get updated profile
+        refreshAuth();
+      } catch (error) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: error instanceof Error ? error.message : "Failed to update profile. Please try again."
+        });
+      }
     });
   };
 
+
+
   const watchedBuyerPersonaType = profileForm.watch("buyerPersonaType");
 
-  if (!currentUserServerData || currentUserServerData.role !== 'buyer') {
+  if (isLoading) {
     return (
-      <div className="container py-8 text-center">
-        Loading profile or user not found/not a buyer...
+      <div className="space-y-8">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+            <p className="text-muted-foreground">Loading your profile...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user || !profile) {
+    return (
+      <div className="space-y-8 text-center">
+        <h1 className="text-3xl font-bold tracking-tight">Profile Not Found</h1>
+        <p className="text-muted-foreground">Unable to load your profile. Please try logging in again.</p>
+        <Button asChild>
+          <Link href="/auth/login">Login</Link>
+        </Button>
+      </div>
+    );
+  }
+
+  if (profile.role !== 'buyer') {
+    return (
+      <div className="space-y-8 text-center">
+        <h1 className="text-3xl font-bold tracking-tight">Access Denied</h1>
+        <p className="text-muted-foreground">This page is only accessible to buyer accounts.</p>
+        <Button asChild>
+          <Link href="/dashboard">Go to Dashboard</Link>
+        </Button>
       </div>
     );
   }
 
   return (
     <div className="space-y-8">
-      <h1 className="text-3xl font-bold tracking-tight text-brand-dark-blue">My Buyer Profile</h1>
+      <div className="flex items-center gap-3">
+        <User className="h-8 w-8" />
+        <h1 className="text-3xl font-bold tracking-tight">My Buyer Profile</h1>
+      </div>
 
-      <Card className="shadow-md bg-brand-white">
+      <Card className="shadow-md">
         <CardHeader>
-          <CardTitle className="text-brand-dark-blue">Personal &amp; Investment Information</CardTitle>
-          <CardDescription>Update your details. Your email ({currentUserServerData.email}) cannot be changed here.</CardDescription>
+          <CardTitle>Personal Information</CardTitle>
+          <CardDescription>
+            Update your personal details. Your email ({user.email}) cannot be changed here.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...profileForm}>
             <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-6">
-              <FormField control={profileForm.control} name="fullName" render={({ field }) => (
-                  <FormItem><FormLabel>Full Name</FormLabel><FormControl><Input {...field} disabled={isProfilePending} /></FormControl><FormMessage /></FormItem>
-                )}
-              />
-              <FormField control={profileForm.control} name="phoneNumber" render={({ field }) => (
-                  <FormItem><FormLabel>Phone Number</FormLabel><FormControl><Input {...field} type="tel" disabled={isProfilePending} /></FormControl><FormMessage /></FormItem>
-                )}
-              />
-              <FormField control={profileForm.control} name="country" render={({ field }) => (
-                  <FormItem><FormLabel>Country</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} disabled={isProfilePending}>
-                      <FormControl><SelectTrigger><SelectValue placeholder="Select your country"/></SelectTrigger></FormControl>
-                      <SelectContent>{asianCountries.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
-                    </Select><FormMessage />
+              <FormField
+                control={profileForm.control}
+                name="fullName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Full Name</FormLabel>
+                    <FormControl>
+                      <Input {...field} disabled={isProfilePending} />
+                    </FormControl>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
 
-              <FormField control={profileForm.control} name="role" render={({ field }) => (<FormItem className="hidden"><FormControl><Input {...field} /></FormControl></FormItem>)} />
-
-              <Separator />
-              <h3 className="text-lg font-medium text-brand-dark-blue pt-2">Buyer Persona &amp; Focus</h3>
-              <FormField control={profileForm.control} name="buyerPersonaType" render={({ field }) => (
-                  <FormItem><FormLabel>I am a/an: (Primary Role / Buyer Type)</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || undefined} disabled={isProfilePending}>
-                      <FormControl><SelectTrigger><SelectValue placeholder="Select your primary role" /></SelectTrigger></FormControl>
-                      <SelectContent>{BuyerPersonaTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}</SelectContent>
-                    </Select><FormMessage /></FormItem>
+              <FormField
+                control={profileForm.control}
+                name="phoneNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Phone Number</FormLabel>
+                    <FormControl>
+                      <Input {...field} type="tel" disabled={isProfilePending} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
                 )}
               />
+
+              <FormField
+                control={profileForm.control}
+                name="country"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Country</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={isProfilePending}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select your country" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {asianCountries.map(country => (
+                          <SelectItem key={country} value={country}>
+                            {country}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <Separator />
+              <h3 className="text-lg font-medium pt-2">Buyer Profile & Investment Focus</h3>
+
+              <FormField
+                control={profileForm.control}
+                name="buyerPersonaType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>I am a/an: (Primary Role / Buyer Type)</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || undefined} disabled={isProfilePending}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select your primary role" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {BuyerPersonaTypes.map(type => (
+                          <SelectItem key={type} value={type}>
+                            {type}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               {watchedBuyerPersonaType === "Other" && (
-                <FormField control={profileForm.control} name="buyerPersonaOther" render={({ field }) => (
-                    <FormItem><FormLabel>Please Specify Role</FormLabel><FormControl><Input {...field} value={field.value || ""} placeholder="Your specific role" disabled={isProfilePending} /></FormControl><FormMessage /></FormItem>
+                <FormField
+                  control={profileForm.control}
+                  name="buyerPersonaOther"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Please Specify Role</FormLabel>
+                      <FormControl>
+                        <Input {...field} value={field.value || ""} placeholder="Your specific role" disabled={isProfilePending} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
                   )}
                 />
               )}
-              <FormField control={profileForm.control} name="investmentFocusDescription" render={({ field }) => (
-                  <FormItem><FormLabel>Investment Focus or What You&apos;re Looking For</FormLabel>
-                    <FormControl><Textarea {...field} value={field.value || ""} placeholder="e.g., SaaS businesses in Southeast Asia with $100k-$1M ARR..." disabled={isProfilePending} rows={3}/></FormControl><FormMessage /></FormItem>
-                  )}
-                />
-              <FormField control={profileForm.control} name="preferredInvestmentSize" render={({ field }) => (
-                  <FormItem><FormLabel>Preferred Investment Size (Approximate)</FormLabel>
+
+              <FormField
+                control={profileForm.control}
+                name="investmentFocusDescription"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Investment Focus or What You're Looking For</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        {...field}
+                        value={field.value || ""}
+                        placeholder="e.g., SaaS businesses in Southeast Asia with $100k-$1M ARR..."
+                        disabled={isProfilePending}
+                        rows={3}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Describe what types of businesses or investments you're interested in
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={profileForm.control}
+                name="preferredInvestmentSize"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Preferred Investment Size (Approximate)</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value || undefined} disabled={isProfilePending}>
-                      <FormControl><SelectTrigger><SelectValue placeholder="Select preferred investment size" /></SelectTrigger></FormControl>
-                      <SelectContent>{PreferredInvestmentSizes.map(size => <SelectItem key={size} value={size}>{size}</SelectItem>)}</SelectContent>
-                    </Select><FormMessage /></FormItem>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select preferred investment size" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {PreferredInvestmentSizes.map(size => (
+                          <SelectItem key={size} value={size}>
+                            {size}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
                 )}
               />
-              <FormField control={profileForm.control} name="keyIndustriesOfInterest" render={({ field }) => (
-                  <FormItem><FormLabel>Key Industries of Interest</FormLabel>
-                    <FormControl><Textarea {...field} value={field.value || ""} placeholder="e.g., Technology, E-commerce, Healthcare..." disabled={isProfilePending} rows={3}/></FormControl><FormMessage /></FormItem>
+
+              <FormField
+                control={profileForm.control}
+                name="keyIndustriesOfInterest"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Key Industries of Interest</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        {...field}
+                        value={field.value || ""}
+                        placeholder="e.g., Technology, E-commerce, Healthcare, Manufacturing..."
+                        disabled={isProfilePending}
+                        rows={3}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      List the industries you're most interested in investing in or acquiring businesses from
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
                 )}
               />
-              <Button type="submit" disabled={isProfilePending} className="bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90">{isProfilePending ? "Saving..." : "Save Profile Changes"}</Button>
+
+              <Button type="submit" disabled={isProfilePending}>
+                {isProfilePending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save Profile Changes"
+                )}
+              </Button>
             </form>
           </Form>
         </CardContent>
       </Card>
 
+
+
       <Separator />
-      <Card className="shadow-md bg-brand-white">
+
+      <Card className="shadow-md">
         <CardHeader>
-          <CardTitle className="text-brand-dark-blue">Security Settings</CardTitle>
-          <CardDescription>Manage your account security.</CardDescription>
+          <CardTitle>Additional Settings</CardTitle>
+          <CardDescription>Access additional account settings and security options.</CardDescription>
         </CardHeader>
         <CardContent>
-            <Button variant="outline" asChild className="border-brand-dark-blue/50 text-brand-dark-blue hover:bg-brand-light-gray/70">
-                <Link href="/dashboard/settings">Go to Security Settings (Change Password)</Link>
-            </Button>
+          <Button variant="outline" asChild>
+            <Link href="/dashboard/settings">Go to Account Settings</Link>
+          </Button>
         </CardContent>
       </Card>
     </div>

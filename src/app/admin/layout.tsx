@@ -32,7 +32,6 @@ import {
   ShieldCheck,
   LineChart,
   BellRing,
-  DatabaseZap, // Changed from FlaskConical for Data Injection Hub
 } from 'lucide-react';
 import LogoutButton from '@/components/auth/LogoutButton';
 
@@ -46,7 +45,6 @@ const adminSidebarNavItems = [
   { title: 'Engagement Queue', href: '/admin/engagement-queue', icon: BellRing, tooltip: "Engagement Queue" },
   { title: 'Conversations', href: '/admin/conversations', icon: MessageSquare, tooltip: "Platform Conversations" },
   { title: 'Analytics', href: '/admin/analytics', icon: LineChart, tooltip: "Platform Analytics" },
-  { title: 'Data Injection Hub', href: '/admin/hack-tool', icon: DatabaseZap, tooltip: "Batch Data Tool" },
 ];
 
 const utilityNavItems = [
@@ -150,7 +148,6 @@ export default function AdminLayout({
               <Logo size="lg" forceTheme="light" />
               <SidebarTrigger/>
            </header>
-           {/* Reverted padding change for hack-tool page */}
            <div className="p-6 md:p-8 lg:p-10 flex-1 overflow-y-auto">
             {children}
            </div>

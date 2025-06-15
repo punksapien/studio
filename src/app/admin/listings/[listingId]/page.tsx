@@ -23,7 +23,8 @@ async function getSellerDetails(sellerId: string): Promise<User | undefined> {
 }
 
 export default async function AdminListingDetailPage({ params }: { params: { listingId: string } }) {
-  const listing = await getListingDetails(params.listingId);
+  const { listingId } = await params;
+  const listing = await getListingDetails(listingId);
 
   if (!listing) {
     notFound();

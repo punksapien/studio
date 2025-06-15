@@ -161,12 +161,11 @@ export function useSellerDashboard(): DashboardData {
       // Handle errors gracefully
       const inquiries = (inquiriesData.error || !inquiriesResponse.ok) ? [] : (inquiriesData.inquiries || [])
 
-      const activeStatuses = ['active', 'verified_anonymous', 'verified_with_financials', 'pending_verification']
-      const activeListings = listings.filter(
+      // For dashboard stats, count only active listings (not rejected/inactive)
+      const activeStatuses = ['active', 'verified_anonymous', 'verified_public', 'pending_verification', 'under_review', 'pending_approval']
+      const activeListingsCount = listings.filter(
         (listing: any) => activeStatuses.includes(listing.status)
-      ) || []
-
-      const activeListingsCount = activeListings.length
+      ).length
       const totalInquiriesReceived = inquiriesData.pagination?.total || 0
       const inquiriesAwaitingEngagement = inquiries.filter(
         (inq: any) => inq.status === 'new_inquiry'
@@ -178,7 +177,7 @@ export function useSellerDashboard(): DashboardData {
         ? 'pending_verification'
         : 'anonymous'
 
-      const formattedListings: Listing[] = activeListings.map((listing: any) => ({
+      const formattedListings: Listing[] = listings.map((listing: any) => ({
         id: listing.id,
         title: listing.listing_title_anonymous || listing.title || 'Untitled Listing',
         status: listing.status,

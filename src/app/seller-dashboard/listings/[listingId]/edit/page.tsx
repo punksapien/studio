@@ -197,11 +197,13 @@ export default function EditSellerListingPage() {
           secureDataRoomLink: fetchedListing.secure_data_room_link || "",
         };
 
+        // Handle JSONB array format for images (API returns as 'images' field)
+        const existingImageUrls = Array.isArray(fetchedListing.images) ? fetchedListing.images : [];
         const initialImageSlots: ImageSlot[] = Array(5).fill({}).map((_, i) => {
-          const dbUrl = fetchedListing[`image_url_${i + 1}`] || (fetchedListing.images && fetchedListing.images[i]);
-          if (dbUrl) {
-            formDefaultValues[`imageFile${i+1}` as keyof ListingFormValues] = dbUrl as any;
-            return { currentUrl: dbUrl, previewUrl: dbUrl, file: null };
+          const imageUrl = existingImageUrls[i] || null;
+          if (imageUrl) {
+            formDefaultValues[`imageFile${i+1}` as keyof ListingFormValues] = imageUrl as any;
+            return { currentUrl: imageUrl, previewUrl: imageUrl, file: null };
           }
           return { currentUrl: null, previewUrl: null, file: null };
         });
@@ -234,11 +236,13 @@ export default function EditSellerListingPage() {
         URL.revokeObjectURL(oldPreviewUrl);
       }
       if (file) {
-        newSlots[index] = { currentUrl: null, file, previewUrl: URL.createObjectURL(file) };
+        newSlots[index] = { currentUrl: newSlots[index]?.currentUrl || null, file, previewUrl: URL.createObjectURL(file) };
       } else {
-        newSlots[index] = { ...newSlots[index], file: null, previewUrl: newSlots[index].currentUrl }; // Keep currentUrl as preview if new file removed
+        // File removed, revert to current URL if exists
+        newSlots[index] = { ...newSlots[index], file: null, previewUrl: newSlots[index]?.currentUrl || null };
       }
-      form.setValue(`imageFile${index + 1}` as any, file || newSlots[index].currentUrl || null);
+      // Set form value to the file object only (not URL strings)
+      form.setValue(`imageFile${index + 1}` as any, file);
       return newSlots;
     });
   };
@@ -266,37 +270,46 @@ export default function EditSellerListingPage() {
 
   const onSubmit = async (values: ListingFormValues) => {
     try {
-      const imageUpdates: Record<string, string | null> = {};
-      const imageFilesToUpload: { fieldName: string, file: File }[] = [];
+      // Upload images and collect URLs in array format (JSONB) - same as create listing
+      const imageUploadPromises: Promise<string | null>[] = [];
       const session = await supabase.auth.getSession();
       const accessToken = session.data.session?.access_token;
 
       for (let i = 0; i < 5; i++) {
         const slot = imageSlots[i];
-        const dbFieldName = `image_url_${i + 1}`;
-        if (slot.file) { // New file selected for this slot
-          imageFilesToUpload.push({ fieldName: dbFieldName, file: slot.file });
-        } else if (!slot.previewUrl && listing && listing[dbFieldName]) { // Existing image was removed
-          imageUpdates[dbFieldName] = null; // Mark for deletion on backend
-        } else if (slot.currentUrl) { // Existing image kept
-          imageUpdates[dbFieldName] = slot.currentUrl;
-        } else { // Slot is empty or was cleared
-          imageUpdates[dbFieldName] = null;
+        if (slot.file) {
+          // New file selected for this slot
+          if (!accessToken) throw new Error('Authentication required for image upload');
+          imageUploadPromises.push(
+            (async () => {
+              const formData = new FormData();
+              formData.append('file', slot.file!);
+              formData.append('document_type', `image_url_${i + 1}`);
+              const uploadResponse = await fetch('/api/listings/upload', {
+                method: 'POST',
+                body: formData,
+                headers: { 'Authorization': `Bearer ${accessToken}` }
+              });
+              if (!uploadResponse.ok) {
+                console.error(`Failed to upload image ${i+1}`);
+                return null; // Allow partial success
+              }
+              const uploadResult = await uploadResponse.json();
+              return uploadResult.signedUrl;
+            })()
+          );
+        } else if (slot.currentUrl) {
+          // Existing image kept (no new file uploaded)
+          imageUploadPromises.push(Promise.resolve(slot.currentUrl));
+        } else {
+          // Slot is empty or was cleared
+          imageUploadPromises.push(Promise.resolve(null));
         }
       }
 
-      const uploadedImageUrls: Record<string, string> = {};
-      if (!accessToken && imageFilesToUpload.length > 0) throw new Error('Authentication required for image upload');
-
-      for (const { fieldName, file } of imageFilesToUpload) {
-          const formData = new FormData();
-          formData.append('file', file);
-          formData.append('document_type', fieldName);
-          const uploadResponse = await fetch('/api/listings/upload', { method: 'POST', body: formData, headers: { 'Authorization': `Bearer ${accessToken!}` }});
-          if (!uploadResponse.ok) throw new Error(`Failed to upload ${file.name}`);
-          const uploadResult = await uploadResponse.json();
-          uploadedImageUrls[fieldName] = uploadResult.signedUrl;
-      }
+      const uploadedImageUrlsResults = await Promise.all(imageUploadPromises);
+      // Filter out null values to create clean array for JSONB storage - same as create listing
+      const imageUrls = uploadedImageUrlsResults.filter(url => url !== null);
 
       const documentUploads: Record<string, string | null> = {};
       const documentFields = ['financialDocuments', 'keyMetricsReport', 'ownershipDocuments', 'financialSnapshot', 'ownershipDetails', 'locationRealEstateInfo', 'webPresenceInfo'];
@@ -323,25 +336,42 @@ export default function EditSellerListingPage() {
       }
 
       const updatePayload = {
-        listing_title_anonymous: values.listingTitleAnonymous, industry: values.industry, location_country: values.locationCountry,
-        location_city_region_general: values.locationCityRegionGeneral, anonymous_business_description: values.anonymousBusinessDescription,
-        key_strength_1: values.keyStrength1 || null, key_strength_2: values.keyStrength2 || null, key_strength_3: values.keyStrength3 || null,
-        business_model: values.businessModel || null, year_established: values.yearEstablished || null, registered_business_name: values.registeredBusinessName || null,
-        business_website_url: values.businessWebsiteUrl || null, social_media_links: values.socialMediaLinks || null, number_of_employees: values.numberOfEmployees || null,
-        technology_stack: values.technologyStack || null, actual_company_name: values.actualCompanyName || null, full_business_address: values.fullBusinessAddress || null,
-        annual_revenue_range: values.annualRevenueRange, net_profit_margin_range: values.netProfitMarginRange || null, asking_price: values.askingPrice || null,
-        specific_annual_revenue_last_year: values.specificAnnualRevenueLastYear || null, specific_net_profit_last_year: values.specificNetProfitLastYear || null,
-        adjusted_cash_flow: values.adjustedCashFlow || null, adjusted_cash_flow_explanation: values.adjustedCashFlowExplanation || null,
-        deal_structure_looking_for: values.dealStructureLookingFor || [], reason_for_selling_anonymous: values.reasonForSellingAnonymous || null,
-        detailed_reason_for_selling: values.detailedReasonForSelling || null, seller_role_and_time_commitment: values.sellerRoleAndTimeCommitment || null,
+        listing_title_anonymous: values.listingTitleAnonymous,
+        industry: values.industry,
+        location_country: values.locationCountry,
+        location_city_region_general: values.locationCityRegionGeneral,
+        anonymous_business_description: values.anonymousBusinessDescription,
+        key_strength_1: values.keyStrength1 || null,
+        key_strength_2: values.keyStrength2 || null,
+        key_strength_3: values.keyStrength3 || null,
+        business_model: values.businessModel || null,
+        year_established: values.yearEstablished || null,
+        registered_business_name: values.registeredBusinessName || null,
+        business_website_url: values.businessWebsiteUrl || null,
+        social_media_links: values.socialMediaLinks || null,
+        number_of_employees: values.numberOfEmployees || null,
+        technology_stack: values.technologyStack || null,
+        actual_company_name: values.actualCompanyName || null,
+        full_business_address: values.fullBusinessAddress || null,
+        annual_revenue_range: values.annualRevenueRange,
+        net_profit_margin_range: values.netProfitMarginRange || null,
+        asking_price: values.askingPrice || null,
+        specific_annual_revenue_last_year: values.specificAnnualRevenueLastYear || null,
+        specific_net_profit_last_year: values.specificNetProfitLastYear || null,
+        adjusted_cash_flow: values.adjustedCashFlow || null,
+        adjusted_cash_flow_explanation: values.adjustedCashFlowExplanation || null,
+        deal_structure_looking_for: values.dealStructureLookingFor || [],
+        reason_for_selling_anonymous: values.reasonForSellingAnonymous || null,
+        detailed_reason_for_selling: values.detailedReasonForSelling || null,
+        seller_role_and_time_commitment: values.sellerRoleAndTimeCommitment || null,
         post_sale_transition_support: values.postSaleTransitionSupport || null,
-        growth_opportunity_1: values.growthOpportunity1 || null, growth_opportunity_2: values.growthOpportunity2 || null, growth_opportunity_3: values.growthOpportunity3 || null,
+        growth_opportunity_1: values.growthOpportunity1 || null,
+        growth_opportunity_2: values.growthOpportunity2 || null,
+        growth_opportunity_3: values.growthOpportunity3 || null,
         secure_data_room_link: values.secureDataRoomLink || null,
-        image_url_1: uploadedImageUrls['image_url_1'] !== undefined ? uploadedImageUrls['image_url_1'] : imageUpdates['image_url_1'],
-        image_url_2: uploadedImageUrls['image_url_2'] !== undefined ? uploadedImageUrls['image_url_2'] : imageUpdates['image_url_2'],
-        image_url_3: uploadedImageUrls['image_url_3'] !== undefined ? uploadedImageUrls['image_url_3'] : imageUpdates['image_url_3'],
-        image_url_4: uploadedImageUrls['image_url_4'] !== undefined ? uploadedImageUrls['image_url_4'] : imageUpdates['image_url_4'],
-        image_url_5: uploadedImageUrls['image_url_5'] !== undefined ? uploadedImageUrls['image_url_5'] : imageUpdates['image_url_5'],
+        // Use JSONB array format for images (matches database schema and create listing)
+        image_urls: imageUrls,
+        updated_at: new Date().toISOString(),
         ...documentUploads,
       };
 

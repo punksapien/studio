@@ -67,7 +67,6 @@ function SellerVerificationContent() {
     if (!user || !profile) return;
 
     const formData = new FormData(event.currentTarget);
-    const phoneNumber = formData.get('phoneNumber') as string;
     const bestTimeToCall = formData.get('bestTimeToCall') as string;
     const notes = formData.get('notes') as string;
 
@@ -80,7 +79,7 @@ function SellerVerificationContent() {
         reason: verificationType === 'profile'
           ? 'Seller profile verification request'
           : `Listing verification request for listing ID: ${selectedListingId}`,
-        phone_number: phoneNumber,
+        phone_number: profile?.phone_number || '', // Use phone number from profile
         best_time_to_call: bestTimeToCall,
         user_notes: notes
       };
