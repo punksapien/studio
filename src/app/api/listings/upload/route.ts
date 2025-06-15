@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
       .from(bucketName)
       .upload(storagePath, file, {
         contentType: file.type,
-        cacheControl: '3600',
+        cacheControl: isImage ? '86400' : '3600', // Images cached longer (24h vs 1h)
         upsert: false
       });
 

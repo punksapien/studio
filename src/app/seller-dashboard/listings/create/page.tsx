@@ -236,6 +236,7 @@ export default function CreateSellerListingPage() {
           }
         }
 
+        // Upload images and collect URLs in array format (JSONB)
         const imageUploadPromises: Promise<string | null>[] = [];
         for (let i = 0; i < 5; i++) {
           const file = values[`imageFile${i + 1}` as keyof ListingFormValues] as File | undefined;
@@ -245,9 +246,12 @@ export default function CreateSellerListingPage() {
               (async () => {
                 const formData = new FormData();
                 formData.append('file', file);
-                formData.append('document_type', `listing_image_${i + 1}`); // Use a generic type or specific one
+                formData.append('document_type', `image_url_${i + 1}`); // Use correct document type for upload API
                 const uploadResponse = await fetch('/api/listings/upload', { method: 'POST', body: formData, headers: { 'Authorization': `Bearer ${accessToken}` } });
-                if (!uploadResponse.ok) { console.error(`Failed to upload image ${i+1}`); return null; } // Allow partial success
+                if (!uploadResponse.ok) {
+                  console.error(`Failed to upload image ${i+1}`);
+                  return null; // Allow partial success
+                }
                 const uploadResult = await uploadResponse.json();
                 return uploadResult.signedUrl;
               })()
@@ -256,14 +260,10 @@ export default function CreateSellerListingPage() {
             imageUploadPromises.push(Promise.resolve(null));
           }
         }
+
         const uploadedImageUrlsResults = await Promise.all(imageUploadPromises);
-        const finalImageUrls = {
-          image_url_1: uploadedImageUrlsResults[0],
-          image_url_2: uploadedImageUrlsResults[1],
-          image_url_3: uploadedImageUrlsResults[2],
-          image_url_4: uploadedImageUrlsResults[3],
-          image_url_5: uploadedImageUrlsResults[4],
-        };
+        // Filter out null values to create clean array for JSONB storage
+        const imageUrls = uploadedImageUrlsResults.filter(url => url !== null);
 
 
         const submissionData = {
@@ -300,14 +300,15 @@ export default function CreateSellerListingPage() {
           sellerRoleAndTimeCommitment: values.sellerRoleAndTimeCommitment ? String(values.sellerRoleAndTimeCommitment).trim() : null,
           postSaleTransitionSupport: values.postSaleTransitionSupport ? String(values.postSaleTransitionSupport).trim() : null,
           secureDataRoomLink: values.secureDataRoomLink ? String(values.secureDataRoomLink).trim() : null,
-          ...finalImageUrls,
+          // Use JSONB array format for images (matches database schema)
+          image_urls: imageUrls,
           ...documentUploads,
         };
 
         const response = await fetch('/api/listings', { method: 'POST', headers: { 'Content-Type': 'application/json', }, body: JSON.stringify(submissionData), });
         if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.error || 'Failed to create listing'); }
         const result = await response.json();
-        
+
         setPreviewUrls([null, null, null, null, null]); // Clear previews
         clearSavedData();
         form.reset();
@@ -402,7 +403,7 @@ export default function CreateSellerListingPage() {
               ))}
             </CardContent>
           </Card>
-          
+
           <Card className="shadow-md bg-brand-white">
             <CardHeader><CardTitle className="text-brand-dark-blue font-heading flex items-center gap-2"><NobridgeIcon icon="calculator" size="sm" />Financial Performance</CardTitle></CardHeader>
             <CardContent className="space-y-6">
@@ -503,7 +504,7 @@ export default function CreateSellerListingPage() {
               )}
             </CardContent>
           </Card>
-          
+
           <Separator />
           <div className="flex justify-between">
             <Button type="button" variant="outline" onClick={() => { if (confirm("Are you sure you want to clear all form data including saved draft?")) { form.reset(); clearSavedData(); toast({ title: "Form Cleared", description: "All form data has been cleared." }); setPreviewUrls([null, null, null, null, null]); } }} disabled={isPending}>

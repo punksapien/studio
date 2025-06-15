@@ -96,6 +96,9 @@ export function getValidKeywords(): string[] {
 /**
  * Builds Supabase query conditions for keyword filtering
  * Returns an array of OR conditions that can be combined
+ *
+ * IMPORTANT: Returns flat OR conditions without extra parentheses
+ * to avoid SQL parsing errors with nested parentheses
  */
 export function buildKeywordQuery(keywords: string[]): string[] {
   if (!keywords || keywords.length === 0) {
@@ -124,9 +127,10 @@ export function buildKeywordQuery(keywords: string[]): string[] {
       }
     }
 
-    // Combine all field conditions for this keyword with OR
+    // Return flat OR condition without wrapping parentheses
+    // The Supabase .or() method will handle the proper SQL formatting
     if (fieldConditions.length > 0) {
-      queryConditions.push(`(${fieldConditions.join(',')})`);
+      queryConditions.push(fieldConditions.join(','));
     }
   }
 

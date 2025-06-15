@@ -87,22 +87,20 @@ export async function GET(request: NextRequest) {
     if (predefinedKeywords.length > 0) {
       const keywordQueryParts = getOptimizedKeywordQuery(predefinedKeywords);
       if (keywordQueryParts.conditions.length > 0) {
-        // Each part in keywordQueryParts.conditions is an OR group for a keyword,
-        // and these groups should be ANDed together if multiple keywords are selected.
-        // However, the current buildKeywordQuery creates OR groups like (f1.ilike OR f2.ilike) for *each* keyword.
-        // To combine multiple keywords, we'd typically want to AND their respective OR groups.
-        // The current `query.or(condition)` for each keyword in the loop creates a large OR chain.
-        // Let's adjust to AND the conditions if multiple keywords are present.
-        // For simplicity here, if multiple keywords are used, we will treat them as OR for now,
-        // as `getOptimizedKeywordQuery` returns an array of OR conditions.
-        // A more sophisticated approach would involve constructing AND groups of OR conditions.
-        keywordQueryParts.conditions.forEach(condition => {
-          query = query.or(condition); // This applies each keyword's OR group
-        });
+        // For multiple keywords, we want to OR them together (any keyword match)
+        // Each condition is already a flat OR string of field searches
+        if (keywordQueryParts.conditions.length === 1) {
+          // Single keyword: apply directly
+          query = query.or(keywordQueryParts.conditions[0]);
+        } else {
+          // Multiple keywords: combine all conditions into one large OR
+          const combinedConditions = keywordQueryParts.conditions.join(',');
+          query = query.or(combinedConditions);
+        }
         console.log(`[LISTINGS-API] Predefined Keyword filtering: ${describeKeywordFilters(predefinedKeywords)}`);
       }
     }
-    
+
     // Apply general text search if present
     if (textSearchConditions.length > 0) {
         query = query.or(textSearchConditions.join(','));
@@ -215,7 +213,7 @@ export async function POST(request: NextRequest) {
       year_established: body.yearEstablished ? parseInt(body.yearEstablished) : null,
       number_of_employees: body.numberOfEmployees || null,
       business_website_url: body.businessWebsiteUrl ? String(body.businessWebsiteUrl).trim() : null,
-      image_urls: Array.isArray(body.image_urls) ? body.image_urls : [],
+      image_urls: Array.isArray(body.image_urls) ? body.image_urls : (body.image_urls ? [body.image_urls] : []),
       business_model: body.businessModel ? String(body.businessModel).trim() : null,
       annual_revenue_range: body.annualRevenueRange || null,
       net_profit_margin_range: body.netProfitMarginRange || null,
@@ -245,11 +243,6 @@ export async function POST(request: NextRequest) {
       location_real_estate_info_url: body.location_real_estate_info_url || null,
       web_presence_info_url: body.web_presence_info_url || null,
       secure_data_room_link: body.secureDataRoomLink ? String(body.secureDataRoomLink).trim() : null,
-      image_url_1: body.image_url_1 || null,
-      image_url_2: body.image_url_2 || null,
-      image_url_3: body.image_url_3 || null,
-      image_url_4: body.image_url_4 || null,
-      image_url_5: body.image_url_5 || null,
       status: userProfile.verification_status === 'verified' ? 'verified_anonymous' : 'active',
       is_seller_verified: userProfile.verification_status === 'verified',
       created_at: new Date().toISOString(),
