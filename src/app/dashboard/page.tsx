@@ -1,85 +1,146 @@
+
+'use client';
+
+import * as React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Briefcase, MessageSquare, PlusCircle, ShieldCheck, CheckCircle2, Eye } from "lucide-react";
+import { MessageSquare, ShieldCheck, CheckCircle2, Eye, Search, LayoutDashboard, ExternalLink } from "lucide-react";
 import type { User, Inquiry } from "@/lib/types";
-import { sampleUsers, sampleBuyerInquiries } from "@/lib/placeholder-data"; // Using buyer inquiries for demo
+import { sampleUsers, sampleBuyerInquiries } from "@/lib/placeholder-data";
+import { useCurrentUser } from "@/hooks/use-current-user"; // Using new cached hook
+import { NobridgeIcon } from "@/components/ui/nobridge-icon";
 
-// Placeholder data - replace with actual user data fetched based on auth
-// For Buyer Dashboard V1, assuming current user is user2 (Jane Smith - Verified Buyer)
-// or user6 (Anna Tay - Anonymous Buyer) to test verification CTA
-const currentBuyerId = 'user6'; // Change to 'user2' to see verified state
-const currentUser: User | undefined = sampleUsers.find(u => u.id === currentBuyerId && u.role === 'buyer');
+// Helper to format timestamp
+function FormattedTimestamp({ timestamp }: { timestamp: Date | string }) {
+  const [formattedDate, setFormattedDate] = React.useState<string | null>(null);
 
-const recentInquiries: Inquiry[] = sampleBuyerInquiries
-  .filter(inq => inq.buyerId === currentBuyerId)
-  .sort((a, b) => b.inquiryTimestamp.getTime() - a.inquiryTimestamp.getTime())
-  .slice(0, 3);
+  React.useEffect(() => {
+    if (timestamp) {
+      const dateObj = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
+      if (!isNaN(dateObj.getTime())) {
+        setFormattedDate(dateObj.toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' }));
+      } else {
+        setFormattedDate('Invalid Date');
+      }
+    } else {
+      setFormattedDate('N/A');
+    }
+  }, [timestamp]);
 
-export default function DashboardPage() {
-  if (!currentUser) {
-    // This should ideally be handled by auth redirects
+  if (timestamp && !formattedDate) {
+    return <span className="italic text-xs">Loading date...</span>;
+  }
+  return <>{formattedDate || 'N/A'}</>;
+}
+
+
+export default function BuyerDashboardPage() {
+  const { user, profile, loading } = useCurrentUser(); // Using the new cached hook
+
+  const [recentInquiries, setRecentInquiries] = React.useState<Inquiry[]>([]);
+  const [activeInquiriesCount, setActiveInquiriesCount] = React.useState(0);
+
+  React.useEffect(() => {
+    if (profile && profile.role === 'buyer') {
+      // Simulate fetching inquiries for the current buyer
+      const userInquiries = sampleBuyerInquiries
+        .filter(inq => inq.buyerId === profile.id)
+        .sort((a, b) => new Date(b.inquiryTimestamp).getTime() - new Date(a.inquiryTimestamp).getTime());
+      
+      setRecentInquiries(userInquiries.slice(0, 3));
+      setActiveInquiriesCount(
+        userInquiries.filter(inq =>
+          inq.statusBuyerPerspective !== 'Archived' &&
+          inq.statusBuyerPerspective !== 'Connection Facilitated - Chat Open' // Assuming this means "closed" for active count
+        ).length
+      );
+    }
+  }, [profile]);
+
+  if (loading) {
     return (
-      <div className="space-y-8 text-center">
-        <h1 className="text-3xl font-bold tracking-tight">Access Denied</h1>
-        <p className="text-muted-foreground">You must be logged in as a buyer to view this page.</p>
-        <Button asChild><Link href="/auth/login">Login</Link></Button>
+      <div className="container py-8 text-center min-h-screen flex items-center justify-center">
+        <p>Loading dashboard...</p>
       </div>
     );
   }
 
-  const activeInquiriesCount = sampleBuyerInquiries.filter(inq =>
-    inq.buyerId === currentUser.id &&
-    inq.statusBuyerPerspective !== 'Archived' &&
-    inq.statusBuyerPerspective !== 'Connection Facilitated by Admin'
-  ).length;
+  if (!profile) {
+    // This should be handled by middleware, but as a fallback:
+    return (
+      <div className="container py-8 text-center">
+        <h1 className="text-3xl font-bold tracking-tight text-destructive">Access Denied</h1>
+        <p className="text-muted-foreground">You must be logged in to view this page.</p>
+        <Button asChild className="mt-4"><Link href="/auth/login">Login</Link></Button>
+      </div>
+    );
+  }
+  
+  if (profile.role !== 'buyer') {
+    return (
+      <div className="container py-8 text-center">
+        <h1 className="text-3xl font-bold tracking-tight text-destructive">Incorrect Role</h1>
+        <p className="text-muted-foreground">This dashboard is for buyers. Your role is: {profile.role}</p>
+        <Button asChild className="mt-4"><Link href="/">Go to Homepage</Link></Button>
+      </div>
+    );
+  }
+
 
   return (
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Welcome back, {currentUser.fullName}!</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-brand-dark-blue font-heading">
+            Welcome back, {profile.full_name}!
+          </h1>
           <p className="text-muted-foreground">Here&apos;s an overview of your buyer activity.</p>
         </div>
+        <Button variant="outline" asChild className="border-brand-dark-blue/50 text-brand-dark-blue hover:bg-brand-light-gray/70">
+          <Link href="/marketplace">
+            <Search className="mr-2 h-4 w-4" /> Explore Marketplace
+          </Link>
+        </Button>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="shadow-lg">
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card className="shadow-lg bg-brand-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Inquiries</CardTitle>
-            <MessageSquare className="h-5 w-5 text-primary" />
+            <CardTitle className="text-sm font-medium text-brand-dark-blue">Active Inquiries</CardTitle>
+            <NobridgeIcon icon="interaction" size="sm" className="text-brand-dark-blue/70" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{activeInquiriesCount}</div>
+            <div className="text-2xl font-bold text-primary">{activeInquiriesCount}</div>
             <p className="text-xs text-muted-foreground">
               Track your ongoing conversations and interests.
             </p>
-             <Button variant="link" asChild className="px-0 mt-2">
+             <Button variant="link" asChild className="px-0 mt-2 text-brand-sky-blue">
                 <Link href="/dashboard/inquiries">View All My Inquiries</Link>
               </Button>
           </CardContent>
         </Card>
 
-        <Card className={`shadow-lg ${currentUser.verificationStatus === 'verified' ? 'bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-700/50' : 'bg-amber-50 border-amber-200 dark:bg-amber-900/30 dark:border-amber-700/50'}`}>
+        <Card className={`shadow-lg ${profile.verificationStatus === 'verified' ? 'bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-700/50' : 'bg-amber-50 border-amber-200 dark:bg-amber-900/30 dark:border-amber-700/50'}`}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Verification Status</CardTitle>
-            <ShieldCheck className={`h-5 w-5 ${currentUser.verificationStatus === 'verified' ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'}`} />
+            <CardTitle className="text-sm font-medium text-brand-dark-blue">Verification Status</CardTitle>
+             <NobridgeIcon icon="verification" size="sm" className={`${profile.verificationStatus === 'verified' ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'}`} />
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${currentUser.verificationStatus === 'verified' ? 'text-green-700 dark:text-green-300' : 'text-amber-700 dark:text-amber-300'}`}>
-              {currentUser.verificationStatus === 'verified' ? 'Verified Buyer' :
-               currentUser.verificationStatus === 'pending_verification' ? 'Verification Pending' :
+            <div className={`text-2xl font-bold ${profile.verificationStatus === 'verified' ? 'text-green-700 dark:text-green-300' : 'text-amber-700 dark:text-amber-300'}`}>
+              {profile.verificationStatus === 'verified' ? 'Verified Buyer' :
+               profile.verificationStatus === 'pending_verification' ? 'Verification Pending' :
                'Anonymous Buyer'}
             </div>
             <p className="text-xs text-muted-foreground">
-              {currentUser.verificationStatus === 'verified'
+              {profile.verificationStatus === 'verified'
                 ? 'Access full details & engage with verified sellers.'
                 : 'Complete verification to unlock more features.'}
             </p>
-            {currentUser.verificationStatus !== 'verified' && (
+            {profile.verificationStatus !== 'verified' && (
               <Button variant="link" asChild className="px-0 mt-2 text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300">
                 <Link href="/dashboard/verification">
-                  {currentUser.verificationStatus === 'pending_verification' ? 'Check Verification Status' : 'Request Verification Call'}
+                  {profile.verificationStatus === 'pending_verification' ? 'Check Verification Status' : 'Request Verification Call'}
                 </Link>
               </Button>
             )}
@@ -88,45 +149,45 @@ export default function DashboardPage() {
       </div>
 
       {recentInquiries.length > 0 && (
-        <Card className="shadow-md">
+        <Card className="shadow-md bg-brand-white">
           <CardHeader>
-            <CardTitle>Recent Inquiries</CardTitle>
-            <CardDescription>Your latest interactions with business listings.</CardDescription>
+            <CardTitle className="text-brand-dark-blue font-heading">Recent Inquiries</CardTitle>
+            <CardDescription className="text-muted-foreground">Your latest interactions with business listings.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {recentInquiries.map(inquiry => (
-              <div key={inquiry.id} className="p-3 border rounded-md hover:shadow-sm transition-shadow">
-                <div className="flex justify-between items-start">
+              <div key={inquiry.id} className="p-4 border border-brand-light-gray rounded-lg hover:shadow-sm transition-shadow">
+                <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
                   <div>
-                    <Link href={`/listings/${inquiry.listingId}`} className="font-medium text-primary hover:underline">
+                    <Link href={`/listings/${inquiry.listingId}`} className="font-semibold text-brand-dark-blue hover:text-brand-sky-blue text-lg transition-colors">
                       {inquiry.listingTitleAnonymous}
                     </Link>
-                    <p className="text-xs text-muted-foreground">Inquired on: {new Date(inquiry.inquiryTimestamp).toLocaleDateString()}</p>
+                    <p className="text-xs text-muted-foreground">Inquired on: <FormattedTimestamp timestamp={inquiry.inquiryTimestamp} /></p>
                   </div>
-                  <Button variant="ghost" size="sm" asChild>
-                    <Link href={`/dashboard/inquiries#${inquiry.id}`}><Eye className="mr-2 h-4 w-4" />View</Link>
+                   <Button variant="ghost" size="sm" asChild className="text-brand-sky-blue hover:text-brand-sky-blue/80">
+                    <Link href={`/dashboard/inquiries#${inquiry.id}`}><Eye className="mr-2 h-4 w-4" />View Inquiry</Link>
                   </Button>
                 </div>
-                <p className="text-sm mt-1">Status: <span className="font-medium">{inquiry.statusBuyerPerspective}</span></p>
+                <p className="text-sm mt-2 text-brand-dark-blue/80">Status: <span className="font-medium">{inquiry.statusBuyerPerspective}</span></p>
               </div>
             ))}
-             <Button variant="outline" asChild className="w-full mt-4">
+             <Button variant="outline" asChild className="w-full mt-6 border-brand-dark-blue/50 text-brand-dark-blue hover:bg-brand-light-gray/70">
                 <Link href="/dashboard/inquiries">View All My Inquiries</Link>
               </Button>
           </CardContent>
         </Card>
       )}
-       {currentUser.verificationStatus === 'anonymous' && (
-        <Card className="shadow-md bg-primary/10 border-primary/30">
+       {profile.verificationStatus === 'anonymous' && (
+        <Card className="shadow-md bg-primary/5 border-primary/20">
           <CardHeader>
-            <CardTitle className="text-primary flex items-center"><CheckCircle2 className="mr-2"/> Unlock Full Potential</CardTitle>
+            <CardTitle className="text-primary flex items-center font-heading"><CheckCircle2 className="mr-2"/> Unlock Full Potential</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground mb-4">
-              Create an account, list your business for sale, get verified, engage with sellers, and build trust within the Nobridge community.
+              Become a Verified Buyer to view detailed business information, access secure documents, and directly engage with sellers through Nobridge.
             </p>
-            <Button asChild>
-              <Link href="/dashboard/verification">Request Verification Call</Link>
+            <Button asChild className="bg-brand-sky-blue text-brand-white hover:bg-brand-sky-blue/90">
+              <Link href="/dashboard/verification">Start Verification Process</Link>
             </Button>
           </CardContent>
         </Card>
@@ -134,3 +195,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
