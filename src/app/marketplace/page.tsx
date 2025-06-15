@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, Suspense } from 'react';
@@ -10,7 +11,7 @@ import { PaginationControls } from '@/components/shared/pagination-controls';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
-import { SlidersHorizontal, Briefcase, AlertCircle } from 'lucide-react';
+import { SlidersHorizontal, Briefcase, AlertCircle, Filter } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useMarketplaceFilters } from '@/hooks/use-marketplace-filters';
 
@@ -37,9 +38,8 @@ async function getMarketplaceListings(
 function MarketplaceContent() {
   const { toast } = useToast();
 
-  // Use our new centralized filter hook
   const {
-    effectiveFilters,
+    appliedFilters, // Use appliedFilters for fetching data
     setPage,
     getAPIParams,
     isLoading,
@@ -53,28 +53,14 @@ function MarketplaceContent() {
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Authentication can be added later - for now allow public access
-  const [isAuthenticated, setIsAuthenticated] = useState(true);
-  const [authLoading, setAuthLoading] = useState(false);
-
+  // Fetch listings whenever appliedFilters change (these are the filters after "Apply" is clicked)
   useEffect(() => {
-    // Simulate auth check - can be enhanced later
-    // setAuthLoading(true);
-    // const authStatus = true; // Replace with actual auth check
-    // setIsAuthenticated(authStatus);
-    // setAuthLoading(false);
-  }, []);
-
-  // Fetch listings whenever effective filters change
-  useEffect(() => {
-    if (authLoading || !isAuthenticated) return;
-
     const fetchListings = async () => {
       setIsLoading(true);
       setError(null);
 
       try {
-        const apiParams = getAPIParams();
+        const apiParams = getAPIParams(); // This now uses appliedFilters
         const data = await getMarketplaceListings(apiParams);
 
         setListings(data.listings);
@@ -95,19 +81,11 @@ function MarketplaceContent() {
     };
 
     fetchListings();
-  }, [effectiveFilters, authLoading, isAuthenticated, getAPIParams, setIsLoading, toast]);
+  }, [appliedFilters, getAPIParams, setIsLoading, toast]); // Depend on appliedFilters
 
   const handlePageChange = (page: number) => {
-    setPage(page);
+    setPage(page); // This updates appliedFilters and URL directly
   };
-
-  if (authLoading) {
-    return (
-      <div className="container py-8 md:py-12 text-center">
-        <p>Checking authentication...</p>
-      </div>
-    );
-  }
 
   return (
     <div className="container py-8 md:py-12">
@@ -128,7 +106,7 @@ function MarketplaceContent() {
              <Sheet open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
               <SheetTrigger asChild>
                 <Button variant="outline" className="w-full">
-                  <SlidersHorizontal className="mr-2 h-4 w-4" />
+                  <Filter className="mr-2 h-4 w-4" /> {/* Changed icon */}
                   Filters
                   {hasActiveFilters && (
                     <span className="ml-2 bg-brand-sky-blue text-white text-xs rounded-full px-2 py-1">
@@ -138,10 +116,17 @@ function MarketplaceContent() {
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-[300px] sm:w-[350px] p-0">
-                <Filters />
-                <SheetClose asChild>
-                    <Button className="m-4">Apply Filters & Close</Button>
-                </SheetClose>
+                {/* Filters component will be rendered here */}
+                <div className="h-full flex flex-col">
+                  <div className="flex-grow overflow-y-auto">
+                    <Filters />
+                  </div>
+                  {/* Apply button now inside Filters.tsx, SheetClose might not be needed here */}
+                  {/* Or, keep a general close button */}
+                  <SheetClose asChild>
+                      <Button variant="outline" className="m-4">Close Filters</Button>
+                  </SheetClose>
+                </div>
               </SheetContent>
             </Sheet>
           </div>
@@ -189,7 +174,7 @@ function MarketplaceContent() {
           )}
           {!isLoading && !error && totalListings > 0 && totalPages > 1 && (
             <PaginationControls
-              currentPage={effectiveFilters.page}
+              currentPage={appliedFilters.page} // Use appliedFilters.page for current page
               totalPages={totalPages}
               onPageChange={handlePageChange}
             />
@@ -202,7 +187,7 @@ function MarketplaceContent() {
 
 export default function MarketplacePage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<div>Loading marketplace filters...</div>}>
       <MarketplaceContent />
     </Suspense>
   );

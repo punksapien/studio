@@ -1,23 +1,18 @@
+
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useDebounce } from './use-debounce';
 
 export interface MarketplaceFilters {
-  // Pagination
   page: number;
   limit: number;
-
-  // Filters
   search?: string;
   industry?: string;
   country?: string;
   minPrice?: number;
   maxPrice?: number;
   keywords: string[];
-
-  // Sorting
   sortBy: string;
   sortOrder: 'asc' | 'desc';
 }
@@ -35,7 +30,6 @@ export function useMarketplaceFilters() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  // Parse current URL parameters into filter state
   const parseFiltersFromURL = useCallback((): MarketplaceFilters => {
     return {
       page: parseInt(searchParams.get('page') || '1', 10),
@@ -51,193 +45,111 @@ export function useMarketplaceFilters() {
     };
   }, [searchParams]);
 
-  const [filters, setFilters] = useState<MarketplaceFilters>(parseFiltersFromURL);
+  // This state reflects the filters currently APPLIED and in the URL
+  const [appliedFilters, setAppliedFilters] = useState<MarketplaceFilters>(parseFiltersFromURL);
+  // This state reflects the filters being EDITED in the UI before applying
+  const [draftFilters, setDraftFilters] = useState<MarketplaceFilters>(parseFiltersFromURL);
+
   const [isLoading, setIsLoading] = useState(false);
 
-  // Debounced values for text inputs (search, price)
-  const debouncedSearch = useDebounce(filters.search, 300);
-  const debouncedMinPrice = useDebounce(filters.minPrice, 300);
-  const debouncedMaxPrice = useDebounce(filters.maxPrice, 300);
+  // Update draftFilters when URL changes (e.g., browser back/forward)
+  useEffect(() => {
+    const urlFilters = parseFiltersFromURL();
+    setAppliedFilters(urlFilters);
+    setDraftFilters(urlFilters);
+  }, [searchParams, parseFiltersFromURL]);
 
-  // Create the effective filters object with debounced values
-  const effectiveFilters = useMemo((): MarketplaceFilters => ({
-    ...filters,
-    search: debouncedSearch,
-    minPrice: debouncedMinPrice,
-    maxPrice: debouncedMaxPrice,
-  }), [filters, debouncedSearch, debouncedMinPrice, debouncedMaxPrice]);
-
-  // Convert filters to URL search params
   const filtersToURLParams = useCallback((filterValues: MarketplaceFilters): URLSearchParams => {
     const params = new URLSearchParams();
-
-    // Add pagination
-    if (filterValues.page !== DEFAULT_FILTERS.page) {
-      params.set('page', filterValues.page.toString());
-    }
-    if (filterValues.limit !== DEFAULT_FILTERS.limit) {
-      params.set('limit', filterValues.limit.toString());
-    }
-
-    // Add filters
-    if (filterValues.search) {
-      params.set('search', filterValues.search);
-    }
-    if (filterValues.industry && filterValues.industry !== 'all') {
-      params.set('industry', filterValues.industry);
-    }
-    if (filterValues.country && filterValues.country !== 'all') {
-      params.set('country', filterValues.country);
-    }
-    if (filterValues.minPrice !== undefined) {
-      params.set('minPrice', filterValues.minPrice.toString());
-    }
-    if (filterValues.maxPrice !== undefined) {
-      params.set('maxPrice', filterValues.maxPrice.toString());
-    }
-    if (filterValues.keywords.length > 0) {
-      params.set('keywords', filterValues.keywords.join(','));
-    }
-
-    // Add sorting
-    if (filterValues.sortBy !== DEFAULT_FILTERS.sortBy) {
-      params.set('sort_by', filterValues.sortBy);
-    }
-    if (filterValues.sortOrder !== DEFAULT_FILTERS.sortOrder) {
-      params.set('sort_order', filterValues.sortOrder);
-    }
-
+    if (filterValues.page !== DEFAULT_FILTERS.page) params.set('page', filterValues.page.toString());
+    if (filterValues.limit !== DEFAULT_FILTERS.limit) params.set('limit', filterValues.limit.toString());
+    if (filterValues.search) params.set('search', filterValues.search);
+    if (filterValues.industry && filterValues.industry !== 'all') params.set('industry', filterValues.industry);
+    if (filterValues.country && filterValues.country !== 'all') params.set('country', filterValues.country);
+    if (filterValues.minPrice !== undefined) params.set('minPrice', filterValues.minPrice.toString());
+    if (filterValues.maxPrice !== undefined) params.set('maxPrice', filterValues.maxPrice.toString());
+    if (filterValues.keywords.length > 0) params.set('keywords', filterValues.keywords.join(','));
+    if (filterValues.sortBy !== DEFAULT_FILTERS.sortBy) params.set('sort_by', filterValues.sortBy);
+    if (filterValues.sortOrder !== DEFAULT_FILTERS.sortOrder) params.set('sort_order', filterValues.sortOrder);
     return params;
   }, []);
 
-  // Update URL when filters change (for non-debounced filters)
-  const updateURL = useCallback((newFilters: MarketplaceFilters, replace = false) => {
-    const urlParams = filtersToURLParams(newFilters);
-    const newURL = `${pathname}?${urlParams.toString()}`;
+  // Function to apply draft filters and update URL
+  const applyFilters = useCallback(() => {
+    setAppliedFilters(prev => ({ ...prev, ...draftFilters, page: 1 })); // Reset to page 1 on new filter application
+    const urlParams = filtersToURLParams({ ...draftFilters, page: 1 });
+    router.push(`${pathname}?${urlParams.toString()}`, { scroll: false });
+  }, [draftFilters, router, pathname, filtersToURLParams]);
 
-    if (replace) {
-      router.replace(newURL, { scroll: false });
-    } else {
-      router.push(newURL, { scroll: false });
-    }
-  }, [pathname, router, filtersToURLParams]);
-
-  // Sync URL parameters with internal state when URL changes
-  useEffect(() => {
-    const urlFilters = parseFiltersFromURL();
-    setFilters(urlFilters);
-  }, [parseFiltersFromURL]);
-
-  // Update individual filter values
-  const updateFilter = useCallback(<K extends keyof MarketplaceFilters>(
+  // Update individual draft filter values
+  const updateDraftFilter = useCallback(<K extends keyof MarketplaceFilters>(
     key: K,
     value: MarketplaceFilters[K]
   ) => {
-    setFilters(prev => {
-      const newFilters = { ...prev, [key]: value };
+    setDraftFilters(prev => ({ ...prev, [key]: value }));
+  }, []);
 
-      // Reset to page 1 when filters change (except for page itself)
-      if (key !== 'page' && key !== 'limit') {
-        newFilters.page = 1;
-      }
+  // Update multiple draft filters at once
+  const updateDraftFilters = useCallback((updates: Partial<MarketplaceFilters>) => {
+    setDraftFilters(prev => ({ ...prev, ...updates }));
+  }, []);
 
-      // For non-debounced filters, update URL immediately
-      if (!['search', 'minPrice', 'maxPrice'].includes(key)) {
-        updateURL(newFilters);
-      }
+  // Reset all draft filters to defaults and apply
+  const resetAndApplyFilters = useCallback(() => {
+    setDraftFilters(DEFAULT_FILTERS);
+    setAppliedFilters(DEFAULT_FILTERS);
+    const urlParams = filtersToURLParams(DEFAULT_FILTERS);
+    router.push(`${pathname}?${urlParams.toString()}`, { scroll: false });
+  }, [router, pathname, filtersToURLParams]);
 
-      return newFilters;
-    });
-  }, [updateURL]);
-
-  // Update multiple filters at once
-  const updateFilters = useCallback((updates: Partial<MarketplaceFilters>) => {
-    setFilters(prev => {
-      const newFilters = { ...prev, ...updates };
-
-      // Reset to page 1 when filters change (unless page is being explicitly set)
-      if (!('page' in updates)) {
-        newFilters.page = 1;
-      }
-
-      updateURL(newFilters);
-      return newFilters;
-    });
-  }, [updateURL]);
-
-  // Reset all filters to defaults
-  const resetFilters = useCallback(() => {
-    const resetFilters = { ...DEFAULT_FILTERS };
-    setFilters(resetFilters);
-    updateURL(resetFilters, true);
-  }, [updateURL]);
-
-  // Page navigation
+  // Page navigation (updates applied filters directly as pagination is an immediate action)
   const setPage = useCallback((page: number) => {
-    updateFilter('page', page);
-  }, [updateFilter]);
+    const newFilters = { ...appliedFilters, page };
+    setAppliedFilters(newFilters);
+    setDraftFilters(newFilters); // Keep draft in sync with applied for pagination
+    const urlParams = filtersToURLParams(newFilters);
+    router.push(`${pathname}?${urlParams.toString()}`, { scroll: false });
+  }, [appliedFilters, router, pathname, filtersToURLParams]);
 
-  // Generate API parameters from effective filters
+  // Generate API parameters from APPLIED filters
   const getAPIParams = useCallback((): Record<string, string> => {
     const params: Record<string, string> = {
-      page: effectiveFilters.page.toString(),
-      limit: effectiveFilters.limit.toString(),
-      sort_by: effectiveFilters.sortBy,
-      sort_order: effectiveFilters.sortOrder,
+      page: appliedFilters.page.toString(),
+      limit: appliedFilters.limit.toString(),
+      sort_by: appliedFilters.sortBy,
+      sort_order: appliedFilters.sortOrder,
     };
-
-    if (effectiveFilters.search) {
-      params.search = effectiveFilters.search;
-    }
-    if (effectiveFilters.industry && effectiveFilters.industry !== 'all') {
-      params.industry = effectiveFilters.industry;
-    }
-    if (effectiveFilters.country && effectiveFilters.country !== 'all') {
-      params.country = effectiveFilters.country;
-    }
-    if (effectiveFilters.minPrice !== undefined) {
-      params.min_price = effectiveFilters.minPrice.toString();
-    }
-    if (effectiveFilters.maxPrice !== undefined) {
-      params.max_price = effectiveFilters.maxPrice.toString();
-    }
-    if (effectiveFilters.keywords.length > 0) {
-      params.keywords = effectiveFilters.keywords.join(',');
-    }
-
+    if (appliedFilters.search) params.search = appliedFilters.search;
+    if (appliedFilters.industry && appliedFilters.industry !== 'all') params.industry = appliedFilters.industry;
+    if (appliedFilters.country && appliedFilters.country !== 'all') params.country = appliedFilters.country;
+    if (appliedFilters.minPrice !== undefined) params.min_price = appliedFilters.minPrice.toString();
+    if (appliedFilters.maxPrice !== undefined) params.max_price = appliedFilters.maxPrice.toString();
+    if (appliedFilters.keywords.length > 0) params.keywords = appliedFilters.keywords.join(',');
     return params;
-  }, [effectiveFilters]);
+  }, [appliedFilters]);
 
   return {
-    // Current filter state
-    filters,
-    effectiveFilters,
-
-    // State management
-    updateFilter,
-    updateFilters,
-    resetFilters,
+    draftFilters,     // Filters being edited in the UI
+    appliedFilters,   // Filters currently active and in URL
+    updateDraftFilter,
+    updateDraftFilters,
+    applyFilters,
+    resetAndApplyFilters,
     setPage,
-
-    // API integration
     getAPIParams,
-
-    // Loading state
     isLoading,
     setIsLoading,
-
-    // Helper functions
     hasActiveFilters: useMemo(() => {
       return (
-        !!effectiveFilters.search ||
-        !!effectiveFilters.industry ||
-        !!effectiveFilters.country ||
-        effectiveFilters.minPrice !== undefined ||
-        effectiveFilters.maxPrice !== undefined ||
-        effectiveFilters.keywords.length > 0 ||
-        effectiveFilters.sortBy !== DEFAULT_FILTERS.sortBy ||
-        effectiveFilters.sortOrder !== DEFAULT_FILTERS.sortOrder
+        !!appliedFilters.search ||
+        !!appliedFilters.industry ||
+        !!appliedFilters.country ||
+        appliedFilters.minPrice !== undefined ||
+        appliedFilters.maxPrice !== undefined ||
+        appliedFilters.keywords.length > 0 ||
+        appliedFilters.sortBy !== DEFAULT_FILTERS.sortBy ||
+        appliedFilters.sortOrder !== DEFAULT_FILTERS.sortOrder
       );
-    }, [effectiveFilters]),
+    }, [appliedFilters]),
   };
 }
