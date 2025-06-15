@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
-import { auth } from '@/lib/auth'
+import { authServer } from '@/lib/auth-server'
 
 interface RouteParams {
   params: {
@@ -24,11 +23,14 @@ export async function GET(
     }
 
     // Get the current user (if any) to determine what data to show
-    const user = await auth.getCurrentUser()
-    const userProfile = user ? await auth.getCurrentUserProfile() : null
+    const user = await authServer.getCurrentUser(request)
+    const userProfile = user ? await authServer.getCurrentUserProfile(request) : null
+
+    // Create authenticated Supabase client
+    const { supabase: authenticatedSupabase } = authServer.createServerClient(request)
 
     // Build query based on user permissions
-    let query = supabase
+    let query = authenticatedSupabase
       .from('listings')
       .select('*')
       .eq('id', id)
@@ -145,13 +147,16 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const user = await auth.getCurrentUser()
+    const user = await authServer.getCurrentUser(request)
     if (!user) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
       )
     }
+
+    // Create authenticated Supabase client
+    const { supabase: authenticatedSupabase } = authServer.createServerClient(request)
 
     const { id } = await params
     if (!id) {
@@ -162,7 +167,7 @@ export async function PUT(
     }
 
     // Check if listing exists and user owns it
-    const { data: existingListing, error: fetchError } = await supabase
+    const { data: existingListing, error: fetchError } = await authenticatedSupabase
       .from('listings')
       .select('seller_id, status')
       .eq('id', id)
@@ -183,7 +188,7 @@ export async function PUT(
     }
 
     // Check ownership (unless user is admin)
-    const userProfile = await auth.getCurrentUserProfile()
+    const userProfile = await authServer.getCurrentUserProfile(request)
     if (userProfile?.role !== 'admin' && existingListing.seller_id !== user.id) {
       return NextResponse.json(
         { error: 'You can only update your own listings' },
@@ -243,7 +248,7 @@ export async function PUT(
       )
     }
 
-    const { data: updatedListing, error } = await supabase
+    const { data: updatedListing, error } = await authenticatedSupabase
       .from('listings')
       .update(updateData)
       .eq('id', id)
@@ -277,13 +282,16 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const user = await auth.getCurrentUser()
+    const user = await authServer.getCurrentUser(request)
     if (!user) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
       )
     }
+
+    // Create authenticated Supabase client
+    const { supabase: authenticatedSupabase } = authServer.createServerClient(request)
 
     const { id } = await params
     if (!id) {
@@ -294,7 +302,7 @@ export async function DELETE(
     }
 
     // Check if listing exists and user owns it
-    const { data: existingListing, error: fetchError } = await supabase
+    const { data: existingListing, error: fetchError } = await authenticatedSupabase
       .from('listings')
       .select('seller_id')
       .eq('id', id)
@@ -315,7 +323,7 @@ export async function DELETE(
     }
 
     // Check ownership (unless user is admin)
-    const userProfile = await auth.getCurrentUserProfile()
+    const userProfile = await authServer.getCurrentUserProfile(request)
     if (userProfile?.role !== 'admin' && existingListing.seller_id !== user.id) {
       return NextResponse.json(
         { error: 'You can only delete your own listings' },
@@ -324,7 +332,7 @@ export async function DELETE(
     }
 
     // Use the soft delete function
-    const { data, error } = await supabase
+    const { data, error } = await authenticatedSupabase
       .rpc('soft_delete_listing', {
         listing_id: id,
         deleter_id: user.id
@@ -363,13 +371,16 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const user = await auth.getCurrentUser()
+    const user = await authServer.getCurrentUser(request)
     if (!user) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
       )
     }
+
+    // Create authenticated Supabase client
+    const { supabase: authenticatedSupabase } = authServer.createServerClient(request)
 
     const { id } = await params
     if (!id) {
@@ -380,7 +391,7 @@ export async function PATCH(
     }
 
     // Check if listing exists and user owns it
-    const { data: existingListing, error: fetchError } = await supabase
+    const { data: existingListing, error: fetchError } = await authenticatedSupabase
       .from('listings')
       .select('seller_id, status')
       .eq('id', id)
@@ -401,7 +412,7 @@ export async function PATCH(
     }
 
     // Check ownership (unless user is admin)
-    const userProfile = await auth.getCurrentUserProfile()
+    const userProfile = await authServer.getCurrentUserProfile(request)
     if (userProfile?.role !== 'admin' && existingListing.seller_id !== user.id) {
       return NextResponse.json(
         { error: 'You can only update your own listings' },
@@ -482,7 +493,7 @@ export async function PATCH(
 
     console.log('[API] Updating listing with fields:', Object.keys(updateData))
 
-    const { data: updatedListing, error } = await supabase
+    const { data: updatedListing, error } = await authenticatedSupabase
       .from('listings')
       .update(updateData)
       .eq('id', id)

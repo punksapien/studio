@@ -18,7 +18,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Logo } from "@/components/shared/logo";
-import { useState, useTransition } from "react";
+import { useState, useTransition, Suspense } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -29,7 +29,7 @@ const AdminLoginSchema = z.object({
   password: z.string().min(1, { message: "Password is required." }),
 });
 
-export default function AdminLoginPage() {
+function AdminLoginContent() {
   const [error, setError] = useState<string | undefined>("");
   const [success, setSuccess] = useState<string | undefined>("");
   const [isPending, startTransition] = useTransition();
@@ -201,5 +201,13 @@ export default function AdminLoginPage() {
         </p>
       </CardFooter>
     </Card>
+  );
+}
+
+export default function AdminLoginPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <AdminLoginContent />
+    </Suspense>
   );
 }

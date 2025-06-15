@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from "next/link";
@@ -78,29 +77,56 @@ export default function ManageSellerListingsPage() {
   const handleDeactivate = async (listingId: string, listingTitle: string) => {
     setIsUpdating(listingId);
     try {
+      console.log(`[DEACTIVATE] Attempting to deactivate listing ${listingId}: "${listingTitle}"`);
+
       const response = await fetch(`/api/listings/${listingId}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'inactive' }), // Use 'inactive' status for deactivation
+        body: JSON.stringify({ status: 'inactive' }), // Use 'inactive' for soft delete
       });
 
       if (response.ok) {
         const result = await response.json();
+        console.log(`[DEACTIVATE] Success:`, result);
+
+        // Update local state with the new status
         setListings(prev => prev.map(listing =>
           listing.id === listingId ? { ...listing, status: 'inactive' } : listing
         ));
+
         toast({
           title: "✅ Listing Deactivated",
-          description: `'${listingTitle}' has been deactivated and withdrawn from the marketplace.`
+          description: result.message || `'${listingTitle}' has been deactivated and withdrawn from the marketplace.`
         });
       } else {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to deactivate listing');
+        // Enhanced error handling with specific status codes
+        let errorMessage = 'Failed to deactivate listing';
+
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+
+          // Handle specific error cases
+          if (response.status === 401) {
+            errorMessage = 'You are not authorized to perform this action. Please log in again.';
+          } else if (response.status === 403) {
+            errorMessage = 'You do not have permission to deactivate this listing.';
+          } else if (response.status === 404) {
+            errorMessage = 'Listing not found. It may have already been removed.';
+          }
+
+          console.error(`[DEACTIVATE] Error ${response.status}:`, errorData);
+        } catch (parseError) {
+          console.error(`[DEACTIVATE] Failed to parse error response:`, parseError);
+          errorMessage = `Server error (${response.status}). Please try again.`;
+        }
+
+        throw new Error(errorMessage);
       }
     } catch (error) {
-      console.error('Deactivate error:', error);
+      console.error('[DEACTIVATE] Error:', error);
       toast({
-        title: "❌ Error",
+        title: "❌ Deactivation Failed",
         description: error instanceof Error ? error.message : "Failed to deactivate listing. Please try again.",
         variant: "destructive"
       });
@@ -112,6 +138,8 @@ export default function ManageSellerListingsPage() {
   const handleReactivate = async (listingId: string, listingTitle: string) => {
     setIsUpdating(listingId);
     try {
+      console.log(`[REACTIVATE] Attempting to reactivate listing ${listingId}: "${listingTitle}"`);
+
       const response = await fetch(`/api/listings/${listingId}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -120,21 +148,46 @@ export default function ManageSellerListingsPage() {
 
       if (response.ok) {
         const result = await response.json();
+        console.log(`[REACTIVATE] Success:`, result);
+
+        // Update local state with the new status
         setListings(prev => prev.map(listing =>
           listing.id === listingId ? { ...listing, status: 'active' } : listing
         ));
+
         toast({
           title: "✅ Listing Reactivated",
-          description: `'${listingTitle}' is now active and visible to buyers.`
+          description: result.message || `'${listingTitle}' is now active and visible to buyers.`
         });
       } else {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to reactivate listing');
+        // Enhanced error handling with specific status codes
+        let errorMessage = 'Failed to reactivate listing';
+
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+
+          // Handle specific error cases
+          if (response.status === 401) {
+            errorMessage = 'You are not authorized to perform this action. Please log in again.';
+          } else if (response.status === 403) {
+            errorMessage = 'You do not have permission to reactivate this listing.';
+          } else if (response.status === 404) {
+            errorMessage = 'Listing not found. It may have been removed.';
+          }
+
+          console.error(`[REACTIVATE] Error ${response.status}:`, errorData);
+        } catch (parseError) {
+          console.error(`[REACTIVATE] Failed to parse error response:`, parseError);
+          errorMessage = `Server error (${response.status}). Please try again.`;
+        }
+
+        throw new Error(errorMessage);
       }
     } catch (error) {
-      console.error('Reactivate error:', error);
+      console.error('[REACTIVATE] Error:', error);
       toast({
-        title: "❌ Error",
+        title: "❌ Reactivation Failed",
         description: error instanceof Error ? error.message : "Failed to reactivate listing. Please try again.",
         variant: "destructive"
       });

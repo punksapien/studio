@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { AuthenticationService } from '@/services/AuthenticationService';
 
 // Use service role for admin operations
 const supabaseAdmin = createClient(

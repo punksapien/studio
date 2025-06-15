@@ -3,7 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ShieldCheck, AlertTriangle, CheckCircle2, Mail, FileText, Loader2 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -14,7 +14,7 @@ import { useSearchParams } from "next/navigation";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useVerificationRequest } from "@/hooks/use-verification-request";
 
-export default function SellerVerificationPage() {
+function SellerVerificationContent() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const { user, profile, loading: isLoadingUser } = useCurrentUser();
@@ -312,6 +312,14 @@ function FormItemDisabled({ label, value }: { label: string; value?: string }) {
       <Label className="text-sm text-muted-foreground">{label}</Label>
       <Input value={value || 'N/A'} disabled className="mt-1 bg-muted/50" />
     </div>
+  );
+}
+
+export default function SellerVerificationPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SellerVerificationContent />
+    </Suspense>
   );
 }
 

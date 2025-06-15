@@ -1,29 +1,30 @@
 'use client';
 
 import React, { createContext, useContext, ReactNode } from 'react';
-import { useGlobalProfile } from '@/hooks/use-cached-profile';
-import type { UserProfile } from '@/lib/auth';
+import { useGlobalAuth } from '@/hooks/use-cached-profile';
+import type { UserProfile, User } from '@/lib/auth';
 import { mutate } from 'swr';
 
 interface AuthContextValue {
-  profile: UserProfile | undefined;
+  user: User | null;
+  profile: UserProfile | null;
   isLoading: boolean;
   error: Error | undefined;
-  refreshProfile: () => Promise<UserProfile | undefined>;
+  refreshAuth: () => Promise<any>;
   // Global cache invalidation helpers
-  invalidateProfile: () => void;
+  invalidateAuth: () => void;
   invalidateAll: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const { profile, isLoading, error, refreshProfile } = useGlobalProfile();
+  const { user, profile, isLoading, error, refreshAuth } = useGlobalAuth();
 
   // Global cache invalidation functions
-  const invalidateProfile = () => {
-    // This will force all components using the profile to refetch
-    mutate('profile');
+  const invalidateAuth = () => {
+    // This will force all components using auth to refetch
+    mutate('auth');
   };
 
   const invalidateAll = () => {
@@ -32,11 +33,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const value: AuthContextValue = {
+    user,
     profile,
     isLoading,
     error,
-    refreshProfile,
-    invalidateProfile,
+    refreshAuth,
+    invalidateAuth,
     invalidateAll,
   };
 
@@ -51,13 +53,15 @@ export function useAuth() {
   return context;
 }
 
-// Helper hooks for common use cases
+// Helper hooks for common use cases - all use the same cached data
 export function useCurrentUser() {
-  const { profile, isLoading } = useAuth();
+  const { user, profile, isLoading } = useAuth();
   return {
-    user: profile ? { id: profile.id, email: profile.email } : null,
+    user,
     profile,
     isLoading,
+    // Legacy compatibility
+    loading: isLoading,
   };
 }
 

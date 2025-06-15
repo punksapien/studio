@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { authServer } from '@/lib/auth-server'
+import { getOptimizedKeywordQuery, describeKeywordFilters } from '@/lib/keyword-mapping'
 
 // GET /api/listings - Get all listings with filtering, search, and pagination
 export async function GET(request: NextRequest) {
@@ -18,6 +19,10 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status') // Don't default here
     const sortBy = searchParams.get('sort_by') || 'created_at'
     const sortOrder = searchParams.get('sort_order') || 'desc'
+
+    // Extract keywords parameter (sent as comma-separated string)
+    const keywordsParam = searchParams.get('keywords')
+    const keywords = keywordsParam ? keywordsParam.split(',').map(k => k.trim()).filter(Boolean) : []
 
     // Build the query - using correct field names from schema including new individual fields
     let query = supabase
@@ -54,12 +59,18 @@ export async function GET(request: NextRequest) {
         specific_growth_opportunities
       `, { count: 'exact' })
 
-    // Apply status filter - if no specific status is requested, show both active and verified_anonymous listings
+    // Apply status filter - comprehensive soft delete system
     if (status) {
       query = query.eq('status', status)
     } else {
-      // Show listings that are publicly viewable by default
-      query = query.in('status', ['active', 'verified_anonymous', 'verified_public'])
+      // Show only publicly viewable listings (exclude soft deleted and withdrawn)
+      // SOFT DELETE PATTERN: 'inactive' listings are hidden from marketplace
+      const publicStatuses = [
+        'active',             // Publicly visible and available
+        'verified_anonymous', // Admin verified, anonymous view
+        'verified_public'     // Admin verified, full details visible
+      ]
+      query = query.in('status', publicStatuses)
     }
 
     // Apply industry filter
@@ -83,6 +94,23 @@ export async function GET(request: NextRequest) {
     // Apply text search (searches in title, description, and key strengths/opportunities)
     if (search) {
       query = query.or(`listing_title_anonymous.ilike.%${search}%,anonymous_business_description.ilike.%${search}%,key_strength_1.ilike.%${search}%,key_strength_2.ilike.%${search}%,key_strength_3.ilike.%${search}%,growth_opportunity_1.ilike.%${search}%,growth_opportunity_2.ilike.%${search}%,growth_opportunity_3.ilike.%${search}%`)
+    }
+
+    // Apply keyword filtering (intelligent mapping to database fields)
+    if (keywords.length > 0) {
+      const keywordQuery = getOptimizedKeywordQuery(keywords)
+
+      // Log keyword filtering for debugging
+      console.log(`[LISTINGS-API] Keyword filtering: ${describeKeywordFilters(keywords)}`)
+      console.log(`[LISTINGS-API] Query performance estimate: ${keywordQuery.performance}`)
+
+      if (keywordQuery.conditions.length > 0) {
+        // Combine all keyword conditions with AND logic
+        // Each condition group represents OR logic for that specific keyword
+        for (const condition of keywordQuery.conditions) {
+          query = query.or(condition)
+        }
+      }
     }
 
     // Apply sorting

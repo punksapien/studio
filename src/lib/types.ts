@@ -1,4 +1,3 @@
-
 export type UserRole = 'seller' | 'buyer' | 'admin';
 
 export type VerificationStatus = 'anonymous' | 'pending_verification' | 'verified' | 'rejected';
@@ -36,6 +35,13 @@ export const revenueRanges = [
   "< $50K USD", "$50K - $100K USD", "$100K - $250K USD",
   "$250K - $500K USD", "$500K - $1M USD", "$1M+ USD"
 ];
+
+export const askingPriceRanges = [
+  "< $50K USD", "$50K - $100K USD", "$100K - $250K USD",
+  "$250K - $500K USD", "$500K - $1M USD", "$1M - $2M USD",
+  "$2M - $5M USD", "$5M+ USD"
+];
+
 export const profitMarginRanges = [
   "< 0% (Loss-making)", "0% - 10%", "10% - 20%",
   "20% - 30%", "30%+"

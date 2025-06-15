@@ -1,10 +1,10 @@
 "use client";
 
 import { useSearchParams, usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
 import { toast } from "@/hooks/use-toast";
 
-export default function NoticeListener() {
+function NoticeListenerContent() {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
@@ -32,4 +32,12 @@ export default function NoticeListener() {
   }, [searchParams, pathname, router]);
 
   return null;
+}
+
+export default function NoticeListener() {
+  return (
+    <Suspense fallback={null}>
+      <NoticeListenerContent />
+    </Suspense>
+  );
 }

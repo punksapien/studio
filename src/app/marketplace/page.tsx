@@ -1,8 +1,6 @@
-
 'use client';
 
-import { useEffect, useState } from 'react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
 
 import { ListingCard } from '@/components/marketplace/listing-card';
@@ -14,33 +12,13 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import { SlidersHorizontal, Briefcase, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useMarketplaceFilters } from '@/hooks/use-marketplace-filters';
 
 // Real API function to fetch marketplace listings with filters and pagination
 async function getMarketplaceListings(
-  page: number = 1,
-  limit: number = 9,
-  filters: {
-    search?: string;
-    industry?: string;
-    country?: string;
-    minPrice?: string;
-    maxPrice?: string;
-    sortBy?: string;
-    sortOrder?: string;
-  } = {}
+  apiParams: Record<string, string>
 ): Promise<{ listings: any[], totalPages: number, totalListings: number }> {
-  const searchParams = new URLSearchParams({
-    page: page.toString(),
-    limit: limit.toString(),
-    ...(filters.search && { search: filters.search }),
-    ...(filters.industry && { industry: filters.industry }),
-    ...(filters.country && { country: filters.country }),
-    ...(filters.minPrice && { minPrice: filters.minPrice }),
-    ...(filters.maxPrice && { maxPrice: filters.maxPrice }),
-    ...(filters.sortBy && { sort_by: filters.sortBy }),
-    ...(filters.sortOrder && { sort_order: filters.sortOrder }),
-  });
-
+  const searchParams = new URLSearchParams(apiParams);
   const response = await fetch(`/api/listings?${searchParams.toString()}`);
 
   if (!response.ok) {
@@ -56,16 +34,21 @@ async function getMarketplaceListings(
   };
 }
 
-export default function MarketplacePage() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+function MarketplaceContent() {
   const { toast } = useToast();
+
+  // Use our new centralized filter hook
+  const {
+    effectiveFilters,
+    setPage,
+    getAPIParams,
+    isLoading,
+    setIsLoading,
+    hasActiveFilters
+  } = useMarketplaceFilters();
 
   const [listings, setListings] = useState<any[]>([]);
   const [totalPages, setTotalPages] = useState(0);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [isLoading, setIsLoading] = useState(true);
   const [totalListings, setTotalListings] = useState(0);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -75,62 +58,47 @@ export default function MarketplacePage() {
   const [authLoading, setAuthLoading] = useState(false);
 
   useEffect(() => {
-    // Simulate auth check
+    // Simulate auth check - can be enhanced later
     // setAuthLoading(true);
-    // const authStatus = true; // Replace with actual auth check from Clerk
+    // const authStatus = true; // Replace with actual auth check
     // setIsAuthenticated(authStatus);
     // setAuthLoading(false);
+  }, []);
 
-    // if (!authLoading && !isAuthenticated) {
-    //   router.replace(`/auth/login?redirect=${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`);
-    // }
-  }, [authLoading, isAuthenticated, router, pathname, searchParams]);
-
+  // Fetch listings whenever effective filters change
   useEffect(() => {
     if (authLoading || !isAuthenticated) return;
 
-    setIsLoading(true);
-    setError(null);
+    const fetchListings = async () => {
+      setIsLoading(true);
+      setError(null);
 
-    // Extract filters from URL params
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const filters = {
-      search: searchParams.get('search') || undefined,
-      industry: searchParams.get('industry') || undefined,
-      country: searchParams.get('country') || undefined,
-      minPrice: searchParams.get('minPrice') || undefined,
-      maxPrice: searchParams.get('maxPrice') || undefined,
-      sortBy: searchParams.get('sort_by') || 'created_at',
-      sortOrder: searchParams.get('sort_order') || 'desc',
-    };
+      try {
+        const apiParams = getAPIParams();
+        const data = await getMarketplaceListings(apiParams);
 
-    setCurrentPage(page);
-
-    getMarketplaceListings(page, 9, filters)
-      .then(data => {
         setListings(data.listings);
         setTotalPages(data.totalPages);
         setTotalListings(data.totalListings);
-        setIsLoading(false);
-      })
-      .catch(error => {
+      } catch (error) {
         console.error("Failed to fetch listings:", error);
-        setError(error.message || 'Failed to load listings');
-        setIsLoading(false);
+        const errorMessage = error instanceof Error ? error.message : 'Failed to load listings';
+        setError(errorMessage);
         toast({
           title: "Error Loading Listings",
           description: "Unable to load marketplace listings. Please try again.",
           variant: "destructive"
         });
-      });
-  }, [searchParams, authLoading, isAuthenticated, toast]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchListings();
+  }, [effectiveFilters, authLoading, isAuthenticated, getAPIParams, setIsLoading, toast]);
 
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    setIsLoading(true);
-    const params = new URLSearchParams(searchParams.toString());
-    params.set('page', page.toString());
-    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    setPage(page);
   };
 
   if (authLoading) {
@@ -148,6 +116,11 @@ export default function MarketplacePage() {
           <h1 className="text-3xl font-semibold tracking-tight text-brand-dark-blue">Business Marketplace</h1>
           <p className="text-muted-foreground">
             {isLoading ? 'Loading listings...' : `Explore all available business opportunities. Found ${totalListings} listings.`}
+            {hasActiveFilters && !isLoading && (
+              <span className="ml-2 text-brand-sky-blue">
+                (Filtered results)
+              </span>
+            )}
           </p>
         </div>
         <div className="flex items-center gap-4 w-full md:w-auto">
@@ -157,6 +130,11 @@ export default function MarketplacePage() {
                 <Button variant="outline" className="w-full">
                   <SlidersHorizontal className="mr-2 h-4 w-4" />
                   Filters
+                  {hasActiveFilters && (
+                    <span className="ml-2 bg-brand-sky-blue text-white text-xs rounded-full px-2 py-1">
+                      Active
+                    </span>
+                  )}
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-[300px] sm:w-[350px] p-0">
@@ -210,10 +188,22 @@ export default function MarketplacePage() {
             </div>
           )}
           {!isLoading && !error && totalListings > 0 && totalPages > 1 && (
-            <PaginationControls currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
+            <PaginationControls
+              currentPage={effectiveFilters.page}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+            />
           )}
         </main>
       </div>
     </div>
+  );
+}
+
+export default function MarketplacePage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <MarketplaceContent />
+    </Suspense>
   );
 }
