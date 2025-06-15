@@ -6,25 +6,29 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
 import { CheckCircle2, LayoutDashboard, Search, Mail, FileCheck, Send, Loader2, Info, ArrowRight } from 'lucide-react'; // Added ArrowRight
-import { useCurrentUser, updateOnboardingStatus, sendVerificationRequestEmail } from '@/hooks/use-current-user';
+import { useCurrentUser, updateOnboardingStatus } from '@/hooks/use-current-user'; // Removed sendVerificationRequestEmail as it is not used
 import { useToast } from '@/hooks/use-toast';
+import { useVerificationRequest } from '@/hooks/use-verification-request'; // Import the hook
 
 export default function BuyerOnboardingSuccessPage() {
   const [buyerName, setBuyerName] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
-  const [isEmailSending, setIsEmailSending] = React.useState(false);
-  const [emailSent, setEmailSent] = React.useState(false);
+  const [isEmailSending, setIsEmailSending] = React.useState(false); // State for email sending
+  const [emailSent, setEmailSent] = React.useState(false); // State to track if email was sent
   const { profile, loading } = useCurrentUser();
   const { toast } = useToast();
+  const { submitRequest } = useVerificationRequest(); // Get submitRequest from the hook
 
   React.useEffect(() => {
-    const ensureOnboardingComplete = async () => {
+    const ensureOnboardingCompleteAndRequestVerification = async () => {
       if (loading) return;
 
       try {
         if (profile && !profile.is_onboarding_completed) {
           await updateOnboardingStatus({
-            complete_onboarding: true
+            complete_onboarding: true,
+            // Ensure step is marked as final if not already
+            step_completed: 2 // Assuming 2 is the final step for buyer
           });
         }
 
@@ -37,6 +41,12 @@ export default function BuyerOnboardingSuccessPage() {
         } else {
             setBuyerName(profile?.full_name || 'Buyer');
         }
+        
+        // Automatically submit verification request if profile and onboarding are complete
+        if (profile && profile.is_onboarding_completed) {
+          await handleAutomaticVerificationRequest();
+        }
+
 
         setIsLoading(false);
       } catch (error) {
@@ -50,29 +60,34 @@ export default function BuyerOnboardingSuccessPage() {
       }
     };
 
-    ensureOnboardingComplete();
-  }, [profile, loading, toast]);
+    ensureOnboardingCompleteAndRequestVerification();
+  }, [profile, loading, toast]); // Removed submitRequest from dependency array for now
 
-  const handleSendVerificationEmail = async () => {
-    setIsEmailSending(true);
+  const handleAutomaticVerificationRequest = async () => {
+    if (!profile) return;
+    setIsEmailSending(true); // Reuse this state for submitting
     try {
-      await sendVerificationRequestEmail();
-      setEmailSent(true);
-      toast({
-        title: "Verification Email Sent!",
-        description: "We've sent you an email with verification details and a priority request link.",
+      const success = await submitRequest({
+        request_type: 'user_verification',
+        reason: 'Automatic request upon buyer onboarding completion.',
+        // Add phone_number and best_time_to_call if available from profile/onboardingData
+        // For MVP, we can rely on information already in profile
       });
+      if (success) {
+        setEmailSent(true); // Mark as successful submission
+        toast({
+          title: "Verification Request Submitted!",
+          description: "Your verification request has been automatically submitted. Our team will review it.",
+        });
+      }
     } catch (error) {
-      console.error('Error sending verification email:', error);
-      toast({
-        variant: "destructive",
-        title: "Email Send Failed",
-        description: error instanceof Error ? error.message : "Failed to send verification email. Please try again."
-      });
+      // Error is already handled within submitRequest hook via toast
+      console.error('Error auto-submitting verification request:', error);
     } finally {
       setIsEmailSending(false);
     }
   };
+
 
   if (loading || isLoading) {
     return (
@@ -91,7 +106,7 @@ export default function BuyerOnboardingSuccessPage() {
             Thank You, {buyerName || 'Buyer'}!
           </CardTitle>
           <CardDescription className="text-lg text-muted-foreground">
-            Your buyer verification information has been successfully submitted.
+            Your buyer information has been successfully submitted.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -111,26 +126,31 @@ export default function BuyerOnboardingSuccessPage() {
             </ul>
           </div>
 
-          <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-6">
-            <div className="flex items-center gap-3 mb-3">
-              <Mail className="h-6 w-6 text-green-600 dark:text-green-300" />
-              <h3 className="font-semibold text-green-900 dark:text-green-100">Expedite Your Verification (Optional)</h3>
+          {/* Optional: Email for priority review - can be removed if auto-submit covers it */}
+          {!emailSent && (
+            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-6">
+              <div className="flex items-center gap-3 mb-3">
+                <Mail className="h-6 w-6 text-green-600 dark:text-green-300" />
+                <h3 className="font-semibold text-green-900 dark:text-green-100">Confirmation Sent</h3>
+              </div>
+              <p className="text-green-800 dark:text-green-200 mb-4 text-sm">
+                We've received your details. A confirmation email might be sent with next steps or priority options.
+              </p>
+               {/* Button removed as request is submitted automatically */}
             </div>
-            <p className="text-green-800 dark:text-green-200 mb-4 text-sm">
-              Want our team to review your request faster? We can send you an email with priority verification options and direct admin contact.
-            </p>
-            <div className="text-center">
-              <Button
-                onClick={handleSendVerificationEmail}
-                disabled={isEmailSending || emailSent}
-                className="bg-green-600 hover:bg-green-700 text-white"
-              >
-                {isEmailSending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {emailSent ? <CheckCircle2 className="mr-2 h-4 w-4" /> : <Send className="mr-2 h-4 w-4" />}
-                {emailSent ? 'Verification Details Sent!' : isEmailSending ? 'Sending Email...' : 'Request Priority Review'}
-              </Button>
+          )}
+          
+          {emailSent && (
+             <div className="bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded-lg p-4">
+                <div className="flex items-center gap-3">
+                    <CheckCircle2 className="h-5 w-5 text-green-700 dark:text-green-300" />
+                    <p className="text-sm text-green-800 dark:text-green-200 font-medium">
+                        Your verification request has been submitted to our admin team.
+                    </p>
+                </div>
             </div>
-          </div>
+          )}
+
 
           <p className="text-muted-foreground text-sm">
             While your verification is processing, you can explore anonymous business listings on our marketplace.

@@ -3,7 +3,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ShieldCheck, User, CheckCircle2, Loader2, ArrowRight, Clock, AlertCircle, MessageSquare, FileText } from "lucide-react"; // Added icons
+import { ShieldCheck, User, CheckCircle2, Loader2, ArrowRight, Clock, AlertCircle, MessageSquare, FileText, Send, TrendingUp, Timer } from "lucide-react"; // Added icons
 import { useState, useEffect, Suspense } from "react";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
@@ -11,6 +11,7 @@ import { useCurrentUser } from "@/hooks/use-current-user";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useVerificationRequest } from "@/hooks/use-verification-request"; // Import the specific hook
 import VerificationRequestCard from "@/components/verification/VerificationRequestCard"; // Import the new card
+import { VERIFICATION_CONFIG } from "@/lib/verification-config";
 
 // Fallback if Suspense is not wrapping this page for searchParams
 function BuyerVerificationContent() {
@@ -20,8 +21,7 @@ function BuyerVerificationContent() {
     requests,
     currentStatus: userProfileVerificationStatus,
     isLoading: isLoadingRequests,
-    submitRequest,
-    bumpRequest,
+    bumpRequest, // Using bumpRequest from the hook
     refreshRequests
   } = useVerificationRequest(); // Use the specific hook for verification logic
   const router = useRouter();
@@ -30,8 +30,11 @@ function BuyerVerificationContent() {
 
   useEffect(() => {
     if (!isLoading && profile && profile.role === 'buyer') {
-      if (userProfileVerificationStatus === 'anonymous' || userProfileVerificationStatus === 'rejected') {
-        // If user is anonymous or rejected, guide them to the onboarding start
+      // If user is anonymous or rejected, AND onboarding is not complete (step 0 means not started or reset)
+      // guide them to the onboarding start.
+      // If onboarding_step_completed is 1 or more, it implies they are in or have passed the onboarding process.
+      if ((userProfileVerificationStatus === 'anonymous' || userProfileVerificationStatus === 'rejected') && 
+          (profile.onboarding_step_completed || 0) < 2) { // Buyer onboarding has 2 steps before success
         router.replace('/onboarding/buyer/1');
       }
     }
@@ -39,8 +42,7 @@ function BuyerVerificationContent() {
 
   const handleBump = async (requestId: string, reason?: string) => {
     const success = await bumpRequest(requestId, reason, () => {
-      // Optionally do something on success, like refresh data again if needed
-      refreshRequests();
+      refreshRequests(); // Refresh after successful bump
     });
     return success;
   };
@@ -65,6 +67,11 @@ function BuyerVerificationContent() {
   }
 
   const renderStatusCard = () => {
+    const pendingUserRequests = requests.filter(r => 
+        r.request_type === 'user_verification' && 
+        ['New Request', 'Contacted', 'Docs Under Review', 'More Info Requested'].includes(r.status)
+    );
+
     switch (userProfileVerificationStatus) {
       case 'verified':
         return (
@@ -95,16 +102,20 @@ function BuyerVerificationContent() {
                 <Clock className="h-7 w-7" /> Verification Pending
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               <p className="text-blue-600 dark:text-blue-400 mb-1">
                 Your verification request is currently being processed.
               </p>
               <p className="text-sm text-blue-500 dark:text-blue-300 mb-4">
                 Our team is reviewing your information and will contact you soon. Please check your email for updates.
               </p>
-               {requests.filter(r => r.request_type === 'user_verification' && r.is_pending).map(req => (
-                <VerificationRequestCard key={req.id} request={req} onBump={handleBump} />
-              ))}
+              {pendingUserRequests.length > 0 ? (
+                pendingUserRequests.map(req => (
+                  <VerificationRequestCard key={req.id} request={req} onBump={handleBump} isProcessing={isLoadingRequests} />
+                ))
+              ) : (
+                <p className="text-sm text-blue-500 dark:text-blue-300">No active verification request details found, but your profile is pending review.</p>
+              )}
               <Button asChild variant="outline" className="mt-3">
                   <Link href="/dashboard">Back to Dashboard</Link>
               </Button>
@@ -112,7 +123,7 @@ function BuyerVerificationContent() {
           </Card>
         );
       // If anonymous or rejected, user should have been redirected by useEffect.
-      // This is a fallback.
+      // This is a fallback if redirect hasn't happened yet or for direct navigation.
       default:
         return (
           <Card className="shadow-lg">
@@ -126,9 +137,15 @@ function BuyerVerificationContent() {
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground mb-4">
-                Redirecting you to the verification process...
+                {userProfileVerificationStatus === 'rejected'
+                  ? 'Your previous verification was rejected. Please restart the process.'
+                  : 'Please complete your profile verification to access more features.'}
               </p>
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <Button asChild className="bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90">
+                <Link href="/onboarding/buyer/1">
+                   Start Buyer Verification <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
             </CardContent>
           </Card>
         );
@@ -151,4 +168,3 @@ export default function BuyerVerificationPage() {
     </Suspense>
   );
 }
-

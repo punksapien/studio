@@ -2,10 +2,10 @@
 'use client';
 
 import * as React from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { MessageSquare, ShieldCheck, CheckCircle2, Eye, Search, LayoutDashboard, ExternalLink, User, Clock, AlertCircle, TrendingUp, Send, UserCircle, ListFilter, Bookmark, Inbox, UserCheck, ArrowRight } from "lucide-react"; // Added ArrowRight
+import { MessageSquare, ShieldCheck, CheckCircle2, Eye, Search, LayoutDashboard, ExternalLink, User, Clock, AlertCircle, TrendingUp, Send, UserCircle, ListFilter, Bookmark, Inbox, UserCheck, ArrowRight, Loader2 } from "lucide-react"; // Added ArrowRight
 import type { User as UserType, Inquiry, Listing } from "@/lib/types"; // Renamed User to UserType to avoid conflict
 import { sampleUsers, sampleBuyerInquiries, sampleListings } from "@/lib/placeholder-data";
 import { useCurrentUser } from "@/hooks/use-current-user";
@@ -13,6 +13,7 @@ import { NobridgeIcon } from "@/components/ui/nobridge-icon";
 import { Progress } from "@/components/ui/progress";
 import { useVerificationRequest } from "@/hooks/use-verification-request";
 import { VERIFICATION_CONFIG } from "@/lib/verification-config";
+import { ListingCard } from "@/components/marketplace/listing-card"; // Using the actual listing card
 
 // Helper to format timestamp
 function FormattedTimestamp({ timestamp }: { timestamp: Date | string }) {
@@ -20,7 +21,7 @@ function FormattedTimestamp({ timestamp }: { timestamp: Date | string }) {
 
   React.useEffect(() => {
     if (timestamp) {
-      const dateObj = typeof timestamp === 'string' ? new Date(timestamp) : dateObj; // Corrected: new Date(timestamp)
+      const dateObj = typeof timestamp === 'string' ? new Date(timestamp) : new Date(timestamp); // Ensure it's a Date object
       if (!isNaN(dateObj.getTime())) {
         setFormattedDate(dateObj.toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' }));
       } else {
@@ -61,6 +62,7 @@ export default function BuyerDashboardPage() {
           inq.statusBuyerPerspective !== 'Connection Facilitated - Chat Open'
         ).length
       );
+      // Placeholder recommended listings logic
       setRecommendedListings(sampleListings.filter(l => l.status === 'verified_public' && l.industry !== profile.keyIndustriesOfInterest?.split(',')[0]).slice(0,2));
     }
   }, [profile]);
@@ -70,67 +72,81 @@ export default function BuyerDashboardPage() {
       r.request_type === 'user_verification' &&
       ['New Request', 'Contacted', 'Docs Under Review', 'More Info Requested'].includes(r.status)
     );
-    const isProfileOnboardingCompleted = profile?.is_onboarding_completed ?? false;
+    
+    const isProfileOnboardingConsideredComplete = (profile?.onboarding_step_completed || 0) >= 2; // Buyer onboarding has 2 steps before success page
+
+    let progress = 10; // Base for anonymous
+    let progressText = "Get Started";
+    let progressColor = "bg-primary";
+    let title = "Become a Verified Buyer";
+    let description = "Complete verification to unlock full features and gain trust with sellers.";
+    let actionText = "Start Verification";
+    let actionLink = "/onboarding/buyer/1";
+    let icon = <User className="h-6 w-6 text-muted-foreground" />;
+
+    if (profile?.onboarding_step_completed === 1) {
+        progress = 50;
+        progressText = "Step 1 of 2 Complete";
+        actionLink = "/onboarding/buyer/2";
+        actionText = "Continue Verification";
+    }
+
 
     switch (verificationStatus) {
       case 'verified':
-        return {
-          icon: <CheckCircle2 className="h-6 w-6 text-green-500" />,
-          title: 'Verified Buyer',
-          description: 'Your profile is fully verified. Explore detailed listings and connect with sellers.',
-          actionText: 'View My Profile',
-          actionLink: '/dashboard/profile',
-          showButton: true,
-          progress: 100,
-          progressColor: 'bg-green-500',
-          progressText: 'Profile 100% Verified'
-        };
+        progress = 100;
+        progressText = "Profile 100% Verified & Optimized!";
+        progressColor = "bg-green-500";
+        title = 'Verified Buyer';
+        description = 'Your profile is fully verified. Explore detailed listings and connect with sellers.';
+        actionText = 'View My Profile';
+        actionLink = '/dashboard/profile';
+        icon = <CheckCircle2 className="h-6 w-6 text-green-500" />;
+        break;
       case 'pending_verification':
-        return {
-          icon: <Clock className="h-6 w-6 text-yellow-500" />,
-          title: 'Verification Pending',
-          description: pendingUserRequest ?
+        progress = isProfileOnboardingConsideredComplete ? 75 : 50;
+        progressText = isProfileOnboardingConsideredComplete ? "Verification Processing" : "Onboarding Incomplete";
+        progressColor = "bg-yellow-500";
+        title = 'Verification Pending';
+        description = pendingUserRequest ?
             `Your verification request is ${pendingUserRequest.status.toLowerCase()}. ${pendingUserRequest.can_bump ? 'You can bump it to the top!' : (pendingUserRequest.hours_until_can_bump && pendingUserRequest.hours_until_can_bump > 0) ? `You can bump it in ${VERIFICATION_CONFIG.formatTimeRemaining(pendingUserRequest.hours_until_can_bump)}.` : ''}` :
-            'Your profile verification is being reviewed.',
-          actionText: 'View Verification Status',
-          actionLink: '/dashboard/verification',
-          showButton: true,
-          progress: isProfileOnboardingCompleted ? 75 : 50, // Assume onboarding done if request submitted
-          progressColor: 'bg-yellow-500',
-          progressText: isProfileOnboardingCompleted ? 'Verification Processing' : 'Onboarding Incomplete'
-        };
+            'Your profile verification is being reviewed.';
+        actionText = 'View Verification Status';
+        actionLink = '/dashboard/verification';
+        icon = <Clock className="h-6 w-6 text-yellow-500" />;
+        break;
       case 'rejected':
-        return {
-          icon: <AlertCircle className="h-6 w-6 text-red-500" />,
-          title: 'Verification Action Required',
-          description: 'There was an issue with your verification. Please review and resubmit.',
-          actionText: 'Update Verification',
-          actionLink: '/onboarding/buyer/1', // Restart onboarding
-          showButton: true,
-          progress: isProfileOnboardingCompleted ? 25 : 10,
-          progressColor: 'bg-red-500',
-          progressText: 'Verification Rejected'
-        };
+        progress = isProfileOnboardingConsideredComplete ? 25 : 10;
+        progressText = 'Verification Rejected';
+        progressColor = 'bg-red-500';
+        title = 'Verification Action Required';
+        description = 'There was an issue with your verification. Please review and resubmit.';
+        actionText = 'Update Verification';
+        actionLink = '/onboarding/buyer/1'; // Restart onboarding
+        icon = <AlertCircle className="h-6 w-6 text-red-500" />;
+        break;
       default: // anonymous or unverified
-        return {
-          icon: <User className="h-6 w-6 text-muted-foreground" />,
-          title: 'Become a Verified Buyer',
-          description: 'Complete verification to unlock full features and gain trust with sellers.',
-          actionText: 'Start Verification',
-          actionLink: '/onboarding/buyer/1', // Link to start of buyer onboarding
-          showButton: true,
-          progress: profile?.onboarding_step_completed === 1 ? 50 : (profile?.onboarding_step_completed || 0) > 0 ? 25: 10, // Basic progress for starting
-          progressColor: 'bg-primary',
-          progressText: 'Verification Incomplete'
-        };
+        if (profile?.is_onboarding_completed && (profile.onboarding_step_completed || 0) >= 2) {
+             // Should have transitioned to pending or other status. If not, likely error or needs manual request.
+            progress = 50;
+            progressText = "Request Verification";
+            title = "Request Profile Verification";
+            description = "You've completed the onboarding steps. Submit your request for admin review.";
+            actionText = "Go to Verification Page";
+            actionLink = "/dashboard/verification"; // where they can formally submit
+        }
+        break;
     }
+
+    return { icon, title, description, actionText, actionLink, progress, progressColor, progressText, showButton: true };
   };
 
 
   if (loading) {
     return (
       <div className="container py-8 text-center min-h-screen flex items-center justify-center">
-        <p>Loading dashboard...</p>
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="ml-3 text-muted-foreground">Loading dashboard...</p>
       </div>
     );
   }
@@ -281,10 +297,10 @@ export default function BuyerDashboardPage() {
 
         <Card className="lg:col-span-1 shadow-md bg-brand-white">
             <CardHeader>
-                <CardTitle className="text-brand-dark-blue font-heading flex items-center"><UserCheck className="mr-2 h-5 w-5 text-primary"/>Next Steps</CardTitle>
+                <CardTitle className="text-brand-dark-blue font-heading flex items-center"><UserCheck className="mr-2 h-5 w-5 text-primary"/>Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-                <Button asChild className="w-full justify-start bg-primary hover:bg-primary/90">
+                <Button asChild className="w-full justify-start bg-primary text-primary-foreground hover:bg-primary/90">
                     <Link href="/marketplace"><Search className="mr-2 h-4 w-4"/>Find New Opportunities</Link>
                 </Button>
                 <Button variant="outline" asChild className="w-full justify-start">
@@ -306,21 +322,7 @@ export default function BuyerDashboardPage() {
                 {recommendedListings.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {recommendedListings.map(listing => (
-                             <Card key={listing.id} className="shadow-sm hover:shadow-md transition-shadow">
-                                <CardHeader className="p-0 relative">
-                                    <Image src={listing.imageUrls?.[0] || "https://placehold.co/300x180.png"} alt={listing.listingTitleAnonymous} width={300} height={180} className="w-full h-36 object-cover rounded-t-lg" data-ai-hint="business team meeting"/>
-                                </CardHeader>
-                                <CardContent className="p-4">
-                                    <h3 className="font-semibold text-md text-brand-dark-blue truncate mb-1">{listing.listingTitleAnonymous}</h3>
-                                    <p className="text-xs text-muted-foreground">{listing.industry}</p>
-                                    <p className="text-sm font-medium text-primary mt-1">{listing.askingPrice ? `$${listing.askingPrice.toLocaleString()}` : 'Contact for Price'}</p>
-                                </CardContent>
-                                <CardFooter className="p-4 border-t">
-                                    <Button variant="outline" size="sm" asChild className="w-full">
-                                        <Link href={`/listings/${listing.id}`}>View Details <ExternalLink className="ml-2 h-3 w-3"/></Link>
-                                    </Button>
-                                </CardFooter>
-                            </Card>
+                          <ListingCard key={listing.id} listing={listing} />
                         ))}
                     </div>
                 ) : (
