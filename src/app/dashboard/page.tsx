@@ -5,11 +5,14 @@ import * as React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { MessageSquare, ShieldCheck, CheckCircle2, Eye, Search, LayoutDashboard, ExternalLink } from "lucide-react";
-import type { User, Inquiry } from "@/lib/types";
-import { sampleUsers, sampleBuyerInquiries } from "@/lib/placeholder-data";
-import { useCurrentUser } from "@/hooks/use-current-user"; // Using new cached hook
+import { MessageSquare, ShieldCheck, CheckCircle2, Eye, Search, LayoutDashboard, ExternalLink, User, Clock, AlertCircle, TrendingUp, Send, UserCircle, ListFilter, Bookmark, Inbox, UserCheck, ArrowRight } from "lucide-react"; // Added ArrowRight
+import type { User as UserType, Inquiry, Listing } from "@/lib/types"; // Renamed User to UserType to avoid conflict
+import { sampleUsers, sampleBuyerInquiries, sampleListings } from "@/lib/placeholder-data";
+import { useCurrentUser } from "@/hooks/use-current-user";
 import { NobridgeIcon } from "@/components/ui/nobridge-icon";
+import { Progress } from "@/components/ui/progress";
+import { useVerificationRequest } from "@/hooks/use-verification-request";
+import { VERIFICATION_CONFIG } from "@/lib/verification-config";
 
 // Helper to format timestamp
 function FormattedTimestamp({ timestamp }: { timestamp: Date | string }) {
@@ -17,7 +20,7 @@ function FormattedTimestamp({ timestamp }: { timestamp: Date | string }) {
 
   React.useEffect(() => {
     if (timestamp) {
-      const dateObj = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
+      const dateObj = typeof timestamp === 'string' ? new Date(timestamp) : dateObj; // Corrected: new Date(timestamp)
       if (!isNaN(dateObj.getTime())) {
         setFormattedDate(dateObj.toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' }));
       } else {
@@ -36,27 +39,93 @@ function FormattedTimestamp({ timestamp }: { timestamp: Date | string }) {
 
 
 export default function BuyerDashboardPage() {
-  const { user, profile, loading } = useCurrentUser(); // Using the new cached hook
+  const { user, profile, loading } = useCurrentUser();
+  const { requests: verificationRequests, currentStatus: verificationStatus } = useVerificationRequest();
 
   const [recentInquiries, setRecentInquiries] = React.useState<Inquiry[]>([]);
   const [activeInquiriesCount, setActiveInquiriesCount] = React.useState(0);
+  const [savedListingsCount, setSavedListingsCount] = React.useState(5); // Placeholder
+  const [newMessagesCount, setNewMessagesCount] = React.useState(2); // Placeholder
+  const [recommendedListings, setRecommendedListings] = React.useState<Listing[]>([]);
 
   React.useEffect(() => {
     if (profile && profile.role === 'buyer') {
-      // Simulate fetching inquiries for the current buyer
       const userInquiries = sampleBuyerInquiries
         .filter(inq => inq.buyerId === profile.id)
         .sort((a, b) => new Date(b.inquiryTimestamp).getTime() - new Date(a.inquiryTimestamp).getTime());
       
-      setRecentInquiries(userInquiries.slice(0, 3));
+      setRecentInquiries(userInquiries.slice(0, 2)); // Show 2 recent inquiries
       setActiveInquiriesCount(
         userInquiries.filter(inq =>
           inq.statusBuyerPerspective !== 'Archived' &&
-          inq.statusBuyerPerspective !== 'Connection Facilitated - Chat Open' // Assuming this means "closed" for active count
+          inq.statusBuyerPerspective !== 'Connection Facilitated - Chat Open'
         ).length
       );
+      setRecommendedListings(sampleListings.filter(l => l.status === 'verified_public' && l.industry !== profile.keyIndustriesOfInterest?.split(',')[0]).slice(0,2));
     }
   }, [profile]);
+
+  const getVerificationStatusInfo = () => {
+    const pendingUserRequest = verificationRequests.find(r =>
+      r.request_type === 'user_verification' &&
+      ['New Request', 'Contacted', 'Docs Under Review', 'More Info Requested'].includes(r.status)
+    );
+    const isProfileOnboardingCompleted = profile?.is_onboarding_completed ?? false;
+
+    switch (verificationStatus) {
+      case 'verified':
+        return {
+          icon: <CheckCircle2 className="h-6 w-6 text-green-500" />,
+          title: 'Verified Buyer',
+          description: 'Your profile is fully verified. Explore detailed listings and connect with sellers.',
+          actionText: 'View My Profile',
+          actionLink: '/dashboard/profile',
+          showButton: true,
+          progress: 100,
+          progressColor: 'bg-green-500',
+          progressText: 'Profile 100% Verified'
+        };
+      case 'pending_verification':
+        return {
+          icon: <Clock className="h-6 w-6 text-yellow-500" />,
+          title: 'Verification Pending',
+          description: pendingUserRequest ?
+            `Your verification request is ${pendingUserRequest.status.toLowerCase()}. ${pendingUserRequest.can_bump ? 'You can bump it to the top!' : (pendingUserRequest.hours_until_can_bump && pendingUserRequest.hours_until_can_bump > 0) ? `You can bump it in ${VERIFICATION_CONFIG.formatTimeRemaining(pendingUserRequest.hours_until_can_bump)}.` : ''}` :
+            'Your profile verification is being reviewed.',
+          actionText: 'View Verification Status',
+          actionLink: '/dashboard/verification',
+          showButton: true,
+          progress: isProfileOnboardingCompleted ? 75 : 50, // Assume onboarding done if request submitted
+          progressColor: 'bg-yellow-500',
+          progressText: isProfileOnboardingCompleted ? 'Verification Processing' : 'Onboarding Incomplete'
+        };
+      case 'rejected':
+        return {
+          icon: <AlertCircle className="h-6 w-6 text-red-500" />,
+          title: 'Verification Action Required',
+          description: 'There was an issue with your verification. Please review and resubmit.',
+          actionText: 'Update Verification',
+          actionLink: '/onboarding/buyer/1', // Restart onboarding
+          showButton: true,
+          progress: isProfileOnboardingCompleted ? 25 : 10,
+          progressColor: 'bg-red-500',
+          progressText: 'Verification Rejected'
+        };
+      default: // anonymous or unverified
+        return {
+          icon: <User className="h-6 w-6 text-muted-foreground" />,
+          title: 'Become a Verified Buyer',
+          description: 'Complete verification to unlock full features and gain trust with sellers.',
+          actionText: 'Start Verification',
+          actionLink: '/onboarding/buyer/1', // Link to start of buyer onboarding
+          showButton: true,
+          progress: profile?.onboarding_step_completed === 1 ? 50 : (profile?.onboarding_step_completed || 0) > 0 ? 25: 10, // Basic progress for starting
+          progressColor: 'bg-primary',
+          progressText: 'Verification Incomplete'
+        };
+    }
+  };
+
 
   if (loading) {
     return (
@@ -67,7 +136,6 @@ export default function BuyerDashboardPage() {
   }
 
   if (!profile) {
-    // This should be handled by middleware, but as a fallback:
     return (
       <div className="container py-8 text-center">
         <h1 className="text-3xl font-bold tracking-tight text-destructive">Access Denied</h1>
@@ -87,13 +155,14 @@ export default function BuyerDashboardPage() {
     );
   }
 
+  const verificationInfo = getVerificationStatusInfo();
 
   return (
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-brand-dark-blue font-heading">
-            Welcome back, {profile.full_name}!
+            Welcome back, {profile.full_name || 'Buyer'}!
           </h1>
           <p className="text-muted-foreground">Here&apos;s an overview of your buyer activity.</p>
         </div>
@@ -104,96 +173,164 @@ export default function BuyerDashboardPage() {
         </Button>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card className="shadow-lg bg-brand-white">
+      {/* Verification Status Card - Enhanced */}
+      <Card className={`lg:col-span-1 shadow-lg border-2 ${
+        verificationStatus === 'verified' ? 'border-green-400 bg-green-50 dark:bg-green-900/20 dark:border-green-600' :
+        verificationStatus === 'pending_verification' ? 'border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 dark:border-yellow-600' :
+        verificationStatus === 'rejected' ? 'border-red-400 bg-red-50 dark:bg-red-900/20 dark:border-red-600' :
+        'border-primary/30 bg-primary/5'
+      }`}>
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-3">
+            {verificationInfo.icon}
+            <CardTitle className="text-lg text-foreground font-heading">{verificationInfo.title}</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">{verificationInfo.description}</p>
+          <div className="pt-1">
+              <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                  <span>{verificationInfo.progressText}</span>
+                  <span>{verificationInfo.progress}%</span>
+              </div>
+              <Progress value={verificationInfo.progress} className={`h-2 [&>div]:${verificationInfo.progressColor} bg-muted`} />
+          </div>
+          {verificationInfo.showButton && (
+            <Button variant="default" size="sm" asChild className="w-full mt-3 bg-accent text-accent-foreground hover:bg-accent/90">
+              <Link href={verificationInfo.actionLink}>
+                {verificationInfo.actionText} <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          )}
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <Card className="shadow-md bg-brand-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-brand-dark-blue">Active Inquiries</CardTitle>
             <NobridgeIcon icon="interaction" size="sm" className="text-brand-dark-blue/70" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-primary">{activeInquiriesCount}</div>
-            <p className="text-xs text-muted-foreground">
-              Track your ongoing conversations and interests.
-            </p>
-             <Button variant="link" asChild className="px-0 mt-2 text-brand-sky-blue">
-                <Link href="/dashboard/inquiries">View All My Inquiries</Link>
+            <p className="text-xs text-muted-foreground">Track your ongoing interests.</p>
+             <Button variant="link" size="sm" asChild className="px-0 mt-1 text-brand-sky-blue text-xs">
+                <Link href="/dashboard/inquiries">View All Inquiries <ArrowRight className="ml-1 h-3 w-3"/></Link>
               </Button>
           </CardContent>
         </Card>
 
-        <Card className={`shadow-lg ${profile.verificationStatus === 'verified' ? 'bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-700/50' : 'bg-amber-50 border-amber-200 dark:bg-amber-900/30 dark:border-amber-700/50'}`}>
+        <Card className="shadow-md bg-brand-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-brand-dark-blue">Verification Status</CardTitle>
-             <NobridgeIcon icon="verification" size="sm" className={`${profile.verificationStatus === 'verified' ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'}`} />
+            <CardTitle className="text-sm font-medium text-brand-dark-blue">Saved Listings</CardTitle>
+            <Bookmark className="h-5 w-5 text-brand-dark-blue/70" />
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${profile.verificationStatus === 'verified' ? 'text-green-700 dark:text-green-300' : 'text-amber-700 dark:text-amber-300'}`}>
-              {profile.verificationStatus === 'verified' ? 'Verified Buyer' :
-               profile.verificationStatus === 'pending_verification' ? 'Verification Pending' :
-               'Anonymous Buyer'}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {profile.verificationStatus === 'verified'
-                ? 'Access full details & engage with verified sellers.'
-                : 'Complete verification to unlock more features.'}
-            </p>
-            {profile.verificationStatus !== 'verified' && (
-              <Button variant="link" asChild className="px-0 mt-2 text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300">
-                <Link href="/dashboard/verification">
-                  {profile.verificationStatus === 'pending_verification' ? 'Check Verification Status' : 'Request Verification Call'}
-                </Link>
+            <div className="text-2xl font-bold text-primary">{savedListingsCount}</div>
+            <p className="text-xs text-muted-foreground">Your shortlisted opportunities.</p>
+             <Button variant="link" size="sm" asChild className="px-0 mt-1 text-brand-sky-blue text-xs">
+                <Link href="/dashboard/saved-listings">View Saved Listings <ArrowRight className="ml-1 h-3 w-3"/></Link>
               </Button>
-            )}
+          </CardContent>
+        </Card>
+         <Card className="shadow-md bg-brand-white">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-brand-dark-blue">New Messages</CardTitle>
+            <Inbox className="h-5 w-5 text-brand-dark-blue/70" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-primary">{newMessagesCount}</div>
+            <p className="text-xs text-muted-foreground">Unread messages from sellers.</p>
+             <Button variant="link" size="sm" asChild className="px-0 mt-1 text-brand-sky-blue text-xs">
+                <Link href="/dashboard/messages">Go to Messages <ArrowRight className="ml-1 h-3 w-3"/></Link>
+              </Button>
           </CardContent>
         </Card>
       </div>
-
-      {recentInquiries.length > 0 && (
-        <Card className="shadow-md bg-brand-white">
+      
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card className="lg:col-span-2 shadow-md bg-brand-white">
           <CardHeader>
             <CardTitle className="text-brand-dark-blue font-heading">Recent Inquiries</CardTitle>
             <CardDescription className="text-muted-foreground">Your latest interactions with business listings.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {recentInquiries.map(inquiry => (
-              <div key={inquiry.id} className="p-4 border border-brand-light-gray rounded-lg hover:shadow-sm transition-shadow">
+          <CardContent className="space-y-3">
+            {recentInquiries.length > 0 ? recentInquiries.map(inquiry => (
+              <div key={inquiry.id} className="p-3 border border-brand-light-gray rounded-lg hover:shadow-sm transition-shadow">
                 <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
                   <div>
-                    <Link href={`/listings/${inquiry.listingId}`} className="font-semibold text-brand-dark-blue hover:text-brand-sky-blue text-lg transition-colors">
+                    <Link href={`/listings/${inquiry.listingId}`} className="font-semibold text-brand-dark-blue hover:text-brand-sky-blue text-md transition-colors">
                       {inquiry.listingTitleAnonymous}
                     </Link>
                     <p className="text-xs text-muted-foreground">Inquired on: <FormattedTimestamp timestamp={inquiry.inquiryTimestamp} /></p>
                   </div>
-                   <Button variant="ghost" size="sm" asChild className="text-brand-sky-blue hover:text-brand-sky-blue/80">
-                    <Link href={`/dashboard/inquiries#${inquiry.id}`}><Eye className="mr-2 h-4 w-4" />View Inquiry</Link>
+                   <Button variant="ghost" size="sm" asChild className="text-brand-sky-blue hover:text-brand-sky-blue/80 text-xs self-start sm:self-center">
+                    <Link href={`/dashboard/inquiries#${inquiry.id}`}><Eye className="mr-1.5 h-3.5 w-3.5" />View</Link>
                   </Button>
                 </div>
-                <p className="text-sm mt-2 text-brand-dark-blue/80">Status: <span className="font-medium">{inquiry.statusBuyerPerspective}</span></p>
+                <p className="text-sm mt-1 text-brand-dark-blue/80">Status: <span className="font-medium">{inquiry.statusBuyerPerspective}</span></p>
               </div>
-            ))}
-             <Button variant="outline" asChild className="w-full mt-6 border-brand-dark-blue/50 text-brand-dark-blue hover:bg-brand-light-gray/70">
-                <Link href="/dashboard/inquiries">View All My Inquiries</Link>
-              </Button>
+            )) : (
+                 <div className="text-center py-6 text-muted-foreground">
+                    <Inbox className="mx-auto h-8 w-8 mb-2 text-gray-400" />
+                    No recent inquiries.
+                </div>
+            )}
           </CardContent>
         </Card>
-      )}
-       {profile.verificationStatus === 'anonymous' && (
-        <Card className="shadow-md bg-primary/5 border-primary/20">
-          <CardHeader>
-            <CardTitle className="text-primary flex items-center font-heading"><CheckCircle2 className="mr-2"/> Unlock Full Potential</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground mb-4">
-              Become a Verified Buyer to view detailed business information, access secure documents, and directly engage with sellers through Nobridge.
-            </p>
-            <Button asChild className="bg-brand-sky-blue text-brand-white hover:bg-brand-sky-blue/90">
-              <Link href="/dashboard/verification">Start Verification Process</Link>
-            </Button>
-          </CardContent>
+
+        <Card className="lg:col-span-1 shadow-md bg-brand-white">
+            <CardHeader>
+                <CardTitle className="text-brand-dark-blue font-heading flex items-center"><UserCheck className="mr-2 h-5 w-5 text-primary"/>Next Steps</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+                <Button asChild className="w-full justify-start bg-primary hover:bg-primary/90">
+                    <Link href="/marketplace"><Search className="mr-2 h-4 w-4"/>Find New Opportunities</Link>
+                </Button>
+                <Button variant="outline" asChild className="w-full justify-start">
+                    <Link href="/dashboard/profile"><UserCircle className="mr-2 h-4 w-4"/>Complete Your Profile</Link>
+                </Button>
+                 <Button variant="outline" asChild className="w-full justify-start">
+                    <Link href="/dashboard/inquiries"><MessageSquare className="mr-2 h-4 w-4"/>Manage My Inquiries</Link>
+                </Button>
+            </CardContent>
         </Card>
-      )}
+      </div>
+
+        <Card className="shadow-md bg-brand-white">
+            <CardHeader>
+                <CardTitle className="text-brand-dark-blue font-heading flex items-center"><ListFilter className="mr-2 h-5 w-5 text-primary" />Recommended For You</CardTitle>
+                <CardDescription className="text-muted-foreground">Listings you might be interested in based on your profile.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                {recommendedListings.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {recommendedListings.map(listing => (
+                             <Card key={listing.id} className="shadow-sm hover:shadow-md transition-shadow">
+                                <CardHeader className="p-0 relative">
+                                    <Image src={listing.imageUrls?.[0] || "https://placehold.co/300x180.png"} alt={listing.listingTitleAnonymous} width={300} height={180} className="w-full h-36 object-cover rounded-t-lg" data-ai-hint="business team meeting"/>
+                                </CardHeader>
+                                <CardContent className="p-4">
+                                    <h3 className="font-semibold text-md text-brand-dark-blue truncate mb-1">{listing.listingTitleAnonymous}</h3>
+                                    <p className="text-xs text-muted-foreground">{listing.industry}</p>
+                                    <p className="text-sm font-medium text-primary mt-1">{listing.askingPrice ? `$${listing.askingPrice.toLocaleString()}` : 'Contact for Price'}</p>
+                                </CardContent>
+                                <CardFooter className="p-4 border-t">
+                                    <Button variant="outline" size="sm" asChild className="w-full">
+                                        <Link href={`/listings/${listing.id}`}>View Details <ExternalLink className="ml-2 h-3 w-3"/></Link>
+                                    </Button>
+                                </CardFooter>
+                            </Card>
+                        ))}
+                    </div>
+                ) : (
+                     <div className="text-center py-8 text-muted-foreground">
+                        <Search className="mx-auto h-10 w-10 mb-3 text-gray-400" />
+                        No recommendations available yet. Complete your profile for better suggestions.
+                    </div>
+                )}
+            </CardContent>
+        </Card>
     </div>
   );
 }
-
-    

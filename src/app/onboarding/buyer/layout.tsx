@@ -1,8 +1,9 @@
+
 'use client';
 
 import * as React from 'react';
 import { BuyerStepper } from '@/components/onboarding/buyer-stepper';
-import { useParams } from 'next/navigation';
+import { useParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Logo } from '@/components/shared/logo';
 
@@ -12,20 +13,14 @@ export default function BuyerOnboardingLayout({
   children: React.ReactNode;
 }) {
   const params = useParams();
+  const pathname = usePathname();
   const currentStep = params.step ? parseInt(params.step as string, 10) : 1;
 
-  // This ensures pathname is only accessed client-side
-  const [isClient, setIsClient] = React.useState(false);
-  React.useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  const pathname = isClient ? window.location.pathname : "";
-  const isSuccessPage = params.step === 'success' || pathname.endsWith('/onboarding/buyer/success');
+  const isSuccessPage = pathname === '/onboarding/buyer/success';
 
 
   const buyerStepTitles = [
-    "Welcome & Verification Info", // Step 1: Info
+    "Welcome & Info", // Step 1: Info
     "Identity Document",           // Step 2: Document Upload
   ];
 
@@ -33,6 +28,9 @@ export default function BuyerOnboardingLayout({
     <div className="min-h-screen bg-brand-light-gray flex flex-col items-center py-8 md:py-12 px-4">
       <div className="w-full max-w-3xl">
         <div className="mb-8 text-center">
+          <Link href="/" className="inline-block mb-6">
+            <Logo size="xl" forceTheme="light" />
+          </Link>
           <h1 className="text-3xl md:text-4xl font-bold text-brand-dark-blue mt-4 mb-2 font-heading">
             Become a Verified Nobridge Buyer
           </h1>
@@ -42,7 +40,7 @@ export default function BuyerOnboardingLayout({
         </div>
 
         {!isSuccessPage && (
-          <div className="mb-10 max-w-xl mx-auto"> {/* Reduced max-w for 2 steps */}
+          <div className="mb-10 max-w-xl mx-auto">
             <BuyerStepper currentStep={currentStep} stepTitles={buyerStepTitles} />
           </div>
         )}
