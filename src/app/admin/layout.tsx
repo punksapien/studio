@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -30,7 +31,8 @@ import {
   Briefcase,
   ShieldCheck,
   LineChart,
-  BellRing
+  BellRing,
+  FlaskConical // Added for Hack Tool
 } from 'lucide-react';
 import LogoutButton from '@/components/auth/LogoutButton';
 
@@ -43,6 +45,7 @@ const adminSidebarNavItems = [
   { title: 'Engagement Queue', href: '/admin/engagement-queue', icon: BellRing, tooltip: "Engagement Queue" },
   { title: 'Conversations', href: '/admin/conversations', icon: MessageSquare, tooltip: "Platform Conversations" },
   { title: 'Analytics', href: '/admin/analytics', icon: LineChart, tooltip: "Platform Analytics" },
+  { title: 'Data Injection Hub', href: '/admin/hack-tool', icon: FlaskConical, tooltip: "Batch Data Tool" }, // New Item
 ];
 
 const utilityNavItems = [
@@ -147,7 +150,7 @@ export default function AdminLayout({
               <Logo size="lg" forceTheme="light" />
               <SidebarTrigger/>
            </header>
-           <div className="p-6 md:p-8 lg:p-10 flex-1 overflow-y-auto">
+           <div className={pathname === '/admin/hack-tool' ? "flex-1 overflow-y-auto" : "p-6 md:p-8 lg:p-10 flex-1 overflow-y-auto"}>
             {children}
            </div>
         </SidebarInset>
