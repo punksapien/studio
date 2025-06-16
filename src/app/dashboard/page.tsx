@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { MessageSquare, ShieldCheck, CheckCircle2, Eye, Search, LayoutDashboard, ExternalLink, User, Clock, AlertCircle, TrendingUp, Send, UserCircle, ListFilter, Inbox, UserCheck, ArrowRight, Loader2, RefreshCw, Timer, Verified } from "lucide-react";
+import { MessageSquare, ShieldCheck, CheckCircle2, Eye, Search, LayoutDashboard, ExternalLink, User, Clock, AlertCircle, TrendingUp, Send, UserCircle, ListFilter, Inbox, UserCheck, ArrowRight, Loader2, RefreshCw, Timer, Verified, Settings } from "lucide-react";
 import { NobridgeIcon } from "@/components/ui/nobridge-icon";
 import { Progress } from "@/components/ui/progress";
 import { VERIFICATION_CONFIG } from "@/lib/verification-config";
