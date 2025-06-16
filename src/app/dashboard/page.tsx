@@ -417,13 +417,13 @@ export default function BuyerDashboardPage() {
                 <Button asChild className="w-full justify-start" variant="outline">
                   <Link href="/dashboard/inquiries">
                     <MessageSquare className="mr-2 h-4 w-4" />
-                    Manage Inquiries
+                    Manage Inquiries{stats.activeInquiriesCount > 0 ? ` (${stats.activeInquiriesCount})` : ''}
                   </Link>
                 </Button>
                 <Button asChild className="w-full justify-start" variant="outline">
-                  <Link href="/dashboard/messages">
-                    <Send className="mr-2 h-4 w-4" />
-                    View Messages
+                  <Link href="/dashboard/settings">
+                    <Settings className="mr-2 h-4 w-4" />
+                    Settings
                   </Link>
                 </Button>
                 <Button asChild className="w-full justify-start" variant="outline">

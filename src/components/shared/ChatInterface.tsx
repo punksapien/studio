@@ -544,8 +544,8 @@ export default function ChatInterface({ conversationId, currentUser, onBack }: C
   }
 
   return (
-    <Card className="h-full flex flex-col shadow-lg bg-card">
-      <CardHeader className="flex-row items-center space-y-0 pb-3 border-b">
+    <Card className="h-full flex flex-col shadow-lg bg-card w-full"> {/* Removed margins that were causing overflow */}
+      <CardHeader className="flex-row items-center space-y-0 pb-3 border-b flex-shrink-0"> {/* Made header flex-shrink-0 */}
         <div className="flex-1">
           {isAdminUser ? (
             <div>
@@ -595,8 +595,9 @@ export default function ChatInterface({ conversationId, currentUser, onBack }: C
         )}
       </CardHeader>
 
-      <CardContent className="flex-1 overflow-hidden px-0"> {/* Removed default px-6 */}
-        <ScrollArea className="h-full px-6" ref={scrollAreaRef}> {/* Added px-6 here for padding only on message area */}
+      {/* Messages area with fixed height and internal scrolling */}
+      <div className="flex-1 overflow-hidden"> {/* This takes up remaining space */}
+        <ScrollArea className="h-full px-6" ref={scrollAreaRef}> {/* Full height with internal scroll */}
           <div className="space-y-4 py-4">
             {messages.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
@@ -638,7 +639,7 @@ export default function ChatInterface({ conversationId, currentUser, onBack }: C
                   <div
                     key={message.id}
                     className={cn(
-                      "flex w-full max-w-[85%] flex-col gap-1",
+                      "flex w-full max-w-[75%] flex-col gap-1", /* Reduced from 85% to 75% for better readability */
                       isAdminUser
                         ? isBuyerMessage ? "mr-auto items-start" : "ml-auto items-end"
                         : isOwn ? "ml-auto items-end" : "mr-auto items-start"
@@ -680,9 +681,11 @@ export default function ChatInterface({ conversationId, currentUser, onBack }: C
             )}
           </div>
         </ScrollArea>
-      </CardContent>
+      </div>
 
-      <CardContent className="pt-0 border-t"> {/* Added border-t for separation */}
+      {/* Input area - fixed at bottom */}
+      <div className="border-t bg-card flex-shrink-0"> {/* Made this flex-shrink-0 so it doesn't compress */}
+        <CardContent className="pt-0"> {/* Keep the padding but remove the border-t since we moved it to parent */}
         <div className="flex gap-2 py-4"> {/* Added py-4 for padding around input */}
           <Input
             placeholder={
@@ -717,7 +720,8 @@ export default function ChatInterface({ conversationId, currentUser, onBack }: C
             Admin view - You can observe this conversation between the buyer and seller.
           </p>
         )}
-      </CardContent>
+        </CardContent>
+      </div>
     </Card>
   );
 }

@@ -46,6 +46,7 @@ interface BuyerDashboardData {
   error: string | null
   refreshData: () => Promise<void>
   isPolling: boolean
+  totalInquiriesCount: number // Add this for sidebar badge
 }
 
 export function useBuyerDashboard(): BuyerDashboardData {
@@ -62,6 +63,7 @@ export function useBuyerDashboard(): BuyerDashboardData {
     error: null,
     refreshData: async () => {},
     isPolling: false,
+    totalInquiriesCount: 0,
   })
 
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
@@ -205,7 +207,7 @@ export function useBuyerDashboard(): BuyerDashboardData {
       // Format recent inquiries
       const recentInquiries: Inquiry[] = inquiries.slice(0, 3).map((inq: any) => ({
         id: inq.id,
-        listingTitle: inq.listing_title || 'Untitled Listing',
+        listingTitle: inq.listing?.listing_title_anonymous || 'Untitled Listing',
         status: inq.status,
         inquiryTimestamp: inq.created_at,
         statusBuyerPerspective: inq.status_buyer_perspective || inq.status
@@ -237,6 +239,7 @@ export function useBuyerDashboard(): BuyerDashboardData {
         error: null,
         refreshData: fetchDashboardData,
         isPolling,
+        totalInquiriesCount: inquiries.length,
       }
 
       setData(newData)

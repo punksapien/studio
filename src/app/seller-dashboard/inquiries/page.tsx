@@ -261,7 +261,9 @@ export default function SellerInquiriesPage() {
     <div className="space-y-8">
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-brand-dark-blue">My Inquiries</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-brand-dark-blue">
+            My Inquiries {inquiries.length > 0 && `(${inquiries.length})`}
+          </h1>
           <p className="text-muted-foreground">
             Manage inquiries from potential buyers for your business listings.
           </p>

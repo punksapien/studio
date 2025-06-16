@@ -38,6 +38,7 @@ import {
 import type { UserRole } from '@/lib/types';
 import LogoutButton from '@/components/auth/LogoutButton';
 import { Loader2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 const sellerSidebarNavItems = [
   { title: 'Overview', href: '/seller-dashboard', icon: LayoutDashboard, tooltip: "Dashboard Overview" },
@@ -45,7 +46,7 @@ const sellerSidebarNavItems = [
   { title: 'My Listings', href: '/seller-dashboard/listings', icon: Briefcase, tooltip: "Manage Listings" },
   { title: 'Create Listing', href: '/seller-dashboard/listings/create', icon: PlusCircle, tooltip: "Create New Listing" },
   { title: 'My Inquiries', href: '/seller-dashboard/inquiries', icon: MessageSquare, tooltip: "View Inquiries" },
-  { title: 'Messages', href: '/seller-dashboard/messages', icon: Mail, tooltip: "My Conversations" },
+  // { title: 'Messages', href: '/seller-dashboard/messages', icon: Mail, tooltip: "My Conversations" },
   { title: 'Verification', href: '/seller-dashboard/verification', icon: ShieldCheck, tooltip: "Account/Listing Verification" },
   { title: 'Notifications', href: '/seller-dashboard/notifications', icon: Bell, tooltip: "My Notifications" },
   { title: 'Settings', href: '/seller-dashboard/settings', icon: Settings, tooltip: "Account Settings" },
@@ -65,6 +66,27 @@ export default function SellerDashboardLayout({
 }) {
   const pathname = usePathname();
   const { profile, isLoading, error } = useAuth();
+  const [inquiryCount, setInquiryCount] = React.useState(0);
+
+  // Fetch inquiry count for notification badge
+  React.useEffect(() => {
+    const fetchInquiryCount = async () => {
+      if (!profile || profile.role !== 'seller') return;
+
+      try {
+        const response = await fetch('/api/inquiries?role=seller&limit=100');
+        const data = await response.json();
+
+        if (response.ok && data.inquiries) {
+          setInquiryCount(data.inquiries.length);
+        }
+      } catch (error) {
+        console.warn('Failed to fetch inquiry count for sidebar badge:', error);
+      }
+    };
+
+    fetchInquiryCount();
+  }, [profile]);
 
   // Show loading state while fetching user data - but don't block access
   if (isLoading) {
@@ -139,6 +161,14 @@ export default function SellerDashboardLayout({
                       <Link href={item.href} className="flex items-center">
                         <IconComponent {...iconProps} />
                         <span className="truncate">{item.title}</span>
+                        {/* Show red notification badge for My Inquiries */}
+                        {item.title === 'My Inquiries' && inquiryCount > 0 && (
+                          <Badge
+                            className="ml-auto bg-red-500 text-white text-xs px-1.5 py-0.5 min-w-[20px] h-5 rounded-full flex items-center justify-center"
+                          >
+                            {inquiryCount}
+                          </Badge>
+                        )}
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
