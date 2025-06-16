@@ -29,8 +29,10 @@ import { useToast } from "@/hooks/use-toast";
 import { useTransition, useState, useEffect } from "react";
 import { Separator } from "@/components/ui/separator";
 import { sampleListings } from "@/lib/placeholder-data";
-import { PlusCircle, Trash2 } from "lucide-react";
+import { PlusCircle, Trash2, FileText, Upload } from "lucide-react";
 import { notFound } from 'next/navigation';
+import { FileUploadWithProgress } from "@/components/shared/FileUploadWithProgress";
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
 
 const ListingSchema = z.object({
@@ -55,9 +57,20 @@ interface EditListingPageProps {
 
 export default function EditListingPage({ params }: EditListingPageProps) {
   const { toast } = useToast();
+  const supabase = createClientComponentClient();
   const [isPending, startTransition] = useTransition();
   const [listing, setListing] = useState<Listing | null>(null);
   const [keyStrengthsFields, setKeyStrengthsFields] = useState<string[]>(['']);
+  const [authToken, setAuthToken] = useState<string | null>(null);
+
+  // Initialize auth token
+  useEffect(() => {
+    const initAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setAuthToken(session?.access_token || null);
+    };
+    initAuth();
+  }, [supabase]);
 
   const form = useForm<ListingFormValues>({
     resolver: zodResolver(ListingSchema),
@@ -75,7 +88,7 @@ export default function EditListingPage({ params }: EditListingPageProps) {
       reasonForSellingAnonymous: "",
     },
   });
-  
+
   useEffect(() => {
     // Simulate fetching listing data
     const fetchedListing = sampleListings.find(l => l.id === params.listingId && l.sellerId === 'user1'); // Assuming current user is seller1
@@ -118,7 +131,7 @@ export default function EditListingPage({ params }: EditListingPageProps) {
       form.setValue("keyStrengthsAnonymous", currentStrengths.filter((_, i) => i !== index));
     }
   };
-  
+
   const handleStrengthChange = (index: number, value: string) => {
     const newStrengths = [...keyStrengthsFields];
     newStrengths[index] = value;
@@ -216,7 +229,7 @@ export default function EditListingPage({ params }: EditListingPageProps) {
                <FormField
                 control={form.control}
                 name="keyStrengthsAnonymous"
-                render={() => ( 
+                render={() => (
                   <FormItem>
                     <FormLabel>Key Strengths (Anonymous)</FormLabel>
                      <FormDescription>List 1-5 key strengths of your business.</FormDescription>
@@ -247,7 +260,7 @@ export default function EditListingPage({ params }: EditListingPageProps) {
               />
             </CardContent>
           </Card>
-          
+
           <Card className="shadow-md">
             <CardHeader>
                 <CardTitle>Section 3: Financial Summary (Ranges - Anonymous)</CardTitle>
@@ -342,11 +355,178 @@ export default function EditListingPage({ params }: EditListingPageProps) {
                   </FormItem>
                 )}
               />
+                        </CardContent>
+          </Card>
+
+          {/* Document Upload Section */}
+          <Card className="shadow-md">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Supporting Documents
+              </CardTitle>
+              <CardDescription>
+                Upload supporting documents to provide verified buyers with detailed information about your business.
+                These documents will only be visible to verified, paid buyers.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid md:grid-cols-2 gap-6">
+                <FileUploadWithProgress
+                  label="Financial Documents"
+                  description="Financial statements, tax returns, profit & loss statements"
+                  accept=".pdf,.xlsx,.xls,.csv"
+                  currentUrl={listing?.financial_documents_url}
+                  onFileChange={() => {}} // Handled by component internally
+                  onUploadComplete={(url, filePath) => {
+                    // Update local state if needed
+                    setListing(prev => prev ? { ...prev, financial_documents_url: url } : null);
+                    toast({
+                      title: "Financial Documents Updated",
+                      description: "Your financial documents have been uploaded successfully."
+                    });
+                  }}
+                  uploadEndpoint="/api/listings/upload"
+                  documentType="financial_documents"
+                  authToken={authToken}
+                  disabled={isPending}
+                  listingId={params.listingId}
+                />
+
+                <FileUploadWithProgress
+                  label="Key Metrics Report"
+                  description="Business performance metrics, KPIs, analytics reports"
+                  accept=".pdf,.xlsx,.xls,.csv"
+                  currentUrl={listing?.key_metrics_report_url}
+                  onFileChange={() => {}}
+                  onUploadComplete={(url, filePath) => {
+                    setListing(prev => prev ? { ...prev, key_metrics_report_url: url } : null);
+                    toast({
+                      title: "Key Metrics Report Updated",
+                      description: "Your key metrics report has been uploaded successfully."
+                    });
+                  }}
+                  uploadEndpoint="/api/listings/upload"
+                  documentType="key_metrics_report"
+                  authToken={authToken}
+                  disabled={isPending}
+                  listingId={params.listingId}
+                />
+
+                <FileUploadWithProgress
+                  label="Ownership Documents"
+                  description="Business registration, ownership certificates, licenses"
+                  accept=".pdf,.xlsx,.xls,.csv"
+                  currentUrl={listing?.ownership_documents_url}
+                  onFileChange={() => {}}
+                  onUploadComplete={(url, filePath) => {
+                    setListing(prev => prev ? { ...prev, ownership_documents_url: url } : null);
+                    toast({
+                      title: "Ownership Documents Updated",
+                      description: "Your ownership documents have been uploaded successfully."
+                    });
+                  }}
+                  uploadEndpoint="/api/listings/upload"
+                  documentType="ownership_documents"
+                  authToken={authToken}
+                  disabled={isPending}
+                  listingId={params.listingId}
+                />
+
+                <FileUploadWithProgress
+                  label="Financial Snapshot"
+                  description="Summary financial information, balance sheets"
+                  accept=".pdf,.xlsx,.xls,.csv"
+                  currentUrl={listing?.financial_snapshot_url}
+                  onFileChange={() => {}}
+                  onUploadComplete={(url, filePath) => {
+                    setListing(prev => prev ? { ...prev, financial_snapshot_url: url } : null);
+                    toast({
+                      title: "Financial Snapshot Updated",
+                      description: "Your financial snapshot has been uploaded successfully."
+                    });
+                  }}
+                  uploadEndpoint="/api/listings/upload"
+                  documentType="financial_snapshot"
+                  authToken={authToken}
+                  disabled={isPending}
+                  listingId={params.listingId}
+                />
+
+                <FileUploadWithProgress
+                  label="Ownership Details"
+                  description="Detailed ownership structure, shareholder information"
+                  accept=".pdf,.xlsx,.xls,.csv"
+                  currentUrl={listing?.ownership_details_url}
+                  onFileChange={() => {}}
+                  onUploadComplete={(url, filePath) => {
+                    setListing(prev => prev ? { ...prev, ownership_details_url: url } : null);
+                    toast({
+                      title: "Ownership Details Updated",
+                      description: "Your ownership details have been uploaded successfully."
+                    });
+                  }}
+                  uploadEndpoint="/api/listings/upload"
+                  documentType="ownership_details"
+                  authToken={authToken}
+                  disabled={isPending}
+                  listingId={params.listingId}
+                />
+
+                <FileUploadWithProgress
+                  label="Location & Real Estate Info"
+                  description="Property details, lease agreements, location information"
+                  accept=".pdf,.xlsx,.xls,.csv"
+                  currentUrl={listing?.location_real_estate_info_url}
+                  onFileChange={() => {}}
+                  onUploadComplete={(url, filePath) => {
+                    setListing(prev => prev ? { ...prev, location_real_estate_info_url: url } : null);
+                    toast({
+                      title: "Location Info Updated",
+                      description: "Your location and real estate information has been uploaded successfully."
+                    });
+                  }}
+                  uploadEndpoint="/api/listings/upload"
+                  documentType="location_real_estate_info"
+                  authToken={authToken}
+                  disabled={isPending}
+                  listingId={params.listingId}
+                />
+              </div>
+
+              <FileUploadWithProgress
+                label="Web Presence Information"
+                description="Website analytics, social media reports, online presence documentation"
+                accept=".pdf,.xlsx,.xls,.csv"
+                currentUrl={listing?.web_presence_info_url}
+                onFileChange={() => {}}
+                onUploadComplete={(url, filePath) => {
+                  setListing(prev => prev ? { ...prev, web_presence_info_url: url } : null);
+                  toast({
+                    title: "Web Presence Info Updated",
+                    description: "Your web presence information has been uploaded successfully."
+                  });
+                }}
+                uploadEndpoint="/api/listings/upload"
+                documentType="web_presence_info"
+                authToken={authToken}
+                disabled={isPending}
+                listingId={params.listingId}
+                className="md:col-span-2"
+              />
+
+              <div className="border-t pt-4">
+                <p className="text-sm text-muted-foreground">
+                  <strong>Note:</strong> All uploaded documents are securely stored and will only be accessible to verified buyers
+                  who have completed payment for document access. Documents help build trust and provide buyers with the detailed
+                  information they need to make informed decisions.
+                </p>
+              </div>
             </CardContent>
           </Card>
-          
+
           <Separator />
-          
+
           <div className="flex justify-end gap-4">
              <Button type="button" variant="outline" onClick={() => form.reset(listing ? {
                 listingTitleAnonymous: listing.listingTitleAnonymous,

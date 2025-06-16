@@ -60,6 +60,9 @@ export async function GET(request: NextRequest) {
         request_type,
         status,
         reason,
+        phone_number,
+        best_time_to_call,
+        user_notes,
         admin_notes,
         documents_submitted,
         created_at,
@@ -112,7 +115,7 @@ export async function GET(request: NextRequest) {
       userName: req.user_profiles.full_name,
       userRole: req.user_profiles.role as UserRole,
       userEmail: req.user_profiles.email,
-      userPhone: req.user_profiles.phone_number,
+      userPhone: req.phone_number || req.user_profiles.phone_number, // Use request phone first, fallback to profile
       userCountry: req.user_profiles.country,
       isEmailVerified: req.user_profiles.is_email_verified,
       reason: req.reason || 'User verification request',
@@ -129,7 +132,11 @@ export async function GET(request: NextRequest) {
           adminName: 'System'
         }] : []) : [],
       documentsSubmitted: req.documents_submitted || [],
-      updatedAt: new Date(req.updated_at)
+      updatedAt: new Date(req.updated_at),
+      // 🔧 FIX: Add missing contact preference fields that were in seller API but missing from buyer API
+      phoneNumber: req.phone_number, // Add phone number from request
+      bestTimeToCall: req.best_time_to_call, // Add best time to call
+      userNotes: req.user_notes, // Add user notes
     }))
 
     const responseTime = Date.now() - startTime

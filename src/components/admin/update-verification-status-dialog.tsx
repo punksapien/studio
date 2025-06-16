@@ -207,14 +207,20 @@ export function UpdateVerificationStatusDialog({
                     <UserCircle className="h-4 w-4 mr-1" />
                     Contact Information & Preferences
                   </h4>
-                  <div className="grid sm:grid-cols-2 gap-3 text-xs">
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
+                    <div>
+                      <span className="font-medium text-blue-800 dark:text-blue-200">Email:</span>
+                      <span className="ml-1 text-blue-700 dark:text-blue-300 break-all">
+                        {request.userEmail || 'Not provided'}
+                      </span>
+                    </div>
                     <div>
                       <span className="font-medium text-blue-800 dark:text-blue-200">Phone:</span>
                       <span className="ml-1 text-blue-700 dark:text-blue-300">
                         {request.phoneNumber || request.userPhone || 'Not provided'}
                       </span>
                     </div>
-                    <div>
+                    <div className="sm:col-span-2 lg:col-span-1">
                       <span className="font-medium text-blue-800 dark:text-blue-200">Best time to call:</span>
                       <span className="ml-1 text-blue-700 dark:text-blue-300">
                         {request.bestTimeToCall || 'No preference'}

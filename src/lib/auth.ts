@@ -189,6 +189,34 @@ export const auth = {
 
   // Sign in user
   async signIn(email: string, password: string) {
+    // 🔥 IMPROVEMENT: First check if the email exists to provide better error messages
+    try {
+      const emailStatus = await this.checkEmailStatus(email);
+
+      if (!emailStatus.exists) {
+        // Email doesn't exist in the system
+        throw new Error('ACCOUNT_NOT_FOUND');
+      }
+
+      if (!emailStatus.verified) {
+        // Account exists but email not verified
+        console.log(`Login failed for ${email} - email not confirmed. Attempting to resend verification.`);
+        try {
+          await this.resendVerificationUnauthenticated(email);
+        } catch (resendError) {
+          console.error('Failed to auto-resend verification during login:', resendError);
+        }
+        throw new Error('UNCONFIRMED_EMAIL');
+      }
+    } catch (error) {
+      // If it's one of our custom errors, re-throw it
+      if (error instanceof Error && (error.message === 'ACCOUNT_NOT_FOUND' || error.message === 'UNCONFIRMED_EMAIL')) {
+        throw error;
+      }
+      // If email status check fails, continue with normal login flow
+      console.warn('Email status check failed, proceeding with normal login:', error);
+    }
+
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -207,6 +235,13 @@ export const auth = {
         // This custom error will be caught by the UI to show the right message.
         throw new Error('UNCONFIRMED_EMAIL');
       }
+
+      // Handle invalid credentials more specifically
+      if (error.message.includes('Invalid login credentials')) {
+        // Since we know the email exists (from our check above), this must be wrong password
+        throw new Error('WRONG_PASSWORD');
+      }
+
       throw new Error(`Login failed: ${error.message}`)
     }
 

@@ -270,6 +270,11 @@ export default function EditSellerListingPage() {
 
   const onSubmit = async (values: ListingFormValues) => {
     try {
+      // 🔥 Show initial upload progress
+      toast({
+        title: "🚀 Starting Upload",
+        description: "Uploading your files and updating listing...",
+      });
       // Upload images and collect URLs in array format (JSONB) - same as create listing
       const imageUploadPromises: Promise<string | null>[] = [];
       const session = await supabase.auth.getSession();
@@ -282,20 +287,64 @@ export default function EditSellerListingPage() {
           if (!accessToken) throw new Error('Authentication required for image upload');
           imageUploadPromises.push(
             (async () => {
-              const formData = new FormData();
-              formData.append('file', slot.file!);
-              formData.append('document_type', `image_url_${i + 1}`);
-              const uploadResponse = await fetch('/api/listings/upload', {
-                method: 'POST',
-                body: formData,
-                headers: { 'Authorization': `Bearer ${accessToken}` }
+              return new Promise<string | null>((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                const formData = new FormData();
+                formData.append('file', slot.file!);
+                formData.append('document_type', `image_url_${i + 1}`);
+                formData.append('listing_id', listingId); // 🔥 FIX: Add listing_id for images too
+
+                console.log(`[IMAGE-UPLOAD] Starting image ${i+1} upload for listing: ${listingId}`);
+
+                xhr.upload.addEventListener('progress', (e) => {
+                  if (e.lengthComputable) {
+                    const progress = (e.loaded / e.total) * 100;
+                    console.log(`[IMAGE-UPLOAD] Image ${i+1} progress: ${progress.toFixed(1)}%`);
+                    // You can add a progress callback here if needed
+                  }
+                });
+
+                xhr.addEventListener('load', () => {
+                  if (xhr.status === 200) {
+                    try {
+                      const result = JSON.parse(xhr.responseText);
+                      console.log(`[IMAGE-UPLOAD] Image ${i+1} uploaded successfully`);
+                      resolve(result.signedUrl);
+                    } catch (e) {
+                      console.error(`[IMAGE-UPLOAD] Failed to parse response for image ${i+1}:`, e);
+                      resolve(null); // Allow partial success
+                    }
+                  } else {
+                    // Enhanced error logging with response details
+                    try {
+                      const errorResponse = JSON.parse(xhr.responseText);
+                      console.error(`[IMAGE-UPLOAD] Failed to upload image ${i+1}: ${xhr.status}`, {
+                        error: errorResponse.error,
+                        code: errorResponse.code,
+                        details: errorResponse.details
+                      });
+                    } catch (e) {
+                      console.error(`[IMAGE-UPLOAD] Failed to upload image ${i+1}: ${xhr.status} - ${xhr.responseText}`);
+                    }
+                    resolve(null); // Allow partial success
+                  }
+                });
+
+                xhr.addEventListener('error', () => {
+                  console.error(`[IMAGE-UPLOAD] Network error uploading image ${i+1}`);
+                  resolve(null); // Allow partial success
+                });
+
+                xhr.addEventListener('timeout', () => {
+                  console.error(`[IMAGE-UPLOAD] Timeout uploading image ${i+1}`);
+                  resolve(null); // Allow partial success
+                });
+
+                xhr.open('POST', '/api/listings/upload');
+                xhr.setRequestHeader('Authorization', `Bearer ${accessToken}`);
+                xhr.timeout = 60000; // 60 second timeout
+                xhr.send(formData);
               });
-              if (!uploadResponse.ok) {
-                console.error(`Failed to upload image ${i+1}`);
-                return null; // Allow partial success
-              }
-              const uploadResult = await uploadResponse.json();
-              return uploadResult.signedUrl;
             })()
           );
         } else if (slot.currentUrl) {
@@ -318,12 +367,61 @@ export default function EditSellerListingPage() {
           const dbFieldName = `${fieldName.replace(/([A-Z])/g, '_$1').toLowerCase().replace(/^_/, '')}_url`;
           if (fileOrUrl instanceof File) {
               if (!accessToken) throw new Error('Authentication required for document upload');
-              const formData = new FormData();
-              formData.append('file', fileOrUrl);
-              formData.append('document_type', fieldName.replace(/([A-Z])/g, '_$1').toLowerCase().replace(/^_/, ''));
-              const uploadResponse = await fetch('/api/listings/upload', { method: 'POST', body: formData, headers: { 'Authorization': `Bearer ${accessToken}` }});
-              if (!uploadResponse.ok) { const errorData = await uploadResponse.json(); throw new Error(errorData.error || `Failed to upload ${fieldName}`); }
-              const uploadResult = await uploadResponse.json();
+
+              console.log(`[EDIT-UPLOAD] Starting ${fieldName} upload for listing: ${listingId}`);
+
+              // 🔥 FIX: Use XMLHttpRequest for progress tracking
+              const uploadResult = await new Promise<{signedUrl: string}>((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                const formData = new FormData();
+                formData.append('file', fileOrUrl);
+                formData.append('document_type', fieldName.replace(/([A-Z])/g, '_$1').toLowerCase().replace(/^_/, ''));
+                formData.append('listing_id', listingId); // 🔥 FIX: Add listing_id for database updates
+
+                // Debug the FormData contents
+                console.log(`[EDIT-UPLOAD] FormData for ${fieldName}:`);
+                for (let [key, value] of formData.entries()) {
+                  console.log(`  ${key}:`, value instanceof File ? `File(${value.name})` : value);
+                }
+
+                let lastProgress = 0;
+                xhr.upload.addEventListener('progress', (e) => {
+                  if (e.lengthComputable) {
+                    const progress = Math.round((e.loaded / e.total) * 100);
+                    if (progress !== lastProgress && progress % 10 === 0) { // Log every 10%
+                      console.log(`[EDIT-UPLOAD] ${fieldName} progress: ${progress}%`);
+                      lastProgress = progress;
+                    }
+                  }
+                });
+
+                xhr.addEventListener('load', () => {
+                  if (xhr.status === 200) {
+                    try {
+                      const result = JSON.parse(xhr.responseText);
+                      console.log(`[EDIT-UPLOAD] ${fieldName} uploaded successfully, signedUrl: ${result.signedUrl?.substring(0, 50)}...`);
+                      resolve(result);
+                    } catch (e) {
+                      console.error(`[EDIT-UPLOAD] Failed to parse response for ${fieldName}:`, xhr.responseText);
+                      reject(new Error(`Failed to parse upload response for ${fieldName}`));
+                    }
+                  } else {
+                    console.error(`[EDIT-UPLOAD] Upload failed for ${fieldName}: ${xhr.status} - ${xhr.responseText}`);
+                    reject(new Error(`Upload failed for ${fieldName}: ${xhr.status}`));
+                  }
+                });
+
+                xhr.addEventListener('error', () => {
+                  console.error(`[EDIT-UPLOAD] Network error uploading ${fieldName}`);
+                  reject(new Error(`Network error uploading ${fieldName}`));
+                });
+
+                xhr.open('POST', '/api/listings/upload');
+                xhr.setRequestHeader('Authorization', `Bearer ${accessToken}`);
+                xhr.timeout = 60000; // 60 second timeout
+                xhr.send(formData);
+              });
+
               documentUploads[dbFieldName] = uploadResult.signedUrl;
           } else if (typeof fileOrUrl === 'string' && fileOrUrl && (listing ? listing[dbFieldName] !== fileOrUrl : true)) {
               // If it's a string and different from original, it means it was an existing URL that wasn't changed, or a new URL was pasted (though UI doesn't support this directly for files)
@@ -375,12 +473,42 @@ export default function EditSellerListingPage() {
         ...documentUploads,
       };
 
-      const response = await fetch(`/api/listings/${listingId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', }, body: JSON.stringify(updatePayload), });
-      if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.error || 'Failed to update listing'); }
-      toast({ title: "✅ Listing Updated", description: "Your business listing has been successfully updated." });
+      // 🔥 Show progress update before final save
+      toast({
+        title: "💾 Saving Changes",
+        description: "Finalizing your listing updates...",
+      });
+
+      const response = await fetch(`/api/listings/${listingId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', },
+        body: JSON.stringify(updatePayload),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update listing');
+      }
+
+      // 🔥 Enhanced success message
+      toast({
+        title: "✅ Listing Updated Successfully!",
+        description: "Your business listing and documents have been updated. Documents are now visible to verified buyers.",
+        duration: 5000,
+      });
+
       router.push('/seller-dashboard/listings');
     } catch (err) {
-      toast({ title: "❌ Update Failed", description: err instanceof Error ? err.message : "Failed to update listing. Please try again.", variant: "destructive" });
+      // 🔥 Enhanced error message
+      const errorMessage = err instanceof Error ? err.message : "Failed to update listing. Please try again.";
+      console.error('[EDIT-LISTING] Update failed:', err);
+
+      toast({
+        title: "❌ Update Failed",
+        description: `${errorMessage}. Check the console for more details.`,
+        variant: "destructive",
+        duration: 8000,
+      });
     }
   };
 

@@ -128,7 +128,18 @@ export async function GET(
       detailed_reason_for_selling: responseData.detailed_reason_for_selling,
       social_media_links: responseData.social_media_links,
       registered_business_name: responseData.registered_business_name,
-      is_seller_verified: responseData.is_seller_verified
+      is_seller_verified: responseData.is_seller_verified,
+
+      // 🔥 CRITICAL FIX: Document URLs were missing from API response
+      // This is why uploaded documents weren't appearing in the listing view
+      financial_documents_url: responseData.financial_documents_url,
+      key_metrics_report_url: responseData.key_metrics_report_url,
+      ownership_documents_url: responseData.ownership_documents_url,
+      financial_snapshot_url: responseData.financial_snapshot_url,
+      ownership_details_url: responseData.ownership_details_url,
+      location_real_estate_info_url: responseData.location_real_estate_info_url,
+      web_presence_info_url: responseData.web_presence_info_url,
+      secure_data_room_link: responseData.secure_data_room_link
     }
 
     return NextResponse.json(transformedListing)

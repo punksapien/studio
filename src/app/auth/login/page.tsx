@@ -126,6 +126,52 @@ export default function LoginPage() {
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Login failed';
 
+        // 🔥 IMPROVED ERROR HANDLING: Provide specific guidance based on error type
+        if (errorMessage === 'ACCOUNT_NOT_FOUND') {
+          setError("No account found with this email address. Please check your email or create a new account.");
+          toast({
+            variant: "destructive",
+            title: "Account Not Found",
+            description: (
+              <div className="space-y-2">
+                <p>No account exists with this email address.</p>
+                <p className="text-sm">Would you like to create a new account instead?</p>
+              </div>
+            ) as any,
+            action: (
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={() => router.push('/auth/register/buyer')}>
+                  Sign Up as Buyer
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => router.push('/auth/register/seller')}>
+                  Sign Up as Seller
+                </Button>
+              </div>
+            ) as any
+          });
+          return;
+        }
+
+        if (errorMessage === 'WRONG_PASSWORD') {
+          setError("Incorrect password. Please check your password and try again.");
+          toast({
+            variant: "destructive",
+            title: "Incorrect Password",
+            description: (
+              <div className="space-y-2">
+                <p>The password you entered is incorrect.</p>
+                <p className="text-sm">Forgot your password?</p>
+              </div>
+            ) as any,
+            action: (
+              <Button size="sm" variant="outline" onClick={() => router.push('/auth/forgot-password')}>
+                Reset Password
+              </Button>
+            ) as any
+          });
+          return;
+        }
+
         // Handle unconfirmed email case - redirect to verification
         if (errorMessage === 'UNCONFIRMED_EMAIL') {
           toast({
@@ -136,11 +182,22 @@ export default function LoginPage() {
           return;
         }
 
-        setError(errorMessage);
+        // Handle existing known error cases
+        if (errorMessage.includes('Email not confirmed')) {
+          toast({
+            title: "Email Verification Required",
+            description: "Your email needs to be verified before you can login. We've sent you a new verification email."
+          });
+          router.push(`/verify-email?email=${encodeURIComponent(values.email)}&type=login`);
+          return;
+        }
+
+        // Generic error handling for other cases
+        setError(errorMessage.replace('Login failed: ', ''));
         toast({
           variant: "destructive",
           title: "Login Failed",
-          description: errorMessage
+          description: errorMessage.replace('Login failed: ', '')
         });
       }
     });

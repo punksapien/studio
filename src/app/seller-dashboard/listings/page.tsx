@@ -626,6 +626,33 @@ export default function ManageSellerListingsPage() {
                           <MessageCircle className="h-4 w-4 mr-1 sm:mr-2" />
                           Appeal
                         </Button>
+                                        ) : listing.status === 'verified_anonymous' || listing.status === 'verified_public' ? (
+                        /* VERIFIED LISTINGS - Admin approved, seller can deactivate if needed
+                         *
+                         * STATUS EXPLANATION:
+                         * - verified_anonymous: Admin approved listing, shows basic business info publicly
+                         *   but hides detailed financials (annual revenue, net profit, cash flow, seller_id)
+                         * - verified_public: Admin approved listing, shows full verified details including
+                         *   all financial information and seller identification
+                         *
+                         * Both statuses indicate successful admin review and marketplace visibility.
+                         * Sellers can deactivate verified listings if they no longer want them active.
+                         * TODO: Consider renaming for clarity - "verified_limited" vs "verified_full"
+                         */
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDeactivate(listing.id, listing.title)}
+                          disabled={isUpdating === listing.id}
+                          className="border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        >
+                          {isUpdating === listing.id ? (
+                            <Loader2 className="h-4 w-4 mr-1 sm:mr-2 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4 mr-1 sm:mr-2" />
+                          )}
+                          Deactivate
+                        </Button>
                     ) : (
                         <Button variant="outline" size="sm" disabled className="border-input opacity-50">
                           <Clock className="h-4 w-4 mr-1 sm:mr-2" />

@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useGlobalAuth } from '@/hooks/use-cached-profile';
+import { supabase } from '@/lib/supabase';
 import type { UserProfile, User } from '@/lib/auth';
 import { mutate } from 'swr';
 
@@ -14,6 +15,8 @@ interface AuthContextValue {
   // Global cache invalidation helpers
   invalidateAuth: () => void;
   invalidateAll: () => void;
+  // 🔥 ROBUST LOGOUT: Centralized logout that handles both Supabase and cache
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -32,6 +35,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     mutate(() => true, undefined, { revalidate: false });
   };
 
+  // 🔥 CENTRALIZED LOGOUT: Handles both Supabase signout and cache invalidation
+  const logout = async () => {
+    try {
+      // First clear Supabase auth session
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Supabase logout error:', error);
+        // Continue with cache invalidation even if Supabase logout fails
+      }
+
+      // Immediately invalidate auth cache to update all components
+      invalidateAuth();
+
+      // Also refresh the auth state to ensure immediate UI update
+      await refreshAuth();
+
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Even if there's an error, try to clear the cache
+      invalidateAuth();
+      throw error; // Re-throw so components can handle the error
+    }
+  };
+
   const value: AuthContextValue = {
     user,
     profile,
@@ -40,6 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refreshAuth,
     invalidateAuth,
     invalidateAll,
+    logout,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

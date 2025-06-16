@@ -1,240 +1,138 @@
-
 'use client';
 
-import * as React from 'react';
+import React from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import ChatInterface from '@/components/shared/ChatInterface';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { ArrowLeft, Send, Paperclip, Briefcase } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import type { User, Listing, Message as MessageType } from '@/lib/types';
-import { sampleUsers, sampleListings, sampleConversations, sampleMessages } from '@/lib/placeholder-data';
+import { Card, CardContent } from '@/components/ui/card';
+import { AlertCircle, ArrowLeft, Loader2 } from 'lucide-react';
+import Link from 'next/link';
+import { useRequiredRole } from '@/hooks/use-auth-store';
 
-interface ExtendedMessage extends MessageType {
-  senderName: string;
-  isOwnMessage: boolean;
-}
-
-interface ConversationDetails {
+interface User {
   id: string;
-  otherParty: {
-    id: string;
-    name: string;
-    role: 'buyer' | 'seller';
-    avatarUrl?: string;
-  };
-  listing: {
-    id: string;
-    title: string;
-  };
-  messages: ExtendedMessage[];
+  full_name: string;
+  avatar_url?: string;
+  role: 'buyer' | 'seller';
+  verification_status: string;
 }
 
-// Placeholder current user ID - SELLER for this page
-const currentUserId = 'user1'; // John Doe (Seller) for sample conv1
-
-// Helper to format timestamp
-const formatTimestamp = (date: Date) => {
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const messageDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-
-  if (messageDate.getTime() === today.getTime()) {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  } else if (messageDate.getTime() === new Date(today.getTime() - 24 * 60 * 60 * 1000).getTime()) {
-    return 'Yesterday, ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  } else {
-    return date.toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' }) + ', ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  }
-};
-
-
-export default function SellerConversationPage() {
-  const router = useRouter();
+export default function SellerMessagePage() {
   const params = useParams();
+  const router = useRouter();
   const conversationId = params.conversationId as string;
 
-  const [conversation, setConversation] = React.useState<ConversationDetails | null>(null);
-  const [newMessage, setNewMessage] = React.useState('');
-  const [isLoading, setIsLoading] = React.useState(true);
-  const scrollAreaRef = React.useRef<HTMLDivElement>(null);
+  // Use centralized auth store - prevents redundant API calls
+  const { user, profile, isLoading, error, hasRole } = useRequiredRole('seller');
 
-  React.useEffect(() => {
-    setIsLoading(true);
-    setTimeout(() => {
-      const convData = sampleConversations.find(c => c.conversationId === conversationId && c.sellerId === currentUserId);
-      if (!convData) {
-        setConversation(null);
-        setIsLoading(false);
-        return;
-      }
-
-      const buyer = sampleUsers.find(u => u.id === convData.buyerId);
-      const seller = sampleUsers.find(u => u.id === convData.sellerId); // Should be currentUserId
-      const listing = sampleListings.find(l => l.id === convData.listingId);
-
-      if (!buyer || !seller || !listing) {
-        setConversation(null);
-        setIsLoading(false);
-        return;
-      }
-
-      const otherPartyDetails = buyer; // For seller, other party is buyer
-
-      const conversationMessages = sampleMessages
-        .filter(m => m.conversationId === conversationId)
-        .map(m => ({
-          ...m,
-          senderName: sampleUsers.find(u => u.id === m.senderId)?.fullName || 'Unknown',
-          timestamp: new Date(m.timestamp),
-          isOwnMessage: m.senderId === currentUserId,
-        }))
-        .sort((a,b) => a.timestamp.getTime() - b.timestamp.getTime());
-
-      const placeholderConversation: ConversationDetails = {
-        id: conversationId,
-        otherParty: {
-          id: otherPartyDetails.id,
-          name: otherPartyDetails.fullName,
-          role: otherPartyDetails.role,
-          avatarUrl: `https://placehold.co/40x40.png?text=${otherPartyDetails.fullName.charAt(0)}`
-        },
-        listing: {
-          id: listing.id,
-          title: listing.listingTitleAnonymous,
-        },
-        messages: conversationMessages,
-      };
-      setConversation(placeholderConversation);
-      setIsLoading(false);
-    }, 500);
-  }, [conversationId]);
-
-  React.useEffect(() => {
-    if (scrollAreaRef.current) {
-      const scrollViewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
-      if (scrollViewport) {
-        scrollViewport.scrollTop = scrollViewport.scrollHeight;
-      }
-    }
-  }, [conversation?.messages.length]);
-
-
-  const handleSendMessage = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (newMessage.trim() === '' || !conversation) return;
-
-    const messageToSend: ExtendedMessage = {
-      messageId: `m${conversation.messages.length + 1 + Date.now()}`,
-      conversationId: conversation.id,
-      senderId: currentUserId,
-      receiverId: conversation.otherParty.id,
-      senderName: sampleUsers.find(u => u.id === currentUserId)?.fullName || "Me",
-      contentText: newMessage,
-      timestamp: new Date(),
-      isRead: false,
-      isOwnMessage: true,
-    };
-
-    // Update local state for UI
-    setConversation(prev => prev ? { ...prev, messages: [...prev.messages, messageToSend] } : null);
-     // Add to placeholder data (simulating DB update)
-    sampleMessages.push({
-      messageId: messageToSend.messageId,
-      conversationId: messageToSend.conversationId,
-      senderId: messageToSend.senderId,
-      receiverId: messageToSend.receiverId,
-      contentText: messageToSend.contentText,
-      timestamp: messageToSend.timestamp,
-      isRead: false,
-    });
-
-    setNewMessage('');
-    console.log('Sending message:', messageToSend);
+  const handleBack = () => {
+    router.push('/seller-dashboard/inquiries');
   };
-  
+
+  // Format user data for ChatInterface
+  const currentUser: User | null = user && profile && hasRole ? {
+    id: user.id,
+    full_name: profile.full_name || 'Seller',
+    avatar_url: profile.avatar_url,
+    role: 'seller',
+    verification_status: profile.verification_status || 'anonymous'
+  } : null;
+
+  // Loading state
   if (isLoading) {
-    return <div className="flex h-full items-center justify-center p-6">Loading conversation...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <span>Loading conversation...</span>
+        </div>
+      </div>
+    );
   }
 
-  if (!conversation) {
-    return <div className="flex h-full items-center justify-center p-6">Conversation not found or access denied.</div>;
+  // Error state or role mismatch
+  if (error || !hasRole) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardContent className="text-center py-12">
+            <AlertCircle className="h-16 w-16 text-destructive mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-destructive mb-2">
+              Access Error
+            </h2>
+            <p className="text-muted-foreground mb-4">{error || 'This page is for sellers only'}</p>
+            <div className="space-y-2">
+              <Button asChild>
+                <Link href="/seller-dashboard/inquiries">
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back to Inquiries
+                </Link>
+              </Button>
+              {!user && (
+                <Button variant="outline" asChild>
+                  <Link href="/auth/login">
+                    Login
+                  </Link>
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Auth check
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardContent className="text-center py-12">
+            <h2 className="text-xl font-semibold mb-4">Access Denied</h2>
+            <p className="text-muted-foreground mb-4">
+              You must be logged in as a seller to view this conversation.
+            </p>
+            <Button asChild>
+              <Link href="/auth/login">Login</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-var(--sidebar-header-height,theme(spacing.20))-theme(spacing.12))] md:h-[calc(100vh-var(--sidebar-header-height,theme(spacing.20))-theme(spacing.16))] bg-brand-light-gray/30">
-      <header className="flex items-center p-3 md:p-4 border-b border-brand-light-gray bg-brand-white shadow-sm sticky top-0 z-10">
-        <Button variant="ghost" size="icon" onClick={() => router.push('/seller-dashboard/messages')} className="mr-2 md:hidden">
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <Avatar className="h-8 w-8 md:h-10 md:w-10 mr-3">
-          <AvatarImage src={conversation.otherParty.avatarUrl} alt={conversation.otherParty.name} data-ai-hint="person avatar" />
-          <AvatarFallback>{conversation.otherParty.name.charAt(0).toUpperCase()}</AvatarFallback>
-        </Avatar>
-        <div className="flex-grow">
-          <h2 className="font-semibold text-base md:text-lg text-brand-dark-blue">{conversation.otherParty.name} ({conversation.otherParty.role})</h2>
-          <p className="text-xs text-muted-foreground">
-            Regarding: <Link href={`/listings/${conversation.listing.id}`} className="hover:underline text-brand-sky-blue">{conversation.listing.title}</Link>
-          </p>
-        </div>
-        <Button variant="outline" size="sm" asChild className="border-brand-dark-blue/30 text-brand-dark-blue hover:bg-brand-light-gray/70">
-          <Link href={`/listings/${conversation.listing.id}`}>
-            <Briefcase className="h-4 w-4 mr-2" /> View Listing
-          </Link>
-        </Button>
-      </header>
-
-      <ScrollArea className="flex-grow p-3 md:p-6" ref={scrollAreaRef}>
-        <div className="space-y-3"> {/* Reduced space-y-4 to space-y-3 */}
-          {conversation.messages.map((msg) => (
-            <div
-              key={msg.messageId}
-              className={cn(
-                "flex w-full max-w-[85%] md:max-w-[70%] flex-col gap-1",
-                msg.isOwnMessage ? "ml-auto items-end" : "mr-auto items-start"
-              )}
-            >
-              <div
-                className={cn(
-                  "rounded-xl px-3.5 py-2.5 md:px-4 md:py-3 shadow-sm text-sm", // Increased padding slightly
-                  msg.isOwnMessage
-                    ? "bg-[hsl(var(--brand-sky-blue-hsl)_/_0.9)] text-brand-white rounded-br-none" // Own messages: Sky blue bg, white text
-                    : "bg-brand-white text-brand-dark-blue border border-slate-200 dark:border-slate-700 rounded-bl-none" // Other's messages: white bg, dark blue text
-                )}
-              >
-                <p className="leading-relaxed whitespace-pre-wrap">{msg.contentText}</p>
-              </div>
-              <span className="text-xs text-muted-foreground/80 px-1">
-                {formatTimestamp(msg.timestamp)}
-              </span>
-            </div>
-          ))}
-        </div>
-      </ScrollArea>
-
-      <footer className="p-3 md:p-4 border-t border-brand-light-gray bg-brand-white">
-        <form onSubmit={handleSendMessage} className="flex items-center gap-2 md:gap-3">
-          <Button variant="ghost" size="icon" type="button" className="text-muted-foreground hover:text-brand-sky-blue">
-            <Paperclip className="h-5 w-5" />
-            <span className="sr-only">Attach file</span>
+    <div className="container mx-auto px-4 py-8 max-w-4xl">
+      {/* Header */}
+      <div className="mb-6">
+        <div className="flex items-center gap-4 mb-2">
+          <Button variant="ghost" onClick={handleBack}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Inquiries
           </Button>
-          <Input
-            type="text"
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="Type your message..."
-            className="flex-grow h-10 md:h-11 text-sm md:text-base bg-brand-white border-brand-light-gray focus:ring-brand-sky-blue focus:border-brand-sky-blue"
-            autoComplete="off"
-          />
-          <Button type="submit" size="icon" className="bg-brand-dark-blue hover:bg-brand-dark-blue/90 text-brand-white h-10 w-10 md:h-11 md:w-11 rounded-full">
-            <Send className="h-5 w-5" />
-            <span className="sr-only">Send message</span>
-          </Button>
-        </form>
-      </footer>
+        </div>
+        <h1 className="text-2xl font-bold text-brand-dark-blue">
+          Conversation
+        </h1>
+        <p className="text-muted-foreground">
+          Chat with your potential buyer about the business opportunity.
+        </p>
+      </div>
+
+      {/* Chat Interface */}
+      <ChatInterface
+        conversationId={conversationId}
+        currentUser={currentUser}
+        onBack={handleBack}
+      />
+
+      {/* Help Text */}
+      <div className="mt-6 text-center">
+        <p className="text-sm text-muted-foreground">
+          This conversation is facilitated by our admin team.
+          Please maintain professional communication at all times.
+        </p>
+      </div>
     </div>
   );
 }

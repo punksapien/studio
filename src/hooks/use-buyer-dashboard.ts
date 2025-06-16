@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 
 interface DashboardStats {
   activeInquiriesCount: number
-  savedListingsCount: number
   newMessagesCount: number
   verificationStatus: 'verified' | 'pending_verification' | 'rejected' | 'anonymous'
 }
@@ -54,7 +53,6 @@ export function useBuyerDashboard(): BuyerDashboardData {
     user: null,
     stats: {
       activeInquiriesCount: 0,
-      savedListingsCount: 0,
       newMessagesCount: 0,
       verificationStatus: 'anonymous'
     },
@@ -192,7 +190,6 @@ export function useBuyerDashboard(): BuyerDashboardData {
         (inq: any) => inq.status !== 'archived' && inq.status !== 'completed'
       ).length || 0
 
-      const savedListingsCount = 0 // Placeholder - will implement saved listings later
       const newMessagesCount = 0 // Placeholder - will implement messaging later
 
       // Determine verification status
@@ -225,7 +222,6 @@ export function useBuyerDashboard(): BuyerDashboardData {
         },
         stats: {
           activeInquiriesCount,
-          savedListingsCount,
           newMessagesCount,
           verificationStatus
         },

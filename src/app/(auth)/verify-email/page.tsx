@@ -60,12 +60,7 @@ function VerifyEmailContent() {
     },
   });
 
-  useEffect(() => {
-    const tokenFromUrl = searchParams.get("token");
-    if (tokenFromUrl && email && (type === 'register' || type === 'email')) {
-      form.setValue('otp', tokenFromUrl.substring(0, 6));
-    }
-  }, [searchParams, email, type, form]);
+  // Removed auto-fill behavior for security - users must manually enter their verification code
 
   // Automatically send verification email when user arrives at page (for unverified redirects)
   const autoSend = searchParams.get("auto_send") === "true";

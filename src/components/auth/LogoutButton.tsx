@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/contexts/auth-context";
 import React from "react";
 
 interface LogoutButtonProps {
@@ -14,11 +14,13 @@ interface LogoutButtonProps {
 
 const LogoutButton: React.FC<LogoutButtonProps> = ({ fullWidth = false, className }) => {
   const router = useRouter();
+  const { logout } = useAuth();
 
   const handleLogout = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      // Use the centralized logout function that handles both Supabase and cache
+      await logout();
+
       toast({ title: "Logged out", description: "You have been signed out." });
       router.push("/");
     } catch (err) {

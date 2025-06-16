@@ -1,177 +1,253 @@
-
 'use client';
 
-import * as React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { ArrowLeft, Briefcase, UserCircle, Eye } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import type { User, Listing, Message as MessageType } from '@/lib/types';
-import { sampleUsers, sampleListings, sampleMessages, sampleConversations } from '@/lib/placeholder-data';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { ArrowLeft, Loader2, AlertCircle, ExternalLink } from 'lucide-react';
+import ChatInterface from '@/components/shared/ChatInterface';
+import { useToast } from '@/hooks/use-toast';
 
-
-interface ExtendedMessage extends MessageType {
-  senderName: string;
-  isOwnMessage?: boolean; // Not relevant for admin view, but keep for consistency if reusing components
-}
-
-interface ConversationDetails {
+interface User {
   id: string;
-  buyer: User;
-  seller: User;
-  listing: Listing;
-  messages: ExtendedMessage[];
-  status: string;
+  full_name: string;
+  avatar_url?: string;
+  role: 'buyer' | 'seller' | 'admin';
+  verification_status: string;
 }
 
-// Helper to format timestamp
-const formatTimestamp = (date: Date | string) => {
-  const d = typeof date === 'string' ? new Date(date) : date;
-  return d.toLocaleString([], { dateStyle: 'short', timeStyle: 'short' });
-};
+interface Listing {
+  id: string;
+  listing_title_anonymous: string;
+  asking_price: number;
+  industry: string;
+}
 
+interface ConversationData {
+  id: string;
+  inquiryId: string;
+  listingId: string;
+  buyerId: string;
+  sellerId: string;
+  status: string;
+  createdAt: string;
+  listing?: Listing;
+  buyer?: User;
+  seller?: User;
+}
 
 export default function AdminConversationViewPage() {
   const router = useRouter();
   const params = useParams();
-  const conversationId = params.conversationId as string;
+  const { toast } = useToast();
+  const routeId = params.conversationId as string; // Could be conversation ID or inquiry ID
 
-  const [conversation, setConversation] = React.useState<ConversationDetails | null>(null);
-  const [isLoading, setIsLoading] = React.useState(true);
-  const scrollAreaRef = React.useRef<HTMLDivElement>(null);
+  const [conversation, setConversation] = useState<ConversationData | null>(null);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  React.useEffect(() => {
+  // Mock admin user for ChatInterface
+  const adminUser: User = {
+    id: 'admin-user',
+    full_name: 'Admin',
+    role: 'admin',
+    verification_status: 'verified'
+  };
+
+  useEffect(() => {
+    const fetchConversation = async () => {
+      try {
     setIsLoading(true);
-    setTimeout(() => {
-      const convData = sampleConversations.find(c => c.conversationId === conversationId);
-      if (!convData) {
-        setConversation(null);
-        setIsLoading(false);
+        setError(null);
+
+        // First, try to fetch as conversation ID
+        let response = await fetch(`/api/conversations/${routeId}`, {
+          credentials: 'include'
+        });
+
+        if (response.ok) {
+          // It's a conversation ID
+          const data = await response.json();
+          setConversation(data.conversation);
+          setConversationId(routeId);
         return;
       }
 
-      const buyer = sampleUsers.find(u => u.id === convData.buyerId);
-      const seller = sampleUsers.find(u => u.id === convData.sellerId);
-      const listing = sampleListings.find(l => l.id === convData.listingId);
+        // If that failed, try to find conversation by inquiry ID
+        response = await fetch(`/api/inquiries/${routeId}`, {
+          credentials: 'include'
+        });
 
-      if (!buyer || !seller || !listing) {
-        setConversation(null);
+        if (!response.ok) {
+          throw new Error('Neither conversation nor inquiry found with this ID');
+        }
+
+        const inquiryData = await response.json();
+        const inquiry = inquiryData.inquiry;
+
+        if (!inquiry.conversation_id) {
+          throw new Error('This inquiry does not have an associated conversation yet');
+        }
+
+        // Now fetch the conversation using the conversation_id from the inquiry
+        const conversationResponse = await fetch(`/api/conversations/${inquiry.conversation_id}`, {
+          credentials: 'include'
+        });
+
+        if (!conversationResponse.ok) {
+          throw new Error('Failed to fetch conversation details');
+        }
+
+        const conversationData = await conversationResponse.json();
+        setConversation(conversationData.conversation);
+        setConversationId(inquiry.conversation_id);
+
+      } catch (err) {
+        console.error('Error fetching conversation:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load conversation');
+      } finally {
         setIsLoading(false);
-        return;
       }
+    };
 
-      const conversationMessages = sampleMessages
-        .filter(m => m.conversationId === conversationId)
-        .map(m => ({
-          ...m,
-          senderName: sampleUsers.find(u => u.id === m.senderId)?.fullName || 'Unknown User',
-          timestamp: new Date(m.timestamp), // Ensure timestamp is a Date object
-        }))
-        .sort((a,b) => a.timestamp.getTime() - b.timestamp.getTime());
-
-      setConversation({
-        id: convData.conversationId,
-        buyer,
-        seller,
-        listing,
-        messages: conversationMessages,
-        status: convData.status || 'ACTIVE',
-      });
-      setIsLoading(false);
-    }, 500);
-  }, [conversationId]);
-
-  React.useEffect(() => {
-    if (scrollAreaRef.current) {
-      const scrollViewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
-      if (scrollViewport) {
-        scrollViewport.scrollTop = scrollViewport.scrollHeight;
-      }
+    if (routeId) {
+      fetchConversation();
     }
-  }, [conversation?.messages.length]);
+  }, [routeId]);
 
   if (isLoading) {
-    return <div className="flex h-full items-center justify-center p-6">Loading conversation details...</div>;
+    return (
+      <div className="flex h-full items-center justify-center p-6">
+        <div className="flex items-center gap-2">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <span>Loading conversation...</span>
+        </div>
+      </div>
+    );
   }
 
-  if (!conversation) {
-    return <div className="flex h-full items-center justify-center p-6">Conversation not found.</div>;
+  if (error) {
+    return (
+      <div className="flex h-full items-center justify-center p-6">
+        <Card className="w-full max-w-md">
+          <CardContent className="text-center py-8">
+            <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+            <h2 className="text-lg font-semibold text-destructive mb-2">Error Loading Conversation</h2>
+            <p className="text-muted-foreground mb-4">{error}</p>
+            <div className="flex gap-2 justify-center">
+              <Button variant="outline" onClick={() => router.back()}>
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Go Back
+              </Button>
+              <Button onClick={() => window.location.reload()}>
+                Try Again
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
+
+  if (!conversation || !conversationId) {
+    return (
+      <div className="flex h-full items-center justify-center p-6">
+        <Card className="w-full max-w-md">
+          <CardContent className="text-center py-8">
+            <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h2 className="text-lg font-semibold mb-2">Conversation Not Found</h2>
+            <p className="text-muted-foreground mb-4">
+              The conversation you're looking for doesn't exist or hasn't been created yet.
+            </p>
+            <Button variant="outline" onClick={() => router.back()}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Go Back
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(price);
+  };
 
   return (
-    <div className="flex flex-col h-full max-h-[calc(100vh-var(--admin-sidebar-header-height,theme(spacing.20))-theme(spacing.12))] bg-brand-light-gray/30">
-      <header className="flex items-center p-3 md:p-4 border-b border-brand-light-gray bg-brand-white shadow-sm sticky top-0 z-10">
-        <Button variant="ghost" size="icon" onClick={() => router.back()} className="mr-2">
+    <div className="flex flex-col h-full max-h-[calc(100vh-4rem)] bg-background">
+      {/* Header */}
+      <div className="flex items-center gap-4 p-4 border-b bg-card">
+        <Button variant="ghost" size="icon" onClick={() => router.back()}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <div className="flex-grow">
-          <h2 className="font-semibold text-base md:text-lg text-brand-dark-blue">Admin View: Conversation</h2>
-          <p className="text-xs text-muted-foreground">
-            Between: {conversation.buyer.fullName} (Buyer) & {conversation.seller.fullName} (Seller)
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Regarding: <Link href={`/listings/${conversation.listing.id}`} className="hover:underline text-brand-sky-blue">{conversation.listing.listingTitleAnonymous}</Link>
-          </p>
-        </div>
-        <Badge variant={conversation.status === 'ACTIVE' ? 'default' : 'secondary'}
-               className={conversation.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-700'}>
-            Status: {conversation.status}
-        </Badge>
-      </header>
 
-      <ScrollArea className="flex-grow p-3 md:p-6" ref={scrollAreaRef}>
-        <div className="space-y-4">
-          {conversation.messages.map((msg) => {
-            const isBuyerSender = msg.senderId === conversation.buyer.id;
-            return (
-            <div
-              key={msg.messageId}
-              className={cn(
-                "flex w-full max-w-[85%] md:max-w-[70%] flex-col gap-1",
-                isBuyerSender ? "mr-auto items-start" : "ml-auto items-end" // Buyer on left, Seller on right
-              )}
-            >
-              <div className="text-xs text-muted-foreground px-1 mb-0.5 font-medium">
-                {msg.senderName} ({isBuyerSender ? 'Buyer' : 'Seller'})
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            <h1 className="text-lg font-semibold">Admin Conversation View</h1>
+            <Badge variant={conversation.status === 'ACTIVE' ? 'default' : 'secondary'}>
+              {conversation.status}
+            </Badge>
+        </div>
+
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <span>
+              <strong>Buyer:</strong> {conversation.buyer?.full_name}
+            </span>
+            <span>•</span>
+            <span>
+              <strong>Seller:</strong> {conversation.seller?.full_name}
+            </span>
+            {conversation.listing && (
+              <>
+                <span>•</span>
+                <Link
+                  href={`/listings/${conversation.listingId}`}
+                  className="hover:underline text-primary flex items-center gap-1"
+                  target="_blank"
+                >
+                  {conversation.listing.listing_title_anonymous}
+                  <ExternalLink className="h-3 w-3" />
+                </Link>
+              </>
+            )}
               </div>
-              <div
-                className={cn(
-                  "rounded-xl px-3 py-2 md:px-4 md:py-2.5 shadow-sm text-sm",
-                  isBuyerSender
-                    ? "bg-brand-white text-brand-dark-blue border border-slate-200 dark:border-slate-700 rounded-bl-none" // Buyer messages
-                    : "bg-brand-sky-blue/90 text-brand-white rounded-br-none" // Seller messages
-                )}
-              >
-                <p className="leading-relaxed whitespace-pre-wrap">{msg.contentText}</p>
               </div>
-              <span className="text-xs text-muted-foreground/80 px-1">
-                {formatTimestamp(msg.timestamp)}
-              </span>
+
+        {conversation.listing && (
+          <div className="text-right">
+            <div className="text-sm font-medium">
+              {formatPrice(conversation.listing.asking_price)}
             </div>
-          )})}
-          {conversation.messages.length === 0 && (
-            <div className="text-center py-10 text-muted-foreground">
-              <p>No messages in this conversation yet.</p>
+            <div className="text-xs text-muted-foreground">
+              {conversation.listing.industry}
+            </div>
             </div>
           )}
         </div>
-      </ScrollArea>
 
-      <footer className="p-3 md:p-4 border-t border-brand-light-gray bg-brand-white">
+      {/* Chat Interface */}
+      <div className="flex-1 overflow-hidden">
+        <ChatInterface
+          conversationId={conversationId}
+          currentUser={adminUser}
+          onBack={() => router.back()}
+        />
+      </div>
+
+      {/* Admin Footer */}
+      <div className="p-3 border-t bg-muted/30">
         <p className="text-xs text-muted-foreground text-center">
-          This is a read-only admin view of the conversation. Actions like sending messages or archiving are placeholders.
+          Admin view - You can observe this conversation between the buyer and seller.
         </p>
-        {/* Placeholder for admin actions */}
-        <div className="mt-2 flex justify-end gap-2">
-            <Button variant="outline" size="sm" disabled>Archive Conversation (Placeholder)</Button>
         </div>
-      </footer>
     </div>
   );
 }

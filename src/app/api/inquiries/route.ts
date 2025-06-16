@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
       console.error('Error checking existing inquiry:', checkError);
       return NextResponse.json({ error: 'Failed to check existing inquiry' }, { status: 500 });
     }
-    
+
     if (existingInquiry) {
       return NextResponse.json({
         error: 'You have already submitted an inquiry for this listing.',
@@ -130,13 +130,13 @@ export async function POST(request: NextRequest) {
       }, { status: 409 }); // 409 Conflict
     }
 
-    // Create the inquiry
+        // Create the inquiry with the buyer's initial message
     const inquiryData = {
       buyer_id: user.id,
       seller_id: listing.seller_id,
       listing_id: listing_id,
-      status: 'new_inquiry', // Changed from 'pending' to 'new_inquiry' to match types
-      initial_message: message || null, // Store optional message, default to null
+      status: 'new_inquiry',
+      initial_message: message || null, // Store the buyer's message
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
@@ -154,7 +154,7 @@ export async function POST(request: NextRequest) {
 
     // Log the successful inquiry creation
     console.log(`[INQUIRY-CREATED] Buyer ${user.id} created inquiry for listing ${listing_id}`);
-    
+
     // TODO: Trigger notification to seller
 
     return NextResponse.json({
@@ -168,4 +168,3 @@ export async function POST(request: NextRequest) {
   }
 }
 
-    

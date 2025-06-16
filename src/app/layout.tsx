@@ -6,6 +6,7 @@ import NoticeListener from '@/components/NoticeListener';
 import { DebugState } from '@/components/shared/DebugState';
 import { AuthProvider } from '@/contexts/auth-context';
 import { SWRProvider } from '@/contexts/swr-provider';
+import { QueryProvider } from '@/contexts/query-provider';
 
 export const metadata: Metadata = {
   title: 'Nobridge - Business Marketplace Platform',
@@ -36,16 +37,18 @@ export default function RootLayout({
         />
       </head>
       <body className="font-sans antialiased flex flex-col min-h-screen bg-background text-foreground">
-        <SWRProvider>
-          <AuthProvider>
-            <GlobalLayoutWrapper>
-              {children}
-            </GlobalLayoutWrapper>
-            <NoticeListener />
-            <Toaster />
-            <DebugState />
-          </AuthProvider>
-        </SWRProvider>
+        <QueryProvider>
+          <SWRProvider>
+            <AuthProvider>
+              <GlobalLayoutWrapper>
+                {children}
+              </GlobalLayoutWrapper>
+              <NoticeListener />
+              <Toaster />
+              <DebugState />
+            </AuthProvider>
+          </SWRProvider>
+        </QueryProvider>
       </body>
     </html>
   );

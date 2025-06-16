@@ -210,63 +210,17 @@ export default function CreateSellerListingPage() {
           return;
         }
 
-        const documentUploads: Record<string, string | null> = {};
-        const documentFieldsToUpload = [
-          'financialDocuments', 'keyMetricsReport', 'ownershipDocuments',
-          'financialSnapshot', 'ownershipDetails', 'locationRealEstateInfo', 'webPresenceInfo'
-        ];
+        // 🔥 STEP 1: Create listing first (without documents) to get listing ID
+        toast({
+          title: "🚀 Creating Listing",
+          description: "Setting up your business listing...",
+        });
 
         const session = await supabase.auth.getSession();
         const accessToken = session.data.session?.access_token;
+        if (!accessToken) throw new Error('Authentication required');
 
-        for (const fieldName of documentFieldsToUpload) {
-          const file = values[fieldName as keyof ListingFormValues] as File | undefined;
-          const dbFieldName = `${fieldName.replace(/([A-Z])/g, '_$1').toLowerCase().replace(/^_/, '')}_url`;
-          if (file) {
-            if (!accessToken) throw new Error('Authentication required for document upload');
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('document_type', fieldName.replace(/([A-Z])/g, '_$1').toLowerCase().replace(/^_/, ''));
-            const uploadResponse = await fetch('/api/listings/upload', { method: 'POST', body: formData, headers: { 'Authorization': `Bearer ${accessToken}` }});
-            if (!uploadResponse.ok) { const errorData = await uploadResponse.json(); throw new Error(errorData.error || `Failed to upload ${fieldName}`); }
-            const uploadResult = await uploadResponse.json();
-            documentUploads[dbFieldName] = uploadResult.signedUrl;
-          } else {
-            documentUploads[dbFieldName] = null; // Explicitly set to null if no file
-          }
-        }
-
-        // Upload images and collect URLs in array format (JSONB)
-        const imageUploadPromises: Promise<string | null>[] = [];
-        for (let i = 0; i < 5; i++) {
-          const file = values[`imageFile${i + 1}` as keyof ListingFormValues] as File | undefined;
-          if (file) {
-            if (!accessToken) throw new Error('Authentication required for image upload');
-            imageUploadPromises.push(
-              (async () => {
-                const formData = new FormData();
-                formData.append('file', file);
-                formData.append('document_type', `image_url_${i + 1}`); // Use correct document type for upload API
-                const uploadResponse = await fetch('/api/listings/upload', { method: 'POST', body: formData, headers: { 'Authorization': `Bearer ${accessToken}` } });
-                if (!uploadResponse.ok) {
-                  console.error(`Failed to upload image ${i+1}`);
-                  return null; // Allow partial success
-                }
-                const uploadResult = await uploadResponse.json();
-                return uploadResult.signedUrl;
-              })()
-            );
-          } else {
-            imageUploadPromises.push(Promise.resolve(null));
-          }
-        }
-
-        const uploadedImageUrlsResults = await Promise.all(imageUploadPromises);
-        // Filter out null values to create clean array for JSONB storage
-        const imageUrls = uploadedImageUrlsResults.filter(url => url !== null);
-
-
-        const submissionData = {
+        const initialSubmissionData = {
           listingTitleAnonymous: String(values.listingTitleAnonymous).trim(),
           anonymousBusinessDescription: String(values.anonymousBusinessDescription).trim(),
           askingPrice: Number(values.askingPrice),
@@ -300,19 +254,233 @@ export default function CreateSellerListingPage() {
           sellerRoleAndTimeCommitment: values.sellerRoleAndTimeCommitment ? String(values.sellerRoleAndTimeCommitment).trim() : null,
           postSaleTransitionSupport: values.postSaleTransitionSupport ? String(values.postSaleTransitionSupport).trim() : null,
           secureDataRoomLink: values.secureDataRoomLink ? String(values.secureDataRoomLink).trim() : null,
+          // Start with empty arrays - will be updated after uploads
+          image_urls: [],
+        };
+
+        const createResponse = await fetch('/api/listings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', },
+          body: JSON.stringify(initialSubmissionData),
+        });
+
+        if (!createResponse.ok) {
+          const errorData = await createResponse.json();
+          throw new Error(errorData.error || 'Failed to create listing');
+        }
+
+        const createdListing = await createResponse.json();
+        const listingId = createdListing.listing.id;
+
+        console.log(`[CREATE-LISTING] Created listing with ID: ${listingId}`);
+
+        // 🔥 STEP 2: Upload documents with correct listing ID
+        toast({
+          title: "📁 Uploading Documents",
+          description: "Uploading your business documents...",
+        });
+
+        const documentUploads: Record<string, string | null> = {};
+        const documentFieldsToUpload = [
+          'financialDocuments', 'keyMetricsReport', 'ownershipDocuments',
+          'financialSnapshot', 'ownershipDetails', 'locationRealEstateInfo', 'webPresenceInfo'
+        ];
+
+        for (const fieldName of documentFieldsToUpload) {
+          const file = values[fieldName as keyof ListingFormValues] as File | undefined;
+          const dbFieldName = `${fieldName.replace(/([A-Z])/g, '_$1').toLowerCase().replace(/^_/, '')}_url`;
+          if (file) {
+            console.log(`[CREATE-UPLOAD] Starting ${fieldName} upload for listing: ${listingId}`);
+
+            // 🔥 FIX: Use XMLHttpRequest for progress tracking
+            const uploadResult = await new Promise<{signedUrl: string}>((resolve, reject) => {
+              const xhr = new XMLHttpRequest();
+              const formData = new FormData();
+              formData.append('file', file);
+              formData.append('document_type', fieldName.replace(/([A-Z])/g, '_$1').toLowerCase().replace(/^_/, ''));
+              formData.append('listing_id', listingId); // 🔥 FIX: Now we have the listing ID!
+
+              let lastProgress = 0;
+              xhr.upload.addEventListener('progress', (e) => {
+                if (e.lengthComputable) {
+                  const progress = Math.round((e.loaded / e.total) * 100);
+                  if (progress !== lastProgress && progress % 20 === 0) { // Log every 20%
+                    console.log(`[CREATE-UPLOAD] ${fieldName} progress: ${progress}%`);
+                    lastProgress = progress;
+                  }
+                }
+              });
+
+              xhr.addEventListener('load', () => {
+                if (xhr.status === 200) {
+                  try {
+                    const result = JSON.parse(xhr.responseText);
+                    console.log(`[CREATE-UPLOAD] ${fieldName} uploaded successfully`);
+                    resolve(result);
+                  } catch (e) {
+                    console.error(`[CREATE-UPLOAD] Failed to parse response for ${fieldName}:`, e);
+                    reject(new Error(`Failed to parse upload response for ${fieldName}`));
+                  }
+                } else {
+                  // Enhanced error logging with response details
+                  try {
+                    const errorResponse = JSON.parse(xhr.responseText);
+                    console.error(`[CREATE-UPLOAD] Upload failed for ${fieldName}: ${xhr.status}`, {
+                      error: errorResponse.error,
+                      code: errorResponse.code,
+                      details: errorResponse.details
+                    });
+                    reject(new Error(`Upload failed for ${fieldName}: ${errorResponse.error || xhr.status}`));
+                  } catch (e) {
+                    console.error(`[CREATE-UPLOAD] Upload failed for ${fieldName}: ${xhr.status} - ${xhr.responseText}`);
+                    reject(new Error(`Upload failed for ${fieldName}: ${xhr.status}`));
+                  }
+                }
+              });
+
+              xhr.addEventListener('error', () => {
+                console.error(`[CREATE-UPLOAD] Network error uploading ${fieldName}`);
+                reject(new Error(`Network error uploading ${fieldName}`));
+              });
+
+              xhr.addEventListener('timeout', () => {
+                console.error(`[CREATE-UPLOAD] Timeout uploading ${fieldName}`);
+                reject(new Error(`Timeout uploading ${fieldName}`));
+              });
+
+              xhr.open('POST', '/api/listings/upload');
+              xhr.setRequestHeader('Authorization', `Bearer ${accessToken}`);
+              xhr.timeout = 60000; // 60 second timeout
+              xhr.send(formData);
+            });
+
+            documentUploads[dbFieldName] = uploadResult.signedUrl;
+          } else {
+            documentUploads[dbFieldName] = null; // Explicitly set to null if no file
+          }
+        }
+
+        // 🔥 STEP 3: Upload images with listing ID
+        toast({
+          title: "🖼️ Uploading Images",
+          description: "Uploading your business images...",
+        });
+
+        const imageUploadPromises: Promise<string | null>[] = [];
+        for (let i = 0; i < 5; i++) {
+          const file = values[`imageFile${i + 1}` as keyof ListingFormValues] as File | undefined;
+          if (file) {
+            imageUploadPromises.push(
+              (async () => {
+                return new Promise<string | null>((resolve, reject) => {
+                  const xhr = new XMLHttpRequest();
+                  const formData = new FormData();
+                  formData.append('file', file);
+                  formData.append('document_type', `image_url_${i + 1}`);
+                  formData.append('listing_id', listingId); // 🔥 FIX: Now we have the listing ID!
+
+                  console.log(`[CREATE-IMAGE] Starting image ${i+1} upload for listing: ${listingId}`);
+
+                  xhr.upload.addEventListener('progress', (e) => {
+                    if (e.lengthComputable) {
+                      const progress = (e.loaded / e.total) * 100;
+                      console.log(`[CREATE-IMAGE] Image ${i+1} progress: ${progress.toFixed(1)}%`);
+                    }
+                  });
+
+                  xhr.addEventListener('load', () => {
+                    if (xhr.status === 200) {
+                      try {
+                        const result = JSON.parse(xhr.responseText);
+                        console.log(`[CREATE-IMAGE] Image ${i+1} uploaded successfully`);
+                        resolve(result.signedUrl);
+                      } catch (e) {
+                        console.error(`[CREATE-IMAGE] Failed to parse response for image ${i+1}:`, e);
+                        resolve(null); // Allow partial success
+                      }
+                    } else {
+                      // Enhanced error logging with response details
+                      try {
+                        const errorResponse = JSON.parse(xhr.responseText);
+                        console.error(`[CREATE-IMAGE] Failed to upload image ${i+1}: ${xhr.status}`, {
+                          error: errorResponse.error,
+                          code: errorResponse.code,
+                          details: errorResponse.details
+                        });
+                      } catch (e) {
+                        console.error(`[CREATE-IMAGE] Failed to upload image ${i+1}: ${xhr.status} - ${xhr.responseText}`);
+                      }
+                      resolve(null); // Allow partial success
+                    }
+                  });
+
+                  xhr.addEventListener('error', () => {
+                    console.error(`[CREATE-IMAGE] Network error uploading image ${i+1}`);
+                    resolve(null); // Allow partial success
+                  });
+
+                  xhr.addEventListener('timeout', () => {
+                    console.error(`[CREATE-IMAGE] Timeout uploading image ${i+1}`);
+                    resolve(null); // Allow partial success
+                  });
+
+                  xhr.open('POST', '/api/listings/upload');
+                  xhr.setRequestHeader('Authorization', `Bearer ${accessToken}`);
+                  xhr.timeout = 60000; // 60 second timeout
+                  xhr.send(formData);
+                });
+              })()
+            );
+          } else {
+            imageUploadPromises.push(Promise.resolve(null));
+          }
+        }
+
+        const uploadedImageUrlsResults = await Promise.all(imageUploadPromises);
+        // Filter out null values to create clean array for JSONB storage
+        const imageUrls = uploadedImageUrlsResults.filter(url => url !== null);
+
+
+        // 🔥 STEP 4: Update listing with uploaded URLs
+        toast({
+          title: "🔄 Finalizing Listing",
+          description: "Linking your documents to the listing...",
+        });
+
+        const updatePayload = {
           // Use JSONB array format for images (matches database schema)
           image_urls: imageUrls,
           ...documentUploads,
         };
 
-        const response = await fetch('/api/listings', { method: 'POST', headers: { 'Content-Type': 'application/json', }, body: JSON.stringify(submissionData), });
-        if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.error || 'Failed to create listing'); }
-        const result = await response.json();
+        const updateResponse = await fetch(`/api/listings/${listingId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', },
+          body: JSON.stringify(updatePayload),
+        });
+
+        if (!updateResponse.ok) {
+          const errorData = await updateResponse.json();
+          throw new Error(errorData.error || 'Failed to update listing with documents');
+        }
+
+        const result = await updateResponse.json();
+        console.log(`[CREATE-LISTING] Updated listing ${listingId} with ${imageUrls.length} images and ${Object.keys(documentUploads).filter(k => documentUploads[k]).length} documents`);
 
         setPreviewUrls([null, null, null, null, null]); // Clear previews
         clearSavedData();
         form.reset();
-        toast({ title: "✅ Listing Created!", description: `"${submissionData.listingTitleAnonymous}" submitted. Status: ${result.listing?.status || 'active'}.` });
+
+        // 🔥 Enhanced success message
+        const uploadedDocsCount = Object.keys(documentUploads).filter(k => documentUploads[k]).length;
+        const uploadedImagesCount = imageUrls.length;
+
+        toast({
+          title: "✅ Listing Created Successfully!",
+          description: `Your listing has been created with ${uploadedDocsCount} documents and ${uploadedImagesCount} images. Documents are now visible to verified buyers.`,
+          duration: 5000,
+        });
+
         router.push('/seller-dashboard/listings?created=true');
 
       } catch (error) {

@@ -17,8 +17,7 @@ import { cn } from '@/lib/utils';
 import { usePathname, useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { Logo } from '@/components/shared/logo';
-import { useCurrentUser } from '@/hooks/use-current-user';
-import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/auth-context';
 
 interface NavLinkItem {
   href: string;
@@ -65,8 +64,8 @@ export function Navbar() {
   const router = useRouter();
   const { toast } = useToast();
 
-  // Use the centralized useCurrentUser hook instead of managing auth state separately
-  const { user, profile: userProfile, loading: isLoading } = useCurrentUser();
+  // Use the robust auth context instead of deprecated hook
+  const { user, profile: userProfile, isLoading, logout } = useAuth();
   const isAuthenticated = !!user;
 
   const [sellMenuOpen, setSellMenuOpen] = useState(false);
@@ -79,10 +78,8 @@ export function Navbar() {
 
   const handleLogout = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        throw error;
-      }
+      // Use the centralized logout function that handles both Supabase and cache
+      await logout();
 
       toast({
         title: "Logged out successfully",

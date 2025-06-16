@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -9,24 +8,24 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { 
-  AlertDialog, 
-  AlertDialogContent, 
-  AlertDialogHeader, 
-  AlertDialogTitle, 
-  AlertDialogDescription, 
-  AlertDialogFooter, 
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
   AlertDialogCancel,
   AlertDialogAction // Added AlertDialogAction
 } from '@/components/ui/alert-dialog';
-import { 
+import {
   Dialog, // Added Dialog components for inquiry
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogDescription, 
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
   DialogFooter,
-  DialogClose 
+  DialogClose
 } from '@/components/ui/dialog';
 import {
   MapPin, DollarSign, Briefcase, ShieldCheck, MessageSquare, CalendarDays, UserCircle,
@@ -131,8 +130,8 @@ function ImageGallery({ imageUrls, listingTitle }: { imageUrls?: string[]; listi
         </div>
       )}
     </div>
-  );
-}
+      );
+  }
 
 export default function ListingDetailPage() {
   const params = useParams();
@@ -174,9 +173,40 @@ export default function ListingDetailPage() {
         const response = await fetch('/api/auth/current-user');
         if (response.ok) {
           const data = await response.json();
-          setCurrentUser(data.profile ? { ...data.profile, id: data.user.id, email: data.user.email } : null);
-        } else { setCurrentUser(null); }
-      } catch (error) { console.error('Error fetching user:', error); setCurrentUser(null); }
+
+          // Transform the data to ensure proper field access
+          const transformedUser = data.profile ? {
+            // Merge user and profile data with proper field normalization
+            ...data.profile,
+            id: data.user.id,
+            email: data.user.email,
+
+            // Ensure verification status is accessible in multiple formats
+            verificationStatus: data.profile.verificationStatus || data.profile.verification_status || 'anonymous',
+            verification_status: data.profile.verification_status || data.profile.verificationStatus || 'anonymous',
+
+            // Ensure payment status is properly set
+            isPaid: data.profile.isPaid || (data.profile.verification_status === 'verified') || (data.profile.verificationStatus === 'verified'),
+
+            // Normalize other commonly used fields
+            phoneNumber: data.profile.phoneNumber || data.profile.phone_number,
+            phone_number: data.profile.phone_number || data.profile.phoneNumber,
+
+            isOnboardingCompleted: data.profile.isOnboardingCompleted || data.profile.is_onboarding_completed,
+            is_onboarding_completed: data.profile.is_onboarding_completed || data.profile.isOnboardingCompleted,
+
+            isEmailVerified: data.profile.isEmailVerified || data.profile.is_email_verified,
+            is_email_verified: data.profile.is_email_verified || data.profile.isEmailVerified
+          } : null;
+
+          setCurrentUser(transformedUser);
+        } else {
+          setCurrentUser(null);
+        }
+      } catch (error) {
+        console.error('Error fetching user:', error);
+        setCurrentUser(null);
+      }
     };
     fetchCurrentUser();
   }, []);
@@ -220,7 +250,10 @@ export default function ListingDetailPage() {
 
   if (!listing) { notFound(); return null; }
 
-  const canViewVerifiedDetails = listing.is_seller_verified && currentUser && ((currentUser.id === listing.seller_id) || (currentUser.verificationStatus === 'verified' && currentUser.isPaid));
+  const canViewVerifiedDetails = listing.is_seller_verified && currentUser && (
+    (currentUser.id === listing.seller_id) || // Seller can always see their own documents
+    (isVerifiedBuyer(currentUser)) // Verified buyers with payment access
+  );
 
   const handleInquireClick = () => {
     if (!currentUser) {
@@ -238,7 +271,7 @@ export default function ListingDetailPage() {
     }
     setShowInquiryDialog(true);
   };
-  
+
   const handleInquirySubmit = async () => {
     if (!currentUser || !listingId) return;
     setIsSubmittingInquiry(true);
@@ -272,13 +305,36 @@ export default function ListingDetailPage() {
 
   const handleOpenConversation = () => {
     if (!currentUser || currentUser.role === 'seller') { /* ... */ return; }
-    if (!listing.is_seller_verified) { setShowVerificationPopup(true); } 
+    if (!listing.is_seller_verified) { setShowVerificationPopup(true); }
     else { console.log("Open conversation clicked for listing:", listing.id); toast({ title: "Opening Conversation...", description: `Connecting you with the seller of "${listing.title}".` }); /* router.push(...) */ }
   };
 
   const DocumentLink = ({ href, children }: { href?: string; children: React.ReactNode }) => {
-    if (!canViewVerifiedDetails) { return <p className="text-sm text-muted-foreground italic">Details available to paid, verified buyers.</p>; }
-    if (!href || href.trim() === "" || href.trim() === "#") { return <p className="text-sm text-slate-600">Document not provided by seller.</p>; }
+    const isOwner = currentUser && currentUser.id === listing.seller_id;
+    const isVerifiedBuyerUser = currentUser && isVerifiedBuyer(currentUser);
+
+    // 🔥 FIX: Sellers can ALWAYS see their own documents
+    if (isOwner) {
+      if (!href || href.trim() === "" || href.trim() === "#") {
+        return <p className="text-sm text-slate-600">You haven't uploaded this document yet. <Link href={`/seller-dashboard/listings/${listing.id}/edit`} className="text-blue-600 hover:underline">Upload now</Link></p>;
+      }
+      return <Link href={href} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:text-blue-800 hover:underline font-medium flex items-center gap-1"><FileText className="h-4 w-4"/>{children}</Link>;
+    }
+
+    // For buyers: need listing to be verified AND buyer to be verified+paid
+    if (!listing.is_seller_verified) {
+      return <p className="text-sm text-muted-foreground italic">Details available when listing is verified by admin.</p>;
+    }
+
+    if (!isVerifiedBuyerUser) {
+      return <p className="text-sm text-muted-foreground italic">Details available to paid, verified buyers.</p>;
+    }
+
+    // Verified buyer viewing verified listing
+    if (!href || href.trim() === "" || href.trim() === "#") {
+      return <p className="text-sm text-slate-600">Document not provided by seller.</p>;
+    }
+
     return <Link href={href} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:text-blue-800 hover:underline font-medium flex items-center gap-1"><FileText className="h-4 w-4"/>{children}</Link>;
   };
 
@@ -301,9 +357,9 @@ export default function ListingDetailPage() {
         </CardHeader>
         <CardContent className="p-6 md:p-8 pt-0 grid lg:grid-cols-12 gap-8">
             <div className="lg:col-span-8 space-y-8">
-                {listing.is_seller_verified && !currentUser && ( <Card className="bg-blue-50 border-blue-300 dark:bg-blue-900/20 dark:border-blue-700"><CardHeader><CardTitle className="text-blue-700 dark:text-blue-300 flex items-center"><UserCircle className="h-5 w-5 mr-2"/>Access Verified Information</CardTitle></CardHeader><CardContent><p className="text-sm text-blue-600 dark:text-blue-400">This listing is from a Seller who completed Due Diligence. <Link href={`/auth/login?redirect=/listings/${listing.id}`} className="font-semibold underline hover:text-blue-700">Login</Link> or <Link href={`/auth/register?redirect=/listings/${listing.id}`} className="font-semibold underline hover:text-blue-700">Register</Link> as a paid, verified buyer to view detailed company information and documents.</p></CardContent></Card> )}
-                {listing.is_seller_verified && currentUser && currentUser.role === 'buyer' && !canViewVerifiedDetails && !currentUser.isPaid && ( <Card className="bg-amber-50 border-amber-300 dark:bg-amber-900/20 dark:border-amber-700"><CardHeader><CardTitle className="text-amber-700 dark:text-amber-300 flex items-center"><Info className="h-5 w-5 mr-2"/>Unlock Full Details</CardTitle></CardHeader><CardContent><p className="text-sm text-amber-600 dark:text-amber-400">This listing is from a Seller who completed Due Diligence. To view specific company details, financials, and documents, please <Link href="/dashboard/subscription" className="font-semibold underline hover:text-amber-700">upgrade to a paid buyer plan</Link>.</p></CardContent></Card> )}
-                {listing.is_seller_verified && currentUser && currentUser.id === listing.seller_id && ( <Card className="bg-green-50 border-green-300 dark:bg-green-900/20 dark:border-green-700"><CardHeader><CardTitle className="text-green-700 dark:text-green-300 flex items-center"><Eye className="h-5 w-5 mr-2"/>Your Verified Listing</CardTitle></CardHeader><CardContent><p className="text-sm text-green-600 dark:text-green-400">You are viewing your own verified listing. All details and documents are visible to you. Buyers will need to be paid and verified to see this level of detail.</p></CardContent></Card> )}
+                {listing.is_seller_verified && !currentUser && ( <Card className="bg-blue-50 border-blue-300 dark:bg-blue-900/20 dark:border-blue-700"><CardHeader><CardTitle className="text-blue-700 dark:text-blue-300 flex items-center"><UserCircle className="h-5 w-5 mr-2"/>Access Verified Information</CardTitle></CardHeader><CardContent><p className="text-sm text-blue-600 dark:text-blue-400">This listing is from a verified seller who completed Due Diligence. <Link href={`/auth/login?redirect=/listings/${listing.id}`} className="font-semibold underline hover:text-blue-700">Login</Link> or <Link href={`/auth/register?redirect=/listings/${listing.id}`} className="font-semibold underline hover:text-blue-700">Register</Link> as a buyer and complete verification to view detailed company information and documents.</p></CardContent></Card> )}
+                {listing.is_seller_verified && currentUser && currentUser.role === 'buyer' && !canViewVerifiedDetails && ( <Card className="bg-amber-50 border-amber-300 dark:bg-amber-900/20 dark:border-amber-700"><CardHeader><CardTitle className="text-amber-700 dark:text-amber-300 flex items-center"><ShieldCheck className="h-5 w-5 mr-2"/>Get Verified Access</CardTitle></CardHeader><CardContent><p className="text-sm text-amber-600 dark:text-amber-400">This listing is from a verified seller who completed Due Diligence. To view specific company details, financials, and documents, please <Link href="/dashboard/verification" className="font-semibold underline hover:text-amber-700">complete buyer verification</Link> to gain trusted access.</p></CardContent></Card> )}
+                {listing.is_seller_verified && currentUser && currentUser.id === listing.seller_id && ( <Card className="bg-green-50 border-green-300 dark:bg-green-900/20 dark:border-green-700"><CardHeader><CardTitle className="text-green-700 dark:text-green-300 flex items-center"><Eye className="h-5 w-5 mr-2"/>Your Verified Listing</CardTitle></CardHeader><CardContent><p className="text-sm text-green-600 dark:text-green-400">You are viewing your own verified listing. All details and documents are visible to you. Buyers will need to complete verification to see this level of detail.</p></CardContent></Card> )}
                 <section id="business-overview"><h2 className="text-2xl font-semibold text-brand-dark-blue mb-3 flex items-center"><BookOpen className="h-6 w-6 mr-2 text-primary"/>Business Overview</h2><p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">{listing.short_description}</p></section><Separator />
                 {keyStrengths.length > 0 && ( <><section id="key-strengths"><h2 className="text-2xl font-semibold text-brand-dark-blue mb-3 flex items-center"><TrendingUp className="h-6 w-6 mr-2 text-primary"/>Key Strengths</h2><ul className="list-disc list-inside space-y-1 text-muted-foreground pl-5">{keyStrengths.map((strength, index) => (<li key={index}>{strength}</li>))}</ul></section><Separator /></> )}
                 {listing.reason_for_selling_anonymous && ( <><section id="reason-for-selling"><h2 className="text-2xl font-semibold text-brand-dark-blue mb-3 flex items-center"><Tag className="h-6 w-6 mr-2 text-primary"/>Reason for Selling</h2><p className="text-muted-foreground leading-relaxed">{listing.reason_for_selling_anonymous}</p></section><Separator /></> )}
@@ -342,7 +398,7 @@ export default function ListingDetailPage() {
                     </CardFooter>
                 </Card>
                 {!currentUser && (<Card className="shadow-md bg-brand-sky-blue/10 border-brand-sky-blue/30"><CardContent className="p-4 text-center"><p className="text-sm text-brand-dark-blue mb-2">Want to learn more or see verified details?</p><Button variant="outline" asChild className="border-brand-dark-blue text-brand-dark-blue hover:bg-brand-dark-blue/5"><Link href={`/auth/login?redirect=/listings/${listing.id}`}>Login or Register to Inquire</Link></Button></CardContent></Card>)}
-                {currentUser && currentUser.role === 'buyer' && !currentUser.isPaid && listing.is_seller_verified && (<Card className="shadow-md bg-amber-500/10 border-amber-500/30"><CardContent className="p-4 text-center"><p className="text-sm text-amber-700 dark:text-amber-300 mb-2">Upgrade to a paid plan to view full verified details and documents for this listing.</p><Button variant="outline" asChild className="border-amber-600 text-amber-700 hover:bg-amber-600/20"><Link href="/dashboard/subscription">View Subscription Options</Link></Button></CardContent></Card>)}
+                {currentUser && currentUser.role === 'buyer' && !isVerifiedBuyer(currentUser) && listing.is_seller_verified && (<Card className="shadow-md bg-amber-500/10 border-amber-500/30"><CardContent className="p-4 text-center"><p className="text-sm text-amber-700 dark:text-amber-300 mb-2">Complete buyer verification to access full details and documents for verified listings.</p><Button variant="outline" asChild className="border-amber-600 text-amber-700 hover:bg-amber-600/20"><Link href="/dashboard/verification">Get Verified</Link></Button></CardContent></Card>)}
             </aside>
         </CardContent>
       </Card>
@@ -363,7 +419,7 @@ export default function ListingDetailPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            <Textarea 
+            <Textarea
               placeholder="Optional: Add a brief message to the seller or ask an initial question..."
               value={inquiryMessage}
               onChange={(e) => setInquiryMessage(e.target.value)}
@@ -387,4 +443,19 @@ export default function ListingDetailPage() {
   );
 }
 
-    
+/**
+ * Robust helper function to determine if a user is a verified buyer with payment access
+ */
+function isVerifiedBuyer(user: any): boolean {
+  if (!user) return false;
+
+  // Check verification status (support both field formats)
+  const verificationStatus = user.verificationStatus || user.verification_status;
+  const isVerified = verificationStatus === 'verified';
+
+  // Check payment status (support both field formats)
+  const isPaid = user.isPaid || (verificationStatus === 'verified');
+
+  return isVerified && isPaid;
+}
+
