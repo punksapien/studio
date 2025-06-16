@@ -1,5 +1,8 @@
 'use client';
 
+// Force dynamic rendering due to client-side interactivity
+export const dynamic = 'force-dynamic'
+
 import * as React from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useForm, FormProvider } from 'react-hook-form';

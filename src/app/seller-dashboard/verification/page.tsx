@@ -1,5 +1,8 @@
 'use client';
 
+// Force dynamic rendering due to client-side interactivity
+export const dynamic = 'force-dynamic'
+
 import React, { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
@@ -174,13 +177,13 @@ function VerificationContent() {
   }
 
   // Check if user has a pending verification request
-  const hasPendingRequest = requests.some(r =>
+  const hasPendingRequest = requests.some((r: any) =>
     ['New Request', 'Contacted', 'Docs Under Review', 'More Info Requested'].includes(r.status)
   );
 
   // If user already has a pending request, show pending status
   if (hasPendingRequest || currentStatus === 'pending_verification') {
-    const pendingRequest = requests.find(r =>
+    const pendingRequest = requests.find((r: any) =>
       ['New Request', 'Contacted', 'Docs Under Review', 'More Info Requested'].includes(r.status)
     );
 
@@ -290,7 +293,7 @@ function VerificationContent() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {requests.map((request, index) => (
+                {requests.map((request: any, index: number) => (
                   <div key={request.id || index} className="flex items-center justify-between p-3 border rounded-lg">
                     <div>
                       <p className="font-medium">
@@ -385,7 +388,7 @@ function VerificationContent() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {requests.map((request, index) => (
+              {requests.map((request: any, index: number) => (
                 <div key={request.id || index} className="flex items-center justify-between p-3 border rounded-lg">
                   <div>
                     <p className="font-medium">

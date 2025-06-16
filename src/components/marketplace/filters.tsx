@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { X, Search, RotateCcw, Filter, Plus } from 'lucide-react';
+import { X, Search, RotateCcw, Filter, Plus, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 import { useMarketplaceFilters } from '@/hooks/use-marketplace-filters';
 import {
   INDUSTRIES,
@@ -22,6 +22,13 @@ import {
   parsePriceInput
 } from '@/lib/marketplace-utils';
 import { placeholderKeywords } from '@/lib/types';
+
+// Verification status options for filtering
+const VERIFICATION_STATUS_OPTIONS = {
+  'all': 'All Listings',
+  'verified': 'Verified Only',
+  'unverified': 'Unverified Only'
+} as const;
 
 export function Filters() {
   const {
@@ -148,19 +155,36 @@ export function Filters() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Search Input */}
+
+
+        {/* Verification Status Filter */}
         <div className="space-y-2">
-          <Label htmlFor="search" className="text-sm font-medium text-gray-700">
-            Search
+          <Label htmlFor="verificationStatus" className="text-sm font-medium text-gray-700">
+            Verification Status
           </Label>
-          <Input
-            id="search"
-            type="text"
-            placeholder="Search listings..."
-            value={draftFilters.search || ''}
-            onChange={(e) => updateDraftFilter('search', e.target.value || undefined)}
-            className="w-full"
-          />
+          <Select
+            value={draftFilters.verificationStatus || 'all'}
+            onValueChange={(value) => updateDraftFilter('verificationStatus', value === 'all' ? undefined : value)}
+          >
+            <SelectTrigger id="verificationStatus" className="w-full">
+              <SelectValue placeholder="Select verification status" />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(VERIFICATION_STATUS_OPTIONS).map(([key, label]) => (
+                <SelectItem key={key} value={key}>
+                  <div className="flex items-center space-x-2">
+                    {key === 'verified' && <ShieldCheck className="h-4 w-4 text-green-600" />}
+                    {key === 'unverified' && <EyeOff className="h-4 w-4 text-gray-500" />}
+                    {key === 'all' && <Eye className="h-4 w-4 text-blue-600" />}
+                    <span>{label}</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-gray-500">
+            Filter by admin verification status. Verified listings have undergone additional review.
+          </p>
         </div>
 
         {/* Industry Filter */}
@@ -242,22 +266,21 @@ export function Filters() {
           </div>
         </div>
 
-        {/* Keywords Section */}
+        {/* Keywords Section - Main Search Functionality */}
         <div className="space-y-4">
           <Label className="text-sm font-medium text-gray-700">
-            Keywords
+            Search by Keywords
           </Label>
+          <p className="text-xs text-gray-500">
+            Add keywords to search across listings titles, descriptions, and business details
+          </p>
 
           {/* Custom Keyword Input */}
           <div className="space-y-2">
-            <Label htmlFor="custom-keyword" className="text-xs font-medium text-gray-600">
-              Add Custom Keywords
-            </Label>
             <div className="flex space-x-2">
               <Input
-                id="custom-keyword"
                 type="text"
-                placeholder="Enter custom keyword..."
+                placeholder="Add keywords to search for..."
                 value={customKeywordInput}
                 onChange={(e) => setCustomKeywordInput(e.target.value)}
                 onKeyDown={(e) => {

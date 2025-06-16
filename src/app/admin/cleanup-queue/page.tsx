@@ -1,4 +1,8 @@
 'use client'
+
+// Force dynamic rendering due to client-side interactivity
+export const dynamic = 'force-dynamic'
+
 import * as React from "react";
 import { useState } from "react";
 import useSWR, { mutate } from 'swr';

@@ -15,9 +15,9 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(parseInt(searchParams.get('limit') || '10'), 50) // Max 50 items per page
     const industry = searchParams.get('industry')
     const country = searchParams.get('country')
+    const verificationStatus = searchParams.get('verificationStatus')
     const minPrice = searchParams.get('min_price') // API expects min_price
     const maxPrice = searchParams.get('max_price') // API expects max_price
-    const search = searchParams.get('search') // Used for custom keywords/text search
     const status = searchParams.get('status')
     const sortBy = searchParams.get('sort_by') || 'created_at'
     const sortOrder = searchParams.get('sort_order') || 'desc'
@@ -59,11 +59,29 @@ export async function GET(request: NextRequest) {
         specific_growth_opportunities
       `, { count: 'exact' })
 
+    // Handle status filtering first (including verification status filter)
     if (status) {
       query = query.eq('status', status)
     } else {
       const publicStatuses = ['active', 'verified_anonymous', 'verified_public']
-      query = query.in('status', publicStatuses)
+
+      // Apply verification status filter if specified
+      if (verificationStatus === 'verified') {
+        // Only show verified listings (verified_anonymous and verified_public)
+        const verifiedStatuses = ['verified_anonymous', 'verified_public']
+        query = query.in('status', verifiedStatuses)
+        console.log(`[LISTINGS-API] Verification status filter: showing only verified listings`)
+      } else if (verificationStatus === 'unverified') {
+        // Only show unverified listings (active)
+        query = query.eq('status', 'active')
+        console.log(`[LISTINGS-API] Verification status filter: showing only unverified listings`)
+      } else {
+        // Show all public statuses (default behavior)
+        query = query.in('status', publicStatuses)
+        if (verificationStatus) {
+          console.log(`[LISTINGS-API] Unknown verification status filter: "${verificationStatus}", showing all listings`)
+        }
+      }
     }
 
     // Normalize filter values to match database format
@@ -81,18 +99,7 @@ export async function GET(request: NextRequest) {
     if (minPrice) query = query.gte('asking_price', parseInt(minPrice))
     if (maxPrice) query = query.lte('asking_price', parseInt(maxPrice))
 
-    // Combine general search text with predefined keyword logic
-    let textSearchConditions: string[] = [];
-    if (search) {
-      // General text search across multiple fields
-      const searchFields = [
-        'listing_title_anonymous', 'anonymous_business_description',
-        'key_strength_1', 'key_strength_2', 'key_strength_3',
-        'growth_opportunity_1', 'growth_opportunity_2', 'growth_opportunity_3',
-        'industry', 'location_country', 'location_city_region_general' // Add more relevant text fields
-      ];
-      textSearchConditions.push(searchFields.map(field => `${field}.ilike.%${search}%`).join(','));
-    }
+    // Note: General text search is now handled entirely through the keywords system
 
     // Handle keyword filtering - both predefined (with intelligent mapping) and custom keywords
     if (predefinedKeywords.length > 0) {
@@ -152,11 +159,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Apply general text search if present
-    if (textSearchConditions.length > 0) {
-        query = query.or(textSearchConditions.join(','));
-        console.log(`[LISTINGS-API] Text search applied for: "${search}"`);
-    }
+    // General text search is now handled through the keywords system above
 
 
     const validSortFields = ['created_at', 'asking_price', 'listing_title_anonymous', 'year_established', 'specific_annual_revenue_last_year'];

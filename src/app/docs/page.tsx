@@ -1,8 +1,17 @@
-
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { BookOpen, Users, Briefcase, Users2, Code, AlertTriangle, LifeBuoy, LayoutDashboard } from "lucide-react";
+import { BookOpen } from "lucide-react";
+import { Users } from "lucide-react";
+import { Briefcase } from "lucide-react";
+import { Users2 } from "lucide-react";
+import { Code } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
+import { LifeBuoy } from "lucide-react";
+import { LayoutDashboard } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
+import { FileText } from "lucide-react";
 
 const docSections = [
   {

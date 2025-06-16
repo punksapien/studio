@@ -7,6 +7,11 @@ import { DebugState } from '@/components/shared/DebugState';
 import { AuthProvider } from '@/contexts/auth-context';
 import { SWRProvider } from '@/contexts/swr-provider';
 import { QueryProvider } from '@/contexts/query-provider';
+import { GeistSans } from 'geist/font/sans';
+import { Toaster as SonnerToaster } from "sonner";
+
+// Force all pages to be dynamic
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'Nobridge - Business Marketplace Platform',

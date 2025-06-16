@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -7,9 +6,9 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 export interface MarketplaceFilters {
   page: number;
   limit: number;
-  search?: string;
   industry?: string;
   country?: string;
+  verificationStatus?: string;
   minPrice?: number;
   maxPrice?: number;
   keywords: string[];
@@ -34,9 +33,9 @@ export function useMarketplaceFilters() {
     return {
       page: parseInt(searchParams.get('page') || '1', 10),
       limit: parseInt(searchParams.get('limit') || '9', 10),
-      search: searchParams.get('search') || undefined,
       industry: searchParams.get('industry') || undefined,
       country: searchParams.get('country') || undefined,
+      verificationStatus: searchParams.get('verificationStatus') || undefined,
       minPrice: searchParams.get('minPrice') ? parseInt(searchParams.get('minPrice')!, 10) : undefined,
       maxPrice: searchParams.get('maxPrice') ? parseInt(searchParams.get('maxPrice')!, 10) : undefined,
       keywords: searchParams.get('keywords')?.split(',').filter(Boolean) || [],
@@ -63,9 +62,9 @@ export function useMarketplaceFilters() {
     const params = new URLSearchParams();
     if (filterValues.page !== DEFAULT_FILTERS.page) params.set('page', filterValues.page.toString());
     if (filterValues.limit !== DEFAULT_FILTERS.limit) params.set('limit', filterValues.limit.toString());
-    if (filterValues.search) params.set('search', filterValues.search);
     if (filterValues.industry && filterValues.industry !== 'all') params.set('industry', filterValues.industry);
     if (filterValues.country && filterValues.country !== 'all') params.set('country', filterValues.country);
+    if (filterValues.verificationStatus) params.set('verificationStatus', filterValues.verificationStatus);
     if (filterValues.minPrice !== undefined) params.set('minPrice', filterValues.minPrice.toString());
     if (filterValues.maxPrice !== undefined) params.set('maxPrice', filterValues.maxPrice.toString());
     if (filterValues.keywords.length > 0) params.set('keywords', filterValues.keywords.join(','));
@@ -119,9 +118,9 @@ export function useMarketplaceFilters() {
       sort_by: appliedFilters.sortBy,
       sort_order: appliedFilters.sortOrder,
     };
-    if (appliedFilters.search) params.search = appliedFilters.search;
     if (appliedFilters.industry && appliedFilters.industry !== 'all') params.industry = appliedFilters.industry;
     if (appliedFilters.country && appliedFilters.country !== 'all') params.country = appliedFilters.country;
+    if (appliedFilters.verificationStatus) params.verificationStatus = appliedFilters.verificationStatus;
     if (appliedFilters.minPrice !== undefined) params.min_price = appliedFilters.minPrice.toString();
     if (appliedFilters.maxPrice !== undefined) params.max_price = appliedFilters.maxPrice.toString();
     if (appliedFilters.keywords.length > 0) params.keywords = appliedFilters.keywords.join(',');
@@ -141,9 +140,9 @@ export function useMarketplaceFilters() {
     setIsLoading,
     hasActiveFilters: useMemo(() => {
       return (
-        !!appliedFilters.search ||
         !!appliedFilters.industry ||
         !!appliedFilters.country ||
+        !!appliedFilters.verificationStatus ||
         appliedFilters.minPrice !== undefined ||
         appliedFilters.maxPrice !== undefined ||
         appliedFilters.keywords.length > 0 ||

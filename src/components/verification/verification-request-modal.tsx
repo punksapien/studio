@@ -122,24 +122,24 @@ export function VerificationRequestModal({ children, userListings = [], onSucces
   const pendingStatuses = ['New Request', 'Contacted', 'Docs Under Review', 'More Info Requested'];
 
   const hasPendingUserVerification = useMemo(() =>
-    requests.some(r => r.request_type === 'user_verification' && pendingStatuses.includes(r.status)) || userProfileVerificationStatus === 'pending_verification'
+    requests.some((r: any) => r.request_type === 'user_verification' && pendingStatuses.includes(r.status)) || userProfileVerificationStatus === 'pending_verification'
   , [requests, userProfileVerificationStatus]);
 
   const getPendingListingVerificationStatus = (listingId: string): string | null => {
-    const req = requests.find(r => r.request_type === 'listing_verification' && r.listing_id === listingId && pendingStatuses.includes(r.status));
+    const req = requests.find((r: any) => r.request_type === 'listing_verification' && r.listing_id === listingId && pendingStatuses.includes(r.status));
     return req ? req.status : null;
   };
 
   const isListingVerifiedOrPending = (listingId: string): boolean => {
-    const listing = userListings.find(l => l.id === listingId);
+    const listing = userListings.find((l: any) => l.id === listingId);
     if (!listing) return false;
-    const hasApprovedRequest = requests.some(r => r.request_type === 'listing_verification' && r.listing_id === listingId && r.status === 'Approved');
+    const hasApprovedRequest = requests.some((r: any) => r.request_type === 'listing_verification' && r.listing_id === listingId && r.status === 'Approved');
     const isListingStatusVerified = ['verified_anonymous', 'verified_with_financials', 'verified_public'].includes(listing.status);
     return hasApprovedRequest || isListingStatusVerified || !!getPendingListingVerificationStatus(listingId);
   };
 
   const eligibleListingsForNewRequest = useMemo(() =>
-    userListings.filter(l => !isListingVerifiedOrPending(l.id))
+    userListings.filter((l: any) => !isListingVerifiedOrPending(l.id))
   , [userListings, requests]);
 
   // Check if user can submit new requests

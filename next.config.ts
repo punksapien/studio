@@ -8,6 +8,14 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  // Force dynamic rendering for interactive admin and dashboard pages
+  experimental: {
+    // Disable static exports for routes with client-side interactivity
+    staleTimes: {
+      dynamic: 0,
+      static: 180,
+    },
+  },
   images: {
     remotePatterns: [
       // Placeholder images

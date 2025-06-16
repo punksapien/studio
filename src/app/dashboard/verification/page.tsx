@@ -1,5 +1,8 @@
 'use client';
 
+// Force dynamic rendering due to client-side interactivity
+export const dynamic = 'force-dynamic'
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ShieldCheck, CheckCircle2, Loader2, Mail, AlertCircle } from "lucide-react";
@@ -152,7 +155,7 @@ function BuyerVerificationContent() {
   }
 
   // Check if user has a pending verification request
-  const hasPendingRequest = requests.some(r =>
+  const hasPendingRequest = requests.some((r: any) =>
     r.request_type === 'user_verification' &&
     ['New Request', 'Contacted', 'Docs Under Review', 'More Info Requested'].includes(r.status)
   );
@@ -160,7 +163,7 @@ function BuyerVerificationContent() {
       const renderStatusCard = () => {
     // If user already has a pending request, show pending status
     if (hasPendingRequest || userProfileVerificationStatus === 'pending_verification') {
-      const pendingRequest = requests.find(r =>
+      const pendingRequest = requests.find((r: any) =>
         ['New Request', 'Contacted', 'Docs Under Review', 'More Info Requested'].includes(r.status)
       );
 

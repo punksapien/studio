@@ -1,8 +1,11 @@
-
 'use client';
+
+// Force dynamic rendering due to client-side interactivity
+export const dynamic = 'force-dynamic'
 
 import * as React from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,6 +28,7 @@ const formatTimestamp = (date: Date | string) => {
 export default function BuyerMessagesPage() {
   const [conversations, setConversations] = React.useState<any[]>([]); // Using any for simplified sample data
   const [isLoading, setIsLoading] = React.useState(true);
+  const router = useRouter();
 
   React.useEffect(() => {
     setIsLoading(true);
@@ -47,6 +51,10 @@ export default function BuyerMessagesPage() {
     }, 500);
   }, []);
 
+  const handleConversationClick = (conversationId: string) => {
+    router.push(`/dashboard/messages/${conversationId}`);
+  };
+
   if (isLoading) {
     return <div className="p-6 text-center">Loading conversations...</div>;
   }
@@ -58,8 +66,8 @@ export default function BuyerMessagesPage() {
         <CardHeader>
           <CardTitle className="text-brand-dark-blue">Active Conversations</CardTitle>
           <CardDescription>
-            {conversations.length > 0 
-              ? 'Here are your ongoing conversations with sellers.' 
+            {conversations.length > 0
+              ? 'Here are your ongoing conversations with sellers.'
               : 'No active conversations yet. Start by inquiring about listings.'}
           </CardDescription>
         </CardHeader>
@@ -76,31 +84,33 @@ export default function BuyerMessagesPage() {
           ) : (
             <div className="space-y-4">
               {conversations.map((conv) => (
-                <Link key={conv.conversationId} href={`/dashboard/messages/${conv.conversationId}`} passHref>
-                  <div className="block p-4 border border-brand-light-gray rounded-lg hover:shadow-md transition-shadow cursor-pointer hover:border-brand-sky-blue">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-10 w-10">
-                          <AvatarImage src={conv.otherPartyAvatar} alt={conv.otherPartyName} data-ai-hint="person avatar" />
-                          <AvatarFallback>{conv.otherPartyName.charAt(0).toUpperCase()}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-semibold text-brand-dark-blue">{conv.otherPartyName}</p>
-                          <p className="text-xs text-muted-foreground">Listing: {conv.listingTitle}</p>
-                        </div>
+                <div
+                  key={conv.conversationId}
+                  onClick={() => handleConversationClick(conv.conversationId)}
+                  className="block p-4 border border-brand-light-gray rounded-lg hover:shadow-md transition-shadow cursor-pointer hover:border-brand-sky-blue"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={conv.otherPartyAvatar} alt={conv.otherPartyName} data-ai-hint="person avatar" />
+                        <AvatarFallback>{conv.otherPartyName.charAt(0).toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="font-semibold text-brand-dark-blue">{conv.otherPartyName}</p>
+                        <p className="text-xs text-muted-foreground">Listing: {conv.listingTitle}</p>
                       </div>
-                      <span className="text-xs text-muted-foreground">{formatTimestamp(conv.updatedAt)}</span>
                     </div>
-                    <p className="mt-2 text-sm text-brand-dark-blue/90 truncate">{conv.lastMessageSnippet || 'No messages yet.'}</p>
-                    {conv.buyerUnreadCount && conv.buyerUnreadCount > 0 && (
-                       <div className="mt-2 flex justify-end">
-                        <span className="px-2 py-0.5 text-xs font-semibold bg-brand-sky-blue text-brand-white rounded-full">
-                          {conv.buyerUnreadCount} New
-                        </span>
-                      </div>
-                    )}
+                    <span className="text-xs text-muted-foreground">{formatTimestamp(conv.updatedAt)}</span>
                   </div>
-                </Link>
+                  <p className="mt-2 text-sm text-brand-dark-blue/90 truncate">{conv.lastMessageSnippet || 'No messages yet.'}</p>
+                  {conv.buyerUnreadCount && conv.buyerUnreadCount > 0 && (
+                     <div className="mt-2 flex justify-end">
+                      <span className="px-2 py-0.5 text-xs font-semibold bg-brand-sky-blue text-brand-white rounded-full">
+                        {conv.buyerUnreadCount} New
+                      </span>
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           )}
@@ -110,4 +120,3 @@ export default function BuyerMessagesPage() {
   );
 }
 
-    

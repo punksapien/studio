@@ -1,6 +1,9 @@
 
 'use client';
 
+// Force dynamic rendering due to client-side interactivity
+export const dynamic = 'force-dynamic'
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -168,14 +171,15 @@ export default function AdminConversationViewPage() {
     );
   }
 
-  // The Admin Page structure (from src/app/admin/layout.tsx) already makes the chat area take full height.
-  // We just need to ensure the ChatInterface component itself is properly structured for this.
-  // No changes needed to this page's root div, as the layout handles it.
+  // Use a full-screen layout similar to buyer/seller dashboards
+  // This breaks out of the admin layout's padding constraints
   return (
-    <ChatInterface
-      conversationId={conversationId}
-      currentUser={adminUser}
-      onBack={() => router.back()}
-    />
+    <div className="fixed top-0 left-64 right-0 bottom-0 p-4 bg-background">
+      <ChatInterface
+        conversationId={conversationId}
+        currentUser={adminUser}
+        onBack={() => router.back()}
+      />
+    </div>
   );
 }

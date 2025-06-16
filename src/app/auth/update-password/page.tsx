@@ -1,5 +1,8 @@
 'use client';
 
+// Force dynamic rendering due to client-side interactivity
+export const dynamic = 'force-dynamic'
+
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -94,7 +97,7 @@ function UpdatePasswordContent() {
       }
     });
   };
-  
+
   if (!tokenVerified && !error) {
     return (
       <AuthCardWrapper
@@ -127,9 +130,9 @@ function UpdatePasswordContent() {
                 <FormItem>
                   <FormLabel>New Password</FormLabel>
                   <FormControl>
-                    <Input 
-                      {...field} 
-                      placeholder="********" 
+                    <Input
+                      {...field}
+                      placeholder="********"
                       type="password"
                       disabled={isPending}
                     />
@@ -145,9 +148,9 @@ function UpdatePasswordContent() {
                 <FormItem>
                   <FormLabel>Confirm New Password</FormLabel>
                   <FormControl>
-                    <Input 
-                      {...field} 
-                      placeholder="********" 
+                    <Input
+                      {...field}
+                      placeholder="********"
                       type="password"
                       disabled={isPending}
                     />

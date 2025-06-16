@@ -35,6 +35,8 @@ export async function middleware(req: NextRequest) {
     // Special case - verify-email now requires verification
     // '/verify-email', // REMOVED - now requires special handling
     '/about', '/contact', '/pricing', '/terms', '/privacy',
+    // Public information pages
+    '/faq', '/docs', '/help',
     '/api/test', '/api/auth/create-profile', // Allow create-profile API for signup process
     '/api/health', '/api/debug', // Allow health and debug endpoints
     '/test-auth', // Allow debug auth testing page

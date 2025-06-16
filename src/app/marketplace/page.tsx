@@ -1,6 +1,9 @@
 
 'use client';
 
+// Force dynamic rendering due to client-side interactivity
+export const dynamic = 'force-dynamic'
+
 import { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
 

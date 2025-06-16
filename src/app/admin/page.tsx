@@ -1,5 +1,8 @@
 
 'use client'
+
+// Force dynamic rendering due to client-side interactivity
+export const dynamic = 'force-dynamic'
 import * as React from "react";
 import { MetricCard } from "@/components/admin/metric-card";
 import useSWR from 'swr';

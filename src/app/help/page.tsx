@@ -1,8 +1,11 @@
-
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { LifeBuoy, MessageSquareQuestion, BookOpen, Mail, Phone } from "lucide-react";
+import { LifeBuoy } from "lucide-react";
+import { MessageSquare } from "lucide-react";
+import { BookOpen } from "lucide-react";
+import { Mail } from "lucide-react";
+import { Phone } from "lucide-react";
 
 export default function HelpPage() {
   return (
@@ -24,7 +27,7 @@ export default function HelpPage() {
             <Card className="hover:shadow-md transition-shadow">
               <CardHeader>
                 <CardTitle className="flex items-center text-xl font-semibold font-heading">
-                  <MessageSquareQuestion className="h-6 w-6 mr-2 text-primary" />
+                  <MessageSquare className="h-6 w-6 mr-2 text-primary" />
                   Frequently Asked Questions
                 </CardTitle>
               </CardHeader>

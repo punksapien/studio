@@ -1,6 +1,9 @@
 
 'use client';
 
+// Force dynamic rendering due to client-side interactivity
+export const dynamic = 'force-dynamic'
+
 import React from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import ChatInterface from '@/components/shared/ChatInterface';

@@ -1,5 +1,8 @@
 'use client';
 
+// Force dynamic rendering due to client-side interactivity
+export const dynamic = 'force-dynamic'
+
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AuthCardWrapper } from "@/components/auth/auth-card-wrapper";

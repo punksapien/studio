@@ -6,7 +6,9 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Mail, Phone, Search, ShieldCheck, Briefcase, DollarSign, Users } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { Mail, Phone, Search, ShieldCheck, Briefcase, DollarSign, Users, Info } from "lucide-react";
 
 const faqs = [
   {
@@ -120,7 +122,7 @@ export default function FAQPage() {
               </Accordion>
             </div>
           ))}
-          
+
           <div className="mt-12 text-center border-t pt-8">
             <h3 className="text-xl font-semibold mb-3 font-heading">Still have questions?</h3>
             <p className="text-muted-foreground mb-4">
