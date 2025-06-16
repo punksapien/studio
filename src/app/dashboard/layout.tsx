@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Logo } from '@/components/shared/logo';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   LayoutDashboard,
   UserCircle,
@@ -42,7 +43,7 @@ const buyerSidebarNavItems = [
   { title: 'Overview', href: '/dashboard', icon: LayoutDashboard, tooltip: "Dashboard Overview" },
   { title: 'My Profile', href: '/dashboard/profile', icon: UserCircle, tooltip: "Manage Profile" },
   { title: 'My Inquiries', href: '/dashboard/inquiries', icon: MessageSquare, tooltip: "View Inquiries" },
-  { title: 'Messages', href: '/dashboard/messages', icon: Mail, tooltip: "My Conversations" },
+  // { title: 'Messages', href: '/dashboard/messages', icon: Mail, tooltip: "My Conversations" },
   { title: 'Verification', href: '/dashboard/verification', icon: ShieldCheck, tooltip: "Account Verification" },
   { title: 'Notifications', href: '/dashboard/notifications', icon: Bell, tooltip: "My Notifications" },
   { title: 'Settings', href: '/dashboard/settings', icon: Settings, tooltip: "Account Settings" },
@@ -62,6 +63,25 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const [inquiryCount, setInquiryCount] = React.useState(0);
+
+  // Fetch inquiry count for notification badge
+  React.useEffect(() => {
+    const fetchInquiryCount = async () => {
+      try {
+        const response = await fetch('/api/inquiries?role=buyer&limit=100');
+        const data = await response.json();
+
+        if (response.ok && data.inquiries) {
+          setInquiryCount(data.inquiries.length);
+        }
+      } catch (error) {
+        console.warn('Failed to fetch inquiry count for sidebar badge:', error);
+      }
+    };
+
+    fetchInquiryCount();
+  }, []);
 
   if (currentUserRole !== 'buyer') {
      return (
@@ -98,6 +118,14 @@ export default function DashboardLayout({
                     <Link href={item.href} className="flex items-center">
                       <IconComponent {...iconProps} />
                       <span className="truncate">{item.title}</span>
+                      {/* Show red notification badge for My Inquiries */}
+                      {item.title === 'My Inquiries' && inquiryCount > 0 && (
+                        <Badge
+                          className="ml-auto bg-red-500 text-white text-xs px-1.5 py-0.5 min-w-[20px] h-5 rounded-full flex items-center justify-center"
+                        >
+                          {inquiryCount}
+                        </Badge>
+                      )}
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

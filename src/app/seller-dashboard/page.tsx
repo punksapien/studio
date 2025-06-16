@@ -375,7 +375,7 @@ export default function SellerDashboard() {
               <Link href="/seller-dashboard/inquiries">
                 <Button variant="outline" className="w-full justify-start">
                   <MessageSquare className="h-4 w-4 mr-2" />
-                  View All Inquiries
+                  View All Inquiries{stats.totalInquiriesReceived > 0 ? ` (${stats.totalInquiriesReceived})` : ''}
                 </Button>
               </Link>
               <Link href="/seller-dashboard/settings">

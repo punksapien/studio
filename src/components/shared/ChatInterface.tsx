@@ -124,121 +124,187 @@ export default function ChatInterface({ conversationId, currentUser, onBack }: C
     }
   }, [conversationId]);
 
-    // 🚀 Real-time subscription for new messages
+    // 🚀 Real-time subscription for new messages with robust cleanup
   useEffect(() => {
     if (!conversationId || !conversation) {
       return;
     }
 
-    // Create specific channel for this conversation
-    const channelName = `messages_${conversationId}`;
+    let isMounted = true;
+    let channel: any = null;
 
-    const channel = supabase
-      .channel(channelName, {
-        config: {
-          presence: {
-            key: currentUser.id,
-          },
-        },
-      })
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages',
-          filter: `conversation_id=eq.${conversationId}`,
-        },
-        async (payload) => {
-          console.log('✅ Real-time message received');
+    const setupRealtimeSubscription = async () => {
+      try {
+        // Create specific channel for this conversation
+        const channelName = `messages_${conversationId}`;
+        console.log(`🔌 Setting up real-time channel: ${channelName}`);
 
-          // Skip if this message was sent by current user (avoid seeing own message twice)
-          if (payload.new.sender_id === currentUser.id) {
-            return;
-          }
+        channel = supabase
+          .channel(channelName, {
+            config: {
+              presence: {
+                key: currentUser.id,
+              },
+            },
+          })
+          .on(
+            'postgres_changes',
+            {
+              event: 'INSERT',
+              schema: 'public',
+              table: 'messages',
+              filter: `conversation_id=eq.${conversationId}`,
+            },
+            async (payload) => {
+              // Check if component is still mounted before processing
+              if (!isMounted) {
+                console.log('⚠️ Component unmounted, skipping message processing');
+                return;
+              }
 
-          // 🔧 Enhanced: Verify this user should see this message (RLS-like check)
-          const buyerId = conversation.buyer_id || conversation.buyerId;
-          const sellerId = conversation.seller_id || conversation.sellerId;
+              console.log('✅ Real-time message received');
 
-          if (currentUser.id !== buyerId && currentUser.id !== sellerId) {
-            return;
-          }
+              // Skip if this message was sent by current user (avoid seeing own message twice)
+              if (payload.new.sender_id === currentUser.id) {
+                return;
+              }
 
-          // 🔧 Enhanced: Fetch sender profile for better display
-          let senderProfile = null;
-          try {
-            const { data: profile } = await supabase
-              .from('user_profiles')
-              .select('full_name, avatar_url')
-              .eq('id', payload.new.sender_id)
-              .single();
-            senderProfile = profile;
-          } catch (err) {
-            console.warn('Could not fetch sender profile:', err);
-          }
+              // 🔧 Enhanced: Verify this user should see this message (RLS-like check)
+              const buyerId = conversation.buyer_id || conversation.buyerId;
+              const sellerId = conversation.seller_id || conversation.sellerId;
 
-          // Format the new message to match our interface
-          const newMessage = {
-            id: payload.new.id,
-            conversation_id: payload.new.conversation_id,
-            sender_id: payload.new.sender_id,
-            receiver_id: payload.new.receiver_id,
-            content_text: payload.new.content_text,
-            contentText: payload.new.content_text,
-            content: payload.new.content_text,
-            timestamp: payload.new.timestamp,
-            created_at: payload.new.created_at,
-            is_system_message: payload.new.is_system_message,
-            isSystemMessage: payload.new.is_system_message,
-            is_read: payload.new.is_read || false,
-            message_status: payload.new.message_status || 'delivered',
-            senderProfile,
-          } as Message;
+              if (currentUser.id !== buyerId && currentUser.id !== sellerId) {
+                return;
+              }
 
-          // Only add if it's not already in the messages array (avoid duplicates)
-          setMessages(prev => {
-            const exists = prev.some(msg => msg.id === newMessage.id);
-            if (exists) {
-              return prev;
+              // 🔧 Enhanced: Fetch sender profile for better display with error handling
+              let senderProfile = null;
+              try {
+                if (isMounted) {
+                  const { data: profile } = await supabase
+                    .from('user_profiles')
+                    .select('full_name, avatar_url')
+                    .eq('id', payload.new.sender_id)
+                    .single();
+                  senderProfile = profile;
+                }
+              } catch (err) {
+                console.warn('Could not fetch sender profile:', err);
+              }
+
+              // Double-check if component is still mounted after async operation
+              if (!isMounted) {
+                console.log('⚠️ Component unmounted during profile fetch, aborting');
+                return;
+              }
+
+              // Format the new message to match our interface
+              const newMessage = {
+                id: payload.new.id,
+                conversation_id: payload.new.conversation_id,
+                sender_id: payload.new.sender_id,
+                receiver_id: payload.new.receiver_id,
+                content_text: payload.new.content_text,
+                contentText: payload.new.content_text,
+                content: payload.new.content_text,
+                timestamp: payload.new.timestamp,
+                created_at: payload.new.created_at,
+                is_system_message: payload.new.is_system_message,
+                isSystemMessage: payload.new.is_system_message,
+                is_read: payload.new.is_read || false,
+                message_status: payload.new.message_status || 'delivered',
+                senderProfile,
+              } as Message;
+
+              // Only add if it's not already in the messages array and component is still mounted
+              if (isMounted) {
+                setMessages(prev => {
+                  const exists = prev.some(msg => msg.id === newMessage.id);
+                  if (exists) {
+                    return prev;
+                  }
+                  return [...prev, newMessage];
+                });
+
+                // 🔧 Show notification for new message
+                if (!isAdminUser) {
+                  toast({
+                    title: 'New message',
+                    description: `${senderProfile?.full_name || 'User'} sent a message`,
+                  });
+                }
+              }
             }
-            return [...prev, newMessage];
+          )
+          .on('presence', { event: 'sync' }, () => {
+            if (isMounted && channel) {
+              const state = channel.presenceState();
+              updateOnlineStatus(state);
+            }
+          })
+          .subscribe((status) => {
+            if (!isMounted) {
+              return;
+            }
+
+            setIsConnected(status === 'SUBSCRIBED');
+
+            if (status === 'SUBSCRIBED') {
+              console.log('🎉 Real-time chat is now active!');
+              // Track presence when successfully connected
+              if (channel) {
+                channel.track({
+                  user_id: currentUser.id,
+                  online_at: new Date().toISOString(),
+                });
+              }
+            } else if (status === 'CHANNEL_ERROR') {
+              console.error('❌ Real-time subscription error');
+              if (isMounted) {
+                toast({
+                  title: 'Connection issue',
+                  description: 'Real-time updates may be delayed',
+                  variant: 'destructive',
+                });
+              }
+            } else if (status === 'TIMED_OUT') {
+              console.error('⏰ Real-time subscription timed out');
+            } else if (status === 'CLOSED') {
+              console.log('🔌 Real-time connection closed gracefully');
+            }
           });
 
-          // 🔧 Show notification for new message
-          if (!isAdminUser) {
-            toast({
-              title: 'New message',
-              description: `${senderProfile?.full_name || 'User'} sent a message`,
-            });
-          }
-        }
-      )
-      .on('presence', { event: 'sync' }, () => {
-        const state = channel.presenceState()
-        updateOnlineStatus(state)
-      })
-      .subscribe((status) => {
-        setIsConnected(status === 'SUBSCRIBED');
-
-        if (status === 'SUBSCRIBED') {
-          console.log('🎉 Real-time chat is now active!');
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('❌ Real-time subscription error');
+      } catch (error) {
+        console.error('❌ Error setting up real-time subscription:', error);
+        if (isMounted) {
           toast({
-            title: 'Connection issue',
-            description: 'Real-time updates may be delayed',
+            title: 'Connection failed',
+            description: 'Could not establish real-time connection',
             variant: 'destructive',
           });
-        } else if (status === 'TIMED_OUT') {
-          console.error('⏰ Real-time subscription timed out');
-        } else if (status === 'CLOSED') {
-          console.error('🔌 Real-time connection closed');
         }
-      });
+      }
+    };
 
+    // Setup the subscription
+    setupRealtimeSubscription();
+
+    // Cleanup function
     return () => {
-      supabase.removeChannel(channel);
+      console.log('🧹 Cleaning up real-time subscription');
+      isMounted = false;
+
+      if (channel) {
+        try {
+          // Untrack presence before unsubscribing
+          channel.untrack();
+          // Remove the channel gracefully
+          supabase.removeChannel(channel);
+          console.log('✅ Real-time channel cleaned up successfully');
+        } catch (error) {
+          console.warn('⚠️ Error during channel cleanup:', error);
+        }
+      }
     };
   }, [conversationId, conversation, currentUser.id, supabase, toast, isAdminUser]);
 
@@ -409,12 +475,31 @@ export default function ChatInterface({ conversationId, currentUser, onBack }: C
   const otherUser = getOtherUser();
 
   const updateOnlineStatus = (state: Record<string, unknown>) => {
-    if (!state) return;
-    const newStatus: Record<string, boolean> = {};
-    Object.keys(state).forEach((userId) => {
-      newStatus[userId] = true;
-    });
-    setOnlineParticipants(newStatus);
+    try {
+      if (!state || typeof state !== 'object') {
+        console.warn('⚠️ Invalid presence state received:', state);
+        return;
+      }
+
+      /**
+       * Supabase presenceState() returns
+       * {
+       *   "<userId>": [ { ...meta } ]
+       * }
+       * We consider a user online if they appear as a key.
+       */
+      const newStatus: Record<string, boolean> = {};
+      Object.keys(state).forEach((userId) => {
+        if (typeof userId === 'string' && userId.trim()) {
+          newStatus[userId] = true;
+        }
+      });
+
+      setOnlineParticipants(newStatus);
+      console.log(`👥 Updated online status:`, newStatus);
+    } catch (error) {
+      console.warn('⚠️ Error updating online status:', error);
+    }
   };
 
   if (isLoading) {
@@ -459,8 +544,8 @@ export default function ChatInterface({ conversationId, currentUser, onBack }: C
   }
 
   return (
-    <Card className="h-full flex flex-col shadow-lg bg-card">
-      <CardHeader className="flex-row items-center space-y-0 pb-3 border-b">
+    <Card className="h-full flex flex-col shadow-lg bg-card w-full"> {/* Removed margins that were causing overflow */}
+      <CardHeader className="flex-row items-center space-y-0 pb-3 border-b flex-shrink-0"> {/* Made header flex-shrink-0 */}
         <div className="flex-1">
           {isAdminUser ? (
             <div>
@@ -510,8 +595,9 @@ export default function ChatInterface({ conversationId, currentUser, onBack }: C
         )}
       </CardHeader>
 
-      <CardContent className="flex-1 overflow-hidden px-0"> {/* Removed default px-6 */}
-        <ScrollArea className="h-full px-6" ref={scrollAreaRef}> {/* Added px-6 here for padding only on message area */}
+      {/* Messages area with fixed height and internal scrolling */}
+      <div className="flex-1 overflow-hidden"> {/* This takes up remaining space */}
+        <ScrollArea className="h-full px-6" ref={scrollAreaRef}> {/* Full height with internal scroll */}
           <div className="space-y-4 py-4">
             {messages.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
@@ -553,7 +639,7 @@ export default function ChatInterface({ conversationId, currentUser, onBack }: C
                   <div
                     key={message.id}
                     className={cn(
-                      "flex w-full max-w-[85%] flex-col gap-1",
+                      "flex w-full max-w-[75%] flex-col gap-1", /* Reduced from 85% to 75% for better readability */
                       isAdminUser
                         ? isBuyerMessage ? "mr-auto items-start" : "ml-auto items-end"
                         : isOwn ? "ml-auto items-end" : "mr-auto items-start"
@@ -595,9 +681,11 @@ export default function ChatInterface({ conversationId, currentUser, onBack }: C
             )}
           </div>
         </ScrollArea>
-      </CardContent>
+      </div>
 
-      <CardContent className="pt-0 border-t"> {/* Added border-t for separation */}
+      {/* Input area - fixed at bottom */}
+      <div className="border-t bg-card flex-shrink-0"> {/* Made this flex-shrink-0 so it doesn't compress */}
+        <CardContent className="pt-0"> {/* Keep the padding but remove the border-t since we moved it to parent */}
         <div className="flex gap-2 py-4"> {/* Added py-4 for padding around input */}
           <Input
             placeholder={
@@ -632,7 +720,8 @@ export default function ChatInterface({ conversationId, currentUser, onBack }: C
             Admin view - You can observe this conversation between the buyer and seller.
           </p>
         )}
-      </CardContent>
+        </CardContent>
+      </div>
     </Card>
   );
 }

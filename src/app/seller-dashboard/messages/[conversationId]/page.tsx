@@ -93,15 +93,12 @@ export default function SellerMessagePage() {
   }
 
   return (
-    <div className="flex flex-col h-full"> {/* Make page take full height */}
-      {/* Chat Interface - Takes remaining space */}
-      <div className="flex-1 overflow-hidden">
-        <ChatInterface
-          conversationId={conversationId}
-          currentUser={currentUser}
-          onBack={handleBack}
-        />
-      </div>
+    <div className="fixed top-0 left-64 bottom-0 p-4 w-[75vw]"> {/* Take exactly 75% of viewport width */}
+      <ChatInterface
+        conversationId={conversationId}
+        currentUser={currentUser}
+        onBack={handleBack}
+      />
     </div>
   );
 }

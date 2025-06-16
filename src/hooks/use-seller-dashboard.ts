@@ -166,7 +166,8 @@ export function useSellerDashboard(): DashboardData {
       const activeListingsCount = listings.filter(
         (listing: any) => activeStatuses.includes(listing.status)
       ).length
-      const totalInquiriesReceived = inquiriesData.pagination?.total || 0
+      // Fix: Use actual inquiries array length since API doesn't return pagination.total
+      const totalInquiriesReceived = inquiries.length || 0
       const inquiriesAwaitingEngagement = inquiries.filter(
         (inq: any) => inq.status === 'new_inquiry'
       ).length || 0
