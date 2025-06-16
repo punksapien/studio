@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -42,17 +43,16 @@ export default function AdminConversationViewPage() {
   const router = useRouter();
   const params = useParams();
   const { toast } = useToast();
-  const routeId = params.conversationId as string; // Could be conversation ID or inquiry ID
+  const routeId = params.conversationId as string;
 
   const [conversation, setConversation] = useState<ConversationData | null>(null);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Mock admin user for ChatInterface
   const adminUser: User = {
-    id: 'admin-user',
-    full_name: 'Admin',
+    id: 'admin-user', // Placeholder admin ID
+    full_name: 'Admin Observer',
     role: 'admin',
     verification_status: 'verified'
   };
@@ -60,23 +60,20 @@ export default function AdminConversationViewPage() {
   useEffect(() => {
     const fetchConversation = async () => {
       try {
-    setIsLoading(true);
+        setIsLoading(true);
         setError(null);
 
-        // First, try to fetch as conversation ID
         let response = await fetch(`/api/conversations/${routeId}`, {
           credentials: 'include'
         });
 
         if (response.ok) {
-          // It's a conversation ID
           const data = await response.json();
           setConversation(data.conversation);
           setConversationId(routeId);
-        return;
-      }
+          return;
+        }
 
-        // If that failed, try to find conversation by inquiry ID
         response = await fetch(`/api/inquiries/${routeId}`, {
           credentials: 'include'
         });
@@ -92,7 +89,6 @@ export default function AdminConversationViewPage() {
           throw new Error('This inquiry does not have an associated conversation yet');
         }
 
-        // Now fetch the conversation using the conversation_id from the inquiry
         const conversationResponse = await fetch(`/api/conversations/${inquiry.conversation_id}`, {
           credentials: 'include'
         });
@@ -172,83 +168,14 @@ export default function AdminConversationViewPage() {
     );
   }
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(price);
-  };
-
+  // The Admin Page structure (from src/app/admin/layout.tsx) already makes the chat area take full height.
+  // We just need to ensure the ChatInterface component itself is properly structured for this.
+  // No changes needed to this page's root div, as the layout handles it.
   return (
-    <div className="flex flex-col h-full max-h-[calc(100vh-4rem)] bg-background">
-      {/* Header */}
-      <div className="flex items-center gap-4 p-4 border-b bg-card">
-        <Button variant="ghost" size="icon" onClick={() => router.back()}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
-            <h1 className="text-lg font-semibold">Admin Conversation View</h1>
-            <Badge variant={conversation.status === 'ACTIVE' ? 'default' : 'secondary'}>
-              {conversation.status}
-            </Badge>
-        </div>
-
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <span>
-              <strong>Buyer:</strong> {conversation.buyer?.full_name}
-            </span>
-            <span>•</span>
-            <span>
-              <strong>Seller:</strong> {conversation.seller?.full_name}
-            </span>
-            {conversation.listing && (
-              <>
-                <span>•</span>
-                <Link
-                  href={`/listings/${conversation.listingId}`}
-                  className="hover:underline text-primary flex items-center gap-1"
-                  target="_blank"
-                >
-                  {conversation.listing.listing_title_anonymous}
-                  <ExternalLink className="h-3 w-3" />
-                </Link>
-              </>
-            )}
-              </div>
-              </div>
-
-        {conversation.listing && (
-          <div className="text-right">
-            <div className="text-sm font-medium">
-              {formatPrice(conversation.listing.asking_price)}
-            </div>
-            <div className="text-xs text-muted-foreground">
-              {conversation.listing.industry}
-            </div>
-            </div>
-          )}
-        </div>
-
-      {/* Chat Interface */}
-      <div className="flex-1 overflow-hidden">
-        <ChatInterface
-          conversationId={conversationId}
-          currentUser={adminUser}
-          onBack={() => router.back()}
-        />
-      </div>
-
-      {/* Admin Footer */}
-      <div className="p-3 border-t bg-muted/30">
-        <p className="text-xs text-muted-foreground text-center">
-          Admin view - You can observe this conversation between the buyer and seller.
-        </p>
-        </div>
-    </div>
+    <ChatInterface
+      conversationId={conversationId}
+      currentUser={adminUser}
+      onBack={() => router.back()}
+    />
   );
 }
-

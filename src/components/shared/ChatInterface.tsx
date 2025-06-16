@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -407,33 +408,19 @@ export default function ChatInterface({ conversationId, currentUser, onBack }: C
 
   const otherUser = getOtherUser();
 
-  /**
-   * Updates local online presence map based on Supabase presence state.
-   * We currently just store a map of userId -> boolean (online).
-   * This can be expanded later to drive UI indicators.
-   */
   const updateOnlineStatus = (state: Record<string, unknown>) => {
     if (!state) return;
-
-    /**
-     * Supabase presenceState() returns
-     * {
-     *   "<userId>": [ { ...meta } ]
-     * }
-     * We consider a user online if they appear as a key.
-     */
     const newStatus: Record<string, boolean> = {};
     Object.keys(state).forEach((userId) => {
       newStatus[userId] = true;
     });
-
     setOnlineParticipants(newStatus);
   };
 
   if (isLoading) {
     return (
-      <Card className="h-full">
-        <CardContent className="flex items-center justify-center h-full">
+      <Card className="h-full flex flex-col">
+        <CardContent className="flex items-center justify-center flex-1">
           <div className="flex items-center gap-2">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
             <span>Loading conversation...</span>
@@ -445,8 +432,8 @@ export default function ChatInterface({ conversationId, currentUser, onBack }: C
 
   if (error) {
     return (
-      <Card className="h-full">
-        <CardContent className="flex items-center justify-center h-full">
+      <Card className="h-full flex flex-col">
+        <CardContent className="flex items-center justify-center flex-1">
           <div className="text-center">
             <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-destructive mb-2">Error</h3>
@@ -459,8 +446,8 @@ export default function ChatInterface({ conversationId, currentUser, onBack }: C
 
   if (!conversation) {
     return (
-      <Card className="h-full">
-        <CardContent className="flex items-center justify-center h-full">
+      <Card className="h-full flex flex-col">
+        <CardContent className="flex items-center justify-center flex-1">
           <div className="text-center">
             <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2">No Conversation</h3>
@@ -472,19 +459,15 @@ export default function ChatInterface({ conversationId, currentUser, onBack }: C
   }
 
   return (
-    <Card className="h-full flex flex-col">
-      <CardHeader className="flex-row items-center space-y-0 pb-3">
+    <Card className="h-full flex flex-col shadow-lg bg-card">
+      <CardHeader className="flex-row items-center space-y-0 pb-3 border-b">
         <div className="flex-1">
           {isAdminUser ? (
             <div>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Users className="h-5 w-5" />
                 Admin View: Buyer ↔ Seller
-                {/* Real-time indicator */}
-                <span className={cn(
-                  "inline-flex h-2 w-2 rounded-full",
-                  isConnected ? "bg-green-400" : "bg-gray-400"
-                )} />
+                <span className={cn("inline-flex h-2 w-2 rounded-full", isConnected ? "bg-green-400" : "bg-gray-400")} />
               </CardTitle>
               <CardDescription>
                 Buyer: {conversation.buyer_profile?.full_name || conversation.buyer?.full_name} •
@@ -500,11 +483,7 @@ export default function ChatInterface({ conversationId, currentUser, onBack }: C
                   <AvatarFallback>{otherUser.full_name?.charAt(0)}</AvatarFallback>
                 </Avatar>
                 {otherUser.full_name}
-                {/* Real-time indicator */}
-                <span className={cn(
-                  "inline-flex h-2 w-2 rounded-full",
-                  isConnected ? "bg-green-400" : "bg-gray-400"
-                )} />
+                <span className={cn("inline-flex h-2 w-2 rounded-full", isConnected ? "bg-green-400" : "bg-gray-400")} />
               </CardTitle>
               <CardDescription className="flex items-center gap-2">
                 {otherUser && getVerificationBadge(otherUser)}
@@ -515,10 +494,7 @@ export default function ChatInterface({ conversationId, currentUser, onBack }: C
           ) : (
             <CardTitle className="text-lg flex items-center gap-2">
               Conversation
-              <span className={cn(
-                "inline-flex h-2 w-2 rounded-full",
-                isConnected ? "bg-green-400" : "bg-gray-400"
-              )} />
+              <span className={cn("inline-flex h-2 w-2 rounded-full", isConnected ? "bg-green-400" : "bg-gray-400")} />
             </CardTitle>
           )}
         </div>
@@ -534,8 +510,8 @@ export default function ChatInterface({ conversationId, currentUser, onBack }: C
         )}
       </CardHeader>
 
-      <CardContent className="flex-1 overflow-hidden px-0">
-        <ScrollArea className="h-full px-6" ref={scrollAreaRef}>
+      <CardContent className="flex-1 overflow-hidden px-0"> {/* Removed default px-6 */}
+        <ScrollArea className="h-full px-6" ref={scrollAreaRef}> {/* Added px-6 here for padding only on message area */}
           <div className="space-y-4 py-4">
             {messages.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
@@ -555,7 +531,6 @@ export default function ChatInterface({ conversationId, currentUser, onBack }: C
                   isBuyerMessage = messageSenderId === conversationBuyerId;
                 }
 
-                // 🎯 System message styling (admin facilitation, etc.)
                 if (isSystemMsg) {
                   return (
                     <div key={message.id} className="w-full flex justify-center my-4">
@@ -574,7 +549,6 @@ export default function ChatInterface({ conversationId, currentUser, onBack }: C
                   );
                 }
 
-                // 💬 Regular chat message styling
                 return (
                   <div
                     key={message.id}
@@ -623,8 +597,8 @@ export default function ChatInterface({ conversationId, currentUser, onBack }: C
         </ScrollArea>
       </CardContent>
 
-      <CardContent className="pt-0">
-        <div className="flex gap-2">
+      <CardContent className="pt-0 border-t"> {/* Added border-t for separation */}
+        <div className="flex gap-2 py-4"> {/* Added py-4 for padding around input */}
           <Input
             placeholder={
               isAdminUser
@@ -644,6 +618,7 @@ export default function ChatInterface({ conversationId, currentUser, onBack }: C
             onClick={sendMessage}
             disabled={isSending || !newMessage.trim() || isAdminUser}
             size="icon"
+            className="bg-primary hover:bg-primary/90"
           >
             {isSending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -653,7 +628,7 @@ export default function ChatInterface({ conversationId, currentUser, onBack }: C
           </Button>
         </div>
         {isAdminUser && (
-          <p className="text-xs text-muted-foreground mt-2 text-center">
+          <p className="text-xs text-muted-foreground text-center pb-2">
             Admin view - You can observe this conversation between the buyer and seller.
           </p>
         )}
@@ -661,3 +636,4 @@ export default function ChatInterface({ conversationId, currentUser, onBack }: C
     </Card>
   );
 }
+
