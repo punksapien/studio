@@ -1,4 +1,3 @@
-
 import {
   Accordion,
   AccordionContent,
@@ -8,12 +7,19 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Mail, Phone, Search, ShieldCheck, Briefcase, DollarSign, Users, Info } from "lucide-react";
+import { Mail } from "lucide-react";
+import { Phone } from "lucide-react";
+import { Search } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
+import { Briefcase } from "lucide-react";
+import { DollarSign } from "lucide-react";
+import { Users } from "lucide-react";
+import { InfoIcon } from "lucide-react";
 
 const faqs = [
   {
     category: "General",
-    icon: <Info className="h-5 w-5 mr-2 text-primary" />,
+    icon: <InfoIcon className="h-5 w-5 mr-2 text-primary" />,
     questions: [
       {
         q: "What is Nobridge?",
