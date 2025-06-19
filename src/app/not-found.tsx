@@ -1,3 +1,5 @@
+'use client'; // This page needs to be a client component for the onClick handler
+
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';

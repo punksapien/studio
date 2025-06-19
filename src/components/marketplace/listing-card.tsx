@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MapPin, DollarSign, Briefcase, ShieldCheck, ExternalLink } from 'lucide-react';
+import { MapPin, DollarSign, Briefcase, ShieldCheck, ExternalLink, TrendingUp } from 'lucide-react'; // Added TrendingUp
 import { NobridgeIcon } from '@/components/ui/nobridge-icon';
 
 interface ApiListing {
@@ -80,7 +80,7 @@ export function ListingCard({ listing }: ListingCardProps) {
             <span>{listing.location_city}, {listing.location_country}</span>
           </div>
           <div className="flex items-center">
-            <NobridgeIcon icon="revenue" size="sm" className="mr-2 opacity-70" />
+            <TrendingUp className="h-4 w-4 mr-2 text-brand-dark-blue/70" />
             <span>Revenue: {formatRevenueDisplay(listing)}</span>
           </div>
             <div className="flex items-center">
@@ -92,7 +92,7 @@ export function ListingCard({ listing }: ListingCardProps) {
       </CardContent>
       <CardFooter className="p-4 border-t border-brand-light-gray/80">
         <div className="flex justify-end items-center w-full">
-          {/* Removed Listed Date display from here */}
+          
           <Button asChild size="sm" className="bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90">
             <Link href={`/listings/${listing.id}`}>
               View Details <ExternalLink className="ml-2 h-4 w-4" />
@@ -103,3 +103,4 @@ export function ListingCard({ listing }: ListingCardProps) {
     </Card>
   );
 }
+
