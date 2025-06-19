@@ -42,9 +42,9 @@ const iconMap: Record<NobridgeIconType, string> = {
   'interaction': '/assets/icon_15.png',
   'documents': '/assets/icon_16.png',
   // Updated icon mappings
-  'process': '/assets/process_processed.png',
-  'worldwide': '/assets/worldwide_processed.png',
-  'people': '/assets/people_processed.png',
+  'process': '/assets/process_fixed.png',
+  'worldwide': '/assets/worldwide_fixed.png',
+  'people': '/assets/people_fixed.png',
 };
 
 const iconAltMap: Record<NobridgeIconType, string> = {
