@@ -421,7 +421,7 @@ export default function ListingDetailPage() {
             {/* Financial Highlights Bubble */}
             <Card className="bg-primary/5 p-4 md:p-6 rounded-lg shadow-sm border border-primary/20 mt-4">
               <h2 className="text-xl font-semibold text-primary mb-3 flex items-center"><Banknote className="h-6 w-6 mr-2"/>Financial Snapshot</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                 <div>
                   <p className="text-xs text-muted-foreground uppercase tracking-wider">Asking Price</p>
                   <p className="text-2xl font-bold text-primary">{formatCurrency(listing.asking_price)}</p>
