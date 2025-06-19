@@ -215,48 +215,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Featured Content / Blog Snippets */}
-      <section className="py-16 md:py-24 bg-brand-light-gray">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12 md:mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-brand-dark-blue font-heading">Insights & Success Stories</h2>
-            <p className="text-muted-foreground mt-3 text-lg">From Our Knowledge Hub</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[
-              { imageHint: "market analysis graph", category: "Market Trends", title: "Key Growth Sectors in Southeast Asia for 2025", excerpt: "Discover the industries poised for significant expansion and investment opportunities across the ASEAN region.", icon: "growth" as NobridgeIconType },
-              { imageHint: "business negotiation handshake", category: "Seller Tips", title: "Preparing Your Business for a Successful Sale", excerpt: "Essential steps to maximize your business's value and attract the right buyers in the Asian market.", icon: "due-diligence" as NobridgeIconType },
-              { imageHint: "business team success", category: "Success Story", title: "How a Tech Startup Found its Strategic Acquirer via Nobridge", excerpt: "Read about the journey of 'Innovate Solutions' and their successful exit facilitated by our platform.", icon: "featured" as NobridgeIconType },
-            ].map((item, index) => (
-              <Card key={index} className="bg-brand-white shadow-xl hover:shadow-2xl transition-shadow overflow-hidden flex flex-col rounded-lg">
-                <CardContent className="w-full h-48 bg-brand-dark-blue/10 flex items-center justify-center p-0">
-                  <NobridgeIcon icon={item.icon} size="xl" />
-                </CardContent>
-                <CardHeader className="p-6">
-                  <Badge variant="outline" className="mb-2 w-fit border-brand-dark-blue/30 text-brand-dark-blue/80">{item.category}</Badge>
-                  <CardTitle className="text-xl font-semibold leading-tight text-brand-dark-blue hover:text-brand-sky-blue transition-colors font-heading">
-                    <Link href="#">{item.title}</Link>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm text-muted-foreground flex-grow p-6 pt-0">
-                  <p>{item.excerpt}</p>
-                </CardContent>
-                <CardFooter className="p-6 pt-0">
-                  <Link href="#" className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 text-brand-dark-blue hover:text-brand-sky-blue p-0 h-10">
-                    Read More <SearchIcon className="ml-2 h-4 w-4" />
-                  </Link>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
-          <div className="text-center mt-16">
-            <Link href="#" className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-brand-dark-blue text-brand-dark-blue hover:bg-brand-dark-blue/5 h-11 py-3 px-8 text-base">
-              Explore All Insights
-            </Link>
-          </div>
-        </div>
-      </section>
-
       {/* Our Mission Section */}
       <section className="py-20 md:py-32 bg-brand-dark-blue text-brand-white">
         <div className="container mx-auto px-4 text-center">
@@ -291,3 +249,4 @@ export default function HomePage() {
     </>
   );
 }
+
