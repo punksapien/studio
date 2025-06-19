@@ -37,7 +37,7 @@ const navLinkGroups: NavLinkGroup[] = [
     triggerIcon: Briefcase,
     items: [
       { href: "/seller-dashboard/listings/create", label: "List Your Business", icon: FileText },
-      { href: "/pricing", label: "Pricing & Plans", icon: DollarSign },
+      // { href: "/pricing", label: "Pricing & Plans", icon: DollarSign }, // Removed Pricing & Plans
       { href: "/how-selling-works", label: "How Selling Works", icon: Info },
     ],
   },
@@ -347,3 +347,4 @@ export function Navbar() {
     </header>
   );
 }
+
