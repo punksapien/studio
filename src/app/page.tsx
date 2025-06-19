@@ -213,13 +213,13 @@ export default function HomePage() {
           <h3 className="text-sm font-semibold uppercase text-muted-foreground tracking-wider mb-10 font-heading">Featured In</h3>
           <div className="flex flex-wrap justify-center items-center gap-x-10 gap-y-8 md:gap-x-12 lg:gap-x-16">
             {featuredCompanyLogos.map((logo, index) => (
-              <div key={index} className="h-12 md:h-14 flex items-center"> {/* Consistent height container */}
+              <div key={index} className="h-16 md:h-20 flex items-center"> {/* Increased height */}
                 <Image
                   src={logo.src}
                   alt={logo.alt}
-                  width={150} // Max width
-                  height={56}  // Approx h-14
-                  className="object-contain max-h-full" // Ensure image fits within container
+                  width={180} // Increased width
+                  height={72} // Increased height for aspect ratio
+                  className="object-contain max-h-full" 
                   data-ai-hint={logo.dataAiHint}
                 />
               </div>
@@ -262,3 +262,4 @@ export default function HomePage() {
     </>
   );
 }
+
