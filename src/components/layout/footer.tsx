@@ -27,9 +27,6 @@ export function Footer() {
               <Link href="/how-selling-works" className="hover:text-brand-white transition-colors duration-300">
                 How Selling Works
               </Link>
-              <Link href="/seller-faq" className="hover:text-brand-white transition-colors duration-300">
-                Seller FAQ <span className="text-xs opacity-70">[Future]</span>
-              </Link>
             </div>
           </div>
 
@@ -43,9 +40,6 @@ export function Footer() {
               </Link>
               <Link href="/how-buying-works" className="hover:text-brand-white transition-colors duration-300">
                 How Buying Works
-              </Link>
-              <Link href="/buyer-faq" className="hover:text-brand-white transition-colors duration-300">
-                Buyer FAQ <span className="text-xs opacity-70">[Future]</span>
               </Link>
             </div>
           </div>
@@ -61,11 +55,8 @@ export function Footer() {
               <Link href="/contact" className="hover:text-brand-white transition-colors duration-300">
                 Contact Us
               </Link>
-              <Link href="/blog" className="hover:text-brand-white transition-colors duration-300">
-                Blog <span className="text-xs opacity-70">[Future]</span>
-              </Link>
-              <Link href="/careers" className="hover:text-brand-white transition-colors duration-300">
-                Careers <span className="text-xs opacity-70">[Future]</span>
+              <Link href="/faq" className="hover:text-brand-white transition-colors duration-300">
+                FAQ
               </Link>
             </div>
           </div>
