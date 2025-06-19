@@ -41,10 +41,10 @@ const iconMap: Record<NobridgeIconType, string> = {
   'due-diligence': '/assets/icon_14.png',
   'interaction': '/assets/icon_15.png',
   'documents': '/assets/icon_16.png',
-  // New icon mappings
-  'process': '/assets/process.png',
-  'worldwide': '/assets/worldwide.png',
-  'people': '/assets/people.png',
+  // Updated icon mappings
+  'process': '/assets/process_processed.png',
+  'worldwide': '/assets/worldwide_processed.png',
+  'people': '/assets/people_processed.png',
 };
 
 const iconAltMap: Record<NobridgeIconType, string> = {
@@ -121,3 +121,4 @@ export function NobridgeIcon({
     />
   );
 }
+
