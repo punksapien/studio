@@ -20,12 +20,12 @@ export default function AboutPage() {
 
           <div className="mx-auto max-w-2xl">
             <Image
-              src="https://placehold.co/600x300.png"
-              alt="Nobridge Team Meeting"
+              src="/assets/about-us.jpg"
+              alt="Nobridge Team Working"
               width={600}
               height={300}
               className="rounded-lg shadow-lg w-full"
-              data-ai-hint="team meeting office"
+              data-ai-hint="team collaboration office"
             />
           </div>
 
