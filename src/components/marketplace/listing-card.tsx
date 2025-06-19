@@ -91,10 +91,8 @@ export function ListingCard({ listing }: ListingCardProps) {
         </div>
       </CardContent>
       <CardFooter className="p-4 border-t border-brand-light-gray/80">
-        <div className="flex justify-between items-center w-full">
-          <span className="text-xs text-muted-foreground">
-            Listed {new Date(listing.created_at).toLocaleDateString()}
-          </span>
+        <div className="flex justify-end items-center w-full">
+          {/* Removed Listed Date display from here */}
           <Button asChild size="sm" className="bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90">
             <Link href={`/listings/${listing.id}`}>
               View Details <ExternalLink className="ml-2 h-4 w-4" />
