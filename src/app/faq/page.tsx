@@ -1,4 +1,3 @@
-
 import {
   Accordion,
   AccordionContent,
@@ -229,7 +228,7 @@ export default function FAQPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="max-w-3xl mx-auto space-y-12">
-          
+
           {/* Seller FAQs */}
           <div>
             <div className="flex items-center mb-6">
