@@ -18,7 +18,11 @@ export type NobridgeIconType =
   | 'financial-growth' // icon_13 - Bar Chart with Coin & Growing Bars
   | 'due-diligence' // icon_14 - Scales of Justice/Balance
   | 'interaction' // icon_15 - Isometric Cursor/Pointer
-  | 'documents'; // icon_16 - USB Drive
+  | 'documents' // icon_16 - USB Drive
+  // New icons
+  | 'process'
+  | 'worldwide'
+  | 'people';
 
 const iconMap: Record<NobridgeIconType, string> = {
   'business-listing': '/assets/icon_01.png',
@@ -37,6 +41,10 @@ const iconMap: Record<NobridgeIconType, string> = {
   'due-diligence': '/assets/icon_14.png',
   'interaction': '/assets/icon_15.png',
   'documents': '/assets/icon_16.png',
+  // New icon mappings
+  'process': '/assets/process.png',
+  'worldwide': '/assets/worldwide.png',
+  'people': '/assets/people.png',
 };
 
 const iconAltMap: Record<NobridgeIconType, string> = {
@@ -56,6 +64,10 @@ const iconAltMap: Record<NobridgeIconType, string> = {
   'due-diligence': 'Due Diligence Icon',
   'interaction': 'Interaction Icon',
   'documents': 'Documents Icon',
+  // New icon alt texts
+  'process': 'Process Icon',
+  'worldwide': 'Worldwide Icon',
+  'people': 'People Icon',
 };
 
 interface NobridgeIconProps {

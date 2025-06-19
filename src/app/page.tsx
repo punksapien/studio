@@ -36,15 +36,15 @@ export default function HomePage() {
           </p>
           <div className="mb-10 flex flex-col sm:flex-row items-center justify-center space-y-3 sm:space-y-0 sm:space-x-6 text-sm text-brand-light-gray">
             <div className="flex items-center">
-              <NobridgeIcon icon="verification" size="sm" className="mr-2 opacity-80" /> Verified Network
+              <NobridgeIcon icon="people" size="sm" className="mr-2 opacity-80" /> Verified Network
             </div>
             <span className="hidden sm:inline text-brand-light-gray/50">|</span>
             <div className="flex items-center">
-              <NobridgeIcon icon="revenue" size="md" className="mr-2.5 opacity-100" />Efficient Process
+              <NobridgeIcon icon="process" size="sm" className="mr-2 opacity-80" />Efficient Process
             </div>
             <span className="hidden sm:inline text-brand-light-gray/50">|</span>
             <div className="flex items-center">
-              <NobridgeIcon icon="secure-docs" size="md" className="mr-2.5 opacity-100" /> Expert Support
+              <NobridgeIcon icon="worldwide" size="sm" className="mr-2 opacity-80" /> Expert Support
             </div>
           </div>
           <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
