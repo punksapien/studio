@@ -1,13 +1,16 @@
 
+'use client';
+
 import * as React from "react";
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { Star, CheckCircle, Search as SearchIconLucide, MapPin, Briefcase, ListChecks, DollarSign, ShieldCheck, FileText, MessageSquare, Info, Phone, Home, ExternalLink, Users2 as UsersIcon, Images as ImagesIcon, Banknote, BookOpen, Brain, HandCoins, Globe, Link as LinkIconLucide, ArrowRight, Zap, UsersRound, CheckCircle2, TrendingUp } from 'lucide-react'; // Added TrendingUp
+import { Star, CheckCircle, Search as SearchIconLucide, MapPin, Briefcase, ListChecks, DollarSign, ShieldCheck, FileText, MessageSquare, Info, Phone, Home, ExternalLink, Users2 as UsersIcon, Images as ImagesIcon, Banknote, BookOpen, Brain, HandCoins, Globe, Link as LinkIconLucide, ArrowRight, Zap, UsersRound, CheckCircle2, TrendingUp, Loader2 } from 'lucide-react'; // Added TrendingUp
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
-import { sampleListings } from '@/lib/placeholder-data';
 import { NobridgeIcon, NobridgeIconType } from '@/components/ui/nobridge-icon';
 
 
@@ -20,7 +23,19 @@ const PlaceholderLogo = ({ text = "Logo", className = "" }: { text?: string, cla
   </div>
 );
 
-const previewListings = sampleListings.slice(0, 3);
+// Listing interface for real data from API response
+interface FeaturedListing {
+  id: string;
+  title: string; // API returns 'title' not 'listing_title_anonymous'
+  industry: string;
+  location_city: string; // API returns 'location_city'
+  location_country: string;
+  asking_price: number;
+  annual_revenue_range?: string;
+  images?: string; // API returns 'images' as JSON string
+  verification_status: string; // API returns 'verification_status'
+  short_description?: string; // API returns 'short_description'
+}
 
 const featuredCompanyLogos = [
   { src: "/assets/1.png", alt: "Featured Company Logo 1", dataAiHint: "company logo" },
@@ -31,6 +46,30 @@ const featuredCompanyLogos = [
 ];
 
 export default function HomePage() {
+  const [featuredListings, setFeaturedListings] = useState<FeaturedListing[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch featured listings on component mount
+  useEffect(() => {
+    const fetchFeaturedListings = async () => {
+      try {
+        const response = await fetch('/api/listings?limit=3&sort=created_at&order=desc');
+        if (response.ok) {
+          const data = await response.json();
+          setFeaturedListings(data.listings || []);
+        } else {
+          console.error('Failed to fetch featured listings');
+        }
+      } catch (error) {
+        console.error('Error fetching featured listings:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchFeaturedListings();
+  }, []);
+
   return (
     <>
       {/* Hero Section */}
@@ -74,44 +113,92 @@ export default function HomePage() {
             <p className="text-muted-foreground mt-3 text-lg">A Glimpse into Our Curated Marketplace</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {previewListings.map((listing) => (
-              <Card key={listing.id} className="bg-brand-white shadow-xl hover:shadow-2xl transition-shadow duration-300 rounded-lg flex flex-col overflow-hidden">
-                <CardHeader className="p-0 relative">
-                  <Image
-                    src={listing.imageUrls?.[0] || "https://placehold.co/400x250.png"}
-                    alt={listing.listingTitleAnonymous}
-                    width={400}
-                    height={250}
-                    className="w-full h-48 object-cover"
-                    data-ai-hint={listing.industry ? listing.industry.toLowerCase().replace(/\s+/g, '-') : "business"}
-                  />
-                   {listing.isSellerVerified && (
-                      <Badge variant="outline" className="absolute top-3 right-3 text-xs border-green-600 text-green-700 bg-green-100 dark:bg-green-700/20 dark:text-green-300 dark:border-green-500/50">
-                        <NobridgeIcon icon="verification" size="sm" className="mr-1 opacity-80" /> Verified
-                      </Badge>
+            {isLoading ? (
+              // Loading skeletons
+              Array.from({ length: 3 }).map((_, index) => (
+                <Card key={index} className="bg-brand-white shadow-xl rounded-lg flex flex-col overflow-hidden">
+                  <div className="p-0 relative">
+                    <Skeleton className="w-full h-48" />
+                  </div>
+                  <CardContent className="p-6 flex-grow">
+                    <Skeleton className="h-4 w-20 mb-2" />
+                    <Skeleton className="h-6 w-full mb-2" />
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-3/4" />
+                      <Skeleton className="h-4 w-2/3" />
+                      <Skeleton className="h-4 w-4/5" />
+                      <Skeleton className="h-4 w-3/5" />
+                    </div>
+                  </CardContent>
+                  <CardFooter className="p-6 border-t border-brand-light-gray/80">
+                    <Skeleton className="h-10 w-full" />
+                  </CardFooter>
+                </Card>
+              ))
+            ) : featuredListings.length > 0 ? (
+              featuredListings.map((listing) => (
+                <Card key={listing.id} className="bg-brand-white shadow-xl hover:shadow-2xl transition-shadow duration-300 rounded-lg flex flex-col overflow-hidden">
+                  <CardHeader className="p-0 relative">
+                    <Image
+                      src={
+                        listing.images
+                          ? (typeof listing.images === 'string'
+                              ? JSON.parse(listing.images)[0]
+                              : listing.images[0]) || "https://placehold.co/400x250.png"
+                          : "https://placehold.co/400x250.png"
+                      }
+                      alt={listing.title}
+                      width={400}
+                      height={250}
+                      className="w-full h-48 object-cover"
+                      data-ai-hint={listing.industry ? listing.industry.toLowerCase().replace(/\s+/g, '-') : "business"}
+                    />
+                     {listing.verification_status === 'verified' && (
+                        <Badge variant="outline" className="absolute top-3 right-3 text-xs border-green-600 text-green-700 bg-green-100 dark:bg-green-700/20 dark:text-green-300 dark:border-green-500/50">
+                          <NobridgeIcon icon="verification" size="sm" className="mr-1 opacity-80" /> Verified
+                        </Badge>
+                      )}
+                  </CardHeader>
+                  <CardContent className="p-6 flex-grow">
+                    <div className="flex justify-between items-start mb-2">
+                      <Badge variant="secondary" className="bg-brand-dark-blue/5 text-brand-dark-blue text-xs">{listing.industry}</Badge>
+                    </div>
+                    <CardTitle className="text-xl font-semibold text-brand-dark-blue mb-2 leading-tight hover:text-brand-sky-blue transition-colors font-heading">
+                      <Link href={`/listings/${listing.id}`}>{listing.title}</Link>
+                    </CardTitle>
+                    <div className="space-y-1 text-sm text-muted-foreground">
+                      <p className="flex items-center"><Briefcase className="h-4 w-4 mr-2 text-brand-dark-blue/70" /> {listing.industry}</p>
+                      <p className="flex items-center"><MapPin className="h-4 w-4 mr-2 text-brand-dark-blue/70" /> {listing.location_city}, {listing.location_country}</p>
+                      {listing.annual_revenue_range && (
+                        <p className="flex items-center"><TrendingUp className="h-4 w-4 mr-2 text-brand-dark-blue/70" /> Revenue: {listing.annual_revenue_range}</p>
+                      )}
+                      <p className="flex items-center"><DollarSign className="h-4 w-4 mr-2 text-brand-dark-blue/70" /> Asking: ${(listing.asking_price / 1000000).toFixed(1)}M USD</p>
+                    </div>
+                    {listing.short_description && (
+                      <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
+                        {listing.short_description.substring(0, 120)}...
+                      </p>
                     )}
-                </CardHeader>
-                <CardContent className="p-6 flex-grow">
-                  <div className="flex justify-between items-start mb-2">
-                    <Badge variant="secondary" className="bg-brand-dark-blue/5 text-brand-dark-blue text-xs">{listing.industry}</Badge>
-                  </div>
-                  <CardTitle className="text-xl font-semibold text-brand-dark-blue mb-2 leading-tight hover:text-brand-sky-blue transition-colors font-heading">
-                    <Link href={`/listings/${listing.id}`}>{listing.listingTitleAnonymous}</Link>
-                  </CardTitle>
-                  <div className="space-y-1 text-sm text-muted-foreground">
-                    <p className="flex items-center"><Briefcase className="h-4 w-4 mr-2 text-brand-dark-blue/70" /> {listing.industry}</p>
-                    <p className="flex items-center"><MapPin className="h-4 w-4 mr-2 text-brand-dark-blue/70" /> {listing.locationCityRegionGeneral}, {listing.locationCountry}</p>
-                    <p className="flex items-center"><TrendingUp className="h-4 w-4 mr-2 text-brand-dark-blue/70" /> Revenue: {listing.annualRevenueRange}</p>
-                    <p className="flex items-center"><DollarSign className="h-4 w-4 mr-2 text-brand-dark-blue/70" /> Asking: {listing.askingPrice ? `$${listing.askingPrice.toLocaleString()} USD` : 'Contact for Price'}</p>
-                  </div>
-                </CardContent>
-                <CardFooter className="p-6 border-t border-brand-light-gray/80 mt-auto">
-                  <Link href={`/listings/${listing.id}`} className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 w-full bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90 h-10 px-4 py-2">
-                    View Details <SearchIconLucide className="ml-2 h-4 w-4" />
+                  </CardContent>
+                  <CardFooter className="p-6 border-t border-brand-light-gray/80 mt-auto">
+                    <Link href={`/listings/${listing.id}`} className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 w-full bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90 h-10 px-4 py-2">
+                      View Details <SearchIconLucide className="ml-2 h-4 w-4" />
+                    </Link>
+                  </CardFooter>
+                </Card>
+              ))
+            ) : (
+              // Fallback if no listings
+              <div className="col-span-full text-center py-8">
+                <div className="flex flex-col items-center gap-4">
+                  <Briefcase className="h-12 w-12 text-muted-foreground" />
+                  <p className="text-muted-foreground">No featured listings available at the moment.</p>
+                  <Link href="/marketplace" className="inline-flex items-center text-brand-dark-blue hover:text-brand-sky-blue">
+                    Browse all listings <ArrowRight className="ml-1 h-4 w-4" />
                   </Link>
-                </CardFooter>
-              </Card>
-            ))}
+                </div>
+              </div>
+            )}
           </div>
           <div className="mt-16 text-center">
             <Link href="/marketplace" className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-brand-dark-blue text-brand-dark-blue hover:bg-brand-dark-blue/5 h-11 py-3 px-8 text-base">

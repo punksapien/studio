@@ -76,8 +76,8 @@ export async function POST(
       receiverId = conversation.buyer_id;
     } else {
       receiverId = conversation.buyer_id === authResult.user.id
-        ? conversation.seller_id
-        : conversation.buyer_id;
+      ? conversation.seller_id
+      : conversation.buyer_id;
     }
 
     // Create the message

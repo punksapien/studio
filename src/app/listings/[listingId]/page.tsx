@@ -482,21 +482,48 @@ export default function ListingDetailPage() {
                         <div><h3 className="font-semibold text-brand-dark-blue flex items-center gap-2 mb-2"><Building className="h-5 w-5"/>Company Details</h3>{canViewVerifiedDetails ? (<div className="space-y-1"><p className="text-sm text-slate-700"><span className="font-medium text-slate-900">Registered Business Name:</span> {listing.registered_business_name || 'N/A'}</p><p className="text-sm text-slate-700"><span className="font-medium text-slate-900">Year Established:</span> {listing.established_year || 'N/A'}</p><p className="text-sm text-slate-700"><span className="font-medium text-slate-900">Number of Employees:</span> {listing.number_of_employees || 'N/A'}</p></div>) : (<p className="text-sm text-muted-foreground italic">Complete buyer verification to view detailed company information</p>)}</div>
                         <div><h3 className="font-semibold text-brand-dark-blue flex items-center gap-2 mb-2"><Globe className="h-5 w-5"/>Web Presence</h3>{canViewVerifiedDetails ? (<div className="space-y-1"><p className="text-sm text-slate-700"><span className="font-medium text-slate-900">Business Website:</span> {listing.website_url ? <Link href={listing.website_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 hover:underline font-medium">{listing.website_url}</Link> : 'N/A'}</p>{listing.social_media_links && <p className="text-sm text-slate-700"><span className="font-medium text-slate-900">Social Media:</span> <span className="whitespace-pre-wrap">{listing.social_media_links}</span></p>}</div>) : (<p className="text-sm text-muted-foreground italic">Complete buyer verification to view web presence details</p>)}</div>
                         <div><h3 className="font-semibold text-brand-dark-blue flex items-center gap-2 mb-2"><DollarSign className="h-5 w-5"/>Specific Financials</h3>{canViewVerifiedDetails ? (<div className="space-y-1"><p className="text-sm text-slate-700"><span className="font-medium text-slate-900">Specific Annual Revenue (TTM):</span> {listing.verified_annual_revenue ? `${formatCurrency(listing.verified_annual_revenue)}` : 'N/A'}</p><p className="text-sm text-slate-700"><span className="font-medium text-slate-900">Specific Net Profit (TTM):</span> {listing.verified_net_profit ? `${formatCurrency(listing.verified_net_profit)}` : 'N/A'}</p>{listing.net_profit_margin_range && <p className="text-sm text-slate-700"><span className="font-medium text-slate-900">Net Profit Margin Range:</span> {listing.net_profit_margin_range}</p>}</div>) : (<p className="text-sm text-muted-foreground italic">Complete buyer verification to view specific financial details</p>)}</div>
-                        <div><h3 className="font-semibold text-brand-dark-blue flex items-center gap-2 mb-2"><UsersIcon className="h-5 w-5"/>Seller & Deal Information</h3>{canViewVerifiedDetails ? (<div className="space-y-1"><p className="text-sm text-slate-700"><span className="font-medium text-slate-900">Detailed Reason for Selling:</span> <span className="whitespace-pre-wrap">{listing.detailed_reason_for_selling || 'N/A'}</span></p>{listing.deal_structure_looking_for && listing.deal_structure_looking_for.length > 0 && (<p className="text-sm text-slate-700"><span className="font-medium text-slate-900">Deal Structure Preferences:</span> {listing.deal_structure_looking_for.join(', ')}</p>)}</div>) : (<p className="text-sm text-muted-foreground italic">Complete buyer verification to view seller and deal information</p>)}</div>
+                        <div><h3 className="font-semibold text-brand-dark-blue flex items-center gap-2 mb-2"><UsersIcon className="h-5 w-5"/>Seller & Deal Information</h3>{canViewVerifiedDetails ? (<div className="space-y-1"><p className="text-sm text-slate-700"><span className="font-medium text-slate-900">Detailed Reason for Selling:</span> <span className="whitespace-pre-wrap">{listing.detailed_reason_for_selling || 'N/A'}</span></p>{(() => {
+  const dealStructure = listing.deal_structure_looking_for
+    ? (typeof listing.deal_structure_looking_for === 'string'
+        ? JSON.parse(listing.deal_structure_looking_for)
+        : listing.deal_structure_looking_for)
+    : null;
+  return dealStructure && Array.isArray(dealStructure) && dealStructure.length > 0 && (
+    <p className="text-sm text-slate-700"><span className="font-medium text-slate-900">Deal Structure Preferences:</span> {dealStructure.join(', ')}</p>
+  );
+})()}</div>) : (<p className="text-sm text-muted-foreground italic">Complete buyer verification to view seller and deal information</p>)}</div>
                         <div><h3 className="font-semibold text-brand-dark-blue flex items-center gap-2 mb-2"><FileText className="h-5 w-5"/>Supporting Documents</h3><div className="grid grid-cols-1 md:grid-cols-2 gap-3"><div><p className="text-xs font-medium text-slate-800 mb-1">Financial Documents</p><DocumentLink href={listing.financial_documents_url}>Financial Statements (P&L, Balance Sheet)</DocumentLink></div><div><p className="text-xs font-medium text-slate-800 mb-1">Business Metrics</p><DocumentLink href={listing.key_metrics_report_url}>Key Performance Indicators Report</DocumentLink></div><div><p className="text-xs font-medium text-slate-800 mb-1">Ownership Documents</p><DocumentLink href={listing.ownership_documents_url}>Company Registration & Certificates</DocumentLink></div><div><p className="text-xs font-medium text-slate-800 mb-1">Financial Summary</p><DocumentLink href={listing.financial_snapshot_url}>Recent Financial Summary</DocumentLink></div><div><p className="text-xs font-medium text-slate-800 mb-1">Ownership Details</p><DocumentLink href={listing.ownership_details_url}>Detailed Ownership Structure</DocumentLink></div><div><p className="text-xs font-medium text-slate-800 mb-1">Location & Assets</p><DocumentLink href={listing.location_real_estate_info_url}>Real Estate & Location Info</DocumentLink></div><div><p className="text-xs font-medium text-slate-800 mb-1">Digital Presence</p><DocumentLink href={listing.web_presence_info_url}>Website Analytics & SEO Data</DocumentLink></div>{listing.secure_data_room_link && (<div className="md:col-span-2"><p className="text-xs font-medium text-slate-800 mb-1">Additional Documents</p><DocumentLink href={listing.secure_data_room_link}>Secure Data Room Access</DocumentLink></div>)}</div></div>
                     </div>
                 </section>
             </div>
             <aside className="lg:col-span-4 space-y-6 md:sticky md:top-24 h-fit">
                 {/* Moved Image Gallery to top of sidebar */}
-                <ImageGallery imageUrls={listing.images} listingTitle={listing.title}/>
+                <ImageGallery
+                  imageUrls={
+                    listing.images
+                      ? (typeof listing.images === 'string'
+                          ? JSON.parse(listing.images)
+                          : listing.images)
+                      : undefined
+                  }
+                  listingTitle={listing.title}
+                />
 
                 <Card className="shadow-md bg-brand-white"><CardHeader><CardTitle className="text-xl text-brand-dark-blue font-heading">Listing Summary</CardTitle></CardHeader>
                     <CardContent className="space-y-3 text-sm">
                         <div className="flex items-center"><Briefcase className="h-5 w-5 mr-3 text-primary flex-shrink-0" /><div><p className="font-medium text-brand-dark-blue">Industry</p><p className="text-muted-foreground">{listing.industry}</p></div></div>
                         <div className="flex items-center"><MapPin className="h-5 w-5 mr-3 text-primary flex-shrink-0" /><div><p className="font-medium text-brand-dark-blue">Location</p><p className="text-muted-foreground">{listing.location_city}, {listing.location_country}</p></div></div>
                         {/* Moved Asking Price & Revenue to top Financial Snapshot */}
-                        {listing.deal_structure_looking_for && listing.deal_structure_looking_for.length > 0 && (<div className="flex items-start"><HandCoins className="h-5 w-5 mr-3 text-primary flex-shrink-0 mt-0.5" /><div><p className="font-medium text-brand-dark-blue">Deal Structure</p><p className="text-muted-foreground">{listing.deal_structure_looking_for.join(', ')}</p></div></div>)}
+{(() => {
+  const dealStructure = listing.deal_structure_looking_for
+    ? (typeof listing.deal_structure_looking_for === 'string'
+        ? JSON.parse(listing.deal_structure_looking_for)
+        : listing.deal_structure_looking_for)
+    : null;
+  return dealStructure && Array.isArray(dealStructure) && dealStructure.length > 0 && (
+    <div className="flex items-start"><HandCoins className="h-5 w-5 mr-3 text-primary flex-shrink-0 mt-0.5" /><div><p className="font-medium text-brand-dark-blue">Deal Structure</p><p className="text-muted-foreground">{dealStructure.join(', ')}</p></div></div>
+  );
+})()}
                         <div className="flex items-center"><UserCircle className="h-5 w-5 mr-3 text-primary flex-shrink-0" /><div><p className="font-medium text-brand-dark-blue">Seller Status</p><p className="text-muted-foreground">{listing.is_seller_verified ? 'Verified Seller' : 'Unverified Seller'}</p></div></div>
                          <div className="flex items-center"><CalendarDays className="h-5 w-5 mr-3 text-primary flex-shrink-0" /><div><p className="font-medium text-brand-dark-blue">Listed On</p><p className="text-muted-foreground">{new Date(listing.created_at).toLocaleDateString()}</p></div></div>
                     </CardContent>

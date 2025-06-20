@@ -1,107 +1,220 @@
-# Nobridge Scripts
+# Database Seeding Scripts
 
-This directory contains utility scripts for the Nobridge project.
+This directory contains utility scripts for managing users and seeding data in your Supabase database.
 
-## `supabase-reset.sh` - FIXED Supabase Management
+## Scripts Overview
 
-A **corrected** script that follows the key lesson: **"Don't fix normal Docker behavior"**. This script no longer forces unnecessary 8GB+ downloads.
+### 🔧 Admin User Creation
 
-### What Was Wrong Before
-
-❌ **The Previous Problem**: The script was doing exactly what we identified as the root cause:
-- Forcing Docker image removal (`docker system prune -af`)
-- Causing 8GB+ re-downloads every time
-- Creating the 10-15 minute "hanging" behavior we were trying to "fix"
-- Making the problem worse instead of better
-
-### What This Script Does Now
-
-✅ **The Corrected Approach**:
-- **Normal mode** (default): Preserves Docker images for fast startup
-- **Progress feedback**: Shows you what's happening so you know it's working
-- **Hard reset** (only when explicitly requested): Warns you about 8GB+ downloads
-- **No false problems**: Doesn't "fix" normal Docker behavior
-
-### Usage Examples
+#### `create-admin-user.js` - Local Admin Creation
+Creates an admin user in your local Supabase instance.
 
 ```bash
-# ✅ DAILY USE - Fast startup preserving images
-./scripts/supabase-reset.sh
-
-# ✅ WITH PROGRESS - See what's happening
-./scripts/supabase-reset.sh --verbose
-
-# ⚠️  NUCLEAR OPTION - Only if you have real problems
-./scripts/supabase-reset.sh --hard --verbose
+npm run create-admin
+# or
+node scripts/create-admin-user.js
 ```
 
-### Expected Behavior
+**Admin Credentials:**
+- Email: `admin@nobridge.com`
+- Password: `100%Test`
+- Role: `admin`
+- Status: Auto-verified
 
-**Normal Mode** (default):
-- ✅ Stops Supabase gracefully
-- ✅ Preserves Docker images (no 8GB downloads)
-- ✅ Starts Supabase quickly (1-2 minutes)
-- ✅ Shows progress feedback so you know it's working
+#### `create-admin-user-remote.js` - Remote Admin Creation
+Creates an admin user in a remote Supabase instance.
 
-**Hard Mode** (--hard flag):
-- ⚠️  Warns you about 8GB+ downloads
-- ⚠️  Asks for confirmation
-- ⚠️  Forces 10-15 minute startup time
-- ⚠️  Only use for actual Docker corruption issues
+```bash
+# Set environment variables first
+export REMOTE_SUPABASE_URL=https://your-project.supabase.co
+export REMOTE_SUPABASE_SERVICE_KEY=your-service-role-key
 
-### Progress Feedback Features
+npm run create-admin-remote
+# or
+node scripts/create-admin-user-remote.js
+```
 
-1. **Visual Progress**: Dots or detailed logs show activity
-2. **Clear Timing**: Tells you when to expect delays
-3. **Service Verification**: Confirms all services are working
-4. **Helpful Links**: Shows you where to access Studio, Email testing, etc.
+### 🌱 Listing Data Seeding
 
-### When to Use Each Mode
+#### `seed-listings.js` - Local Database Seeding
+Creates a complete demo seller account with 5 diverse business listings.
 
-**Use Normal Mode When**:
-- ✅ Daily development workflow
-- ✅ Restarting after code changes
-- ✅ Switching between projects
-- ✅ 99% of the time
+```bash
+npm run seed-listings
+# or
+node scripts/seed-listings.js
+```
 
-**Use Hard Mode When**:
-- ❌ Docker containers are actually corrupted
-- ❌ You've manually broken something in Docker
-- ❌ Volumes are corrupted (rare)
-- ❌ Last resort only
+**Features:**
+- ✅ Creates verified seller account (`seller@nobridge.com`)
+- ✅ Downloads images from external URLs
+- ✅ Uploads images to Supabase storage
+- ✅ Creates 5 realistic business listings with full data
+- ✅ Auto-verification and proper status setup
+- ✅ Comprehensive error handling and logging
 
-### The Key Insight
+**Seller Credentials:**
+- Email: `seller@nobridge.com`
+- Password: `100%Seller`
+- Role: `seller`
+- Status: Verified seller
 
-> **Most "Supabase problems" are just normal Docker behavior being misinterpreted as failures.**
+#### `seed-listings-remote.js` - Remote Database Seeding
+Same functionality as local seeding but for remote Supabase instances.
 
-**What looks like "hanging"**:
-- Docker downloading images (normal)
-- Database migrations running (normal)
-- Services starting up (normal)
+```bash
+# Set environment variables first
+export REMOTE_SUPABASE_URL=https://your-project.supabase.co
+export REMOTE_SUPABASE_SERVICE_KEY=your-remote-service-role-key
 
-**What's actually broken**:
-- Actual error messages in logs
-- Services failing to start after completion
-- Real port conflicts
+npm run seed-listings-remote
+# or
+node scripts/seed-listings-remote.js
+```
 
-### Troubleshooting Guide
+## Business Listings Created
 
-**If startup seems slow**:
-1. ✅ Use `--verbose` to see what's happening
-2. ✅ Look for "Pulling image" messages (normal)
-3. ✅ Wait for completion (don't interrupt)
+The seeding script creates 5 diverse business listings:
 
-**If there are real errors**:
-1. ✅ Check the error messages carefully
-2. ✅ Only use `--hard` if you see actual corruption
-3. ✅ Don't assume normal behavior is broken
+1. **Commercial & Industrial Painting Contractor** (Indonesia)
+   - Industry: Construction & Trades
+   - Revenue: $14.4M | Asking: $7M | Employees: 140
 
-### File Structure
+2. **Multi-Location Auto Service Center** (India)
+   - Industry: Automotive Sales & Repair
+   - Revenue: $14.3M | Asking: $9M | Employees: 130
+
+3. **Commercial Landscaping & Groundskeeping** (Indonesia)
+   - Industry: Commercial Landscaping
+   - Revenue: $17.8M | Asking: $13M | Employees: 175
+
+4. **Regional Coffee Roaster & Cafe Chain** (Indonesia)
+   - Industry: Restaurants & Food Service
+   - Revenue: $2.6M | Asking: $1M | Employees: 85
+
+5. **Mechanical & Plumbing Contractors** (Vietnam)
+   - Industry: Construction & Trades
+   - Revenue: $21.1M | Asking: $10M | Employees: 100
+
+## Prerequisites
+
+### Required Environment Variables
+
+**For Local Scripts:**
+```bash
+NEXT_PUBLIC_SUPABASE_URL=your-local-supabase-url
+SUPABASE_SERVICE_ROLE_KEY=your-local-service-role-key
+```
+
+**For Remote Scripts:**
+```bash
+REMOTE_SUPABASE_URL=https://your-project.supabase.co
+REMOTE_SUPABASE_SERVICE_KEY=your-remote-service-role-key
+```
+
+### Required Permissions
+
+- Service role key with admin privileges
+- Write access to `user_profiles` table
+- Write access to `listings` table
+- Write access to `listing-documents` storage bucket
+- Auth admin permissions for user creation
+
+## Technical Details
+
+### Image Handling
+- Downloads images from provided URLs with proper user agents
+- Handles various image formats automatically
+- Uploads to Supabase `listing-documents` bucket
+- Generates unique filenames to prevent conflicts
+- Graceful fallback if image download/upload fails
+
+### Data Integrity
+- Auto-verification bypasses email verification requirements
+- Proper role assignment and permissions setup
+- Consistent data formatting and validation
+- Error recovery and detailed logging
+- Cleanup of temporary files
+
+### Security Features
+- Uses Supabase service role for admin operations
+- Bypasses RLS for setup operations
+- Secure credential handling
+- Environment variable validation
+
+## Usage Examples
+
+### Development Setup
+```bash
+# 1. Create admin user for local development
+npm run create-admin
+
+# 2. Seed demo listings for testing
+npm run seed-listings
+
+# 3. Access the application
+# Admin: http://localhost:9002/admin/login
+# Seller: http://localhost:9002/auth/login
+```
+
+### Production Deployment
+```bash
+# 1. Set remote environment variables
+export REMOTE_SUPABASE_URL=https://your-prod.supabase.co
+export REMOTE_SUPABASE_SERVICE_KEY=your-prod-service-key
+
+# 2. Create admin in production
+npm run create-admin-remote
+
+# 3. Seed demo data in production
+npm run seed-listings-remote
+```
+
+## Troubleshooting
+
+### Common Issues
+
+**Environment Variables Missing:**
+```
+❌ Missing environment variables:
+NEXT_PUBLIC_SUPABASE_URL: false
+SUPABASE_SERVICE_ROLE_KEY: false
+```
+→ Check your `.env.local` file or export variables
+
+**Permission Denied:**
+```
+❌ Error: insufficient_privilege
+```
+→ Ensure you're using the service role key, not anon key
+
+**Image Download Failures:**
+```
+⚠️ Image upload failed, continuing without image
+```
+→ Normal behavior; listings created without hero images
+
+**User Already Exists:**
+```
+⚠️ Auth user already exists, using existing user...
+```
+→ Expected behavior; script updates existing user profile
+
+### Getting Help
+
+If you encounter issues:
+1. Check that your Supabase instance is running
+2. Verify environment variables are correctly set
+3. Ensure your service role key has admin privileges
+4. Check the detailed console output for specific error messages
+
+## File Structure
 
 ```
 scripts/
-├── supabase-reset.sh     # The corrected management script
-└── README.md            # This documentation
+├── README.md                    # This documentation
+├── create-admin-user.js         # Local admin creation
+├── create-admin-user-remote.js  # Remote admin creation
+├── seed-listings.js             # Local listing seeding
+└── seed-listings-remote.js      # Remote listing seeding
 ```
-
-This script now follows the principle: **"Simple approach works best - just run npx supabase start and wait"** while adding helpful progress feedback.

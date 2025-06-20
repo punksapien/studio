@@ -50,12 +50,18 @@ export function ListingCard({ listing }: ListingCardProps) {
     <Card className="flex flex-col h-full overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 rounded-lg bg-brand-white">
       <CardHeader className="p-0 relative">
         <Image
-          src={listing.images?.[0] || "https://placehold.co/400x250.png"}
+          src={
+            listing.images
+              ? (typeof listing.images === 'string'
+                  ? JSON.parse(listing.images)[0]
+                  : listing.images[0]) || "https://placehold.co/400x250.png"
+              : "https://placehold.co/400x250.png"
+          }
           alt={listing.title}
           width={400}
           height={250}
           className="w-full h-48 object-cover"
-          data-ai-hint={listing.images?.[0] ? (listing.industry ? listing.industry.toLowerCase().replace(/\s+/g, '-') : "business") : "generic business"}
+          data-ai-hint={listing.images ? (listing.industry ? listing.industry.toLowerCase().replace(/\s+/g, '-') : "business") : "generic business"}
         />
         {listing.verification_status === 'verified' && (
           <Badge variant="outline" className="absolute top-2 right-2 bg-green-100 border-green-500 text-green-700 dark:bg-green-700 dark:text-green-200 dark:border-green-500">
@@ -92,7 +98,7 @@ export function ListingCard({ listing }: ListingCardProps) {
       </CardContent>
       <CardFooter className="p-4 border-t border-brand-light-gray/80">
         <div className="flex justify-end items-center w-full">
-          
+
           <Button asChild size="sm" className="bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90">
             <Link href={`/listings/${listing.id}`}>
               View Details <ExternalLink className="ml-2 h-4 w-4" />

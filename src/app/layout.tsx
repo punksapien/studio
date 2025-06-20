@@ -18,12 +18,18 @@ export const metadata: Metadata = {
   description: 'Connecting SME owners with investors and buyers in Asia.',
   icons: {
     icon: [
-      { url: '/favicon.ico', sizes: 'any', type: 'image/x-icon' }, // Standard .ico
-      { url: '/assets/nobridge_app_icon.png', type: 'image/png', sizes: 'any' }, // PNG icon
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/assets/nobridge_app_icon.png', type: 'image/png', sizes: '512x512' },
+      { url: '/assets/nobridge_app_icon.png', type: 'image/png', sizes: '192x192' },
+      { url: '/assets/nobridge_app_icon.png', type: 'image/png', sizes: '32x32' },
+      { url: '/assets/nobridge_app_icon.png', type: 'image/png', sizes: '16x16' },
     ],
-    apple: '/assets/apple-touch-icon.png', // Ensure this file exists at public/assets/apple-touch-icon.png
-    shortcut: '/assets/nobridge_app_icon.png', // Shortcut icon using the png
+    apple: [
+      { url: '/assets/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+    ],
+    shortcut: '/favicon.ico',
   },
+  manifest: '/manifest.json',
 };
 
 export default function RootLayout({
@@ -34,6 +40,12 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/* Favicons and icons */}
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="/favicon.png" type="image/png" />
+        <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png" />
+        <meta name="theme-color" content="#1e3a8a" />
+
         {/* Satoshi Font from Fontshare CDN */}
         <link rel="preconnect" href="https://api.fontshare.com" />
         <link
