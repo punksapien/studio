@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from "react";
@@ -155,7 +154,7 @@ export default function HomePage() {
                     />
                      {listing.verification_status === 'verified' && (
                         <Badge variant="outline" className="absolute top-3 right-3 text-xs border-green-600 text-green-700 bg-green-100 dark:bg-green-700/20 dark:text-green-300 dark:border-green-500/50">
-                          <NobridgeIcon icon="verification" size="sm" className="mr-1 opacity-80" /> Verified
+                          <CheckCircle2 className="h-3 w-3 mr-1" /> Verified
                         </Badge>
                       )}
                   </CardHeader>
@@ -302,14 +301,14 @@ export default function HomePage() {
       <section className="py-12 md:py-16 bg-brand-white">
         <div className="container mx-auto px-4 text-center">
           <h3 className="text-sm font-semibold uppercase text-muted-foreground tracking-wider mb-10 font-heading">Featured In</h3>
-          <div className="flex flex-wrap justify-center items-center gap-x-10 gap-y-8 md:gap-x-12 lg:gap-x-16">
+          <div className="flex flex-wrap justify-center items-center gap-x-12 gap-y-10 md:gap-x-16 lg:gap-x-20">
             {featuredCompanyLogos.map((logo, index) => (
-              <div key={index} className="h-16 md:h-20 flex items-center"> {/* Increased height */}
+              <div key={index} className="h-20 md:h-24 lg:h-28 flex items-center"> {/* Made even bigger */}
                 <Image
                   src={logo.src}
                   alt={logo.alt}
-                  width={180} // Increased width
-                  height={72} // Increased height for aspect ratio
+                  width={220} // Increased width more
+                  height={90} // Increased height more
                   className="object-contain max-h-full"
                   data-ai-hint={logo.dataAiHint}
                 />

@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from "react";
@@ -7,7 +6,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MapPin, DollarSign, Briefcase, ShieldCheck, ExternalLink, TrendingUp } from 'lucide-react'; // Added TrendingUp
+import { MapPin, DollarSign, Briefcase, CheckCircle2, ExternalLink, TrendingUp } from 'lucide-react'; // Replaced ShieldCheck with CheckCircle2
 import { NobridgeIcon } from '@/components/ui/nobridge-icon';
 
 interface ApiListing {
@@ -65,7 +64,7 @@ export function ListingCard({ listing }: ListingCardProps) {
         />
         {listing.verification_status === 'verified' && (
           <Badge variant="outline" className="absolute top-2 right-2 bg-green-100 border-green-500 text-green-700 dark:bg-green-700 dark:text-green-200 dark:border-green-500">
-            <ShieldCheck className="h-3 w-3 mr-1" />
+            <CheckCircle2 className="h-3 w-3 mr-1" />
             Verified Seller
           </Badge>
         )}
