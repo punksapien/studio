@@ -102,6 +102,7 @@ export function apiToSortOption(sortBy: string, sortOrder: string): SortOption {
  * - Converts display values to API format
  * - Handles "all" case by returning undefined
  * - Case-insensitive matching for better filtering
+ * - Maps unknown industries to "Other"
  * - Sanitizes input
  */
 export function normalizeIndustryValue(industry: string | undefined): string | undefined {
@@ -112,16 +113,30 @@ export function normalizeIndustryValue(industry: string | undefined): string | u
   // Normalize to lower case for comparison
   const lowerIndustry = industry.toLowerCase();
 
-  // Convert kebab-case back to proper format if needed
+  // First, try to find exact match in INDUSTRIES values (case-insensitive)
+  const industryValues = Object.values(INDUSTRIES);
+  const exactMatch = industryValues.find(val => val.toLowerCase() === lowerIndustry);
+  if (exactMatch) {
+    return exactMatch;
+  }
+
+  // If it's kebab-case, convert back to proper format
   if (lowerIndustry.includes('-')) {
-    return lowerIndustry
+    const converted = lowerIndustry
       .split('-')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' & ');
+
+    // Check if converted version matches any industry
+    const convertedMatch = industryValues.find(val => val.toLowerCase() === converted.toLowerCase());
+    if (convertedMatch) {
+      return convertedMatch;
+    }
   }
 
-  // For direct matches, preserve the original casing from database
-  return industry;
+  // For unmapped industries, return "Other" to ensure they show up in filters
+  console.log(`[INDUSTRY-NORMALIZATION] Unknown industry "${industry}" mapped to "Other"`);
+  return 'Other';
 }
 
 /**

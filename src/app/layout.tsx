@@ -18,18 +18,18 @@ export const metadata: Metadata = {
   description: 'Connecting SME owners with investors and buyers in Asia.',
   icons: {
     icon: [
-      { url: '/favicon.ico?v=2', sizes: 'any' },
-      { url: '/favicon.png?v=2', type: 'image/png', sizes: '32x32' },
-      { url: '/assets/nobridge_app_icon.png?v=2', type: 'image/png', sizes: '512x512' },
-      { url: '/assets/nobridge_app_icon.png?v=2', type: 'image/png', sizes: '192x192' },
-      { url: '/assets/nobridge_app_icon.png?v=2', type: 'image/png', sizes: '16x16' },
+      { url: '/nobridge-favicon.ico?v=3', sizes: 'any' },
+      { url: '/nobridge-favicon.png?v=3', type: 'image/png', sizes: '32x32' },
+      { url: '/assets/nobridge_app_icon.png?v=3', type: 'image/png', sizes: '512x512' },
+      { url: '/assets/nobridge_app_icon.png?v=3', type: 'image/png', sizes: '192x192' },
+      { url: '/assets/nobridge_app_icon.png?v=3', type: 'image/png', sizes: '16x16' },
     ],
     apple: [
-      { url: '/assets/apple-touch-icon.png?v=2', sizes: '180x180', type: 'image/png' },
+      { url: '/assets/apple-touch-icon.png?v=3', sizes: '180x180', type: 'image/png' },
     ],
-    shortcut: '/favicon.ico?v=2',
+    shortcut: '/nobridge-favicon.ico?v=3',
   },
-  manifest: '/manifest.json?v=2',
+  manifest: '/manifest.json?v=3',
 };
 
 export default function RootLayout({
@@ -41,9 +41,9 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         {/* Favicons and icons */}
-        <link rel="icon" href="/favicon.ico?v=2" sizes="any" />
-        <link rel="icon" href="/favicon.png?v=2" type="image/png" />
-        <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png?v=2" />
+        <link rel="icon" href="/nobridge-favicon.ico?v=3" sizes="any" />
+        <link rel="icon" href="/nobridge-favicon.png?v=3" type="image/png" />
+        <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png?v=3" />
         <meta name="theme-color" content="#1e3a8a" />
 
         {/* Satoshi Font from Fontshare CDN */}
