@@ -144,8 +144,7 @@ function ImageGallery({ imageUrls, listingTitle }: { imageUrls?: string[]; listi
         <CardContent className="p-3">
           <div
             className={cn(
-              "rounded-md overflow-hidden shadow-inner bg-muted aspect-[16/10] flex items-center justify-center relative cursor-pointer group",
-              "h-48 md:h-56" // Adjusted height for sidebar
+              "rounded-md overflow-hidden shadow-inner bg-muted aspect-[4/3] sm:aspect-[16/10] flex items-center justify-center relative cursor-pointer group w-full max-w-full"
             )}
             onClick={openPreview}
           >
@@ -153,7 +152,7 @@ function ImageGallery({ imageUrls, listingTitle }: { imageUrls?: string[]; listi
               src={mainImage}
               alt={`Main image for ${listingTitle} (${currentIndex + 1} of ${validImageUrls.length})`}
               fill={true}
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 400px, 400px"
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 400px, 350px"
               className="transition-transform duration-300 group-hover:scale-105 object-cover"
               key={mainImage} // Force re-render on image change
               onError={(e) => {
