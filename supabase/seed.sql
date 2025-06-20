@@ -226,7 +226,7 @@ SELECT
 • Parts wholesale distribution channel
 • Corporate fleet management software platform',
     'active',
-    true,
+    false,
     '["/assets/listing-2.jpg"]'::jsonb,
     NOW(),
     NOW()
@@ -370,7 +370,7 @@ SELECT
 • Coffee education and barista training center
 • Export opportunities to neighboring countries',
     'active',
-    true,
+    false,
     '["/assets/listing-4.jpg"]'::jsonb,
     NOW(),
     NOW()

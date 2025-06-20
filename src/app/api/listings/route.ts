@@ -67,14 +67,13 @@ export async function GET(request: NextRequest) {
 
       // Apply verification status filter if specified
       if (verificationStatus === 'verified') {
-        // Only show verified listings (verified_anonymous and verified_public)
-        const verifiedStatuses = ['verified_anonymous', 'verified_public']
-        query = query.in('status', verifiedStatuses)
-        console.log(`[LISTINGS-API] Verification status filter: showing only verified listings`)
+        // Show verified sellers: those with is_seller_verified = true regardless of status
+        query = query.in('status', publicStatuses).eq('is_seller_verified', true)
+        console.log(`[LISTINGS-API] Verification status filter: showing only verified seller listings`)
       } else if (verificationStatus === 'unverified') {
-        // Only show unverified listings (active)
-        query = query.eq('status', 'active')
-        console.log(`[LISTINGS-API] Verification status filter: showing only unverified listings`)
+        // Show unverified sellers: those with is_seller_verified = false
+        query = query.in('status', publicStatuses).eq('is_seller_verified', false)
+        console.log(`[LISTINGS-API] Verification status filter: showing only unverified seller listings`)
       } else {
         // Show all public statuses (default behavior)
         query = query.in('status', publicStatuses)
@@ -90,11 +89,11 @@ export async function GET(request: NextRequest) {
 
     if (normalizedIndustry) {
       console.log(`[LISTINGS-API] Industry filter: "${industry}" normalized to "${normalizedIndustry}"`)
-      query = query.eq('industry', normalizedIndustry)
+      query = query.ilike('industry', normalizedIndustry)
     }
     if (normalizedCountry) {
       console.log(`[LISTINGS-API] Country filter: "${country}" normalized to "${normalizedCountry}"`)
-      query = query.eq('location_country', normalizedCountry)
+      query = query.ilike('location_country', normalizedCountry)
     }
     if (minPrice) query = query.gte('asking_price', parseInt(minPrice))
     if (maxPrice) query = query.lte('asking_price', parseInt(maxPrice))

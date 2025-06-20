@@ -46,6 +46,7 @@ export const COUNTRIES = {
   'france': 'France',
   'germany': 'Germany',
   'india': 'India',
+  'indonesia': 'Indonesia',
   'japan': 'Japan',
   'singapore': 'Singapore',
   'south-korea': 'South Korea',
@@ -100,6 +101,7 @@ export function apiToSortOption(sortBy: string, sortOrder: string): SortOption {
  * Normalizes industry value for API
  * - Converts display values to API format
  * - Handles "all" case by returning undefined
+ * - Case-insensitive matching for better filtering
  * - Sanitizes input
  */
 export function normalizeIndustryValue(industry: string | undefined): string | undefined {
@@ -107,14 +109,18 @@ export function normalizeIndustryValue(industry: string | undefined): string | u
     return undefined;
   }
 
+  // Normalize to lower case for comparison
+  const lowerIndustry = industry.toLowerCase();
+
   // Convert kebab-case back to proper format if needed
-  if (industry.includes('-')) {
-    return industry
+  if (lowerIndustry.includes('-')) {
+    return lowerIndustry
       .split('-')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' & ');
   }
 
+  // For direct matches, preserve the original casing from database
   return industry;
 }
 
@@ -122,6 +128,7 @@ export function normalizeIndustryValue(industry: string | undefined): string | u
  * Normalizes country value for API
  * - Converts display values to API format
  * - Handles "all" case by returning undefined
+ * - Case-insensitive matching for better filtering
  * - Sanitizes input
  */
 export function normalizeCountryValue(country: string | undefined): string | undefined {
@@ -129,14 +136,18 @@ export function normalizeCountryValue(country: string | undefined): string | und
     return undefined;
   }
 
+  // Normalize to lower case for comparison
+  const lowerCountry = country.toLowerCase();
+
   // Convert kebab-case back to proper format if needed
-  if (country.includes('-')) {
-    return country
+  if (lowerCountry.includes('-')) {
+    return lowerCountry
       .split('-')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
   }
 
+  // For direct matches, preserve the original casing from database
   return country;
 }
 
