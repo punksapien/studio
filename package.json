@@ -13,7 +13,8 @@
     "typecheck": "tsc --noEmit",
     "reset-test-users": "tsx scripts/reset-test-users.ts",
     "create-admin": "node scripts/create-admin-user.js",
-    "create-admin-remote": "node scripts/create-admin-user-remote.js"
+    "create-admin-remote": "node scripts/create-admin-user-remote.js",
+    "migrate-images": "node scripts/smart-image-migration.cjs"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.19.5",
