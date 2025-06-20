@@ -38,7 +38,7 @@ const navLinkGroups: NavLinkGroup[] = [
     items: [
       { href: "/seller-dashboard/listings/create", label: "List Your Business", icon: FileText },
       // { href: "/pricing", label: "Pricing & Plans", icon: DollarSign }, // Removed Pricing & Plans
-      { href: "/how-selling-works", label: "How Selling Works", icon: Info },
+      // { href: "/how-selling-works", label: "How Selling Works", icon: Info }, // Removed - page doesn't exist
     ],
   },
   {
@@ -46,7 +46,7 @@ const navLinkGroups: NavLinkGroup[] = [
     triggerIcon: ShoppingCart,
     items: [
       { href: "/marketplace", label: "Browse Listings", icon: Search },
-      { href: "/how-buying-works", label: "How Buying Works", icon: Info },
+      // { href: "/how-buying-works", label: "How Buying Works", icon: Info }, // Removed - page doesn't exist
     ],
   },
   {

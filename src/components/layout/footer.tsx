@@ -24,9 +24,7 @@ export function Footer() {
               <Link href="/seller-dashboard/listings/create" className="hover:text-brand-white transition-colors duration-300">
                 List Your Business
               </Link>
-              <Link href="/how-selling-works" className="hover:text-brand-white transition-colors duration-300">
-                How Selling Works
-              </Link>
+              {/* Removed "How Selling Works" link - page doesn't exist */}
             </div>
           </div>
 
@@ -38,12 +36,10 @@ export function Footer() {
               <Link href="/marketplace" className="hover:text-brand-white transition-colors duration-300">
                 Browse Listings
               </Link>
-              <Link href="/how-buying-works" className="hover:text-brand-white transition-colors duration-300">
-                How Buying Works
-              </Link>
+              {/* Removed "How Buying Works" link - page doesn't exist */}
             </div>
           </div>
-          
+
           <div className="space-y-2 text-sm">
             <p className="text-base font-semibold tracking-wide text-brand-white">
               Company
