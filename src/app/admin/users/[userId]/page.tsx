@@ -15,12 +15,13 @@ import {
   Mail, Phone, MapPin, CalendarDays, Briefcase, UserCircle,
   ShieldCheck, ShieldAlert, Edit3, Wallet, Building2, Users2,
   Clock, Loader2, ArrowLeft, RefreshCw, AlertCircle, Eye, Target,
-  FileText, User, Activity, Crown, Sparkles, Zap
+  FileText, User, Activity, Crown, Sparkles, Zap, Key
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AdminLoginLinkDialog } from "@/components/admin/admin-login-link-dialog";
 
 // Types for API response
 interface UserDetailResponse {
@@ -152,6 +153,9 @@ export default function AdminUserDetailPage() {
   const router = useRouter();
   const userId = params.userId as string;
   const { toast } = useToast();
+
+  // State for admin login link dialog
+  const [isLoginLinkDialogOpen, setIsLoginLinkDialogOpen] = React.useState(false);
 
   // Fetch user data with SWR
   const {
@@ -296,6 +300,14 @@ export default function AdminUserDetailPage() {
           </Button>
           {user.role !== 'admin' ? (
             <>
+              <Button
+                variant="outline"
+                onClick={() => setIsLoginLinkDialogOpen(true)}
+                className="border-orange-200 text-orange-600 hover:bg-orange-50 hover:text-orange-700"
+              >
+                <Key className="h-4 w-4 mr-2" />
+                Generate Login Link
+              </Button>
               <Button variant="outline" asChild>
                 <Link href={`/admin/verification-queue/${user.role === 'buyer' ? 'buyers' : 'sellers'}?userId=${user.id}`}>
                   <Edit3 className="h-4 w-4 mr-2" />
@@ -862,6 +874,18 @@ export default function AdminUserDetailPage() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Admin Login Link Dialog */}
+      <AdminLoginLinkDialog
+        isOpen={isLoginLinkDialogOpen}
+        onOpenChange={setIsLoginLinkDialogOpen}
+        targetUser={user.role !== 'admin' ? {
+          id: user.id,
+          fullName: user.fullName,
+          email: user.email,
+          role: user.role
+        } : null}
+      />
     </div>
   );
 }

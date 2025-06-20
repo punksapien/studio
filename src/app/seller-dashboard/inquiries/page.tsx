@@ -358,11 +358,9 @@ export default function SellerInquiriesPage() {
                   {inquiry.buyer?.verification_status && (
                     <span> (Status: {inquiry.buyer.verification_status})</span>
                   )}
-                  {inquiry.initial_message && (
-                    <div className="mt-2 p-2 bg-muted rounded text-sm">
-                      <strong>Message:</strong> "{inquiry.initial_message}"
-                    </div>
-                  )}
+                  <div className="mt-2 p-2 bg-muted rounded text-sm">
+                    <strong>Message:</strong> "A {inquiry.listing?.industry || 'Business'} from {inquiry.listing?.location_country || 'Unknown'} is interested in opening a conversation with you"
+                  </div>
                 </CardDescription>
               </CardHeader>
               <CardFooter className="flex flex-col sm:flex-row justify-end gap-2 pt-4 border-t">

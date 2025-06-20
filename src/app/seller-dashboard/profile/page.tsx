@@ -1,8 +1,5 @@
 'use client';
 
-// Force dynamic rendering due to client-side interactivity
-export const dynamic = 'force-dynamic'
-
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -30,7 +27,10 @@ import { useState, useTransition, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
 import { useSellerProfile } from "@/hooks/use-seller-profile";
-import { Loader2 } from "lucide-react";
+import { Loader2, RefreshCw, AlertCircle } from "lucide-react";
+import { useAuth } from "@/contexts/auth-context";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 const ProfileSchema = z.object({
   fullName: z.string().min(1, { message: "Full name is required." }),
@@ -79,9 +79,17 @@ const defaultProfileValues: z.infer<typeof ProfileSchema> = {
 
 export default function SellerProfilePage() {
   const { toast } = useToast();
+  const router = useRouter();
   const [isProfilePending, startProfileTransition] = useTransition();
   const [isPasswordPending, startPasswordTransition] = useTransition();
-  const { user, isLoading, error, updateProfile, changePassword } = useSellerProfile();
+  const [hasInitialized, setHasInitialized] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+
+  // Use auth context for initial session check
+  const { user: authUser, profile: authProfile, isLoading: authLoading, refreshAuth } = useAuth();
+
+  // Then use the seller profile hook for detailed data
+  const { user, isLoading: profileLoading, error, updateProfile, changePassword } = useSellerProfile();
 
   const profileForm = useForm<z.infer<typeof ProfileSchema>>({
     resolver: zodResolver(ProfileSchema),
@@ -97,8 +105,13 @@ export default function SellerProfilePage() {
     },
   });
 
+  // Combined loading state
+  const isLoading = authLoading || (profileLoading && !hasInitialized);
+
+  // Initialize form data when user data is available
   useEffect(() => {
-    if (user) {
+    if (user && !hasInitialized) {
+      console.log('[SELLER-PROFILE] Initializing form with user data:', user.email);
       profileForm.reset({
         fullName: user.fullName || "",
         phoneNumber: user.phoneNumber || "",
@@ -107,8 +120,42 @@ export default function SellerProfilePage() {
         initialCompanyName: user.initialCompanyName || "",
         buyerType: user.buyerType as any || undefined,
       });
+      setHasInitialized(true);
     }
-  }, [user, profileForm]);
+  }, [user, profileForm, hasInitialized]);
+
+  // Handle authentication state
+  useEffect(() => {
+    if (!authLoading && !authUser) {
+      console.log('[SELLER-PROFILE] No authenticated user, redirecting to login');
+      router.push('/auth/login?redirectTo=/seller-dashboard/profile');
+    }
+  }, [authLoading, authUser, router]);
+
+  // Handle profile role mismatch
+  useEffect(() => {
+    if (authProfile && authProfile.role !== 'seller') {
+      console.log('[SELLER-PROFILE] User is not a seller, redirecting');
+      router.push('/dashboard');
+    }
+  }, [authProfile, router]);
+
+  const handleRetry = async () => {
+    setRetryCount(prev => prev + 1);
+    setHasInitialized(false);
+    try {
+      await refreshAuth();
+      // Force reload the page to ensure fresh data
+      window.location.reload();
+    } catch (error) {
+      console.error('[SELLER-PROFILE] Retry failed:', error);
+      toast({
+        variant: "destructive",
+        title: "Retry Failed",
+        description: "Please try refreshing the page manually."
+      });
+    }
+  };
 
   const onProfileSubmit = (values: z.infer<typeof ProfileSchema>) => {
     startProfileTransition(async () => {
@@ -119,6 +166,8 @@ export default function SellerProfilePage() {
             title: "Profile Updated",
             description: "Your profile information has been successfully updated."
           });
+          // Refresh auth to ensure consistent state
+          await refreshAuth();
         } else {
           toast({
             variant: "destructive",
@@ -156,16 +205,7 @@ export default function SellerProfilePage() {
     });
   };
 
-  if (error) {
-    return (
-      <div className="space-y-8 text-center">
-        <h1 className="text-3xl font-bold tracking-tight text-red-600">Error Loading Profile</h1>
-        <p className="text-muted-foreground">{error}</p>
-        <Button onClick={() => window.location.reload()}>Try Again</Button>
-      </div>
-    );
-  }
-
+  // Show loading state while checking authentication
   if (isLoading) {
     return (
       <div className="space-y-8">
@@ -179,11 +219,47 @@ export default function SellerProfilePage() {
     );
   }
 
-  if (!user) {
+  // Show error state with retry option
+  if (error || (!user && hasInitialized)) {
+    return (
+      <div className="space-y-8">
+        <div className="flex flex-col items-center justify-center min-h-[400px]">
+          <AlertCircle className="h-12 w-12 text-destructive mb-4" />
+          <h1 className="text-2xl font-bold text-destructive mb-2">
+            {error || "Failed to Load Profile"}
+          </h1>
+          <p className="text-muted-foreground mb-6 text-center max-w-md">
+            We're having trouble loading your profile data. This can happen due to session issues.
+            {retryCount > 0 && " Please try refreshing the page."}
+          </p>
+          <div className="flex gap-3">
+            <Button onClick={handleRetry} variant="outline">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              {retryCount > 0 ? "Try Again" : "Retry"}
+            </Button>
+            <Button onClick={() => window.location.reload()}>
+              Refresh Page
+            </Button>
+          </div>
+          {retryCount > 1 && (
+            <p className="text-sm text-muted-foreground mt-4">
+              Still having issues? Try <Link href="/auth/login" className="text-primary underline">logging in again</Link>.
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Show not found state if no user after loading
+  if (!user && !profileLoading) {
     return (
       <div className="container py-8 text-center">
         <h1 className="text-3xl font-bold tracking-tight">Profile Not Found</h1>
-        <p className="text-muted-foreground">Unable to load your profile. Please try logging in again.</p>
+        <p className="text-muted-foreground mb-4">Unable to load your profile. Please try logging in again.</p>
+        <Button asChild>
+          <Link href="/auth/login?redirectTo=/seller-dashboard/profile">Login</Link>
+        </Button>
       </div>
     );
   }
@@ -195,7 +271,7 @@ export default function SellerProfilePage() {
       <Card className="shadow-md">
         <CardHeader>
           <CardTitle>Personal Information</CardTitle>
-          <CardDescription>Update your personal details. Your email ({user.email}) cannot be changed here.</CardDescription>
+          <CardDescription>Update your personal details. Your email ({user?.email}) cannot be changed here.</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...profileForm}>
@@ -270,7 +346,14 @@ export default function SellerProfilePage() {
                 )}
               />
               <Button type="submit" disabled={isProfilePending}>
-                {isProfilePending ? "Saving..." : "Save Profile Changes"}
+                {isProfilePending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save Profile Changes"
+                )}
               </Button>
             </form>
           </Form>
@@ -322,7 +405,14 @@ export default function SellerProfilePage() {
                 )}
               />
               <Button type="submit" disabled={isPasswordPending}>
-                {isPasswordPending ? "Changing..." : "Change Password"}
+                {isPasswordPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Changing...
+                  </>
+                ) : (
+                  "Change Password"
+                )}
               </Button>
             </form>
           </Form>

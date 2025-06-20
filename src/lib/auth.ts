@@ -289,13 +289,17 @@ export const auth = {
 
   // Request password reset
   async requestPasswordReset(email: string) {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${this.getBaseUrl()}/auth/update-password`,
-    })
+    console.log(`[AUTH-SERVICE] Requesting password reset for: ${email}`);
 
-    if (error) {
-      throw new Error(`Password reset request failed: ${error.message}`)
+    // Use the unified email service
+    const { emailService } = await import('./email-service');
+    const result = await emailService.sendPasswordResetEmail(email);
+
+    if (!result.success) {
+      throw new Error(`Password reset request failed: ${result.error || 'Unknown error'}`);
     }
+
+    console.log(`[AUTH-SERVICE] Password reset email sent successfully to ${email}`);
   },
 
   // Update password
@@ -320,18 +324,13 @@ export const auth = {
     const email = session.session.user.email
     console.log(`[AUTH-SERVICE] Resending verification email for authenticated user: ${email}`);
 
-    // 🚀 SIMPLIFIED: Use Supabase for all environments (consistent and reliable)
-    const { error } = await supabase.auth.resend({
-      type: 'signup',
-      email: email,
-      options: {
-        emailRedirectTo: `${this.getBaseUrl()}/auth/callback`
-      }
-    })
+    // Use the unified email service
+    const { emailService } = await import('./email-service');
+    const result = await emailService.resendVerificationEmail(email);
 
-    if (error) {
-      console.error(`[AUTH-SERVICE] Failed to resend verification for ${email}:`, error);
-      throw new Error(`Failed to resend verification email: ${error.message}`)
+    if (!result.success) {
+      console.error(`[AUTH-SERVICE] Failed to resend verification for ${email}:`, result.error);
+      throw new Error(`Failed to resend verification email: ${result.error || 'Unknown error'}`)
     }
 
     console.log(`[AUTH-SERVICE] Successfully resent verification email for ${email}`);

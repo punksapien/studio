@@ -173,7 +173,14 @@ export default function ChatInterface({ conversationId, currentUser, onBack }: C
               const buyerId = conversation.buyer_id || conversation.buyerId;
               const sellerId = conversation.seller_id || conversation.sellerId;
 
-              if (currentUser.id !== buyerId && currentUser.id !== sellerId) {
+              // Allow participants and admins to see messages in real-time
+              const canViewMessage =
+                currentUser.id === buyerId ||
+                currentUser.id === sellerId ||
+                currentUser.role === 'admin';
+
+              if (!canViewMessage) {
+                console.log('⚠️ User not authorized to view this message in real-time');
                 return;
               }
 
@@ -183,7 +190,7 @@ export default function ChatInterface({ conversationId, currentUser, onBack }: C
                 if (isMounted) {
                   const { data: profile } = await supabase
                     .from('user_profiles')
-                    .select('full_name, avatar_url')
+                    .select('full_name, avatar_url, role')
                     .eq('id', payload.new.sender_id)
                     .single();
                   senderProfile = profile;
@@ -214,6 +221,13 @@ export default function ChatInterface({ conversationId, currentUser, onBack }: C
                 is_read: payload.new.is_read || false,
                 message_status: payload.new.message_status || 'delivered',
                 senderProfile,
+                sender: senderProfile ? {
+                  id: payload.new.sender_id,
+                  full_name: senderProfile.full_name,
+                  avatar_url: senderProfile.avatar_url,
+                  role: senderProfile.role as 'buyer' | 'seller' | 'admin',
+                  verification_status: 'unknown'
+                } : undefined,
               } as Message;
 
               // Only add if it's not already in the messages array and component is still mounted
@@ -318,7 +332,7 @@ export default function ChatInterface({ conversationId, currentUser, onBack }: C
   }, [messages]);
 
   const sendMessage = async () => {
-    if (!newMessage.trim() || isSending || !conversation || isAdminUser) return;
+    if (!newMessage.trim() || isSending || !conversation) return;
 
     try {
       setIsSending(true);
@@ -358,7 +372,7 @@ export default function ChatInterface({ conversationId, currentUser, onBack }: C
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey && !isAdminUser) {
+    if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
     }
@@ -611,23 +625,51 @@ export default function ChatInterface({ conversationId, currentUser, onBack }: C
                 const isSystemMsg = isSystemMessage(message);
 
                 let isBuyerMessage = false;
-                if (isAdminUser && conversation) {
+                let isAdminMessage = false;
+                if (conversation) {
                   const conversationBuyerId = conversation.buyerId || conversation.buyer_id;
+                  const conversationSellerId = conversation.sellerId || conversation.seller_id;
                   const messageSenderId = message.senderId || message.sender_id;
                   isBuyerMessage = messageSenderId === conversationBuyerId;
+
+                  // Enhanced admin message detection
+                  // Check multiple sources to determine if this is an admin message
+                  isAdminMessage = (
+                    // Direct role check from sender profile
+                    message.sender?.role === 'admin' ||
+                    // Check if sender is neither buyer nor seller (likely admin)
+                    (messageSenderId !== conversationBuyerId && messageSenderId !== conversationSellerId) ||
+                    // Additional check for admin users when we're viewing as admin
+                    (currentUser.role === 'admin' && messageSenderId === currentUser.id)
+                  );
                 }
 
-                if (isSystemMsg) {
+                if (isSystemMsg || isAdminMessage) {
                   return (
                     <div key={message.id} className="w-full flex justify-center my-4">
-                      <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 max-w-md mx-auto">
-                        <div className="flex items-center gap-2 text-amber-800">
-                          <Settings className="h-4 w-4 flex-shrink-0" />
+                      <div className={cn(
+                        "border rounded-lg px-4 py-3 max-w-md mx-auto",
+                        isSystemMsg
+                          ? "bg-amber-50 border-amber-200"
+                          : "bg-purple-50 border-purple-200"
+                      )}>
+                        <div className={cn(
+                          "flex items-center gap-2",
+                          isSystemMsg ? "text-amber-800" : "text-purple-800"
+                        )}>
+                          {isSystemMsg ? (
+                            <Settings className="h-4 w-4 flex-shrink-0" />
+                          ) : (
+                            <Shield className="h-4 w-4 flex-shrink-0" />
+                          )}
                           <p className="text-sm font-medium text-center">
-                            {getMessageContent(message)}
+                            {isSystemMsg ? getMessageContent(message) : `Admin: ${getMessageContent(message)}`}
                           </p>
                         </div>
-                        <p className="text-xs text-amber-600 text-center mt-1">
+                        <p className={cn(
+                          "text-xs text-center mt-1",
+                          isSystemMsg ? "text-amber-600" : "text-purple-600"
+                        )}>
                           {formatTimestamp(getMessageTimestamp(message))}
                         </p>
                       </div>
@@ -690,21 +732,18 @@ export default function ChatInterface({ conversationId, currentUser, onBack }: C
           <Input
             placeholder={
               isAdminUser
-                ? "Admin view - read only"
+                ? "Type your message as admin..."
                 : `Type your message...`
             }
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyPress={handleKeyPress}
-            disabled={isSending || isAdminUser}
-            className={cn(
-              "flex-1",
-              isAdminUser && "bg-muted cursor-not-allowed"
-            )}
+            disabled={isSending}
+            className="flex-1"
           />
           <Button
             onClick={sendMessage}
-            disabled={isSending || !newMessage.trim() || isAdminUser}
+            disabled={isSending || !newMessage.trim()}
             size="icon"
             className="bg-primary hover:bg-primary/90"
           >
@@ -717,7 +756,8 @@ export default function ChatInterface({ conversationId, currentUser, onBack }: C
         </div>
         {isAdminUser && (
           <p className="text-xs text-muted-foreground text-center pb-2">
-            Admin view - You can observe this conversation between the buyer and seller.
+            <Shield className="h-3 w-3 inline mr-1" />
+            Admin participating in conversation - Your messages will be marked as admin
           </p>
         )}
         </CardContent>

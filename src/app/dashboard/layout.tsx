@@ -52,7 +52,6 @@ const buyerSidebarNavItems = [
 const utilityNavItems = [
   { title: 'Marketplace', href: '/marketplace', icon: ShoppingCart, tooltip: "Browse Marketplace" },
   { title: 'Help', href: '/help', icon: HelpCircle, tooltip: "Get Help" },
-  { title: 'Refer Docs', href: '/docs', icon: FileText, tooltip: "View Documentation" },
   { title: 'FAQ', href: '/faq', icon: MessageSquareQuote, tooltip: "Frequently Asked Questions" },
   { title: 'Back to Homepage', href: '/', icon: Home, tooltip: "Go to Homepage" },
 ];

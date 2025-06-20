@@ -39,6 +39,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
+import { ConversationButton } from "@/components/marketplace/ConversationButton";
 
 // Type definitions for the listing data
 interface ListingData {
@@ -151,9 +152,9 @@ function ImageGallery({ imageUrls, listingTitle }: { imageUrls?: string[]; listi
             <Image
               src={mainImage}
               alt={`Main image for ${listingTitle} (${currentIndex + 1} of ${validImageUrls.length})`}
-              layout="fill"
-              objectFit="cover"
-              className="transition-transform duration-300 group-hover:scale-105"
+              fill={true}
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 400px, 400px"
+              className="transition-transform duration-300 group-hover:scale-105 object-cover"
               key={mainImage} // Force re-render on image change
               onError={(e) => {
                 const target = e.currentTarget as HTMLImageElement;
@@ -193,8 +194,9 @@ function ImageGallery({ imageUrls, listingTitle }: { imageUrls?: string[]; listi
             <Image
               src={mainImage} // Dialog always shows the current main image
               alt={`Enlarged image for ${listingTitle} (${currentIndex + 1} of ${validImageUrls.length})`}
-              layout="fill"
-              objectFit="contain"
+              fill={true}
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 1200px"
+              className="object-contain"
               key={`dialog-${mainImage}`}
               onError={(e) => { /* Similar error handling as above if needed */ }}
             />
@@ -322,9 +324,17 @@ export default function ListingDetailPage() {
     return isVerified && isPaid;
   };
 
-  const canViewVerifiedDetails = listing.is_seller_verified && currentUser && (
-    (currentUser.id === listing.seller_id) ||
-    (isVerifiedBuyer(currentUser))
+  /**
+   * Determines if current user can view verified listing details
+   * Access is granted to:
+   * - Listing owner (seller who created the listing) - ALWAYS, regardless of verification status
+   * - Admin users (for moderation purposes) - ALWAYS
+   * - Verified buyers (who have completed verification process) - ONLY for verified seller listings
+   */
+  const canViewVerifiedDetails = currentUser && (
+    (currentUser.id === listing.seller_id) ||  // Seller always sees own content
+    (currentUser.role === 'admin') ||          // Admin always sees all content
+    (listing.is_seller_verified && isVerifiedBuyer(currentUser))  // Only verified sellers' content visible to verified buyers
   );
 
   const handleInquireClick = () => {
@@ -374,16 +384,12 @@ export default function ListingDetailPage() {
     }
   };
 
-  const handleOpenConversation = () => {
-    if (!currentUser || currentUser.role === 'seller') { return; }
-    if (!listing.is_seller_verified) { setShowVerificationPopup(true); }
-    else { console.log("Open conversation clicked for listing:", listing.id); toast({ title: "Opening Conversation...", description: `Connecting you with the seller of "${listing.title}".` }); }
-  };
-
   const DocumentLink = ({ href, children }: { href?: string; children: React.ReactNode }) => {
     const isOwner = currentUser && currentUser.id === listing.seller_id;
+    const isAdmin = currentUser && currentUser.role === 'admin';
     const isVerifiedBuyerUser = currentUser && isVerifiedBuyer(currentUser);
 
+    // Seller/Owner access - full document management capabilities
     if (isOwner) {
       if (!href || href.trim() === "" || href.trim() === "#") {
         return <p className="text-sm text-slate-600">You haven't uploaded this document yet. <Link href={`/seller-dashboard/listings/${listing.id}/edit`} className="text-blue-600 hover:underline">Upload now</Link></p>;
@@ -391,16 +397,29 @@ export default function ListingDetailPage() {
       return <Link href={href} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:text-blue-800 hover:underline font-medium flex items-center gap-1"><FileText className="h-4 w-4"/>{children}</Link>;
     }
 
+    // Admin access - full visibility for moderation purposes
+    if (isAdmin) {
+      if (!href || href.trim() === "" || href.trim() === "#") {
+        return <p className="text-sm text-slate-600">Document not provided by seller.</p>;
+      }
+      return <Link href={href} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:text-blue-800 hover:underline font-medium flex items-center gap-1"><FileText className="h-4 w-4"/>{children}</Link>;
+    }
+
+    // Non-verified seller content - show restriction message
     if (!listing.is_seller_verified) {
-      return <p className="text-sm text-muted-foreground italic">Details available when listing is verified by admin.</p>;
+      return <p className="text-sm text-muted-foreground italic">Only available for verified seller listings</p>;
     }
-    if (!isVerifiedBuyerUser) {
-      return <p className="text-sm text-muted-foreground italic">Complete buyer verification to access documents.</p>;
+
+    // Verified buyer access
+    if (isVerifiedBuyerUser) {
+      if (!href || href.trim() === "" || href.trim() === "#") {
+        return <p className="text-sm text-slate-600">Document not provided by seller.</p>;
+      }
+      return <Link href={href} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:text-blue-800 hover:underline font-medium flex items-center gap-1"><FileText className="h-4 w-4"/>{children}</Link>;
     }
-    if (!href || href.trim() === "" || href.trim() === "#") {
-      return <p className="text-sm text-slate-600">Document not provided by seller.</p>;
-    }
-    return <Link href={href} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:text-blue-800 hover:underline font-medium flex items-center gap-1"><FileText className="h-4 w-4"/>{children}</Link>;
+
+    // Unverified buyer - show verification requirement
+    return <p className="text-sm text-muted-foreground italic">Complete buyer verification to access documents</p>;
   };
 
   return (
@@ -451,6 +470,7 @@ export default function ListingDetailPage() {
                 {listing.is_seller_verified && !currentUser && ( <Card className="bg-blue-50 border-blue-300 dark:bg-blue-900/20 dark:border-blue-700"><CardHeader><CardTitle className="text-blue-700 dark:text-blue-300 flex items-center"><UserCircle className="h-5 w-5 mr-2"/>Access Full Details</CardTitle></CardHeader><CardContent><p className="text-sm text-blue-600 dark:text-blue-400">This listing is from a verified seller. <Link href={`/auth/login?redirect=/listings/${listing.id}`} className="font-semibold underline hover:text-blue-700">Login</Link> or <Link href={`/auth/register?redirect=/listings/${listing.id}`} className="font-semibold underline hover:text-blue-700">Register</Link> as a buyer and complete verification to view detailed information and documents.</p></CardContent></Card> )}
                 {listing.is_seller_verified && currentUser && currentUser.role === 'buyer' && !isVerifiedBuyer(currentUser) && ( <Card className="bg-amber-50 border-amber-300 dark:bg-amber-900/20 dark:border-amber-700"><CardHeader><CardTitle className="text-amber-700 dark:text-amber-300 flex items-center"><ShieldCheck className="h-5 w-5 mr-2"/>Unlock Verified Access</CardTitle></CardHeader><CardContent><p className="text-sm text-amber-600 dark:text-amber-400">This listing is from a seller who has completed Due Diligence. To view specific company details, financials, and documents, please <Link href="/dashboard/verification" className="font-semibold underline hover:text-amber-700">complete buyer verification</Link>.</p></CardContent></Card> )}
                 {listing.is_seller_verified && currentUser && currentUser.id === listing.seller_id && ( <Card className="bg-green-50 border-green-300 dark:bg-green-900/20 dark:border-green-700"><CardHeader><CardTitle className="text-green-700 dark:text-green-300 flex items-center"><Eye className="h-5 w-5 mr-2"/>Seller View</CardTitle></CardHeader><CardContent><p className="text-sm text-green-600 dark:text-green-400">You are viewing your own verified listing. All details and documents are visible to you. Buyers will need to complete verification to see this level of detail.</p></CardContent></Card> )}
+                {currentUser && currentUser.role === 'admin' && ( <Card className="bg-purple-50 border-purple-300 dark:bg-purple-900/20 dark:border-purple-700"><CardHeader><CardTitle className="text-purple-700 dark:text-purple-300 flex items-center"><ShieldCheck className="h-5 w-5 mr-2"/>Admin Access</CardTitle></CardHeader><CardContent><p className="text-sm text-purple-600 dark:text-purple-400">You have administrative access to view all listing content for moderation purposes. All details and documents are visible regardless of seller verification status.</p></CardContent></Card> )}
 
                 <section id="business-overview"><h2 className="text-2xl font-semibold text-brand-dark-blue mb-3 flex items-center"><BookOpen className="h-6 w-6 mr-2 text-primary"/>Business Overview</h2><p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">{listing.short_description}</p></section><Separator />
                 {keyStrengths.length > 0 && ( <><section id="key-strengths"><h2 className="text-2xl font-semibold text-brand-dark-blue mb-3 flex items-center"><TrendingUp className="h-6 w-6 mr-2 text-primary"/>Key Strengths</h2><ul className="list-disc list-inside space-y-1 text-muted-foreground pl-5">{keyStrengths.map((strength, index) => (<li key={index}>{strength}</li>))}</ul></section><Separator /></> )}
@@ -459,10 +479,10 @@ export default function ListingDetailPage() {
                 <section id="verified-details" className={`p-6 rounded-lg border ${canViewVerifiedDetails ? 'bg-primary/5 border-primary/20' : 'bg-muted/30 border-muted/50'}`}>
                     <h2 className="text-2xl font-semibold text-primary mb-4 flex items-center"><ShieldCheck className="h-6 w-6 mr-2"/>{canViewVerifiedDetails ? "Verified Information & Documents" : "Verified Information (Restricted Access)"}</h2>
                     <div className="space-y-6">
-                        <div><h3 className="font-semibold text-brand-dark-blue flex items-center gap-2 mb-2"><Building className="h-5 w-5"/>Company Details</h3>{canViewVerifiedDetails ? (<div className="space-y-1"><p className="text-sm text-slate-700"><span className="font-medium text-slate-900">Registered Business Name:</span> {listing.registered_business_name || 'N/A'}</p><p className="text-sm text-slate-700"><span className="font-medium text-slate-900">Year Established:</span> {listing.established_year || 'N/A'}</p><p className="text-sm text-slate-700"><span className="font-medium text-slate-900">Number of Employees:</span> {listing.number_of_employees || 'N/A'}</p></div>) : (<p className="text-sm text-muted-foreground italic">Complete buyer verification to view.</p>)}</div>
-                        <div><h3 className="font-semibold text-brand-dark-blue flex items-center gap-2 mb-2"><Globe className="h-5 w-5"/>Web Presence</h3>{canViewVerifiedDetails ? (<div className="space-y-1"><p className="text-sm text-slate-700"><span className="font-medium text-slate-900">Business Website:</span> {listing.website_url ? <Link href={listing.website_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 hover:underline font-medium">{listing.website_url}</Link> : 'N/A'}</p>{listing.social_media_links && <p className="text-sm text-slate-700"><span className="font-medium text-slate-900">Social Media:</span> <span className="whitespace-pre-wrap">{listing.social_media_links}</span></p>}</div>) : (<p className="text-sm text-muted-foreground italic">Complete buyer verification to view.</p>)}</div>
-                        <div><h3 className="font-semibold text-brand-dark-blue flex items-center gap-2 mb-2"><DollarSign className="h-5 w-5"/>Specific Financials</h3>{canViewVerifiedDetails ? (<div className="space-y-1"><p className="text-sm text-slate-700"><span className="font-medium text-slate-900">Specific Annual Revenue (TTM):</span> {listing.verified_annual_revenue ? `${formatCurrency(listing.verified_annual_revenue)}` : 'N/A'}</p><p className="text-sm text-slate-700"><span className="font-medium text-slate-900">Specific Net Profit (TTM):</span> {listing.verified_net_profit ? `${formatCurrency(listing.verified_net_profit)}` : 'N/A'}</p>{listing.net_profit_margin_range && <p className="text-sm text-slate-700"><span className="font-medium text-slate-900">Net Profit Margin Range:</span> {listing.net_profit_margin_range}</p>}</div>) : (<p className="text-sm text-muted-foreground italic">Complete buyer verification to view.</p>)}</div>
-                        <div><h3 className="font-semibold text-brand-dark-blue flex items-center gap-2 mb-2"><UsersIcon className="h-5 w-5"/>Seller & Deal Information</h3>{canViewVerifiedDetails ? (<div className="space-y-1"><p className="text-sm text-slate-700"><span className="font-medium text-slate-900">Detailed Reason for Selling:</span> <span className="whitespace-pre-wrap">{listing.detailed_reason_for_selling || 'N/A'}</span></p>{listing.deal_structure_looking_for && listing.deal_structure_looking_for.length > 0 && (<p className="text-sm text-slate-700"><span className="font-medium text-slate-900">Deal Structure Preferences:</span> {listing.deal_structure_looking_for.join(', ')}</p>)}</div>) : (<p className="text-sm text-muted-foreground italic">Complete buyer verification to view.</p>)}</div>
+                        <div><h3 className="font-semibold text-brand-dark-blue flex items-center gap-2 mb-2"><Building className="h-5 w-5"/>Company Details</h3>{canViewVerifiedDetails ? (<div className="space-y-1"><p className="text-sm text-slate-700"><span className="font-medium text-slate-900">Registered Business Name:</span> {listing.registered_business_name || 'N/A'}</p><p className="text-sm text-slate-700"><span className="font-medium text-slate-900">Year Established:</span> {listing.established_year || 'N/A'}</p><p className="text-sm text-slate-700"><span className="font-medium text-slate-900">Number of Employees:</span> {listing.number_of_employees || 'N/A'}</p></div>) : (<p className="text-sm text-muted-foreground italic">Complete buyer verification to view detailed company information</p>)}</div>
+                        <div><h3 className="font-semibold text-brand-dark-blue flex items-center gap-2 mb-2"><Globe className="h-5 w-5"/>Web Presence</h3>{canViewVerifiedDetails ? (<div className="space-y-1"><p className="text-sm text-slate-700"><span className="font-medium text-slate-900">Business Website:</span> {listing.website_url ? <Link href={listing.website_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 hover:underline font-medium">{listing.website_url}</Link> : 'N/A'}</p>{listing.social_media_links && <p className="text-sm text-slate-700"><span className="font-medium text-slate-900">Social Media:</span> <span className="whitespace-pre-wrap">{listing.social_media_links}</span></p>}</div>) : (<p className="text-sm text-muted-foreground italic">Complete buyer verification to view web presence details</p>)}</div>
+                        <div><h3 className="font-semibold text-brand-dark-blue flex items-center gap-2 mb-2"><DollarSign className="h-5 w-5"/>Specific Financials</h3>{canViewVerifiedDetails ? (<div className="space-y-1"><p className="text-sm text-slate-700"><span className="font-medium text-slate-900">Specific Annual Revenue (TTM):</span> {listing.verified_annual_revenue ? `${formatCurrency(listing.verified_annual_revenue)}` : 'N/A'}</p><p className="text-sm text-slate-700"><span className="font-medium text-slate-900">Specific Net Profit (TTM):</span> {listing.verified_net_profit ? `${formatCurrency(listing.verified_net_profit)}` : 'N/A'}</p>{listing.net_profit_margin_range && <p className="text-sm text-slate-700"><span className="font-medium text-slate-900">Net Profit Margin Range:</span> {listing.net_profit_margin_range}</p>}</div>) : (<p className="text-sm text-muted-foreground italic">Complete buyer verification to view specific financial details</p>)}</div>
+                        <div><h3 className="font-semibold text-brand-dark-blue flex items-center gap-2 mb-2"><UsersIcon className="h-5 w-5"/>Seller & Deal Information</h3>{canViewVerifiedDetails ? (<div className="space-y-1"><p className="text-sm text-slate-700"><span className="font-medium text-slate-900">Detailed Reason for Selling:</span> <span className="whitespace-pre-wrap">{listing.detailed_reason_for_selling || 'N/A'}</span></p>{listing.deal_structure_looking_for && listing.deal_structure_looking_for.length > 0 && (<p className="text-sm text-slate-700"><span className="font-medium text-slate-900">Deal Structure Preferences:</span> {listing.deal_structure_looking_for.join(', ')}</p>)}</div>) : (<p className="text-sm text-muted-foreground italic">Complete buyer verification to view seller and deal information</p>)}</div>
                         <div><h3 className="font-semibold text-brand-dark-blue flex items-center gap-2 mb-2"><FileText className="h-5 w-5"/>Supporting Documents</h3><div className="grid grid-cols-1 md:grid-cols-2 gap-3"><div><p className="text-xs font-medium text-slate-800 mb-1">Financial Documents</p><DocumentLink href={listing.financial_documents_url}>Financial Statements (P&L, Balance Sheet)</DocumentLink></div><div><p className="text-xs font-medium text-slate-800 mb-1">Business Metrics</p><DocumentLink href={listing.key_metrics_report_url}>Key Performance Indicators Report</DocumentLink></div><div><p className="text-xs font-medium text-slate-800 mb-1">Ownership Documents</p><DocumentLink href={listing.ownership_documents_url}>Company Registration & Certificates</DocumentLink></div><div><p className="text-xs font-medium text-slate-800 mb-1">Financial Summary</p><DocumentLink href={listing.financial_snapshot_url}>Recent Financial Summary</DocumentLink></div><div><p className="text-xs font-medium text-slate-800 mb-1">Ownership Details</p><DocumentLink href={listing.ownership_details_url}>Detailed Ownership Structure</DocumentLink></div><div><p className="text-xs font-medium text-slate-800 mb-1">Location & Assets</p><DocumentLink href={listing.location_real_estate_info_url}>Real Estate & Location Info</DocumentLink></div><div><p className="text-xs font-medium text-slate-800 mb-1">Digital Presence</p><DocumentLink href={listing.web_presence_info_url}>Website Analytics & SEO Data</DocumentLink></div>{listing.secure_data_room_link && (<div className="md:col-span-2"><p className="text-xs font-medium text-slate-800 mb-1">Additional Documents</p><DocumentLink href={listing.secure_data_room_link}>Secure Data Room Access</DocumentLink></div>)}</div></div>
                     </div>
                 </section>
@@ -486,7 +506,18 @@ export default function ListingDetailPage() {
                             {isCheckingInquiry ? 'Checking...' : isSubmittingInquiry ? 'Sending...' : inquirySent ? 'Inquiry Sent' : 'Inquire About Business'}
                             {!isSubmittingInquiry && !isCheckingInquiry && <MessageSquare className="h-4 w-4 ml-2"/>}
                         </Button>
-                        {inquirySent && (<Button variant="outline" className="w-full border-primary text-primary hover:bg-primary/10" onClick={handleOpenConversation}><ExternalLink className="h-4 w-4 mr-2" /> Open Conversation</Button>)}
+                        {inquirySent && (
+                          <ConversationButton
+                            listingId={listing.id}
+                            buyerId={currentUser?.id}
+                            sellerName="the seller"
+                            listingTitle={listing.title}
+                            isAuthenticated={!!currentUser}
+                            userRole={currentUser?.role}
+                            variant="outline"
+                            className="w-full border-primary text-primary hover:bg-primary/10"
+                          />
+                        )}
                     </CardFooter>
                 </Card>
                 {!currentUser && (<Card className="shadow-md bg-brand-sky-blue/10 border-brand-sky-blue/30"><CardContent className="p-4 text-center"><p className="text-sm text-brand-dark-blue mb-2">Want to learn more or see verified details?</p><Button variant="outline" asChild className="border-brand-dark-blue text-brand-dark-blue hover:bg-brand-dark-blue/5"><Link href={`/auth/login?redirect=/listings/${listing.id}`}>Login or Register to Inquire</Link></Button></CardContent></Card>)}

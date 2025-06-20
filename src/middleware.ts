@@ -37,15 +37,20 @@ export async function middleware(req: NextRequest) {
     '/about', '/contact', '/pricing', '/terms', '/privacy',
     // Public information pages
     '/faq', '/docs', '/help',
+    // Marketplace and listing pages - now public
+    '/marketplace',
     '/api/test', '/api/auth/create-profile', // Allow create-profile API for signup process
     '/api/health', '/api/debug', // Allow health and debug endpoints
+    '/api/listings', // Allow public access to listings API for marketplace
     '/test-auth', // Allow debug auth testing page
+    '/test-email-system', // Allow email testing page
   ]
 
   const isPublicPath = publicPaths.includes(pathname) ||
                        pathname === '/' || // Handle root path separately
                        pathname.startsWith('/_next/') || // Next.js internals
                        pathname.startsWith('/assets/') || // Static assets
+                       pathname.startsWith('/listings/') || // Listing detail pages - now public
                        pathname.includes('.') // Files like .png, .svg etc.
 
   // Allow public paths (except auth pages - they need special handling)
@@ -243,10 +248,8 @@ export async function middleware(req: NextRequest) {
     pathname.startsWith('/seller-dashboard') ||
     pathname.startsWith('/onboarding') ||
     pathname.startsWith('/admin') ||
-    pathname.startsWith('/marketplace') ||
-    pathname.startsWith('/listings/') ||
     pathname.startsWith('/api/') || // Block other API routes for unverified users
-    (pathname !== '/' && !pathname.startsWith('/_next/') && !pathname.startsWith('/assets/'))
+    (pathname !== '/' && !pathname.startsWith('/_next/') && !pathname.startsWith('/assets/') && !pathname.startsWith('/marketplace') && !pathname.startsWith('/listings/'))
   )
 
   if (!isAdmin && !profile.is_email_verified && isProtectedRoute) {
@@ -319,17 +322,7 @@ export async function middleware(req: NextRequest) {
     console.log(`[MIDDLEWARE] ${correlationId} | Dashboard access granted (onboarding bypassed for MVP)`)
   }
 
-  // Special handling for marketplace route – allow buyers, sellers, and admins
-  if (pathname.startsWith('/marketplace')) {
-    console.log(`[MIDDLEWARE] ${correlationId} | Marketplace access allowed for role ${profile.role}`)
-    return res
-  }
 
-  // Special handling for listing detail pages – allow buyers, sellers, and admins
-  if (pathname.startsWith('/listings/')) {
-    console.log(`[MIDDLEWARE] ${correlationId} | Listing detail access allowed for role ${profile.role}`)
-    return res
-  }
 
   // Skip further dashboard-role redirects for API endpoints
   if (pathname.startsWith('/api/')) {

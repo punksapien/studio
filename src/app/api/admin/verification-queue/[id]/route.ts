@@ -100,6 +100,9 @@ export async function PUT(
 
     // Use atomic function to update verification status
     if (operationalStatus || profileStatus || adminNote) {
+      // Note: Verification sync is now handled by:
+      // 1. Database trigger on user_profiles (automatic)
+      // 2. Dedicated /api/admin/sync-seller-verification API (manual)
       const { data: updateResult, error: updateError } = await supabase
         .rpc('update_verification_status', {
           p_request_id: id,
@@ -137,6 +140,46 @@ export async function PUT(
 
       console.log(`[ADMIN-VERIFICATION-UPDATE] Request ${id} updated by admin ${authResult.user.id} in ${responseTime}ms`);
       console.log(`[ADMIN-VERIFICATION-UPDATE] Changes - Operational: ${operationalStatus || 'unchanged'}, Profile: ${profileStatus || 'unchanged'}, Note: ${adminNote ? 'added' : 'none'}`);
+
+      // CRITICAL: Sync listing verification status if profile status changed
+      // Since database trigger is not working reliably, we handle sync here
+      if (profileStatus) {
+        try {
+          const { data: userRequest, error: userError } = await supabase
+            .from('verification_requests')
+            .select('user_profiles!verification_requests_user_id_fkey!inner (id, role, verification_status)')
+            .eq('id', id)
+            .single();
+
+          if (!userError && userRequest?.user_profiles) {
+            const user = userRequest.user_profiles;
+
+            // Only sync for sellers
+            if (user.role === 'seller') {
+              const isSellerVerified = user.verification_status === 'verified';
+
+              console.log(`[LISTING-SYNC] Syncing listings for seller ${user.id}: verification_status=${user.verification_status}, setting is_seller_verified=${isSellerVerified}`);
+
+              const { error: syncError } = await supabase
+                .from('listings')
+                .update({
+                  is_seller_verified: isSellerVerified,
+                  updated_at: new Date().toISOString()
+                })
+                .eq('seller_id', user.id);
+
+              if (syncError) {
+                console.error(`[LISTING-SYNC] Error syncing listings for seller ${user.id}:`, syncError);
+              } else {
+                console.log(`[LISTING-SYNC] Successfully synced listings for seller ${user.id}`);
+              }
+            }
+          }
+        } catch (syncError) {
+          console.error('[LISTING-SYNC] Error during listing sync:', syncError);
+          // Don't fail the main operation if sync fails
+        }
+      }
 
       // Fetch the updated request to return current state
       const { data: updatedRequest, error: fetchError } = await supabase

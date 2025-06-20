@@ -1,8 +1,5 @@
 'use client';
 
-// Force dynamic rendering due to client-side interactivity
-export const dynamic = 'force-dynamic'
-
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -27,13 +24,15 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { asianCountries, BuyerPersonaTypes, PreferredInvestmentSizes } from "@/lib/types";
-import { useTransition, useEffect } from "react";
+import { useTransition, useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
 import { useCurrentUser } from "@/hooks/use-cached-profile";
-import { Loader2, User } from "lucide-react";
+import { Loader2, User, RefreshCw, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/auth-context";
 
 const ProfileSchema = z.object({
   fullName: z.string().min(1, { message: "Full name is required." }),
@@ -54,8 +53,6 @@ const ProfileSchema = z.object({
   }
 });
 
-
-
 const defaultProfileValues: Partial<z.infer<typeof ProfileSchema>> = {
   fullName: "",
   phoneNumber: "",
@@ -69,45 +66,114 @@ const defaultProfileValues: Partial<z.infer<typeof ProfileSchema>> = {
 
 export default function BuyerProfilePage() {
   const { toast } = useToast();
+  const router = useRouter();
   const [isProfilePending, startProfileTransition] = useTransition();
+  const [hasInitialized, setHasInitialized] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const [isSessionReady, setIsSessionReady] = useState(false);
 
-  const { user, profile, loading: isLoading, refreshAuth } = useCurrentUser();
+  // Use auth context for better session management
+  const {
+    user: authUser,
+    profile: authProfile,
+    isLoading: authLoading,
+    refreshAuth
+  } = useAuth();
+
+  // Also use the current user hook for compatibility
+  const { user, profile, loading: hookLoading } = useCurrentUser();
 
   const profileForm = useForm<z.infer<typeof ProfileSchema>>({
     resolver: zodResolver(ProfileSchema),
     defaultValues: defaultProfileValues,
   });
 
+  // Combined loading state
+  const isLoading = authLoading || (hookLoading && !hasInitialized);
 
+  // Ensure session is ready before showing content
+  useEffect(() => {
+    if (!authLoading && authUser) {
+      setIsSessionReady(true);
+    }
+  }, [authLoading, authUser]);
 
   // Load profile data into form when available
   useEffect(() => {
-    if (profile) {
+    const profileData = authProfile || profile;
+    if (profileData && !hasInitialized && isSessionReady) {
+      console.log('[BUYER-PROFILE] Initializing form with profile data');
       profileForm.reset({
-        fullName: profile.full_name || "",
-        phoneNumber: profile.phone_number || "",
-        country: profile.country || "",
-        buyerPersonaType: profile.buyer_persona_type as any || undefined,
-        buyerPersonaOther: profile.buyer_persona_other || "",
-        investmentFocusDescription: profile.investment_focus_description || "",
-        preferredInvestmentSize: profile.preferred_investment_size as any || undefined,
-        keyIndustriesOfInterest: profile.key_industries_of_interest || "",
+        fullName: profileData.full_name || "",
+        phoneNumber: profileData.phone_number || "",
+        country: profileData.country || "",
+        buyerPersonaType: profileData.buyer_persona_type as any || undefined,
+        buyerPersonaOther: profileData.buyer_persona_other || "",
+        investmentFocusDescription: profileData.investment_focus_description || "",
+        preferredInvestmentSize: profileData.preferred_investment_size as any || undefined,
+        keyIndustriesOfInterest: profileData.key_industries_of_interest || "",
+      });
+      setHasInitialized(true);
+    }
+  }, [authProfile, profile, profileForm, hasInitialized, isSessionReady]);
+
+  // Handle authentication state
+  useEffect(() => {
+    if (!authLoading && !authUser && isSessionReady) {
+      console.log('[BUYER-PROFILE] No authenticated user, redirecting to login');
+      router.push('/auth/login?redirectTo=/dashboard/profile');
+    }
+  }, [authLoading, authUser, router, isSessionReady]);
+
+  // Handle role mismatch
+  useEffect(() => {
+    const currentProfile = authProfile || profile;
+    if (currentProfile && currentProfile.role !== 'buyer' && isSessionReady) {
+      console.log('[BUYER-PROFILE] User is not a buyer, redirecting');
+      router.push('/seller-dashboard');
+    }
+  }, [authProfile, profile, router, isSessionReady]);
+
+  const handleRetry = async () => {
+    setRetryCount(prev => prev + 1);
+    setHasInitialized(false);
+    setIsSessionReady(false);
+    try {
+      await refreshAuth();
+      // Give a moment for state to update
+      setTimeout(() => {
+        setIsSessionReady(true);
+      }, 500);
+    } catch (error) {
+      console.error('[BUYER-PROFILE] Retry failed:', error);
+      toast({
+        variant: "destructive",
+        title: "Retry Failed",
+        description: "Please try refreshing the page manually."
       });
     }
-  }, [profile, profileForm]);
+  };
 
   const updateProfile = async (profileData: z.infer<typeof ProfileSchema>) => {
     try {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
       if (sessionError || !session?.access_token) {
-        throw new Error('Not authenticated - please log in again');
+        // Try to refresh the session
+        await refreshAuth();
+
+        // Get session again after refresh
+        const { data: { session: newSession } } = await supabase.auth.getSession();
+        if (!newSession?.access_token) {
+          throw new Error('Session expired. Please log in again.');
+        }
       }
 
       const response = await fetch('/api/auth/update-profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
+          'Authorization': `Bearer ${session?.access_token || ''}`,
         },
         body: JSON.stringify({
           full_name: profileData.fullName,
@@ -128,12 +194,10 @@ export default function BuyerProfilePage() {
 
       return true;
     } catch (error) {
-      console.error('Profile update error:', error);
+      console.error('[BUYER-PROFILE] Update error:', error);
       throw error;
     }
   };
-
-
 
   const onProfileSubmit = (values: z.infer<typeof ProfileSchema>) => {
     startProfileTransition(async () => {
@@ -144,7 +208,7 @@ export default function BuyerProfilePage() {
           description: "Your profile information has been successfully updated."
         });
         // Refresh the auth data to get updated profile
-        refreshAuth();
+        await refreshAuth();
       } catch (error) {
         toast({
           variant: "destructive",
@@ -155,11 +219,10 @@ export default function BuyerProfilePage() {
     });
   };
 
-
-
   const watchedBuyerPersonaType = profileForm.watch("buyerPersonaType");
 
-  if (isLoading) {
+  // Show loading state
+  if (isLoading || !isSessionReady) {
     return (
       <div className="space-y-8">
         <div className="flex items-center justify-center min-h-[400px]">
@@ -172,25 +235,42 @@ export default function BuyerProfilePage() {
     );
   }
 
-  if (!user || !profile) {
+  // Show error state if no user/profile after loading
+  if (!authUser && !user && hasInitialized) {
     return (
-      <div className="space-y-8 text-center">
-        <h1 className="text-3xl font-bold tracking-tight">Profile Not Found</h1>
-        <p className="text-muted-foreground">Unable to load your profile. Please try logging in again.</p>
-        <Button asChild>
-          <Link href="/auth/login">Login</Link>
-        </Button>
+      <div className="space-y-8">
+        <div className="flex flex-col items-center justify-center min-h-[400px]">
+          <AlertCircle className="h-12 w-12 text-destructive mb-4" />
+          <h1 className="text-2xl font-bold text-destructive mb-2">Session Error</h1>
+          <p className="text-muted-foreground mb-6 text-center max-w-md">
+            We're having trouble accessing your profile. This can happen if your session has expired.
+            {retryCount > 0 && " Please try logging in again."}
+          </p>
+          <div className="flex gap-3">
+            <Button onClick={handleRetry} variant="outline" disabled={retryCount >= 3}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              {retryCount > 0 ? `Retry (${retryCount}/3)` : "Retry"}
+            </Button>
+            <Button asChild>
+              <Link href="/auth/login?redirectTo=/dashboard/profile">Login Again</Link>
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }
 
-  if (profile.role !== 'buyer') {
+  const currentUser = authUser || user;
+  const currentProfile = authProfile || profile;
+
+  // Check role after loading
+  if (currentProfile && currentProfile.role !== 'buyer') {
     return (
       <div className="space-y-8 text-center">
         <h1 className="text-3xl font-bold tracking-tight">Access Denied</h1>
         <p className="text-muted-foreground">This page is only accessible to buyer accounts.</p>
         <Button asChild>
-          <Link href="/dashboard">Go to Dashboard</Link>
+          <Link href="/seller-dashboard">Go to Seller Dashboard</Link>
         </Button>
       </div>
     );
@@ -207,7 +287,7 @@ export default function BuyerProfilePage() {
         <CardHeader>
           <CardTitle>Personal Information</CardTitle>
           <CardDescription>
-            Update your personal details. Your email ({user.email}) cannot be changed here.
+            Update your personal details. Your email ({currentUser?.email}) cannot be changed here.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -395,8 +475,6 @@ export default function BuyerProfilePage() {
           </Form>
         </CardContent>
       </Card>
-
-
 
       <Separator />
 

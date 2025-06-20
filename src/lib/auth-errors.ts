@@ -12,6 +12,7 @@ export enum AuthErrorType {
   // System errors
   DATABASE_CONNECTION = 'database_connection',
   SUPABASE_API_FAILURE = 'supabase_api_failure',
+  SERVICE_UNAVAILABLE = 'service_unavailable',
   CONFIGURATION_ERROR = 'configuration_error',
   NETWORK_ERROR = 'network_error',
 
@@ -220,6 +221,7 @@ export class AuthErrorFactory {
       AuthErrorType.TEMPORARY_FAILURE,
       AuthErrorType.NETWORK_ERROR,
       AuthErrorType.DATABASE_CONNECTION,
+      AuthErrorType.SERVICE_UNAVAILABLE,
       AuthErrorType.TIMEOUT
     ]
     return retryableTypes.includes(type)
@@ -237,6 +239,7 @@ export class AuthErrorFactory {
 
       case AuthErrorType.DATABASE_CONNECTION:
       case AuthErrorType.SUPABASE_API_FAILURE:
+      case AuthErrorType.SERVICE_UNAVAILABLE:
         return 'high'
 
       case AuthErrorType.CONFIGURATION_ERROR:

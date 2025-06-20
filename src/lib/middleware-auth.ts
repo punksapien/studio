@@ -145,9 +145,52 @@ export class MiddlewareAuthenticationService {
         }
       }
 
-      // If cookie auth failed, log details
+      // Enhanced error handling for specific Supabase auth errors
       if (error) {
         console.log(`[MIDDLEWARE-AUTH] ${correlationId} | Compatible cookie auth error: ${error.message}`)
+
+        // Handle specific error cases more gracefully
+        if (error.message?.includes('User from sub claim in JWT does not exist')) {
+          console.log(`[MIDDLEWARE-AUTH] ${correlationId} | Stale JWT token detected - user no longer exists. Clearing auth state.`)
+
+          // Clear the stale auth cookies to prevent repeated errors
+          try {
+            await supabase.auth.signOut()
+            console.log(`[MIDDLEWARE-AUTH] ${correlationId} | Successfully cleared stale auth state`)
+          } catch (signOutError) {
+            console.warn(`[MIDDLEWARE-AUTH] ${correlationId} | Failed to clear stale auth state:`, signOutError)
+          }
+
+          // Return a clean failure that will redirect to login
+          const authError = AuthErrorFactory.createError(
+            AuthErrorType.INVALID_CREDENTIALS,
+            'Authentication session expired',
+            'Please log in again.',
+            { endpoint: pathname, method: 'MIDDLEWARE', reason: 'stale_jwt' }
+          )
+          this.logger.logAuthFailure(authError)
+          return {
+            success: false, user: null, profile: null, error: authError, correlationId,
+            strategy: 'stale-jwt-cleared', executionTime: Date.now() - startTime
+          }
+        }
+
+        if (error.message?.includes('Unexpected failure')) {
+          console.log(`[MIDDLEWARE-AUTH] ${correlationId} | Supabase auth service unavailable or configuration issue`)
+
+          // Return a service error instead of invalid credentials
+          const authError = AuthErrorFactory.createError(
+            AuthErrorType.SERVICE_UNAVAILABLE,
+            'Authentication service temporarily unavailable',
+            'Please try again in a moment.',
+            { endpoint: pathname, method: 'MIDDLEWARE', reason: 'auth_service_error' }
+          )
+          this.logger.logAuthFailure(authError)
+          return {
+            success: false, user: null, profile: null, error: authError, correlationId,
+            strategy: 'auth-service-error', executionTime: Date.now() - startTime
+          }
+        }
       } else {
         console.log(`[MIDDLEWARE-AUTH] ${correlationId} | No active session found with compatible cookies`)
       }
@@ -177,10 +220,33 @@ export class MiddlewareAuthenticationService {
     } catch (error) {
       const executionTime = Date.now() - startTime
       console.error(`[MIDDLEWARE-AUTH] ${correlationId} | UNEXPECTED ERROR | ${error} | Time: ${executionTime}ms`)
-      const authError = AuthErrorFactory.fromSupabaseError(error, {
+
+      // Enhanced error handling for different types of exceptions
+      let authError
+      const errorMessage = String(error)
+
+      if (errorMessage.includes('User from sub claim in JWT does not exist')) {
+        console.log(`[MIDDLEWARE-AUTH] ${correlationId} | Caught stale JWT in exception handler`)
+        authError = AuthErrorFactory.createError(
+          AuthErrorType.INVALID_CREDENTIALS,
+          'Authentication session expired',
+          'Please log in again.',
+          { endpoint: pathname, method: 'MIDDLEWARE', reason: 'stale_jwt_exception' }
+        )
+      } else if (errorMessage.includes('fetch') || errorMessage.includes('network')) {
+        authError = AuthErrorFactory.createError(
+          AuthErrorType.SERVICE_UNAVAILABLE,
+          'Network or service error during authentication',
+          'Please check your connection and try again.',
+          { endpoint: pathname, method: 'MIDDLEWARE', reason: 'network_error' }
+        )
+      } else {
+        authError = AuthErrorFactory.fromSupabaseError(error, {
         endpoint: pathname,
         method: 'MIDDLEWARE'
       })
+      }
+
       this.logger.logAuthFailure(authError)
       this.logger.logPerformanceMetric(
         'middleware-auth',

@@ -54,22 +54,31 @@ export async function POST(
       );
     }
 
-    // Check if user is a participant
+    // Check if user is a participant or admin
     const isParticipant =
       conversation.buyer_id === authResult.user.id ||
       conversation.seller_id === authResult.user.id;
 
-    if (!isParticipant) {
+    const isAdmin = authResult.profile?.role === 'admin';
+
+    if (!isParticipant && !isAdmin) {
       return NextResponse.json(
         { error: 'You do not have permission to send messages in this conversation' },
         { status: 403 }
       );
     }
 
-    // Determine receiver
-    const receiverId = conversation.buyer_id === authResult.user.id
-      ? conversation.seller_id
-      : conversation.buyer_id;
+    // Determine receiver - for admins, we'll set both buyer and seller as potential receivers
+    let receiverId;
+    if (isAdmin) {
+      // For admin messages, we'll use a special receiver_id that indicates it's an admin message
+      // We'll use the buyer_id as the primary receiver, but the message will be visible to both
+      receiverId = conversation.buyer_id;
+    } else {
+      receiverId = conversation.buyer_id === authResult.user.id
+        ? conversation.seller_id
+        : conversation.buyer_id;
+    }
 
     // Create the message
     const { data: message, error: messageError } = await supabaseAdmin

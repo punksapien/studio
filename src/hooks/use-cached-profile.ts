@@ -1,6 +1,7 @@
 import useSWR from 'swr';
 import { supabase } from '@/lib/supabase';
 import type { UserProfile, User } from '@/lib/auth';
+import React from 'react';
 
 // Simple, graceful auth fetcher with comprehensive error handling
 const authFetcher = async (): Promise<{ user: User | null; profile: UserProfile | null }> => {
@@ -86,6 +87,26 @@ export function useAuth(options?: UseAuthOptions) {
     revalidateOnReconnect = true,
   } = options || {};
 
+  // Track if we've done initial session check
+  const [hasInitialSession, setHasInitialSession] = React.useState(false);
+  const [isCheckingSession, setIsCheckingSession] = React.useState(true);
+
+  // Check for existing session on mount
+  React.useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setHasInitialSession(!!session);
+      } catch (error) {
+        console.warn('[AUTH] Initial session check failed:', error);
+      } finally {
+        setIsCheckingSession(false);
+      }
+    };
+
+    checkSession();
+  }, []);
+
   const { data, error, isLoading, mutate } = useSWR<{ user: User | null; profile: UserProfile | null }>(
     'auth', // Single cache key for ALL auth requests
     authFetcher,
@@ -110,6 +131,30 @@ export function useAuth(options?: UseAuthOptions) {
       },
     }
   );
+
+  // During initial session check, return loading state
+  // This prevents showing "not logged in" when we might actually be logged in
+  if (isCheckingSession) {
+    return {
+      user: null,
+      profile: null,
+      error: null,
+      isLoading: true,
+      refreshAuth: () => mutate(),
+    };
+  }
+
+  // If we have a session but data hasn't loaded yet, keep loading state
+  // This prevents the flash of "not logged in" content
+  if (hasInitialSession && !data && isLoading) {
+    return {
+      user: null,
+      profile: null,
+      error: null,
+      isLoading: true,
+      refreshAuth: () => mutate(),
+    };
+  }
 
   return {
     user: data?.user || null,
