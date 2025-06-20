@@ -3,7 +3,7 @@ import * as React from "react";
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { Star, CheckCircle, Search as SearchIcon, MapPin, Briefcase, ListChecks, DollarSign, ShieldCheck, FileText, MessageSquare, Info, Phone, Home, ExternalLink, Users2 as UsersIcon, Images as ImagesIcon, Banknote, BookOpen, Brain, HandCoins, Globe, Link as LinkIconLucide, ArrowRight, Zap, UsersRound } from 'lucide-react';
+import { Star, CheckCircle, Search as SearchIconLucide, MapPin, Briefcase, ListChecks, DollarSign, ShieldCheck, FileText, MessageSquare, Info, Phone, Home, ExternalLink, Users2 as UsersIcon, Images as ImagesIcon, Banknote, BookOpen, Brain, HandCoins, Globe, Link as LinkIconLucide, ArrowRight, Zap, UsersRound, CheckCircle2, TrendingUp } from 'lucide-react'; // Added TrendingUp
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -60,7 +60,7 @@ export default function HomePage() {
                 List Your Business <ArrowRight className="ml-2 h-5 w-5" />
             </Link>
             <Link href="/marketplace" className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-brand-white text-brand-white hover:bg-brand-white/10 hover:text-brand-white h-11 py-3 px-8 text-base">
-                Browse Businesses <SearchIcon className="ml-2 h-5 w-5" />
+                Browse Businesses <SearchIconLucide className="ml-2 h-5 w-5" />
             </Link>
           </div>
         </div>
@@ -99,13 +99,15 @@ export default function HomePage() {
                     <Link href={`/listings/${listing.id}`}>{listing.listingTitleAnonymous}</Link>
                   </CardTitle>
                   <div className="space-y-1 text-sm text-muted-foreground">
+                    <p className="flex items-center"><Briefcase className="h-4 w-4 mr-2 text-brand-dark-blue/70" /> {listing.industry}</p>
                     <p className="flex items-center"><MapPin className="h-4 w-4 mr-2 text-brand-dark-blue/70" /> {listing.locationCityRegionGeneral}, {listing.locationCountry}</p>
-                    <p className="flex items-center"><NobridgeIcon icon="revenue" size="sm" className="mr-2 opacity-70" /> Asking: {listing.askingPrice ? `$${listing.askingPrice.toLocaleString()} USD` : 'Contact for Price'}</p>
+                    <p className="flex items-center"><TrendingUp className="h-4 w-4 mr-2 text-brand-dark-blue/70" /> Revenue: {listing.annualRevenueRange}</p>
+                    <p className="flex items-center"><DollarSign className="h-4 w-4 mr-2 text-brand-dark-blue/70" /> Asking: {listing.askingPrice ? `$${listing.askingPrice.toLocaleString()} USD` : 'Contact for Price'}</p>
                   </div>
                 </CardContent>
                 <CardFooter className="p-6 border-t border-brand-light-gray/80 mt-auto">
                   <Link href={`/listings/${listing.id}`} className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 w-full bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90 h-10 px-4 py-2">
-                    View Details <SearchIcon className="ml-2 h-4 w-4" />
+                    View Details <SearchIconLucide className="ml-2 h-4 w-4" />
                   </Link>
                 </CardFooter>
               </Card>
@@ -136,14 +138,15 @@ export default function HomePage() {
                 </p>
                 <ul className="space-y-2 text-muted-foreground mb-6">
                   <li className="flex items-center">
-                    {/* Icon wrapper removed */}
+                    <ShieldCheck className="h-5 w-5 mr-2 text-brand-sky-blue" /> {/* Added icon */}
                     Access to Verified Buyers
                   </li>
                   <li className="flex items-center">
-                    <CheckCircle className="h-5 w-5 mr-2 text-brand-sky-blue" /> Step-by-Step Listing Guidance
+                    <FileText className="h-5 w-5 mr-2 text-brand-sky-blue" /> {/* Added icon */}
+                    Step-by-Step Listing Guidance
                   </li>
                   <li className="flex items-center">
-                    {/* Icon wrapper removed */}
+                    <MessageSquare className="h-5 w-5 mr-2 text-brand-sky-blue" /> {/* Added icon */}
                      Secure Inquiry Management
                   </li>
                 </ul>
@@ -161,14 +164,15 @@ export default function HomePage() {
                 </p>
                 <ul className="space-y-2 text-muted-foreground mb-6">
                   <li className="flex items-center">
-                    {/* Icon wrapper removed */}
+                    <CheckCircle2 className="h-5 w-5 mr-2 text-brand-sky-blue" /> {/* Added icon */}
                     Vetted Business Listings
                   </li>
                   <li className="flex items-center">
-                    <CheckCircle className="h-5 w-5 mr-2 text-brand-sky-blue" /> Advanced Search & Filters
+                    <SearchIconLucide className="h-5 w-5 mr-2 text-brand-sky-blue" /> {/* Added icon */}
+                    Advanced Search & Filters
                   </li>
                   <li className="flex items-center">
-                    {/* Icon wrapper removed */}
+                    <UsersRound className="h-5 w-5 mr-2 text-brand-sky-blue" /> {/* Added icon */}
                     Direct Seller Engagement (Post-Verification)
                   </li>
                 </ul>
@@ -219,7 +223,7 @@ export default function HomePage() {
                   alt={logo.alt}
                   width={180} // Increased width
                   height={72} // Increased height for aspect ratio
-                  className="object-contain max-h-full" 
+                  className="object-contain max-h-full"
                   data-ai-hint={logo.dataAiHint}
                 />
               </div>
