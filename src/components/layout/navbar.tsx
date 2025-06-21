@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -37,8 +38,7 @@ const navLinkGroups: NavLinkGroup[] = [
     triggerIcon: Briefcase,
     items: [
       { href: "/seller-dashboard/listings/create", label: "List Your Business", icon: FileText },
-      // { href: "/pricing", label: "Pricing & Plans", icon: DollarSign }, // Removed Pricing & Plans
-      // { href: "/how-selling-works", label: "How Selling Works", icon: Info }, // Removed - page doesn't exist
+      { href: "/how-selling-works", label: "How Selling Works", icon: Info },
     ],
   },
   {
@@ -46,7 +46,7 @@ const navLinkGroups: NavLinkGroup[] = [
     triggerIcon: ShoppingCart,
     items: [
       { href: "/marketplace", label: "Browse Listings", icon: Search },
-      // { href: "/how-buying-works", label: "How Buying Works", icon: Info }, // Removed - page doesn't exist
+      { href: "/how-buying-works", label: "How Buying Works", icon: Info },
     ],
   },
   {
@@ -55,6 +55,7 @@ const navLinkGroups: NavLinkGroup[] = [
     items: [
       { href: "/about", label: "About Us", icon: Users2 },
       { href: "/contact", label: "Contact Us", icon: Phone },
+      { href: "/faq", label: "FAQ", icon: Info },
     ],
   },
 ];
@@ -347,4 +348,3 @@ export function Navbar() {
     </header>
   );
 }
-
