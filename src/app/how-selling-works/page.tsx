@@ -9,7 +9,7 @@ export default function HowSellingWorksPage() {
         alt="Diagram explaining how to sell a business on Nobridge"
         width={1200}
         height={800}
-        className="w-full h-auto max-w-7xl rounded-lg shadow-lg"
+        className="w-full h-auto max-w-7xl rounded-lg"
         priority
       />
     </div>

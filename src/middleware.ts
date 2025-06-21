@@ -36,7 +36,7 @@ export async function middleware(req: NextRequest) {
     // '/verify-email', // REMOVED - now requires special handling
     '/about', '/contact', '/pricing', '/terms', '/privacy',
     // Public information pages
-    '/faq', '/docs', '/help',
+    '/faq', '/docs', '/help', '/how-selling-works', '/how-buying-works',
     // Marketplace and listing pages - now public
     '/marketplace',
     '/api/test', '/api/auth/create-profile', // Allow create-profile API for signup process
