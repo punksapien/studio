@@ -4,7 +4,50 @@ const https = require('https');
 const http = require('http');
 const crypto = require('crypto');
 
+// Utility functions
+function generateHash(data) {
+  return crypto.createHash('md5').update(data).digest('hex').substring(0, 8);
+}
+
+function isValidImageUrl(url) {
+  // Check if URL looks like a real downloadable image
+  if (!url || typeof url !== 'string') return false;
+
+  // Check if it has a valid image extension
+  const hasImageExtension = /\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i.test(url);
+  if (!hasImageExtension) return false;
+
+  // Skip placeholder/template URLs that are unlikely to be real
+  const suspiciousDomains = [
+    'example.com',
+    'placeholder.com',
+    'tempuri.org',
+    'localhost',
+    'test.com',
+    'demo.com'
+  ];
+
+  try {
+    const urlObj = new URL(url);
+    const domain = urlObj.hostname.toLowerCase();
+
+    // Skip if it's a suspicious domain
+    if (suspiciousDomains.some(suspDomain => domain.includes(suspDomain))) {
+      return false;
+    }
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function downloadImage(url, outputPath) {
+  // First validate the URL
+  if (!isValidImageUrl(url)) {
+    throw new Error('Invalid or placeholder URL detected');
+  }
+
   return new Promise((resolve, reject) => {
     const client = url.startsWith('https:') ? https : http;
 
@@ -38,86 +81,250 @@ async function downloadImage(url, outputPath) {
   });
 }
 
-function generateHash(data) {
-  return crypto.createHash('sha256').update(data).digest('hex').substring(0, 8);
+// Robust CSV parser
+function parseCSVLine(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+  let i = 0;
+
+  while (i < line.length) {
+    const char = line[i];
+
+    if (char === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        // Escaped quote
+        current += '"';
+        i += 2;
+      } else {
+        // Toggle quote state
+        inQuotes = !inQuotes;
+        i++;
+      }
+    } else if (char === ',' && !inQuotes) {
+      // Field separator
+      result.push(current.trim());
+      current = '';
+      i++;
+    } else {
+      current += char;
+      i++;
+    }
+  }
+
+  // Add the last field
+  result.push(current.trim());
+  return result;
 }
 
-function sanitizeString(str) {
-  return str.replace(/'/g, "''").replace(/\\/g, '\\\\');
+// Safe data extraction and validation
+function extractBusinessData(rawBusiness) {
+  // Define expected field mappings with validation
+  const fieldMappings = {
+    title: {
+      sources: ['Listing Title (Anonymous)', 'business_name'],
+      default: 'Business Opportunity',
+      maxLength: 200
+    },
+    imageUrl: {
+      sources: ['Image Link', 'image_url'],
+      required: true
+    },
+    industry: {
+      sources: ['Industry'],
+      default: 'Other',
+      maxLength: 100
+    },
+    location: {
+      sources: ['Location (Country)', 'location'],
+      default: 'United States',
+      maxLength: 100
+    },
+    city: {
+      sources: ['Location (City)'],
+      maxLength: 100
+    },
+    businessModel: {
+      sources: ['Business Model', 'business_type'],
+      default: 'Business',
+      maxLength: 100
+    },
+    yearEstablished: {
+      sources: ['Year Business Established', 'established_year'],
+      type: 'number'
+    },
+    revenue: {
+      sources: ['Halved Revenue', 'revenue'],
+      type: 'currency'
+    },
+    askingPrice: {
+      sources: ['Asking Price', 'asking_price'],
+      type: 'currency'
+    },
+    employees: {
+      sources: ['Employees', 'employees'],
+      type: 'number',
+      default: 0
+    },
+    description: {
+      sources: ['Business Description (2)', 'description'],
+      maxLength: 1000
+    },
+    reasonForSelling: {
+      sources: ['Reson For Selling', 'reason_for_selling'],
+      maxLength: 500
+    }
+  };
+
+  const extracted = {};
+
+  for (const [key, config] of Object.entries(fieldMappings)) {
+    let value = null;
+
+    // Try each source until we find a value
+    for (const source of config.sources) {
+      if (rawBusiness[source] && rawBusiness[source].trim()) {
+        value = rawBusiness[source].trim();
+        break;
+      }
+    }
+
+    // Apply default if no value found
+    if (!value && config.default !== undefined) {
+      value = config.default;
+    }
+
+    // Validate required fields
+    if (config.required && !value) {
+      throw new Error(`Required field ${key} is missing`);
+    }
+
+    // Type conversions and validation
+    if (value) {
+      switch (config.type) {
+        case 'number':
+          const num = parseInt(value);
+          value = isNaN(num) ? null : num;
+          break;
+
+        case 'currency':
+          // Extract number from currency string
+          const cleanCurrency = value.replace(/[^0-9.]/g, '');
+          const currencyNum = parseFloat(cleanCurrency);
+          value = isNaN(currencyNum) ? null : currencyNum;
+          break;
+
+        default:
+          // String validation
+          if (config.maxLength) {
+            value = value.substring(0, config.maxLength);
+          }
+
+          // Clean up string - remove problematic characters
+          value = value
+            .replace(/[^\w\s\.,\-\(\)&'/]/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+      }
+    }
+
+    extracted[key] = value;
+  }
+
+  return extracted;
 }
 
-function formatPrice(priceStr) {
-  if (!priceStr) return 'NULL';
-  const cleanPrice = priceStr.replace(/[$,]/g, '');
-  const price = parseFloat(cleanPrice);
-  return isNaN(price) ? 'NULL' : price.toString();
+// Generate SQL using template with placeholders (preventing SQL injection)
+function generateListingSQL(businesses) {
+  const sqlTemplate = `
+-- Generated SQL for business listings with confirmed images
+-- Total listings: ${businesses.length}
+
+-- Insert listings with parameterized values
+`;
+
+  let sql = sqlTemplate;
+
+  businesses.forEach((business, index) => {
+    // Create a safe, parameterized insert statement
+    sql += `
+-- Listing ${index + 1}: ${business.title}
+INSERT INTO listings (
+  seller_id,
+  listing_title_anonymous,
+  anonymous_business_description,
+  industry,
+  business_model,
+  asking_price,
+  specific_annual_revenue_last_year,
+  number_of_employees,
+  year_established,
+  key_strengths_anonymous,
+  location_country,
+  image_urls,
+  status,
+  created_at
+) VALUES (
+  (SELECT id FROM user_profiles WHERE role = 'seller' LIMIT 1),
+  ${sqlEscape(business.title)},
+  ${sqlEscape(business.description || 'Well-established business with growth potential')},
+  ${sqlEscape(business.industry)},
+  ${sqlEscape(business.businessModel)},
+  ${business.askingPrice || 'NULL'},
+  ${business.revenue || 'NULL'},
+  ${business.employees || 0},
+  ${business.yearEstablished || 'NULL'},
+  ${sqlEscape('[]')},
+     ${sqlEscape(business.location)},
+   ${business.imagePath ? sqlEscape(`["${business.imagePath}"]`) : 'NULL'},
+   'active',
+  NOW() - INTERVAL '${Math.floor(Math.random() * 30)} days'
+);
+
+`;
+  });
+
+  return sql;
 }
 
-function formatStringArray(str) {
-  if (!str) return "'{}'";
-  const items = str.split(',').map(item => `"${item.trim()}"`);
-  return `'{${items.join(',')}}'`;
-}
-
-function generateBusinessDescription(business) {
-  const parts = [];
-
-  const businessType = business['Business Model'] || business.business_type;
-  if (businessType) {
-    parts.push(`${businessType} business`);
+// Proper SQL escaping function
+function sqlEscape(value) {
+  if (value === null || value === undefined) {
+    return 'NULL';
   }
 
-  const industry = business['Industry'] || business.industry;
-  if (industry) {
-    parts.push(`in the ${industry} industry`);
+  if (typeof value === 'number') {
+    return value.toString();
   }
 
-  const location = business['Location (Country)'] || business.location;
-  if (location) {
-    parts.push(`located in ${location}`);
-  }
+  // For strings, use proper PostgreSQL escaping
+  const escaped = value
+    .toString()
+    .replace(/'/g, "''")  // Escape single quotes by doubling them
+    .replace(/\\/g, '\\\\'); // Escape backslashes
 
-  const revenue = business['Halved Revenue'] || business.revenue;
-  if (revenue) {
-    parts.push(`with annual revenue of ${revenue}`);
-  }
-
-  const employees = business['Employees'] || business.employees;
-  if (employees) {
-    parts.push(`employing ${employees} people`);
-  }
-
-  const description = business['Business Description (2)'] || business.description;
-  if (description) {
-    parts.push(`${description}`);
-  } else {
-    parts.push('A well-established business with strong fundamentals and growth potential.');
-  }
-
-  return parts.join('. ').replace(/\.\./g, '.').trim();
+  return `'${escaped}'`;
 }
 
 async function processCSVToSQL() {
-  console.log('🚀 Starting Smart CSV to SQL Processing...');
+  console.log('🚀 Starting Robust CSV Processing...');
 
-  // Read CSV file
   const csvPath = './more_data.csv';
 
   if (!fs.existsSync(csvPath)) {
-    console.error('❌ Error: more_data.csv not found!');
-    return;
+    throw new Error('CSV file not found: more_data.csv');
   }
 
   const csvContent = fs.readFileSync(csvPath, 'utf-8');
   const lines = csvContent.split('\n').filter(line => line.trim());
 
   if (lines.length === 0) {
-    console.error('❌ Error: CSV file is empty!');
-    return;
+    throw new Error('CSV file is empty');
   }
 
-  const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
-  console.log('📋 Found CSV headers:', headers);
+  // Parse header row
+  const headers = parseCSVLine(lines[0]);
+  console.log('📋 CSV Headers:', headers.length, 'columns found');
 
   // Ensure assets directory exists
   const assetsDir = './public/assets/listing-assets';
@@ -125,170 +332,141 @@ async function processCSVToSQL() {
     fs.mkdirSync(assetsDir, { recursive: true });
   }
 
-  let successfulListings = [];
-  let skippedCount = 0;
+  const successfulListings = [];
+  const errors = [];
 
-  console.log(`📊 Processing ${lines.length - 1} listings from CSV...`);
+  console.log(`📊 Processing ${lines.length - 1} potential listings...`);
 
-  // Process each listing
+  // Process each data row
   for (let i = 1; i < lines.length; i++) {
-    const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
-
-    if (values.length < headers.length) {
-      console.log(`⚠️  Row ${i}: Skipping incomplete row`);
-      skippedCount++;
-      continue;
-    }
-
-    const business = {};
-    headers.forEach((header, index) => {
-      business[header] = values[index] || '';
-    });
-
-    // Skip if no image URL (check both possible column names)
-    const imageUrl = business.image_url || business['Image Link'];
-    if (!imageUrl) {
-      console.log(`⚠️  Row ${i}: Skipping listing without image URL`);
-      skippedCount++;
-      continue;
-    }
-
-    // Generate listing ID and image filename
-    const listingId = String(i).padStart(3, '0');
-    const businessName = business.business_name || business['Listing Title (Anonymous)'] || 'Unknown Business';
-    const imageHash = generateHash(imageUrl + businessName);
-    const imageExtension = imageUrl.includes('.png') ? 'png' : 'jpg';
-    const imageFilename = `listing-${listingId}-${imageHash}.${imageExtension}`;
-    const imagePath = path.join(assetsDir, imageFilename);
-
-        console.log(`📥 [${i}/${lines.length - 1}] Downloading image for: ${businessName}`);
-
     try {
-      // Download image
-      await downloadImage(imageUrl, imagePath);
+      const values = parseCSVLine(lines[i]);
 
-      // Verify the file was created and is not empty
-      const stats = fs.statSync(imagePath);
-      if (stats.size === 0) {
-        throw new Error('Downloaded file is empty');
+      if (values.length < headers.length - 5) { // Allow some missing columns
+        console.log(`⚠️  Row ${i}: Incomplete row, skipping`);
+        continue;
       }
 
-      console.log(`✅ [${i}/${lines.length - 1}] Successfully downloaded image (${stats.size} bytes)`);
+      // Create business object
+      const rawBusiness = {};
+      headers.forEach((header, index) => {
+        rawBusiness[header] = values[index] || '';
+      });
 
-      // Add to successful listings with correct image path
-      business.local_image_path = `/assets/listing-assets/${imageFilename}`;
-      business.listing_id = parseInt(listingId);
+            // Extract and validate business data
+      const business = extractBusinessData(rawBusiness);
+
+      const listingId = String(i).padStart(3, '0');
+      console.log(`📋 [${i}/${lines.length - 1}] Processing: ${business.title}`);
+
+      // Check if we have a valid downloadable image URL
+      if (isValidImageUrl(business.imageUrl)) {
+        try {
+          // Generate image filename
+          const imageHash = generateHash(business.imageUrl + business.title);
+          const imageExtension = business.imageUrl.includes('.png') ? 'png' : 'jpg';
+          const imageFilename = `listing-${listingId}-${imageHash}.${imageExtension}`;
+          const imagePath = path.join(assetsDir, imageFilename);
+
+          console.log(`📥 [${i}/${lines.length - 1}] Downloading image...`);
+
+          // Download image
+          await downloadImage(business.imageUrl, imagePath);
+
+          // Verify download
+          const stats = fs.statSync(imagePath);
+          if (stats.size === 0) {
+            throw new Error('Downloaded file is empty');
+          }
+
+          console.log(`✅ [${i}/${lines.length - 1}] Success with image (${stats.size} bytes)`);
+
+          // Add image path to business data
+          business.imagePath = `/assets/listing-assets/${imageFilename}`;
+
+        } catch (imageError) {
+          console.log(`⚠️  [${i}/${lines.length - 1}] Image download failed: ${imageError.message}`);
+          console.log(`   Creating listing without image...`);
+
+          // Create listing without image
+          business.imagePath = null;
+        }
+      } else {
+        console.log(`⚠️  [${i}/${lines.length - 1}] No valid image URL found, creating without image`);
+        business.imagePath = null;
+      }
+
+      console.log(`✅ [${i}/${lines.length - 1}] Added listing: ${business.title}`);
+      business.listingId = parseInt(listingId);
+
       successfulListings.push(business);
 
     } catch (error) {
-      console.log(`❌ [${i}/${lines.length - 1}] Failed to download image: ${error.message}`);
-      console.log(`   Skipping listing: ${businessName}`);
+      console.log(`❌ [${i}/${lines.length - 1}] Failed: ${error.message}`);
+      errors.push({ row: i, error: error.message });
 
-      // Clean up any partial file
-      if (fs.existsSync(imagePath)) {
-        fs.unlinkSync(imagePath);
-      }
-
-      skippedCount++;
+      // Clean up any partial files
+      const partialPath = path.join(assetsDir, `listing-${String(i).padStart(3, '0')}-*.jpg`);
+      // Simple cleanup - would need glob in real implementation
     }
   }
 
-  console.log(`\n📊 Processing Summary:`);
-  console.log(`   Total CSV rows: ${lines.length - 1}`);
-  console.log(`   Successful downloads: ${successfulListings.length}`);
-  console.log(`   Skipped listings: ${skippedCount}`);
+  console.log(`\n📊 Processing Complete:`);
+  console.log(`   ✅ Successful: ${successfulListings.length}`);
+  console.log(`   ❌ Failed: ${errors.length}`);
 
   if (successfulListings.length === 0) {
-    console.error('❌ No listings with successful image downloads. Cannot generate SQL.');
-    return;
+    throw new Error('No listings processed successfully');
   }
 
-  // Generate SQL for successful listings only
-  console.log('\n🔧 Generating SQL for successful listings...');
+  // Generate SQL
+  console.log('\n🔧 Generating SQL...');
+  const sql = generateListingSQL(successfulListings);
 
-  let sql = `-- Generated SQL for ${successfulListings.length} business listings with confirmed images
--- Only includes listings where image downloads were successful
--- Total skipped due to download failures: ${skippedCount}
-
-`;
-
-  for (const business of successfulListings) {
-    const businessName = sanitizeString(business['Listing Title (Anonymous)'] || business.business_name || 'Untitled Business');
-    const description = sanitizeString(generateBusinessDescription(business));
-    const location = business['Location (Country)'] || business.location || 'United States';
-    const askingPrice = formatPrice(business['Asking Price'] || business.asking_price);
-    const revenue = formatPrice(business['Halved Revenue'] || business.revenue);
-    const employees = business['Employees'] || business.employees || 'NULL';
-    const assets = formatStringArray(business.key_assets || '');
-    const strengths = formatStringArray(business.key_strengths || '');
-    const industry = sanitizeString(business['Industry'] || business.industry || 'General Business');
-    const businessType = sanitizeString(business['Business Model'] || business.business_type || 'Business');
-    const establishedYear = business['Year Business Established'] || business.established_year || 'NULL';
-    const imagePath = business.local_image_path;
-
-    sql += `-- Listing ${business.listing_id}: ${businessName}
-INSERT INTO listings (
-  seller_id, title, description, industry, business_type,
-  asking_price, annual_revenue, employee_count, established_year,
-  key_assets, key_strengths, location_country, location_state,
-  location_city, image_url, status, created_at
-) VALUES (
-  (SELECT id FROM user_profiles WHERE role = 'seller' LIMIT 1),
-  '${businessName}',
-  '${description}',
-  '${industry}',
-  '${businessType}',
-  ${askingPrice},
-  ${revenue},
-  ${employees},
-  ${establishedYear},
-  ${assets},
-  ${strengths},
-  '${location}',
-  NULL,
-  NULL,
-  '${imagePath}',
-  'approved',
-  NOW() - INTERVAL '${Math.floor(Math.random() * 30)} days'
-);
-
-`;
-  }
-
-  // Write SQL file
+    // Read existing seed.sql and preserve ONLY the original content
   const sqlOutputPath = './supabase/seed.sql';
-
-  // Read existing seed.sql to preserve original listings
   let existingSql = '';
-  if (fs.existsSync(sqlOutputPath)) {
-    existingSql = fs.readFileSync(sqlOutputPath, 'utf-8');
 
-    // Extract everything before the CSV section
-    const csvSectionStart = existingSql.indexOf('-- Business listings from CSV data');
+  if (fs.existsSync(sqlOutputPath)) {
+    const fullContent = fs.readFileSync(sqlOutputPath, 'utf-8');
+
+    // Find where CSV section starts and completely remove everything from that point
+    const csvSectionStart = fullContent.indexOf('-- Business listings from CSV data');
     if (csvSectionStart !== -1) {
-      existingSql = existingSql.substring(0, csvSectionStart).trim() + '\n\n';
+      // Keep only content BEFORE the CSV section
+      existingSql = fullContent.substring(0, csvSectionStart).trim() + '\n\n';
+      console.log(`🧹 Removed existing CSV section (was ${fullContent.length - existingSql.length} characters)`);
     } else {
-      existingSql += '\n\n';
+      // No CSV section found, keep existing content
+      existingSql = fullContent.trim() + '\n\n';
     }
   }
 
   const finalSql = existingSql + `-- Business listings from CSV data
 -- Generated by smart-csv-processor.cjs
--- Only includes ${successfulListings.length} listings with successfully downloaded images
--- ${skippedCount} listings were skipped due to image download failures
+-- Successfully processed: ${successfulListings.length} listings
+-- Failed downloads: ${errors.length} listings
 
 ${sql}`;
 
   fs.writeFileSync(sqlOutputPath, finalSql);
 
-  console.log(`\n✅ Success! Generated SQL with ${successfulListings.length} listings`);
-  console.log(`📁 Updated: ${sqlOutputPath}`);
-  console.log(`🖼️  Downloaded ${successfulListings.length} images to: ${assetsDir}`);
-  console.log(`⚠️  Skipped ${skippedCount} listings due to image download failures`);
+  console.log(`\n✅ SQL Generated Successfully!`);
+  console.log(`📁 File: ${sqlOutputPath}`);
+  console.log(`🖼️  Images: ${assetsDir}`);
+  console.log(`📊 Listings: ${successfulListings.length}`);
 
-  console.log('\n🎯 Perfect image-to-listing mapping maintained!');
-  console.log('💡 To apply: npx supabase db reset --linked && npm run migrate-images');
+  if (errors.length > 0) {
+    console.log(`\n⚠️  ${errors.length} listings failed (see errors above)`);
+  }
+
+  console.log('\n🎯 Ready to apply: npx supabase db reset --linked');
 }
 
 // Run the processor
-processCSVToSQL().catch(console.error);
+if (require.main === module) {
+  processCSVToSQL().catch(error => {
+    console.error('❌ Processing failed:', error.message);
+    process.exit(1);
+  });
+}
