@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { X, Search, RotateCcw, Filter, Plus, ShieldCheck, Eye, EyeOff } from 'lucide-react';
+import { X, Search, RotateCcw, Filter, Plus, Building2, Users2, Handshake, Eye } from 'lucide-react';
 import { useMarketplaceFilters } from '@/hooks/use-marketplace-filters';
 import {
   INDUSTRIES,
@@ -23,11 +23,13 @@ import {
 } from '@/lib/marketplace-utils';
 import { placeholderKeywords } from '@/lib/types';
 
-// Verification status options for filtering
-const VERIFICATION_STATUS_OPTIONS = {
+// Listing type options for filtering
+const LISTING_TYPE_OPTIONS = {
   'all': 'All Listings',
-  'verified': 'Verified Only',
-  'unverified': 'Unverified Only'
+  'full_acquisition': 'Full Acquisition',
+  'partial_acquisition': 'Partial Acquisition',
+  'open_to_talks': 'Open to Talks',
+  'external_full_acquisition': 'External Party',
 } as const;
 
 export function Filters() {
@@ -149,25 +151,27 @@ export function Filters() {
       <form onSubmit={handleSubmit} className="space-y-6">
 
 
-        {/* Verification Status Filter */}
+        {/* Listing Type Filter */}
         <div className="space-y-2">
-          <Label htmlFor="verificationStatus" className="text-sm font-medium text-gray-200">
-            Verification Status
+          <Label htmlFor="listingType" className="text-sm font-medium text-gray-200">
+            Listing Type
           </Label>
           <Select
-            value={draftFilters.verificationStatus || 'all'}
-            onValueChange={(value) => updateDraftFilter('verificationStatus', value === 'all' ? undefined : value)}
+            value={draftFilters.listingType || 'all'}
+            onValueChange={(value) => updateDraftFilter('listingType', value === 'all' ? undefined : value)}
           >
-            <SelectTrigger id="verificationStatus" className="w-full bg-white/5 border-white/20 text-white">
-              <SelectValue placeholder="Select verification status" />
+            <SelectTrigger id="listingType" className="w-full bg-white/5 border-white/20 text-white">
+              <SelectValue placeholder="Select listing type" />
             </SelectTrigger>
             <SelectContent className="bg-brand-dark-blue border-white/20 text-white">
-              {Object.entries(VERIFICATION_STATUS_OPTIONS).map(([key, label]) => (
+              {Object.entries(LISTING_TYPE_OPTIONS).map(([key, label]) => (
                 <SelectItem key={key} value={key} className="focus:bg-white/10 focus:text-white">
                   <div className="flex items-center space-x-2">
-                    {key === 'verified' && <ShieldCheck className="h-4 w-4 text-green-400" />}
-                    {key === 'unverified' && <EyeOff className="h-4 w-4 text-gray-400" />}
                     {key === 'all' && <Eye className="h-4 w-4 text-blue-400" />}
+                    {key === 'full_acquisition' && <Building2 className="h-4 w-4 text-green-400" />}
+                    {key === 'partial_acquisition' && <Users2 className="h-4 w-4 text-green-400" />}
+                    {key === 'open_to_talks' && <Handshake className="h-4 w-4 text-green-400" />}
+                    {key === 'external_full_acquisition' && <Handshake className="h-4 w-4 text-amber-400" />}
                     <span>{label}</span>
                   </div>
                 </SelectItem>
@@ -175,7 +179,7 @@ export function Filters() {
             </SelectContent>
           </Select>
           <p className="text-xs text-gray-400">
-            Filter by admin verification status. Verified listings have undergone additional review.
+            Filter by listing type to find the right acquisition opportunity.
           </p>
         </div>
 

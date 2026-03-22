@@ -5,7 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, DollarSign, Briefcase, CheckCircle2, ExternalLink, TrendingUp } from 'lucide-react';
+import { MapPin, DollarSign, Briefcase, ExternalLink, TrendingUp, Building2, Users2, Handshake } from 'lucide-react';
 
 interface ApiListing {
   id: string;
@@ -16,6 +16,7 @@ interface ApiListing {
   location_country: string;
   location_city: string;
   verification_status: string;
+  listing_type?: string;
   images?: string[];
   annual_revenue_range?: string;
   verified_annual_revenue?: number;
@@ -64,10 +65,12 @@ export function ListingCard({ listing }: ListingCardProps) {
               data-ai-hint={listing.images ? (listing.industry ? listing.industry.toLowerCase().replace(/\s+/g, '-') : "business") : "generic business"}
             />
           </div>
-          {listing.verification_status === 'verified' && (
-            <Badge variant="outline" className="absolute top-2 right-2 bg-green-600 border-green-500 text-white">
-              <CheckCircle2 className="h-3 w-3 mr-1" />
-              Verified Seller
+          {listing.listing_type && (
+            <Badge variant="outline" className={`absolute top-2 right-2 text-white ${listing.listing_type === 'external_full_acquisition' ? 'bg-amber-600 border-amber-500' : 'bg-green-600 border-green-500'}`}>
+              {listing.listing_type === 'full_acquisition' && <><Building2 className="h-3 w-3 mr-1" />Full Acquisition</>}
+              {listing.listing_type === 'partial_acquisition' && <><Users2 className="h-3 w-3 mr-1" />Partial Acquisition</>}
+              {listing.listing_type === 'open_to_talks' && <><Handshake className="h-3 w-3 mr-1" />Open to Talks</>}
+              {listing.listing_type === 'external_full_acquisition' && <><Handshake className="h-3 w-3 mr-1" />External Party</>}
             </Badge>
           )}
         </div>

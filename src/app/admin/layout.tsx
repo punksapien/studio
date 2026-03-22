@@ -74,6 +74,7 @@ const adminSidebarNavItems = [
   { title: 'Dashboard', href: '/admin', icon: LayoutDashboard, tooltip: "Admin Overview" },
   { title: 'User Management', href: '/admin/users', icon: Users, tooltip: "Manage Users" },
   { title: 'Listing Management', href: '/admin/listings', icon: Briefcase, tooltip: "Manage Listings" },
+  { title: 'Blog Management', href: '/admin/blog', icon: FileText, tooltip: "Manage Blog Posts" },
   { title: 'Appeal Management', href: '/admin/appeals', icon: MessageSquare, tooltip: "Review Listing Appeals" },
   { title: 'Buyer Verification', href: '/admin/verification-queue/buyers', icon: ShieldCheck, tooltip: "Buyer Verifications" },
   { title: 'Seller Verification', href: '/admin/verification-queue/sellers', icon: ShieldCheck, tooltip: "Seller/Listing Verifications" },

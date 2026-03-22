@@ -8,7 +8,7 @@ export interface MarketplaceFilters {
   limit: number;
   industry?: string;
   country?: string;
-  verificationStatus?: string;
+  listingType?: string;
   minRevenue?: number;
   maxRevenue?: number;
   keywords: string[];
@@ -35,7 +35,7 @@ export function useMarketplaceFilters() {
       limit: parseInt(searchParams.get('limit') || '9', 10),
       industry: searchParams.get('industry') || undefined,
       country: searchParams.get('country') || undefined,
-      verificationStatus: searchParams.get('verificationStatus') || undefined,
+      listingType: searchParams.get('listingType') || undefined,
       minRevenue: searchParams.get('minRevenue') ? parseInt(searchParams.get('minRevenue')!, 10) : undefined,
       maxRevenue: searchParams.get('maxRevenue') ? parseInt(searchParams.get('maxRevenue')!, 10) : undefined,
       keywords: searchParams.get('keywords')?.split(',').filter(Boolean) || [],
@@ -64,7 +64,7 @@ export function useMarketplaceFilters() {
     if (filterValues.limit !== DEFAULT_FILTERS.limit) params.set('limit', filterValues.limit.toString());
     if (filterValues.industry && filterValues.industry !== 'all') params.set('industry', filterValues.industry);
     if (filterValues.country && filterValues.country !== 'all') params.set('country', filterValues.country);
-    if (filterValues.verificationStatus) params.set('verificationStatus', filterValues.verificationStatus);
+    if (filterValues.listingType) params.set('listingType', filterValues.listingType);
     if (filterValues.minRevenue !== undefined) params.set('minRevenue', filterValues.minRevenue.toString());
     if (filterValues.maxRevenue !== undefined) params.set('maxRevenue', filterValues.maxRevenue.toString());
     if (filterValues.keywords.length > 0) params.set('keywords', filterValues.keywords.join(','));
@@ -120,7 +120,7 @@ export function useMarketplaceFilters() {
     };
     if (appliedFilters.industry && appliedFilters.industry !== 'all') params.industry = appliedFilters.industry;
     if (appliedFilters.country && appliedFilters.country !== 'all') params.country = appliedFilters.country;
-    if (appliedFilters.verificationStatus) params.verificationStatus = appliedFilters.verificationStatus;
+    if (appliedFilters.listingType) params.listingType = appliedFilters.listingType;
     if (appliedFilters.minRevenue !== undefined) params.min_revenue = appliedFilters.minRevenue.toString();
     if (appliedFilters.maxRevenue !== undefined) params.max_revenue = appliedFilters.maxRevenue.toString();
     if (appliedFilters.keywords.length > 0) params.keywords = appliedFilters.keywords.join(',');
@@ -142,7 +142,7 @@ export function useMarketplaceFilters() {
       return (
         !!appliedFilters.industry ||
         !!appliedFilters.country ||
-        !!appliedFilters.verificationStatus ||
+        !!appliedFilters.listingType ||
         appliedFilters.minRevenue !== undefined ||
         appliedFilters.maxRevenue !== undefined ||
         appliedFilters.keywords.length > 0 ||

@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(parseInt(searchParams.get('limit') || '10'), 50) // Max 50 items per page
     const industry = searchParams.get('industry')
     const country = searchParams.get('country')
-    const verificationStatus = searchParams.get('verificationStatus')
+    const listingType = searchParams.get('listingType')
     const minRevenue = searchParams.get('min_revenue')
     const maxRevenue = searchParams.get('max_revenue')
     const status = searchParams.get('status')
@@ -56,30 +56,26 @@ export async function GET(request: NextRequest) {
         growth_opportunity_1,
         growth_opportunity_2,
         growth_opportunity_3,
-        specific_growth_opportunities
+        specific_growth_opportunities,
+        listing_type
       `, { count: 'exact' })
 
-    // Handle status filtering first (including verification status filter)
+    // Handle status filtering
     if (status) {
       query = query.eq('status', status)
     } else {
       const publicStatuses = ['active', 'verified_anonymous', 'verified_public']
+      query = query.in('status', publicStatuses)
+    }
 
-      // Apply verification status filter if specified
-      if (verificationStatus === 'verified') {
-        // Show verified sellers: those with is_seller_verified = true regardless of status
-        query = query.in('status', publicStatuses).eq('is_seller_verified', true)
-        console.log(`[LISTINGS-API] Verification status filter: showing only verified seller listings`)
-      } else if (verificationStatus === 'unverified') {
-        // Show unverified sellers: those with is_seller_verified = false
-        query = query.in('status', publicStatuses).eq('is_seller_verified', false)
-        console.log(`[LISTINGS-API] Verification status filter: showing only unverified seller listings`)
+    // Apply listing type filter if specified
+    if (listingType) {
+      const validTypes = ['full_acquisition', 'partial_acquisition', 'open_to_talks', 'external_full_acquisition']
+      if (validTypes.includes(listingType)) {
+        query = query.eq('listing_type', listingType)
+        console.log(`[LISTINGS-API] Listing type filter: ${listingType}`)
       } else {
-        // Show all public statuses (default behavior)
-        query = query.in('status', publicStatuses)
-        if (verificationStatus) {
-          console.log(`[LISTINGS-API] Unknown verification status filter: "${verificationStatus}", showing all listings`)
-        }
+        console.log(`[LISTINGS-API] Unknown listing type filter: "${listingType}", showing all listings`)
       }
     }
 
@@ -171,6 +167,7 @@ export async function GET(request: NextRequest) {
       images: listing.image_urls,
       status: listing.status,
       verification_status: listing.is_seller_verified ? 'verified' : 'pending',
+      listing_type: listing.listing_type || 'full_acquisition',
       created_at: listing.created_at,
       updated_at: listing.updated_at,
       seller_id: listing.seller_id,

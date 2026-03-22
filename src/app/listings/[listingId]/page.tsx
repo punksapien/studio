@@ -260,7 +260,7 @@ function ImageGallery({ imageUrls, listingTitle }: { imageUrls?: string[]; listi
           <DialogHeader className="sr-only">
             <DialogTitle>Image Preview: {listingTitle}</DialogTitle>
           </DialogHeader>
-          <div className="relative aspect-video bg-black rounded-none">
+          <div className="relative aspect-square bg-black rounded-none">
             <Image
               src={currentDialogImage}
               alt={`Enlarged image for ${listingTitle} (${currentIndex + 1} of ${validImageUrls.length})`}

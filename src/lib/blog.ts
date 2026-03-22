@@ -447,7 +447,65 @@ export async function getRelatedPosts(category: BlogCategory, excludeSlug: strin
   }
 }
 
-// --- Admin helpers (for API routes) ---
+// --- Admin query helpers ---
+export async function getAllPosts(params: {
+  page?: number
+  limit?: number
+  category?: BlogCategory
+  search?: string
+  status?: 'all' | 'published' | 'draft'
+}): Promise<{ posts: BlogPost[]; total: number }> {
+  const page = params.page ?? 1
+  const limit = params.limit ?? 20
+  const from = (page - 1) * limit
+
+  const supabaseAdmin = getSupabaseAdmin()
+  if (!supabaseAdmin) throw new Error('Database unavailable')
+
+  const to = from + limit - 1
+
+  let query = supabaseAdmin
+    .from('blog_posts')
+    .select('*', { count: 'exact' })
+    .order('created_at', { ascending: false })
+
+  if (params.status === 'published') {
+    query = query.eq('is_published', true)
+  } else if (params.status === 'draft') {
+    query = query.eq('is_published', false)
+  }
+
+  if (params.category) {
+    query = query.eq('category', params.category)
+  }
+
+  if (params.search) {
+    query = query.or(`title.ilike.%${params.search}%,excerpt.ilike.%${params.search}%`)
+  }
+
+  query = query.range(from, to)
+
+  const { data, error, count } = await query
+
+  if (error) throw error
+  return { posts: (data as BlogPost[]) ?? [], total: count ?? 0 }
+}
+
+export async function getPostBySlugAdmin(slug: string): Promise<BlogPost | null> {
+  const supabaseAdmin = getSupabaseAdmin()
+  if (!supabaseAdmin) throw new Error('Database unavailable')
+
+  const { data, error } = await supabaseAdmin
+    .from('blog_posts')
+    .select('*')
+    .eq('slug', slug)
+    .single()
+
+  if (error) return null
+  return data as BlogPost
+}
+
+// --- Admin mutation helpers (for API routes) ---
 export async function createPost(data: z.infer<typeof createBlogPostSchema>): Promise<BlogPost> {
   const supabaseAdmin = getSupabaseAdmin()
   if (!supabaseAdmin) throw new Error('Database unavailable')

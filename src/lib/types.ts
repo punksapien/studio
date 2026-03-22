@@ -127,6 +127,9 @@ export type ListingStatus =
   | 'under_review'         // Admin is actively reviewing
   | 'appealing_rejection'; // Seller has appealed a rejection
 
+// Listing Type System
+export type ListingType = 'full_acquisition' | 'partial_acquisition' | 'open_to_talks' | 'external_full_acquisition';
+
 // Listing Verification System Types
 export type ListingVerificationStatus = 'unverified' | 'verified' | 'deactivated';
 

@@ -2,7 +2,11 @@
 -- Issue: "admin_notes" parameter conflicts with "admin_notes" column name in listings table
 -- Solution: Rename the function parameter to avoid ambiguity
 
+-- Drop all possible overloads to avoid "not unique" errors
 DROP FUNCTION IF EXISTS update_listing_verification_status(UUID, TEXT, UUID, TEXT);
+DROP FUNCTION IF EXISTS update_listing_verification_status(UUID, UUID, TEXT, TEXT);
+DROP FUNCTION IF EXISTS update_listing_verification_status(UUID, listing_verification_status, UUID, TEXT);
+DROP FUNCTION IF EXISTS update_listing_verification_status(UUID, UUID, listing_verification_status, TEXT);
 
 CREATE OR REPLACE FUNCTION update_listing_verification_status(
     listing_uuid UUID,
@@ -70,7 +74,7 @@ END;
 $function$;
 
 -- Grant execute permission to authenticated users (API will check admin role)
-GRANT EXECUTE ON FUNCTION update_listing_verification_status TO authenticated;
+GRANT EXECUTE ON FUNCTION update_listing_verification_status(UUID, TEXT, UUID, TEXT) TO authenticated;
 
 -- Add comment
-COMMENT ON FUNCTION update_listing_verification_status IS 'Updates listing verification status with proper admin authorization and audit trail. Fixed parameter ambiguity by renaming admin_notes parameter to verification_notes.';
+COMMENT ON FUNCTION update_listing_verification_status(UUID, TEXT, UUID, TEXT) IS 'Updates listing verification status with proper admin authorization and audit trail. Fixed parameter ambiguity by renaming admin_notes parameter to verification_notes.';

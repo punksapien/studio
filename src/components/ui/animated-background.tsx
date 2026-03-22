@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useId } from 'react';
 import styles from './animated-background.module.css';
 
 interface AnimatedBackgroundProps {
@@ -7,8 +7,9 @@ interface AnimatedBackgroundProps {
 }
 
 export function AnimatedBackground({ className = '', position = 'fixed' }: AnimatedBackgroundProps) {
-  // Generate unique IDs to prevent conflicts when multiple instances exist
-  const uniqueId = useMemo(() => `bg-${Math.random().toString(36).substr(2, 9)}`, []);
+  // useId is SSR-safe — produces the same ID on server and client
+  const reactId = useId();
+  const uniqueId = `bg-${reactId.replace(/:/g, '')}`;
   return (
     <div
       className={`${styles.backgroundContainer} ${className}`}
