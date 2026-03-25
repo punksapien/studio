@@ -49,7 +49,7 @@ export function ListingCard({ listing }: ListingCardProps) {
       <Card className="flex flex-col h-full overflow-hidden shadow-lg hover:shadow-2xl hover:scale-[1.02] hover:border-brand-sky-blue/50 transition-all duration-300 rounded-none bg-white/10 backdrop-blur-md border-white/20 text-white cursor-pointer p-3 sm:p-4 gap-2 sm:gap-3">
         {/* Square image - inner box */}
         <div className="relative border border-white/15 overflow-hidden">
-          <div className="aspect-square w-full">
+          <div className="aspect-square w-full bg-white">
             <Image
               src={
                 listing.images
@@ -61,7 +61,7 @@ export function ListingCard({ listing }: ListingCardProps) {
               alt={listing.title}
               width={400}
               height={400}
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[0.77] scale-[0.7]"
               data-ai-hint={listing.images ? (listing.industry ? listing.industry.toLowerCase().replace(/\s+/g, '-') : "business") : "generic business"}
             />
           </div>

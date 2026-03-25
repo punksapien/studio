@@ -146,10 +146,10 @@ export async function GET(request: NextRequest) {
       console.error('Error fetching listings:', error)
       // Fallback to sample listings when database is unavailable (local dev)
       console.log('[LISTINGS-API] Database unavailable, returning sample listings')
-      const samples = sampleListings.map(transformSampleForList)
+      const samples = sampleListings.map(transformSampleForList).slice(from, from + limit)
       return NextResponse.json({
         listings: samples,
-        pagination: { page: 1, limit: samples.length, total: samples.length, totalPages: 1, hasMore: false }
+        pagination: { page, limit, total: sampleListings.length, totalPages: Math.ceil(sampleListings.length / limit), hasMore: from + limit < sampleListings.length }
       })
     }
 
@@ -197,10 +197,13 @@ export async function GET(request: NextRequest) {
     console.error('Listings fetch error:', error)
     // Fallback to sample listings when database is completely unavailable
     console.log('[LISTINGS-API] Database unavailable (catch), returning sample listings')
-    const samples = sampleListings.map(transformSampleForList)
+    const fallbackLimit = Math.min(parseInt(request.nextUrl.searchParams.get('limit') || '10'), 50)
+    const fallbackPage = parseInt(request.nextUrl.searchParams.get('page') || '1')
+    const fallbackFrom = (fallbackPage - 1) * fallbackLimit
+    const samples = sampleListings.map(transformSampleForList).slice(fallbackFrom, fallbackFrom + fallbackLimit)
     return NextResponse.json({
       listings: samples,
-      pagination: { page: 1, limit: samples.length, total: samples.length, totalPages: 1, hasMore: false }
+      pagination: { page: fallbackPage, limit: fallbackLimit, total: sampleListings.length, totalPages: Math.ceil(sampleListings.length / fallbackLimit), hasMore: fallbackFrom + fallbackLimit < sampleListings.length }
     })
   }
 }

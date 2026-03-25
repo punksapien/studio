@@ -58,7 +58,7 @@ export default function HomePage() {
   useEffect(() => {
     const fetchFeaturedListings = async () => {
       try {
-        const response = await fetch('/api/listings?limit=3&sort=created_at&order=desc');
+        const response = await fetch('/api/listings?limit=4&sort=created_at&order=desc');
         if (response.ok) {
           const data = await response.json();
           setFeaturedListings(data.listings || []);
@@ -464,7 +464,7 @@ export default function HomePage() {
               <div className="grid grid-cols-2 gap-px bg-brand-dark-blue/10 border border-brand-dark-blue/10 md:hidden">
                 {featuredListings.map((listing) => (
                   <div key={listing.id} className="bg-brand-white flex flex-col h-full">
-                    <div className="relative aspect-square">
+                    <div className="relative aspect-square bg-white">
                       <Image
                         src={
                           listing.images
@@ -476,7 +476,7 @@ export default function HomePage() {
                         alt={listing.title}
                         width={400}
                         height={400}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover scale-[0.7]"
                         data-ai-hint={listing.industry ? listing.industry.toLowerCase().replace(/\s+/g, '-') : "business"}
                       />
                       {listing.verification_status === 'verified' && (
@@ -485,6 +485,7 @@ export default function HomePage() {
                         </Badge>
                       )}
                     </div>
+                    <div className="border-t border-brand-dark-blue/10" />
                     <div className="p-3 flex flex-col flex-grow">
                       <Badge variant="secondary" className="bg-brand-dark-blue/5 text-brand-dark-blue text-[10px] w-fit mb-2">{listing.industry}</Badge>
                       <h3 className="text-sm font-normal text-brand-dark-blue mb-2 leading-tight hover:text-brand-sky-blue transition-colors font-heading">
@@ -514,7 +515,7 @@ export default function HomePage() {
                       "border border-brand-dark-blue/10 bg-brand-white flex flex-col h-full",
                       index > 0 && "border-l-0"
                     )}>
-                      <div className="relative aspect-square">
+                      <div className="relative aspect-square bg-white">
                         <Image
                           src={
                             listing.images
@@ -526,7 +527,7 @@ export default function HomePage() {
                           alt={listing.title}
                           width={400}
                           height={400}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover scale-[0.7]"
                           data-ai-hint={listing.industry ? listing.industry.toLowerCase().replace(/\s+/g, '-') : "business"}
                         />
                         {listing.verification_status === 'verified' && (
@@ -535,6 +536,7 @@ export default function HomePage() {
                           </Badge>
                         )}
                       </div>
+                      <div className="border-t border-brand-dark-blue/10" />
                       <div className="p-6 flex flex-col flex-grow">
                         <Badge variant="secondary" className="bg-brand-dark-blue/5 text-brand-dark-blue text-xs w-fit mb-2">{listing.industry}</Badge>
                         <h3 className="text-lg font-normal text-brand-dark-blue mb-2 leading-tight hover:text-brand-sky-blue transition-colors font-heading">
