@@ -90,7 +90,7 @@ export function ListingCard({ listing }: ListingCardProps) {
           </div>
           <div className="flex items-center px-4 py-2.5 border-t border-white/10">
             <MapPin className="h-4 w-4 mr-2 text-brand-sky-blue shrink-0" />
-            <span>{listing.location_city}, {listing.location_country}</span>
+            <span>{listing.location_city && listing.location_city !== listing.location_country ? `${listing.location_city}, ${listing.location_country}` : listing.location_country}</span>
           </div>
           <div className="flex items-center px-4 py-2.5 border-t border-white/10">
             <TrendingUp className="h-4 w-4 mr-2 text-brand-sky-blue shrink-0" />

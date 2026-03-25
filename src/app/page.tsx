@@ -38,6 +38,7 @@ interface FeaturedListing {
   location_country: string;
   asking_price: number;
   annual_revenue_range?: string;
+  verified_annual_revenue?: number;
   images?: string; // API returns 'images' as JSON string
   verification_status: string; // API returns 'verification_status'
   short_description?: string; // API returns 'short_description'
@@ -54,17 +55,19 @@ export default function HomePage() {
   const [featuredListings, setFeaturedListings] = useState<FeaturedListing[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch featured listings on component mount
+  // Fetch featured listings: top 2 by revenue per country (Indonesia + Malaysia)
   useEffect(() => {
     const fetchFeaturedListings = async () => {
       try {
-        const response = await fetch('/api/listings?limit=4&sort=created_at&order=desc');
-        if (response.ok) {
-          const data = await response.json();
-          setFeaturedListings(data.listings || []);
-        } else {
-          console.error('Failed to fetch featured listings');
-        }
+        const [idRes, myRes] = await Promise.all([
+          fetch('/api/listings?limit=2&sort_by=specific_annual_revenue_last_year&sort_order=desc&country=Indonesia'),
+          fetch('/api/listings?limit=2&sort_by=specific_annual_revenue_last_year&sort_order=desc&country=Malaysia'),
+        ]);
+        const idData = idRes.ok ? await idRes.json() : { listings: [] };
+        const myData = myRes.ok ? await myRes.json() : { listings: [] };
+        const combined = [...(idData.listings || []), ...(myData.listings || [])];
+        combined.sort((a: FeaturedListing, b: FeaturedListing) => (b.verified_annual_revenue || 0) - (a.verified_annual_revenue || 0));
+        setFeaturedListings(combined);
       } catch (error) {
         console.error('Error fetching featured listings:', error);
       } finally {
@@ -137,7 +140,7 @@ export default function HomePage() {
             </div>
           </div>
           <div className="flex flex-col sm:flex-row justify-center items-center gap-3 sm:gap-4 animate-in slide-in-from-bottom-8 fade-in duration-1000 delay-500">
-            <Link href="/seller-dashboard/listings/create" className="inline-flex items-center justify-center whitespace-nowrap rounded-none text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-brand-white text-brand-dark-blue hover:bg-brand-light-gray h-11 py-3 px-8 text-base min-w-[220px] sm:min-w-[260px]">
+            <Link href="/contact" className="inline-flex items-center justify-center whitespace-nowrap rounded-none text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-brand-white text-brand-dark-blue hover:bg-brand-light-gray h-11 py-3 px-8 text-base min-w-[220px] sm:min-w-[260px]">
               Talk to Us <ArrowRight className="ml-2 h-5 w-5" />
             </Link>
             <Link href="/marketplace" className="inline-flex items-center justify-center whitespace-nowrap rounded-none text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-brand-white text-brand-white hover:bg-brand-white/10 h-11 py-3 px-8 text-base min-w-[220px] sm:min-w-[260px]">
@@ -488,15 +491,14 @@ export default function HomePage() {
                     <div className="border-t border-brand-dark-blue/10" />
                     <div className="p-3 flex flex-col flex-grow">
                       <Badge variant="secondary" className="bg-brand-dark-blue/5 text-brand-dark-blue text-[10px] w-fit mb-2">{listing.industry}</Badge>
-                      <h3 className="text-sm font-normal text-brand-dark-blue mb-2 leading-tight hover:text-brand-sky-blue transition-colors font-heading">
+                      <h3 className="text-sm font-normal text-brand-dark-blue mb-2 leading-tight hover:text-brand-sky-blue transition-colors font-heading min-h-[2.5em] line-clamp-2">
                         <Link href={`/listings/${listing.id}`}>{listing.title}</Link>
                       </h3>
                       <div className="space-y-1 text-xs text-muted-foreground mb-4">
-                        <p className="flex items-center"><MapPin className="h-3 w-3 mr-1 text-brand-dark-blue/70 shrink-0" /> {listing.location_city}, {listing.location_country}</p>
+                        <p className="flex items-center"><MapPin className="h-3 w-3 mr-1 text-brand-dark-blue/70 shrink-0" /> {listing.location_city && listing.location_city !== listing.location_country ? `${listing.location_city}, ${listing.location_country}` : listing.location_country}</p>
                         {listing.annual_revenue_range && (
                           <p className="flex items-center"><TrendingUp className="h-3 w-3 mr-1 text-brand-dark-blue/70 shrink-0" /> {listing.annual_revenue_range}</p>
                         )}
-                        <p className="flex items-center"><DollarSign className="h-3 w-3 mr-1 text-brand-dark-blue/70 shrink-0" /> ${(listing.asking_price / 1000000).toFixed(1)}M USD</p>
                       </div>
                       <div className="mt-auto pt-3 border-t border-brand-dark-blue/10">
                         <Link href={`/listings/${listing.id}`} className="inline-flex items-center text-xs font-medium text-brand-dark-blue hover:text-brand-sky-blue transition-colors">
@@ -539,15 +541,14 @@ export default function HomePage() {
                       <div className="border-t border-brand-dark-blue/10" />
                       <div className="p-6 flex flex-col flex-grow">
                         <Badge variant="secondary" className="bg-brand-dark-blue/5 text-brand-dark-blue text-xs w-fit mb-2">{listing.industry}</Badge>
-                        <h3 className="text-lg font-normal text-brand-dark-blue mb-2 leading-tight hover:text-brand-sky-blue transition-colors font-heading">
+                        <h3 className="text-lg font-normal text-brand-dark-blue mb-2 leading-tight hover:text-brand-sky-blue transition-colors font-heading min-h-[3.25em] line-clamp-2">
                           <Link href={`/listings/${listing.id}`}>{listing.title}</Link>
                         </h3>
                         <div className="space-y-1 text-sm text-muted-foreground mb-4">
-                          <p className="flex items-center"><MapPin className="h-4 w-4 mr-2 text-brand-dark-blue/70" /> {listing.location_city}, {listing.location_country}</p>
+                          <p className="flex items-center"><MapPin className="h-4 w-4 mr-2 text-brand-dark-blue/70" /> {listing.location_city && listing.location_city !== listing.location_country ? `${listing.location_city}, ${listing.location_country}` : listing.location_country}</p>
                           {listing.annual_revenue_range && (
                             <p className="flex items-center"><TrendingUp className="h-4 w-4 mr-2 text-brand-dark-blue/70" /> Revenue: {listing.annual_revenue_range}</p>
                           )}
-                          <p className="flex items-center"><DollarSign className="h-4 w-4 mr-2 text-brand-dark-blue/70" /> Asking: ${(listing.asking_price / 1000000).toFixed(1)}M USD</p>
                         </div>
                         <div className="mt-auto pt-4 border-t border-brand-dark-blue/10">
                           <Link href={`/listings/${listing.id}`} className="inline-flex items-center text-sm font-medium text-brand-dark-blue hover:text-brand-sky-blue transition-colors">

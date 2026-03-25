@@ -146,10 +146,18 @@ export async function GET(request: NextRequest) {
       console.error('Error fetching listings:', error)
       // Fallback to sample listings when database is unavailable (local dev)
       console.log('[LISTINGS-API] Database unavailable, returning sample listings')
-      const samples = sampleListings.map(transformSampleForList).slice(from, from + limit)
+      let fallbackSamples = sampleListings.map(transformSampleForList)
+      if (normalizedCountry) {
+        fallbackSamples = fallbackSamples.filter(s => s.location_country.toLowerCase() === normalizedCountry.toLowerCase())
+      }
+      if (sortBy === 'specific_annual_revenue_last_year') {
+        fallbackSamples.sort((a, b) => sortOrder === 'desc' ? (b.verified_annual_revenue || 0) - (a.verified_annual_revenue || 0) : (a.verified_annual_revenue || 0) - (b.verified_annual_revenue || 0))
+      }
+      const fallbackTotal = fallbackSamples.length
+      const samples = fallbackSamples.slice(from, from + limit)
       return NextResponse.json({
         listings: samples,
-        pagination: { page, limit, total: sampleListings.length, totalPages: Math.ceil(sampleListings.length / limit), hasMore: from + limit < sampleListings.length }
+        pagination: { page, limit, total: fallbackTotal, totalPages: Math.ceil(fallbackTotal / limit), hasMore: from + limit < fallbackTotal }
       })
     }
 
@@ -200,10 +208,21 @@ export async function GET(request: NextRequest) {
     const fallbackLimit = Math.min(parseInt(request.nextUrl.searchParams.get('limit') || '10'), 50)
     const fallbackPage = parseInt(request.nextUrl.searchParams.get('page') || '1')
     const fallbackFrom = (fallbackPage - 1) * fallbackLimit
-    const samples = sampleListings.map(transformSampleForList).slice(fallbackFrom, fallbackFrom + fallbackLimit)
+    const fallbackCountry = request.nextUrl.searchParams.get('country')
+    const fallbackSortBy = request.nextUrl.searchParams.get('sort_by') || 'created_at'
+    const fallbackSortOrder = request.nextUrl.searchParams.get('sort_order') || 'desc'
+    let catchSamples = sampleListings.map(transformSampleForList)
+    if (fallbackCountry) {
+      catchSamples = catchSamples.filter(s => s.location_country.toLowerCase() === fallbackCountry.toLowerCase())
+    }
+    if (fallbackSortBy === 'specific_annual_revenue_last_year') {
+      catchSamples.sort((a, b) => fallbackSortOrder === 'desc' ? (b.verified_annual_revenue || 0) - (a.verified_annual_revenue || 0) : (a.verified_annual_revenue || 0) - (b.verified_annual_revenue || 0))
+    }
+    const catchTotal = catchSamples.length
+    const samples = catchSamples.slice(fallbackFrom, fallbackFrom + fallbackLimit)
     return NextResponse.json({
       listings: samples,
-      pagination: { page: fallbackPage, limit: fallbackLimit, total: sampleListings.length, totalPages: Math.ceil(sampleListings.length / fallbackLimit), hasMore: fallbackFrom + fallbackLimit < sampleListings.length }
+      pagination: { page: fallbackPage, limit: fallbackLimit, total: catchTotal, totalPages: Math.ceil(catchTotal / fallbackLimit), hasMore: fallbackFrom + fallbackLimit < catchTotal }
     })
   }
 }
