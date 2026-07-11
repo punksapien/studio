@@ -3,6 +3,35 @@
 ## 🎯 Project Overview
 Nobridge is a business marketplace platform built with Next.js 15, TypeScript, Supabase, and Tailwind CSS. This guide helps maintain development consistency and prevent common issues.
 
+**Canonical repo:** `https://github.com/VAV-TECH-2/Nobridge` (private). Default branch: `master`. The old `punksapien/studio` repo is legacy — do not push there.
+
+## 💻 Cross-Platform Team (macOS + Windows) — READ FIRST
+
+The team works on **both macOS and Windows**. These rules keep the repo identical for everyone:
+
+### Line endings & formatting (enforced by the repo)
+- `.gitattributes` enforces **LF in the repository** for all text files (`* text=auto eol=lf`). Git converts working-tree files automatically per OS. **Never** commit a change that flips line endings, and never override with `core.autocrlf` hacks — if you see a diff where every line changed, STOP: it's a line-ending problem, run `git add --renormalize .` and investigate.
+- `.editorconfig` pins UTF-8, LF, 2-space indent. Keep your editor's EditorConfig support enabled.
+- Node version is pinned in `.nvmrc` (Node 20). macOS: `nvm use`. Windows: `nvm use 20` (nvm-windows) or install Node 20 directly.
+
+### Path & shell differences (important for AI agents)
+- **Always use forward slashes** in imports, configs, and scripts (`src/lib/auth.ts`) — never backslashes, even on Windows.
+- **Never hardcode absolute paths** (`/Users/...` or `C:\...`) in committed code. Use `path.join()` / `process.cwd()` in Node scripts.
+- Shell scripts (`setup-env.sh`, `deployment/*.sh`) are **bash** — on Windows run them from **Git Bash**, not PowerShell/cmd.
+- npm scripts must stay cross-platform: no `rm -rf`, `cp`, `export VAR=x`, or `&&`-chained POSIX-isms inside `package.json` scripts. Use Node-based equivalents.
+- Case sensitivity: macOS/Windows filesystems are case-insensitive but Linux (CI/Vercel) is **case-sensitive**. Import paths must match file casing exactly (`@/components/ui/Button` ≠ `button.tsx`).
+- Windows Docker Desktop must be running before `supabase start` (same as macOS, but on Windows it's a common miss).
+
+### Environment setup per OS
+- Copy `.env.example` → `.env.local` and fill in values (never commit `.env.local`).
+- macOS/Linux: `./setup-env.sh` automates this. Windows: copy manually or run the script from Git Bash.
+- Supabase CLI install — macOS: `brew install supabase/tap/supabase`; Windows: `scoop install supabase` (or `npx supabase`).
+
+### Sync discipline
+- Pull with rebase to avoid noisy merge commits: `git pull --rebase`.
+- Before pushing: `npm run typecheck` and `npm run build` must pass — Vercel builds on Linux and will catch casing/path mistakes your OS forgave.
+- Full team setup guide (both OSes): see `ONBOARDING.md`.
+
 ## 🗄️ Database & Migrations
 
 ### Migration Best Practices

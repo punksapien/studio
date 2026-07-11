@@ -1,0 +1,20 @@
+# EditorConfig keeps formatting identical across macOS/Windows/Linux editors.
+# Supported natively by VS Code (with extension), Cursor, JetBrains, and most editors.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.py]
+indent_size = 4
+
+[*.{bat,cmd,ps1}]
+end_of_line = crlf
