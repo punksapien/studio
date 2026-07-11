@@ -1,8 +1,46 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import { authServer } from '@/lib/auth-server'
 import { normalizeIndustryValue, normalizeCountryValue } from '@/lib/marketplace-utils'
 import { sampleListings, transformSampleForList } from '@/lib/sample-listings'
+import { sendEmailWithResend } from '@/lib/resend-service'
+
+// Notify all admins (in-app + optional email) that a new listing awaits review
+async function notifyAdminsOfPendingListing(listingId: string, listingTitle: string) {
+  const { data: admins, error: adminsError } = await supabaseAdmin
+    .from('user_profiles')
+    .select('id')
+    .eq('role', 'admin')
+
+  if (adminsError) {
+    console.error('[LISTINGS-CREATE] Failed to fetch admins for notification:', adminsError)
+  } else if (admins && admins.length > 0) {
+    const { error: notificationError } = await supabaseAdmin
+      .from('notifications')
+      .insert(admins.map((admin) => ({
+        user_id: admin.id,
+        type: 'listing_update',
+        message: `New listing "${listingTitle}" is awaiting approval.`,
+        link: '/admin/listings?status=pending_approval',
+        is_read: false,
+      })))
+    if (notificationError) {
+      console.error('[LISTINGS-CREATE] Failed to create admin notifications:', notificationError)
+    }
+  }
+
+  const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL
+  if (adminEmail) {
+    await sendEmailWithResend({
+      to: adminEmail,
+      subject: `New listing pending approval: ${listingTitle}`,
+      html: `<p>A new listing has been submitted and is awaiting review:</p>
+             <p><strong>${listingTitle}</strong></p>
+             <p><a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://nobridge.co'}/admin/listings?status=pending_approval">Review pending listings</a></p>`,
+    })
+  }
+}
 
 // GET /api/listings - Get all listings with filtering, search, and pagination
 export async function GET(request: NextRequest) {
@@ -60,13 +98,15 @@ export async function GET(request: NextRequest) {
         listing_type
       `, { count: 'exact' })
 
-    // Handle status filtering
-    if (status) {
+    // Handle status filtering — only public statuses may be requested here.
+    // Sellers see their own listings via /api/user/listings, admins via /api/admin/listings.
+    const publicStatuses = ['active', 'verified_anonymous', 'verified_public']
+    if (status && publicStatuses.includes(status)) {
       query = query.eq('status', status)
     } else {
-      const publicStatuses = ['active', 'verified_anonymous', 'verified_public']
       query = query.in('status', publicStatuses)
     }
+    query = query.is('deleted_at', null)
 
     // Apply listing type filter if specified
     if (listingType) {
@@ -300,7 +340,8 @@ export async function POST(request: NextRequest) {
       location_real_estate_info_url: body.location_real_estate_info_url || null,
       web_presence_info_url: body.web_presence_info_url || null,
       secure_data_room_link: body.secureDataRoomLink ? String(body.secureDataRoomLink).trim() : null,
-      status: userProfile.verification_status === 'verified' ? 'verified_anonymous' : 'active',
+      // All new listings require admin approval before becoming publicly visible
+      status: 'pending_approval',
       is_seller_verified: userProfile.verification_status === 'verified',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
@@ -316,7 +357,13 @@ export async function POST(request: NextRequest) {
       else return NextResponse.json({ error: 'Failed to create listing. Please try again.' }, { status: 500 })
     }
     console.log(`[LISTINGS-CREATE] Successfully created listing ${newListing.id} for user ${user.id}`)
-    return NextResponse.json({ message: 'Listing created successfully', listing: { id: newListing.id, title: newListing.listing_title_anonymous, status: newListing.status, created_at: newListing.created_at } }, { status: 201 })
+
+    // Notify admins of the new pending listing (fire-and-forget; never block the response)
+    notifyAdminsOfPendingListing(newListing.id, newListing.listing_title_anonymous).catch((notifyError) => {
+      console.error('[LISTINGS-CREATE] Failed to notify admins of pending listing:', notifyError)
+    })
+
+    return NextResponse.json({ message: 'Listing submitted for review. It will become publicly visible once approved by our team.', listing: { id: newListing.id, title: newListing.listing_title_anonymous, status: newListing.status, created_at: newListing.created_at } }, { status: 201 })
   } catch (error) {
     console.error('[LISTINGS-CREATE] Unexpected error:', error)
     return NextResponse.json({ error: 'An unexpected error occurred. Please try again.' }, { status: 500 })

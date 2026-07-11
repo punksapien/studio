@@ -68,6 +68,7 @@ interface ListingData {
   admin_notes?: string;
   rejection_category?: string;
   admin_action_at?: string;
+  approved_at?: string;
   // Appeal fields
   appeal_status?: string;
   appeal_message?: string;
@@ -604,7 +605,10 @@ export default function ManageSellerListingsPage() {
                           )}
                           Deactivate
                         </Button>
-                    ) : listing.status === 'inactive' || listing.status === 'withdrawn' ? (
+                    ) : (listing.status === 'inactive' || listing.status === 'withdrawn') && listing.approved_at ? (
+                         /* Reactivation is only offered for listings that were previously
+                          * approved by an admin. Never-approved listings must go through
+                          * the admin review queue instead. */
                          <Button
                            variant="outline"
                            size="sm"
@@ -659,9 +663,10 @@ export default function ManageSellerListingsPage() {
                     ) : (
                         <Button variant="outline" size="sm" disabled className="border-input opacity-50">
                           <Clock className="h-4 w-4 mr-1 sm:mr-2" />
-                          {listing.status === 'pending_approval' ? 'Pending' :
+                          {listing.status === 'pending_approval' ? 'Pending Review' :
                            listing.status === 'under_review' ? 'Reviewing' :
-                           listing.status === 'appealing_rejection' ? 'Appealing' : 'Processing'}
+                           listing.status === 'appealing_rejection' ? 'Appealing' :
+                           (listing.status === 'inactive' || listing.status === 'withdrawn') && !listing.approved_at ? 'Awaiting Approval' : 'Processing'}
                         </Button>
                     )}
                 </div>

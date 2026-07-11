@@ -36,17 +36,21 @@ export async function PUT(
     const body = await request.json()
     const { status } = body
 
-    // Define valid statuses for comprehensive soft delete system
+    // Define valid statuses (must match the listings_status_check DB constraint)
     const validStatuses = [
-      'active',           // Publicly visible and available
-      'inactive',         // Soft deleted - hidden from marketplace
-      'draft',           // Not yet published
+      'draft',              // Seller is still editing, not submitted
+      'pending_approval',   // Submitted and waiting for admin review
+      'under_review',       // Admin is actively reviewing
+      'active',             // Approved by admin - publicly visible
       'verified_anonymous', // Admin verified, anonymous view
-      'verified_public',  // Admin verified, full details visible
-      'sold',            // Completed transaction
-      'withdrawn',       // Seller withdrew from market
-      'pending_verification', // Awaiting admin approval
-      'rejected_by_admin'     // Admin rejected
+      'verified_public',    // Admin verified, full details visible
+      'inactive',           // Soft deleted - hidden from marketplace
+      'withdrawn',          // Seller withdrew from market
+      'sold',               // Completed transaction
+      'closed_deal',        // Deal completed
+      'rejected_by_admin',  // Admin rejected
+      'appealing_rejection',// Seller has appealed a rejection
+      'pending_verification' // Awaiting admin verification
     ]
 
     if (!status || !validStatuses.includes(status)) {
@@ -59,7 +63,7 @@ export async function PUT(
     // Check if listing exists and user owns it
     const { data: existingListing, error: fetchError } = await authenticatedSupabase
       .from('listings')
-      .select('seller_id, status, listing_title_anonymous')
+      .select('seller_id, status, approved_at, listing_title_anonymous')
       .eq('id', id)
       .single()
 
@@ -85,75 +89,40 @@ export async function PUT(
       )
     }
 
-    // Business logic for status transitions with soft delete patterns
-    let updateData: Record<string, any> = {
-      status: status,
-      updated_at: new Date().toISOString()
+    // Status transition rules — explicit allowlist for sellers, anything for admins.
+    // Sellers may take a listing DOWN at any time, but may only bring one back to a
+    // public status if it was previously approved by an admin (approved_at is set).
+    // A DB trigger (enforce_listing_approval_gate) backstops these rules.
+    if (profile?.role !== 'admin') {
+      const sellerTakedownStatuses = ['inactive', 'withdrawn', 'sold', 'closed_deal']
+      const sellerNonPublicStatuses = ['draft', 'pending_approval']
+
+      if (status === 'active') {
+        const reactivatableFrom = ['inactive', 'withdrawn', 'sold', 'closed_deal']
+        if (!existingListing.approved_at || !reactivatableFrom.includes(existingListing.status)) {
+          return NextResponse.json(
+            { error: 'This listing has not been approved yet. It will become visible once an admin approves it.' },
+            { status: 403 }
+          )
+        }
+        console.log(`[LISTING-REACTIVATE] Previously-approved listing ${id} reactivated by user ${user.id}`)
+      } else if (sellerTakedownStatuses.includes(status)) {
+        console.log(`[LISTING-TAKEDOWN] Listing ${id} set to ${status} by user ${user.id}`)
+      } else if (sellerNonPublicStatuses.includes(status)) {
+        console.log(`[LISTING-${status.toUpperCase()}] Listing ${id} set to ${status} by user ${user.id}`)
+      } else {
+        return NextResponse.json(
+          { error: `Only admins can set a listing to '${status}'` },
+          { status: 403 }
+        )
+      }
+    } else {
+      console.log(`[LISTING-STATUS] Admin ${user.id} setting listing ${id} to ${status}`)
     }
 
-    // Handle specific status changes - ONLY update columns that exist
-    switch (status) {
-      case 'inactive':
-        // Soft delete - hide from marketplace but preserve data
-        console.log(`[LISTING-DEACTIVATE] Listing ${id} deactivated by user ${user.id}`)
-        // Status change is sufficient - no audit columns needed
-        break
-
-      case 'active':
-        // Reactivation - make visible again
-        console.log(`[LISTING-REACTIVATE] Listing ${id} reactivated by user ${user.id}`)
-        // Status change is sufficient - no audit columns needed
-        break
-
-      case 'sold':
-        // Mark as sold - status change only
-        console.log(`[LISTING-SOLD] Listing ${id} marked as sold by user ${user.id}`)
-        break
-
-      case 'withdrawn':
-        // Seller withdrawal - status change only
-        console.log(`[LISTING-WITHDRAWN] Listing ${id} withdrawn by user ${user.id}`)
-        break
-
-      case 'verified_public':
-        // Only admins can mark as verified with full details
-        if (profile?.role !== 'admin') {
-          return NextResponse.json(
-            { error: 'Only admins can verify listings with full details' },
-            { status: 403 }
-          )
-        }
-        // Note: is_seller_verified reflects USER verification, not listing verification
-        // For listing-specific verification, we use the status field
-        console.log(`[LISTING-VERIFIED-PUBLIC] Listing ${id} verified public by admin ${user.id}`)
-        break
-
-      case 'verified_anonymous':
-        // Admin verification for anonymous view
-        if (profile?.role !== 'admin') {
-          return NextResponse.json(
-            { error: 'Only admins can verify listings' },
-            { status: 403 }
-          )
-        }
-        console.log(`[LISTING-VERIFIED-ANON] Listing ${id} verified anonymous by admin ${user.id}`)
-        break
-
-      case 'draft':
-        // Moving back to draft for editing
-        console.log(`[LISTING-DRAFT] Listing ${id} moved to draft by user ${user.id}`)
-        break
-
-      case 'rejected_by_admin':
-        // Admin rejection - can override even verified seller's listing
-        if (profile?.role !== 'admin') {
-          return NextResponse.json(
-            { error: 'Only admins can reject listings' },
-            { status: 403 }
-          )
-        }
-        console.log(`[LISTING-REJECTED] Listing ${id} rejected by admin ${user.id}`)
-        break
+    const updateData: Record<string, any> = {
+      status: status,
+      updated_at: new Date().toISOString()
     }
 
     // Update the listing with comprehensive audit trail

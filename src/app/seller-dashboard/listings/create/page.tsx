@@ -481,8 +481,8 @@ export default function CreateSellerListingPage() {
         const uploadedImagesCount = imageUrls.length;
 
         toast({
-          title: "✅ Listing Created Successfully!",
-          description: `Your listing has been created with ${uploadedDocsCount} documents and ${uploadedImagesCount} images. Documents are now visible to verified buyers.`,
+          title: "✅ Listing Submitted for Review!",
+          description: `Your listing has been submitted with ${uploadedDocsCount} documents and ${uploadedImagesCount} images. It will appear on the marketplace once our team approves it.`,
           duration: 5000,
         });
 

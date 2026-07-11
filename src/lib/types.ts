@@ -125,7 +125,10 @@ export type ListingStatus =
   | 'draft'                // Seller is still editing, not submitted
   | 'pending_approval'     // Submitted and waiting for admin review
   | 'under_review'         // Admin is actively reviewing
-  | 'appealing_rejection'; // Seller has appealed a rejection
+  | 'appealing_rejection'  // Seller has appealed a rejection
+  // Seller lifecycle states
+  | 'sold'                 // Completed transaction
+  | 'withdrawn';           // Seller withdrew from market
 
 // Listing Type System
 export type ListingType = 'full_acquisition' | 'partial_acquisition' | 'open_to_talks' | 'external_full_acquisition';

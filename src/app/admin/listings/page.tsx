@@ -400,6 +400,21 @@ export default function AdminListingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {/* Pending approval queue banner */}
+          {(summary.statusCounts['pending_approval'] || 0) > 0 && (
+            <button
+              type="button"
+              onClick={() => setFilters(prev => ({ ...prev, status: 'pending_approval' }))}
+              className="mb-6 flex w-full items-center gap-3 rounded-lg border border-orange-300 bg-orange-50 px-4 py-3 text-left text-orange-800 transition-colors hover:bg-orange-100 dark:border-orange-700 dark:bg-orange-950/40 dark:text-orange-200 dark:hover:bg-orange-950/60"
+            >
+              <AlertTriangle className="h-5 w-5 shrink-0" />
+              <span className="font-medium">
+                {summary.statusCounts['pending_approval']} listing{summary.statusCounts['pending_approval'] === 1 ? '' : 's'} pending approval
+              </span>
+              <span className="ml-auto text-sm underline">Review now</span>
+            </button>
+          )}
+
           {/* Filters */}
           <div className="mb-6 flex flex-col sm:flex-row gap-4">
             <div className="relative flex-grow">

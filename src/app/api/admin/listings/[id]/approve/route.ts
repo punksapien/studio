@@ -80,6 +80,8 @@ export async function PATCH(
     // Update the listing with approval
     const updateData = {
       status: newStatus,
+      approved_at: new Date().toISOString(),
+      approved_by: user.id,
       admin_action_by: user.id,
       admin_action_at: new Date().toISOString(),
       admin_notes: adminNotes || null,
@@ -130,6 +132,22 @@ export async function PATCH(
       .select('id, full_name, email')
       .eq('id', existingListing.seller_id)
       .single();
+
+    // Notify the seller their listing is now live
+    if (seller) {
+      const { error: notificationError } = await supabaseAdmin
+        .from('notifications')
+        .insert({
+          user_id: seller.id,
+          type: 'listing_update',
+          message: `Your listing "${existingListing.listing_title_anonymous}" has been approved and is now live on the marketplace.`,
+          link: `/seller-dashboard/listings`,
+          is_read: false,
+        });
+      if (notificationError) {
+        console.warn('[ADMIN-APPROVE] Failed to create seller notification:', notificationError);
+      }
+    }
 
     console.log(`[ADMIN-APPROVE] Successfully approved listing ${listingId} from ${existingListing.status} to ${newStatus}`);
 

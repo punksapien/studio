@@ -64,6 +64,15 @@ export async function GET(
 
     // If user is not the seller and doesn't have admin privileges
     if (!user || (userProfile?.role !== 'admin' && listing.seller_id !== user.id)) {
+      // Allowlist: only publicly-visible statuses are served to non-owners.
+      // Everything else (pending_approval, draft, inactive, rejected, etc.) is a 404.
+      const publiclyVisibleStatuses = ['active', 'verified_anonymous', 'verified_public']
+      if (!publiclyVisibleStatuses.includes(listing.status)) {
+        return NextResponse.json(
+          { error: 'Listing not found' },
+          { status: 404 }
+        )
+      }
       // Remove sensitive financial information for non-verified listings
       if (listing.status === 'verified_anonymous') {
         // Keep anonymous data but hide detailed financials
@@ -71,12 +80,6 @@ export async function GET(
         delete responseData.verified_net_profit
         delete responseData.verified_cash_flow
         delete responseData.seller_id
-      } else if (listing.status === 'draft' || listing.status === 'pending_approval') {
-        // These shouldn't be visible to non-owners
-        return NextResponse.json(
-          { error: 'Listing not found' },
-          { status: 404 }
-        )
       }
     }
 

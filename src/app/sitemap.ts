@@ -87,10 +87,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
+    // This client uses the service-role key (bypasses RLS), so this status
+    // filter is the only gate keeping non-public listings out of the sitemap.
     const { data: listings } = await supabase
       .from('listings')
-      .select('id, updated_at, verification_status')
-      .eq('verification_status', 'verified') // Only include verified listings
+      .select('id, updated_at, status')
+      .in('status', ['active', 'verified_anonymous', 'verified_public'])
+      .is('deleted_at', null)
       .order('updated_at', { ascending: false })
 
     const listingPages = listings?.map((listing) => ({

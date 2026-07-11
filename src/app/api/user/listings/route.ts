@@ -61,6 +61,7 @@ export async function GET(request: NextRequest) {
         admin_notes,
         rejection_category,
         admin_action_at,
+        approved_at,
         listing_appeals (
           id,
           status,
@@ -139,6 +140,7 @@ export async function GET(request: NextRequest) {
         admin_notes: listing.admin_notes,
         rejection_category: listing.rejection_category,
         admin_action_at: listing.admin_action_at,
+        approved_at: listing.approved_at,
         // Appeal fields
         appeal_status: latestAppeal?.status,
         appeal_message: latestAppeal?.appeal_message,
