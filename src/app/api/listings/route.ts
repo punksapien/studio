@@ -34,10 +34,11 @@ async function notifyAdminsOfPendingListing(listingId: string, listingTitle: str
   if (adminEmail) {
     await sendEmailWithResend({
       to: adminEmail,
+      from: process.env.NODE_ENV === 'production' ? 'noreply@nobridge.co' : 'onboarding@resend.dev',
       subject: `New listing pending approval: ${listingTitle}`,
       html: `<p>A new listing has been submitted and is awaiting review:</p>
              <p><strong>${listingTitle}</strong></p>
-             <p><a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://nobridge.co'}/admin/listings?status=pending_approval">Review pending listings</a></p>`,
+             <p><a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://nobridge.co'}/admin/listings/${listingId}">Review this listing</a></p>`,
     })
   }
 }
