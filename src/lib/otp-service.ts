@@ -461,8 +461,16 @@ export async function verifyOTP(email: string, otpCode: string): Promise<OTPResu
       };
     }
 
-    // Step 2: Use the token hash to verify with Supabase
-    const { data: verifyData, error: verifyError } = await supabaseAdmin.auth.verifyOtp({
+    // Step 2: Use the token hash to verify with Supabase.
+    // verifyOtp signs the verified user in on whichever client runs it — doing this on
+    // the shared supabaseAdmin would replace its service-role auth with the user's JWT
+    // and make every later DB call from this module hit RLS. Use a throwaway client.
+    const verifyClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
+    const { data: verifyData, error: verifyError } = await verifyClient.auth.verifyOtp({
       token_hash: mapping.token_hash,
       type: 'magiclink' // We use magiclink type for the token hash
     });
