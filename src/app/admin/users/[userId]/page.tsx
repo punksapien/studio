@@ -10,9 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { Separator } from "@/components/ui/separator";
 import {
-  Mail, Phone, MapPin, CalendarDays, Briefcase, UserCircle,
+  Mail, Phone, MapPin, CalendarDays, UserCircle,
   ShieldCheck, ShieldAlert, Edit3, Building2, Users2,
   Clock, Loader2, ArrowLeft, RefreshCw, AlertCircle, Eye, Target,
   FileText, User, Activity, Crown, Sparkles, Zap, Key,
@@ -153,13 +152,13 @@ const getProfileVerificationBadge = (status: string, large: boolean = false) => 
     case 'verified':
       return (
         <Badge className={`${textSize} bg-green-100 text-green-700 dark:bg-green-800 dark:text-green-200 border-green-300 dark:border-green-600`}>
-          <ShieldCheck className={iconSize} /> Verified
+          <ShieldCheck className={iconSize} /> Profile Verified
         </Badge>
       );
     case 'pending_verification':
       return (
         <Badge variant="secondary" className={`${textSize} bg-yellow-100 text-yellow-700 dark:bg-yellow-800 dark:text-yellow-200 border-yellow-300 dark:border-yellow-600`}>
-          <ShieldAlert className={iconSize} /> Pending
+          <ShieldAlert className={iconSize} /> In Progress
         </Badge>
       );
     case 'anonymous':
@@ -167,7 +166,7 @@ const getProfileVerificationBadge = (status: string, large: boolean = false) => 
     case 'rejected':
       return <Badge variant="destructive" className={textSize}>Rejected</Badge>;
     default:
-      return <Badge variant="outline" className={textSize}>{status}</Badge>;
+      return <Badge variant="outline" className={textSize}>Unverified</Badge>;
   }
 };
 
@@ -326,7 +325,7 @@ export default function AdminUserDetailPage() {
           <CardHeader>
             <CardTitle className="text-lg">User Settings</CardTitle>
             <CardDescription>
-              Account actions and quick access to this user's platform activity
+              Account management actions for this user
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -356,37 +355,6 @@ export default function AdminUserDetailPage() {
               <Button variant="destructive" size="sm" onClick={() => setDeleteDialog({ open: true, block: true })}>
                 <Ban className="mr-2 h-4 w-4" />
                 Delete & Block
-              </Button>
-            </div>
-
-            <Separator />
-
-            <div className="flex flex-wrap gap-2">
-              <Button variant="outline" size="sm" asChild>
-                <Link href={`/admin/verification-queue/${user.role === 'buyer' ? 'buyers' : 'sellers'}?userId=${user.id}`}>
-                  <ShieldCheck className="mr-2 h-4 w-4" />
-                  View Verification ({user.verificationRequestCount})
-                </Link>
-              </Button>
-              {user.role === 'seller' && (
-                <Button variant="outline" size="sm" asChild>
-                  <Link href={`/admin/listings?sellerId=${user.id}`}>
-                    <Briefcase className="mr-2 h-4 w-4" />
-                    View Listings ({user.listingCount})
-                  </Link>
-                </Button>
-              )}
-              <Button variant="outline" size="sm" asChild>
-                <Link href={`/admin/inquiries?userId=${user.id}`}>
-                  <Activity className="mr-2 h-4 w-4" />
-                  {user.role === 'buyer' ? 'Inquiries Sent' : 'Inquiries Received'} ({user.inquiryCount})
-                </Link>
-              </Button>
-              <Button variant="outline" size="sm" asChild>
-                <Link href={`/admin/conversations?userId=${user.id}`}>
-                  <MessageSquare className="mr-2 h-4 w-4" />
-                  View Conversations ({user.conversationCount})
-                </Link>
               </Button>
             </div>
           </CardContent>
@@ -423,21 +391,18 @@ export default function AdminUserDetailPage() {
         <CardContent>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             <Section title="Contact Information">
-              <Row label="Email">
-                <span className="inline-flex flex-wrap items-center justify-end gap-2">
-                  <span className="break-all">{user.email}</span>
-                  {user.isEmailVerified
-                    ? <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">Confirmed</Badge>
-                    : <Badge variant="secondary">Unconfirmed</Badge>}
-                </span>
-              </Row>
+              <Row label="Email"><span className="break-all">{user.email}</span></Row>
               <Row label="Phone">{user.phoneNumber || 'Not provided'}</Row>
               <Row label="Country">{user.country || 'Not provided'}</Row>
             </Section>
 
             <Section title="Account Information">
+              <Row label="Email Verified">
+                {user.isEmailVerified
+                  ? <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">Confirmed</Badge>
+                  : <Badge variant="secondary">Unconfirmed</Badge>}
+              </Row>
               <Row label="Registered"><FormattedDate dateString={user.createdAt} /></Row>
-              <Row label="Email Verified">{user.isEmailVerified ? 'Yes' : 'No'}</Row>
               {user.lastLogin && (
                 <Row label="Last Login"><FormattedDate dateString={user.lastLogin} /></Row>
               )}
