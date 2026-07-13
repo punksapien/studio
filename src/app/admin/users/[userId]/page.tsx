@@ -123,21 +123,23 @@ function FormattedDate({ dateString }: { dateString?: string | null }) {
   return <span>{formattedDate || 'N/A'}</span>;
 }
 
-// Bordered key-value row primitives (label left, value right, divided rows)
+// Bordered key-value row primitives (label left, value right, divided rows).
+// Fixed min row height so every row lines up regardless of text vs badge content.
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-4 px-3 py-2">
+    <div className="flex min-h-[44px] items-center justify-between gap-4 px-3 py-2">
       <span className="shrink-0 text-muted-foreground">{label}</span>
       <div className="min-w-0 text-right break-words">{children}</div>
     </div>
   );
 }
 
+// Section stretches to fill its grid cell so side-by-side blocks share the same border height.
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div>
+    <div className="flex h-full flex-col">
       <h4 className="mb-2 text-sm font-semibold text-foreground">{title}</h4>
-      <div className="divide-y border text-sm">{children}</div>
+      <div className="flex-1 divide-y border text-sm">{children}</div>
     </div>
   );
 }
