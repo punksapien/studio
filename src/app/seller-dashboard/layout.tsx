@@ -27,7 +27,6 @@ import {
   LogOut,
   Bell,
   PlusCircle,
-  HelpCircle,
   FileText,
   MessageSquareQuote,
   Home,
@@ -84,7 +83,6 @@ const sellerSidebarNavItems = [
 ];
 
 const utilityNavItems = [
-  { title: 'Help', href: '/help', icon: HelpCircle, tooltip: "Get Help" },
   { title: 'FAQ', href: '/faq', icon: MessageSquareQuote, tooltip: "Frequently Asked Questions" },
   { title: 'Back to Homepage', href: '/', icon: Home, tooltip: "Go to Homepage" },
 ];

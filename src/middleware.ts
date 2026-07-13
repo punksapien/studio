@@ -36,7 +36,7 @@ export async function middleware(req: NextRequest) {
     // '/verify-email', // REMOVED - now requires special handling
     '/about', '/contact', '/pricing', '/terms', '/privacy',
     // Public information pages
-    '/faq', '/docs', '/help', '/how-selling-works', '/how-buying-works', '/seller-services', '/buyer-services', '/acfi-certificate',
+    '/faq', '/how-selling-works', '/how-buying-works', '/seller-services', '/buyer-services', '/acfi-certificate',
     // Marketplace, listing, and resources pages - public
     '/marketplace',
     '/resources',
