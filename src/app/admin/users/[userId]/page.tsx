@@ -338,27 +338,25 @@ export default function AdminUserDetailPage() {
       {/* Main Profile Card */}
       <Card className="shadow-lg">
         <CardHeader>
-          <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-            <div>
-              <CardTitle className="text-lg text-brand-dark-blue">
-                {user.fullName}
-              </CardTitle>
-              <CardDescription className="flex items-center gap-2 mt-2">
-                <Badge variant="outline" className="capitalize">
-                  {user.role}
-                </Badge>
-                {user.role === 'admin' && (
-                  <>
-                    <Badge className="bg-purple-500 text-white">Platform Admin</Badge>
-                    <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white">
-                      <Crown className="h-3 w-3 mr-1" />
-                      Full Access
-                    </Badge>
-                  </>
-                )}
-              </CardDescription>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <CardTitle className="text-lg text-brand-dark-blue">
+              {user.fullName}
+            </CardTitle>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="outline" className="capitalize">
+                {user.role}
+              </Badge>
+              {user.role === 'admin' && (
+                <>
+                  <Badge className="bg-purple-500 text-white">Platform Admin</Badge>
+                  <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white">
+                    <Crown className="h-3 w-3 mr-1" />
+                    Full Access
+                  </Badge>
+                </>
+              )}
+              <VerificationStatusBadge status={user.verificationStatus} />
             </div>
-            <VerificationStatusBadge status={user.verificationStatus} size="lg" />
           </div>
         </CardHeader>
 
