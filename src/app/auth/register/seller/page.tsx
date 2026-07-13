@@ -169,9 +169,9 @@ export default function SellerRegisterPage() {
               name="initialCompanyName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Initial Company Name (Optional)</FormLabel>
+                  <FormLabel>Company Name</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="My Awesome Business" disabled={isPending} />
+                    <Input {...field} placeholder="Company Name" disabled={isPending} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

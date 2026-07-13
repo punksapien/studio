@@ -31,7 +31,7 @@ import {
 import { AuthCardWrapper } from "@/components/auth/auth-card-wrapper";
 import { AuthPageGuard } from "@/components/auth/auth-page-guard";
 import { CommonRegistrationFields } from "@/components/auth/common-registration-fields";
-import { BuyerPersonaTypes, PreferredInvestmentSizes, asianCountries } from "@/lib/types";
+import { BuyerPersonaTypes, PreferredInvestmentSizes } from "@/lib/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";

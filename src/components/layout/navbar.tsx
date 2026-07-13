@@ -78,14 +78,22 @@ export function Navbar() {
   // Pages with dark hero backgrounds where navbar should start transparent with white text
   const darkHeroPages = ['/', '/marketplace'];
   const hasDarkHero = darkHeroPages.includes(pathname);
+  // Login/registration pages sit on white backgrounds; the navbar stays in its dark style there permanently.
+  // Do NOT extend this to other pages — everywhere else keeps the existing behavior.
+  const forceDarkNav = pathname === '/auth/login' || pathname.startsWith('/auth/register');
 
-  const [scrolled, setScrolled] = useState(!hasDarkHero);
+  const [scrolled, setScrolled] = useState(!hasDarkHero && !forceDarkNav);
 
   const { scrollY } = useScroll();
 
   useMotionValueEvent(scrollY, "change", (latest) => {
-    setScrolled(hasDarkHero ? latest > 20 : true);
+    setScrolled(forceDarkNav ? false : hasDarkHero ? latest > 20 : true);
   });
+
+  // Keep the style in sync on client-side navigation (the navbar persists across pages)
+  React.useEffect(() => {
+    setScrolled(forceDarkNav ? false : hasDarkHero ? window.scrollY > 20 : true);
+  }, [pathname, forceDarkNav, hasDarkHero]);
 
   const openMenu = (label: string) => {
     if (menuTimerRef.current) clearTimeout(menuTimerRef.current);
@@ -177,7 +185,9 @@ export function Navbar() {
             : "bg-white/90 backdrop-blur-xl shadow-sm border border-brand-dark-blue/10 supports-[backdrop-filter]:bg-white/80"
           : activeMenu
             ? "bg-brand-dark-blue border border-white/15 border-b-0"
-            : "bg-white/5 backdrop-blur-sm border border-white/15"
+            : forceDarkNav
+              ? "bg-brand-dark-blue shadow-sm border border-white/15"
+              : "bg-white/5 backdrop-blur-sm border border-white/15"
       )}>
         {/* Left - Logo */}
         <div className="flex items-center">

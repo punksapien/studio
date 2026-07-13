@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { asianCountries, buyerTypes } from "@/lib/types";
+import { allCountries, buyerTypes } from "@/lib/types";
 import { useState, useTransition, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
@@ -307,7 +307,7 @@ export default function SellerProfilePage() {
                     <Select onValueChange={field.onChange} value={field.value} disabled={isProfilePending}>
                       <FormControl><SelectTrigger><SelectValue placeholder="Select your country"/></SelectTrigger></FormControl>
                       <SelectContent>
-                        {asianCountries.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                        {allCountries.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                       </SelectContent>
                     </Select>
                     <FormMessage />

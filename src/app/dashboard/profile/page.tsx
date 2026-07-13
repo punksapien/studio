@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { asianCountries, BuyerPersonaTypes, PreferredInvestmentSizes } from "@/lib/types";
+import { allCountries, BuyerPersonaTypes, PreferredInvestmentSizes } from "@/lib/types";
 import { useTransition, useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
@@ -334,7 +334,7 @@ export default function BuyerProfilePage() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {asianCountries.map(country => (
+                        {allCountries.map(country => (
                           <SelectItem key={country} value={country}>
                             {country}
                           </SelectItem>

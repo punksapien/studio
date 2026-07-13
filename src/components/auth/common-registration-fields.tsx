@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { asianCountries } from "@/lib/types";
+import { allCountries } from "@/lib/types";
 
 interface CommonRegistrationFieldsProps {
   control: Control<any>; // Pass control from useForm
@@ -94,7 +94,7 @@ export function CommonRegistrationFields({ control, isPending }: CommonRegistrat
         name="country"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Country</FormLabel>
+            <FormLabel>Where are you based?</FormLabel>
             <Select onValueChange={field.onChange} value={field.value || ""} disabled={isPending}>
               <FormControl>
                 <SelectTrigger>
@@ -102,7 +102,7 @@ export function CommonRegistrationFields({ control, isPending }: CommonRegistrat
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
-                {asianCountries.map((country) => (
+                {allCountries.map((country) => (
                   <SelectItem key={country} value={country}>
                     {country}
                   </SelectItem>
