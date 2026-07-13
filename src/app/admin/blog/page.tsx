@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
+import { AdminPageShell } from '@/components/admin/page-header'
 import {
   Table,
   TableBody,
@@ -137,20 +138,18 @@ export default function AdminBlogPage() {
   const draftCount = posts.filter(p => !p.is_published).length
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Blog Management</h1>
-          <p className="text-muted-foreground">Create, edit, and manage blog posts</p>
-        </div>
+    <AdminPageShell
+      title="Blog Management"
+      description="Create, edit, and manage blog posts."
+      actions={
         <Button asChild>
           <Link href="/admin/blog/new">
             <Plus className="h-4 w-4 mr-2" />
             New Post
           </Link>
         </Button>
-      </div>
+      }
+    >
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
@@ -159,7 +158,7 @@ export default function AdminBlogPage() {
             <div className="flex items-center gap-3">
               <FileText className="h-5 w-5 text-muted-foreground" />
               <div>
-                <p className="text-2xl font-bold">{total}</p>
+                <p className="text-2xl font-semibold">{total}</p>
                 <p className="text-sm text-muted-foreground">Total Posts</p>
               </div>
             </div>
@@ -170,7 +169,7 @@ export default function AdminBlogPage() {
             <div className="flex items-center gap-3">
               <Eye className="h-5 w-5 text-green-600" />
               <div>
-                <p className="text-2xl font-bold">{publishedCount}</p>
+                <p className="text-2xl font-semibold">{publishedCount}</p>
                 <p className="text-sm text-muted-foreground">Published</p>
               </div>
             </div>
@@ -181,7 +180,7 @@ export default function AdminBlogPage() {
             <div className="flex items-center gap-3">
               <EyeOff className="h-5 w-5 text-yellow-600" />
               <div>
-                <p className="text-2xl font-bold">{draftCount}</p>
+                <p className="text-2xl font-semibold">{draftCount}</p>
                 <p className="text-sm text-muted-foreground">Drafts</p>
               </div>
             </div>
@@ -228,7 +227,7 @@ export default function AdminBlogPage() {
       </div>
 
       {/* Table */}
-      <div className="border rounded-lg bg-white">
+      <div className="flex-1 min-h-0 border overflow-auto bg-white">
         <Table>
           <TableHeader>
             <TableRow>
@@ -364,6 +363,6 @@ export default function AdminBlogPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </AdminPageShell>
   )
 }

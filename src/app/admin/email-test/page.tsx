@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -100,7 +100,7 @@ export default function EmailTestPage() {
     <div className="container mx-auto py-8 max-w-4xl space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Email Configuration Test</CardTitle>
+          <CardTitle className="text-lg">Email Configuration Test</CardTitle>
           <CardDescription>
             Test and debug email delivery configuration
           </CardDescription>
@@ -138,7 +138,7 @@ export default function EmailTestPage() {
                     <div className="flex justify-between py-2 border-b">
                       <span className="font-medium">Resend API Key:</span>
                       <span className={configData.hasResendKey ? 'text-green-600' : 'text-red-600'}>
-                        {configData.hasResendKey ? `✓ ${configData.resendKeyPreview}` : '✗ Not Set'}
+                        {configData.hasResendKey ? `âœ“ ${configData.resendKeyPreview}` : 'âœ— Not Set'}
                       </span>
                     </div>
                     <div className="flex justify-between py-2 border-b">
@@ -148,7 +148,7 @@ export default function EmailTestPage() {
                     <div className="flex justify-between py-2 border-b">
                       <span className="font-medium">Service Role Key:</span>
                       <span className={configData.hasServiceKey ? 'text-green-600' : 'text-red-600'}>
-                        {configData.hasServiceKey ? '✓ Set' : '✗ Not Set'}
+                        {configData.hasServiceKey ? 'âœ“ Set' : 'âœ— Not Set'}
                       </span>
                     </div>
                   </div>

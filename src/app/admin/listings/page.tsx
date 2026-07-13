@@ -35,7 +35,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AdminPageShell } from "@/components/admin/page-header";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import type { AdminListingWithContext, ListingStatus, RejectionCategory, ListingVerificationStatus } from "@/lib/types";
 import Link from "next/link";
@@ -51,8 +51,6 @@ import {
   CalendarDays,
   Loader2,
   RefreshCw,
-  ChevronLeft,
-  ChevronRight,
   Settings,
   Pencil,
   MoreVertical
@@ -131,7 +129,8 @@ export default function AdminListingsPage() {
     totalCount: 0,
     hasNext: false,
     hasPrev: false,
-    limit: 10,
+    // No pagination: load everything and scroll inside the table
+    limit: 1000,
   });
   const [summary, setSummary] = React.useState({
     statusCounts: {} as Record<string, number>,
@@ -369,7 +368,7 @@ export default function AdminListingsPage() {
 
   if (error) {
     return (
-      <div className="space-y-8">
+      <AdminPageShell title="Listing Management" description="View, search, filter, and manage all business listings on the platform.">
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
@@ -385,27 +384,18 @@ export default function AdminListingsPage() {
             </Button>
           </AlertDescription>
         </Alert>
-      </div>
+      </AdminPageShell>
     );
   }
 
   return (
-    <div className="space-y-8">
-      <Card className="shadow-md bg-brand-white">
-        <CardHeader>
-          <CardTitle className="text-brand-dark-blue">Listing Management</CardTitle>
-          <CardDescription>
-            View, search, filter, and manage all business listings on the platform.
-            Total: {summary.totalListings} listings
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+    <AdminPageShell title="Listing Management" description="View, search, filter, and manage all business listings on the platform.">
           {/* Pending approval queue banner */}
           {(summary.statusCounts['pending_approval'] || 0) > 0 && (
             <button
               type="button"
               onClick={() => setFilters(prev => ({ ...prev, status: 'pending_approval' }))}
-              className="mb-6 flex w-full items-center gap-3 rounded-lg border border-orange-300 bg-orange-50 px-4 py-3 text-left text-orange-800 transition-colors hover:bg-orange-100 dark:border-orange-700 dark:bg-orange-950/40 dark:text-orange-200 dark:hover:bg-orange-950/60"
+              className="flex w-full items-center gap-3 rounded-lg border border-orange-300 bg-orange-50 px-4 py-3 text-left text-orange-800 transition-colors hover:bg-orange-100 dark:border-orange-700 dark:bg-orange-950/40 dark:text-orange-200 dark:hover:bg-orange-950/60"
             >
               <AlertTriangle className="h-5 w-5 shrink-0" />
               <span className="font-medium">
@@ -416,7 +406,7 @@ export default function AdminListingsPage() {
           )}
 
           {/* Filters */}
-          <div className="mb-6 flex flex-col sm:flex-row gap-4">
+          <div className="flex flex-col sm:flex-row gap-4">
             <div className="relative flex-grow">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -483,14 +473,13 @@ export default function AdminListingsPage() {
           {/* Listings Table */}
           {!loading && (
             <>
-              <div className="rounded-md border">
-                <div className="overflow-x-auto">
+              <div className="flex-1 min-h-0 border overflow-auto">
+                <div>
                   <Table className="min-w-full">
                     <TableHeader>
                       <TableRow>
                         <TableHead className="min-w-[200px]">Anonymous Title</TableHead>
                         <TableHead className="hidden md:table-cell min-w-[120px]">Seller Name</TableHead>
-                        <TableHead className="hidden lg:table-cell text-center">Paid</TableHead>
                         <TableHead className="hidden lg:table-cell min-w-[100px]">Industry</TableHead>
                         <TableHead className="hidden xl:table-cell text-right min-w-[120px]">Asking Price</TableHead>
                         <TableHead className="min-w-[120px]">Status</TableHead>
@@ -505,7 +494,7 @@ export default function AdminListingsPage() {
                   <TableBody>
                     {listings.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                           No listings found matching your criteria.
                         </TableCell>
                       </TableRow>
@@ -530,13 +519,6 @@ export default function AdminListingsPage() {
                               <Link href={`/admin/users/${seller.id}`} className="text-primary hover:underline">
                                 {seller.fullName}
                               </Link>
-                            </TableCell>
-                            <TableCell className="hidden lg:table-cell text-center">
-                              {seller.isPaid ? (
-                                <Badge className="bg-green-500 text-white text-xs">Yes</Badge>
-                              ) : (
-                                <Badge variant="secondary" className="text-xs">No</Badge>
-                              )}
                             </TableCell>
                             <TableCell className="hidden lg:table-cell min-w-[100px] text-sm">{listing.industry}</TableCell>
                             <TableCell className="hidden xl:table-cell text-right min-w-[120px] text-sm">
@@ -616,43 +598,11 @@ export default function AdminListingsPage() {
                 </div>
               </div>
 
-              {/* Pagination */}
-              {pagination.totalPages > 1 && (
-                <div className="mt-6 flex items-center justify-between">
-                  <div className="text-sm text-muted-foreground">
-                    Showing {((pagination.currentPage - 1) * pagination.limit) + 1} to{' '}
-                    {Math.min(pagination.currentPage * pagination.limit, pagination.totalCount)} of{' '}
-                    {pagination.totalCount} listings
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => fetchListings(pagination.currentPage - 1)}
-                      disabled={!pagination.hasPrev}
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                      Previous
-                    </Button>
-                    <span className="text-sm">
-                      Page {pagination.currentPage} of {pagination.totalPages}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => fetchListings(pagination.currentPage + 1)}
-                      disabled={!pagination.hasNext}
-                    >
-                      Next
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              )}
+              <p className="text-sm text-muted-foreground">
+                Total: {summary.totalListings} listings
+              </p>
             </>
           )}
-        </CardContent>
-      </Card>
 
       {/* Admin Action Dialog */}
       <Dialog open={actionDialog.isOpen} onOpenChange={(open) => !open && setActionDialog({ isOpen: false, type: null, listing: null })}>
@@ -733,6 +683,6 @@ export default function AdminListingsPage() {
         listing={verificationDialog.listing}
         onVerificationUpdate={() => fetchListings(pagination.currentPage)}
       />
-    </div>
+    </AdminPageShell>
   );
 }

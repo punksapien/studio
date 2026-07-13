@@ -192,13 +192,32 @@ export function UpdateVerificationStatusDialog({
                 <DialogTitle className="text-xl font-semibold text-foreground flex items-center">
                   <Edit className="mr-2 h-5 w-5 text-accent"/>Manage Verification: {request.userName}
                 </DialogTitle>
-                <DialogDescription className="text-sm text-muted-foreground">
-                  Request ID: <span className="font-mono text-xs">{request.id.substring(0,8)}...</span>
-                  {request.listingId && ` | Listing: ${request.listingTitle || request.listingId.substring(0,8)}...`}
+                <DialogDescription className="sr-only">
+                  Manage verification statuses and internal notes for this request.
                 </DialogDescription>
-                <div className="flex items-center gap-2 mt-2">
-                  <span className="text-sm text-muted-foreground">Role:</span>
-                  <Badge variant="outline" className="capitalize text-xs">{request.userRole}</Badge>
+
+                <div className="mt-3 divide-y border text-sm">
+                  <div className="flex items-center justify-between gap-4 px-3 py-2">
+                    <span className="shrink-0 text-muted-foreground">Request ID</span>
+                    <span className="font-mono text-xs break-all text-right">{request.id}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-4 px-3 py-2">
+                    <span className="shrink-0 text-muted-foreground">Role</span>
+                    <Badge variant="outline" className="capitalize">{request.userRole}</Badge>
+                  </div>
+                  {request.listingId && (
+                    <div className="flex items-center justify-between gap-4 px-3 py-2">
+                      <span className="shrink-0 text-muted-foreground">Listing</span>
+                      <span className="truncate text-right">{request.listingTitle || request.listingId}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between gap-4 px-3 py-2">
+                    <span className="shrink-0 text-muted-foreground">Current Status</span>
+                    <div className="flex items-center gap-2">
+                      <OperationalStatusBadge status={request.operationalStatus} />
+                      <ProfileStatusBadge status={request.profileStatus} />
+                    </div>
+                  </div>
                 </div>
 
                 {/* User Contact Information Section */}
@@ -239,24 +258,16 @@ export function UpdateVerificationStatusDialog({
               <div className="grid md:grid-cols-2 gap-6 p-6 flex-grow overflow-y-auto">
                 {/* Left Column: Statuses and New Note */}
                 <div className="space-y-6 flex flex-col">
-                  <div>
+                  <div className="space-y-1.5">
                     <Label className="text-sm font-medium text-foreground">Operational Status</Label>
-                    <div className="flex items-center gap-2 mt-1 mb-2">
-                        <span className="text-xs text-muted-foreground">Current:</span>
-                        <OperationalStatusBadge status={request.operationalStatus} />
-                    </div>
                     <Select value={selectedOperationalStatus} onValueChange={(value) => setSelectedOperationalStatus(value as VerificationQueueStatus)}>
                       <SelectTrigger id="operationalStatus" className="h-9 text-sm bg-background border-input"><SelectValue placeholder="Select new operational status" /></SelectTrigger>
                       <SelectContent>{operationalStatusOptions.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
 
-                  <div>
+                  <div className="space-y-1.5">
                     <Label className="text-sm font-medium text-foreground">Profile Status</Label>
-                     <div className="flex items-center gap-2 mt-1 mb-2">
-                        <span className="text-xs text-muted-foreground">Current:</span>
-                        <ProfileStatusBadge status={request.profileStatus} />
-                    </div>
                     <Select value={selectedProfileStatus} onValueChange={(value) => setSelectedProfileStatus(value as VerificationStatus)}>
                       <SelectTrigger id="profileStatus" className="h-9 text-sm bg-background border-input"><SelectValue placeholder="Select new profile status" /></SelectTrigger>
                       <SelectContent>{profileStatusOptions.map(s => <SelectItem key={s} value={s} className="capitalize">{s.replace('_', ' ')}</SelectItem>)}</SelectContent>

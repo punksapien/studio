@@ -21,14 +21,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AdminPageShell } from "@/components/admin/page-header";
 import type { User, VerificationStatus } from "@/lib/types";
 import Link from "next/link";
-import { Eye, ShieldCheck, ShieldAlert, Filter, Search, Edit, ChevronLeft, ChevronRight, Loader2, UserPlus } from "lucide-react";
+import { Eye, ShieldCheck, ShieldAlert, Filter, Search, Edit, Loader2, UserPlus } from "lucide-react";
 import useSWR from 'swr';
 import { useState, useCallback, useMemo } from 'react';
 import { useDebounce } from '@/hooks/use-debounce';
 import { CreateUserDialog } from '@/components/admin/create-user-dialog';
+import { UserDetailsDialog } from '@/components/admin/user-details-dialog';
 
 // Simplified interface for admin user data that matches API response exactly
 interface AdminUser {
@@ -42,7 +43,6 @@ interface AdminUser {
   country: string;
   createdAt: string; // ISO string from database
   updatedAt: string; // ISO string from database
-  isPaid: boolean;
   isOnboardingCompleted: boolean;
   is_onboarding_completed: boolean;
   onboardingStep: number;
@@ -61,7 +61,6 @@ interface AdminUsersResponse {
     search: string;
     role: string;
     verificationStatus: string;
-    paidStatus: string;
   };
 }
 
@@ -76,10 +75,10 @@ export default function AdminUsersPage() {
   const [search, setSearch] = useState('');
   const [role, setRole] = useState('all');
   const [verificationStatus, setVerificationStatus] = useState('all');
-  const [paidStatus, setPaidStatus] = useState('all');
-  const [page, setPage] = useState(1);
   const [createUserDialogOpen, setCreateUserDialogOpen] = useState(false);
-  const limit = 10;
+  const [viewedUserId, setViewedUserId] = useState<string | null>(null);
+  // No pagination: load everything and scroll inside the table
+  const limit = 1000;
 
   // Debounce search to avoid excessive API calls
   const debouncedSearch = useDebounce(search, 500);
@@ -87,15 +86,14 @@ export default function AdminUsersPage() {
   // Build API URL with current filters
   const apiUrl = useMemo(() => {
     const params = new URLSearchParams({
-      page: page.toString(),
+      page: '1',
       limit: limit.toString(),
       search: debouncedSearch,
       role,
       verification_status: verificationStatus,
-      paid_status: paidStatus,
     });
     return `/api/admin/users?${params.toString()}`;
-  }, [page, limit, debouncedSearch, role, verificationStatus, paidStatus]);
+  }, [limit, debouncedSearch, role, verificationStatus]);
 
   // Fetch data with SWR
   const { data, error, isLoading, mutate } = useSWR<AdminUsersResponse>(apiUrl, fetcher);
@@ -103,20 +101,15 @@ export default function AdminUsersPage() {
   // Handle filter changes
   const handleSearchChange = useCallback((value: string) => {
     setSearch(value);
-    setPage(1); // Reset to first page when searching
   }, []);
 
   const handleFilterChange = useCallback((filterType: string, value: string) => {
-    setPage(1); // Reset to first page when filtering
     switch (filterType) {
       case 'role':
         setRole(value);
         break;
       case 'verification':
         setVerificationStatus(value);
-        break;
-      case 'paid':
-        setPaidStatus(value);
         break;
     }
   }, []);
@@ -125,16 +118,12 @@ export default function AdminUsersPage() {
     setSearch('');
     setRole('all');
     setVerificationStatus('all');
-    setPaidStatus('all');
-    setPage(1);
   }, []);
 
   // Handle successful user creation
   const handleUserCreated = useCallback((user: any) => {
     // Refresh the user list
     mutate();
-    // Optionally, show a success message or update filters
-    setPage(1); // Go to first page to see the new user
   }, [mutate]);
 
   // Badge component for verification status
@@ -154,23 +143,12 @@ export default function AdminUsersPage() {
   };
 
   return (
-    <div className="space-y-8">
-      <Card className="shadow-md">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>User Management</CardTitle>
-              <CardDescription>View, search, filter, and manage all platform users.</CardDescription>
-            </div>
-            <Button onClick={() => setCreateUserDialogOpen(true)} className="gap-2">
-              <UserPlus className="h-4 w-4" />
-              Add User
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
+    <AdminPageShell
+      title="User Management"
+      description="View, search, filter, and manage all platform users."
+    >
           {/* Search and Filters */}
-          <div className="mb-6 flex flex-col sm:flex-row gap-4">
+          <div className="flex flex-col sm:flex-row gap-4">
             <div className="relative flex-grow">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -194,7 +172,7 @@ export default function AdminUsersPage() {
               </Select>
 
               <Select value={verificationStatus} onValueChange={(value) => handleFilterChange('verification', value)}>
-                <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectTrigger className="w-full sm:w-[160px]">
                   <SelectValue placeholder="Filter by Verification" />
                 </SelectTrigger>
                 <SelectContent>
@@ -207,19 +185,13 @@ export default function AdminUsersPage() {
                 </SelectContent>
               </Select>
 
-              <Select value={paidStatus} onValueChange={(value) => handleFilterChange('paid', value)}>
-                <SelectTrigger className="w-full sm:w-[160px]">
-                  <SelectValue placeholder="Filter by Paid Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Payment Statuses</SelectItem>
-                  <SelectItem value="paid">Paid</SelectItem>
-                  <SelectItem value="free">Free</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Button variant="outline" onClick={clearFilters} className="w-full sm:w-auto">
+              <Button variant="outline" onClick={clearFilters} className="w-full sm:w-[160px]">
                 <Filter className="h-4 w-4 mr-2"/>Clear Filters
+              </Button>
+
+              <Button onClick={() => setCreateUserDialogOpen(true)} className="w-full sm:w-[160px]">
+                <UserPlus className="h-4 w-4 mr-2" />
+                Add User
               </Button>
             </div>
           </div>
@@ -245,14 +217,13 @@ export default function AdminUsersPage() {
           {/* Users Table */}
           {data && !isLoading && (
             <>
-              <div className="rounded-md border overflow-x-auto">
+              <div className="flex-1 min-h-0 border overflow-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead className="whitespace-nowrap">Full Name</TableHead>
                       <TableHead>Email</TableHead>
                       <TableHead>Role</TableHead>
-                      <TableHead>Paid</TableHead>
                       <TableHead>Country</TableHead>
                       <TableHead className="whitespace-nowrap">Profile Status</TableHead>
                       <TableHead className="whitespace-nowrap">Registered On</TableHead>
@@ -262,7 +233,7 @@ export default function AdminUsersPage() {
                   <TableBody>
                     {data.users.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                           No users found matching your criteria.
                         </TableCell>
                       </TableRow>
@@ -272,17 +243,12 @@ export default function AdminUsersPage() {
                           <TableCell className="font-medium whitespace-nowrap">{user.fullName}</TableCell>
                           <TableCell>{user.email}</TableCell>
                           <TableCell><Badge variant="outline" className="capitalize">{user.role}</Badge></TableCell>
-                          <TableCell>
-                            {user.isPaid ? <Badge className="bg-green-500 text-white">Paid</Badge> : <Badge variant="secondary">Free</Badge>}
-                          </TableCell>
                           <TableCell>{user.country}</TableCell>
                           <TableCell>{getProfileVerificationBadge(user.verificationStatus)}</TableCell>
                           <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
                           <TableCell className="text-right whitespace-nowrap">
-                            <Button variant="ghost" size="icon" asChild title="View User Details">
-                              <Link href={`/admin/users/${user.id}`}>
-                                <Eye className="h-4 w-4" />
-                              </Link>
+                            <Button variant="ghost" size="icon" title="View User Details" onClick={() => setViewedUserId(user.id)}>
+                              <Eye className="h-4 w-4" />
                             </Button>
                             <Button variant="ghost" size="icon" asChild title="Manage Verification">
                               <Link href={`/admin/verification-queue/${user.role === 'buyer' ? 'buyers' : 'sellers'}?userId=${user.id}`}>
@@ -297,47 +263,26 @@ export default function AdminUsersPage() {
                 </Table>
               </div>
 
-              {/* Pagination */}
-              <div className="mt-6 flex items-center justify-between">
-                <div className="text-sm text-muted-foreground">
-                  Showing {((data.pagination.page - 1) * data.pagination.limit) + 1} to {Math.min(data.pagination.page * data.pagination.limit, data.pagination.total)} of {data.pagination.total} users
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage(page - 1)}
-                    disabled={page <= 1}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                    Previous
-                  </Button>
-                  <span className="text-sm">
-                    Page {data.pagination.page} of {data.pagination.totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage(page + 1)}
-                    disabled={page >= data.pagination.totalPages}
-                  >
-                    Next
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
+              <p className="text-sm text-muted-foreground">
+                Total: {data.pagination.total} users
+              </p>
             </>
           )}
-        </CardContent>
-      </Card>
 
       {/* Create User Dialog */}
-      <CreateUserDialog 
+      <CreateUserDialog
         open={createUserDialogOpen}
         onOpenChange={setCreateUserDialogOpen}
         onSuccess={handleUserCreated}
       />
-    </div>
+
+      {/* Full user profile popup */}
+      <UserDetailsDialog
+        userId={viewedUserId}
+        open={!!viewedUserId}
+        onOpenChange={(open) => { if (!open) setViewedUserId(null); }}
+      />
+    </AdminPageShell>
   );
 }
 

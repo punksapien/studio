@@ -1,8 +1,9 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { AdminPageShell } from '@/components/admin/page-header';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
@@ -56,25 +57,23 @@ export default function AdminSyncTools() {
   };
 
   return (
-    <div className="container py-10">
-      <h1 className="text-3xl font-semibold mb-6">Admin Sync Tools</h1>
-
-      <Tabs defaultValue="seller-verification" className="w-full">
-        <TabsList className="mb-4">
+    <AdminPageShell title="Sync Tools" description="Data synchronization and reconciliation tools.">
+      <Tabs defaultValue="seller-verification" className="flex w-full flex-1 flex-col">
+        <TabsList className="mb-4 self-start">
           <TabsTrigger value="seller-verification">Seller Verification Sync</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="seller-verification">
-          <Card>
+        <TabsContent value="seller-verification" className="flex flex-1 flex-col">
+          <Card className="flex flex-1 flex-col">
             <CardHeader>
-              <CardTitle>Seller Verification Status Sync</CardTitle>
+              <CardTitle className="text-lg">Seller Verification Status Sync</CardTitle>
               <CardDescription>
                 Synchronize seller verification status with their listings. This ensures that when a seller's
                 verification status changes, all their listings are updated accordingly.
               </CardDescription>
             </CardHeader>
 
-            <CardContent>
+            <CardContent className="flex-1">
               <div className="space-y-4">
                 <div className="flex flex-col gap-2">
                   <h3 className="text-lg font-medium">What This Does</h3>
@@ -130,6 +129,6 @@ export default function AdminSyncTools() {
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
+    </AdminPageShell>
   );
 }

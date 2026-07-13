@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 // Force dynamic rendering due to client-side interactivity
 export const dynamic = 'force-dynamic'
@@ -7,6 +7,7 @@ import * as React from "react";
 import { useState } from "react";
 import useSWR, { mutate } from 'swr';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AdminPageShell } from "@/components/admin/page-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -138,28 +139,25 @@ export default function CleanupQueuePage() {
 
   if (error) {
     return (
-      <div className="p-8">
+      <AdminPageShell title="Account Cleanup Queue" description="Manage unverified accounts and the cleanup process.">
         <div className="text-red-600">Failed to load cleanup queue: {error.message}</div>
-      </div>
+      </AdminPageShell>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight font-heading">Account Cleanup Queue</h1>
-          <p className="text-muted-foreground">
-            Manage unverified accounts and cleanup process
-          </p>
-        </div>
+    <AdminPageShell
+      title="Account Cleanup Queue"
+      description="Manage unverified accounts and the cleanup process."
+      actions={
         <Button
           onClick={() => mutate('/api/admin/cleanup-queue')}
           variant="outline"
         >
           Refresh
         </Button>
-      </div>
+      }
+    >
 
       {/* Statistics Cards */}
       <div className="grid gap-4 md:grid-cols-3">
@@ -210,14 +208,14 @@ export default function CleanupQueuePage() {
       </div>
 
       {/* Cleanup Queue Table */}
-      <Card>
+      <Card className="flex flex-1 min-h-0 flex-col">
         <CardHeader>
-          <CardTitle>Account Queue</CardTitle>
+          <CardTitle className="text-lg">Account Queue</CardTitle>
           <CardDescription>
             Accounts requiring verification or scheduled for deletion
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex flex-1 min-h-0 flex-col">
           {isLoading && (
             <div className="text-center py-8 text-muted-foreground">
               Loading cleanup queue...
@@ -225,6 +223,7 @@ export default function CleanupQueuePage() {
           )}
 
           {!isLoading && cleanupData?.data?.queue && (
+            <div className="flex-1 min-h-0 border overflow-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -310,12 +309,13 @@ export default function CleanupQueuePage() {
                 {cleanupData.data.queue.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                      ✅ No accounts in cleanup queue
+                      âœ… No accounts in cleanup queue
                     </TableCell>
                   </TableRow>
                 )}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -382,6 +382,6 @@ export default function CleanupQueuePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </AdminPageShell>
   );
 }

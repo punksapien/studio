@@ -1,7 +1,8 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { AdminPageShell } from '@/components/admin/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -189,18 +190,20 @@ export default function EmailLogsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="flex items-center space-x-2">
-          <RefreshCw className="h-5 w-5 animate-spin" />
-          <span>Loading email logs...</span>
+      <AdminPageShell title="Email Logs" description="Track and monitor all email delivery attempts.">
+        <div className="flex flex-1 items-center justify-center">
+          <div className="flex items-center space-x-2">
+            <RefreshCw className="h-5 w-5 animate-spin" />
+            <span>Loading email logs...</span>
+          </div>
         </div>
-      </div>
+      </AdminPageShell>
     );
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
+      <AdminPageShell title="Email Logs" description="Track and monitor all email delivery attempts.">
         <Card className="p-6">
           <div className="flex items-center space-x-2 text-red-600">
             <AlertCircle className="h-5 w-5" />
@@ -211,25 +214,21 @@ export default function EmailLogsPage() {
             Retry
           </Button>
         </Card>
-      </div>
+      </AdminPageShell>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-start">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Email Logs</h1>
-          <p className="text-muted-foreground">
-            Track and monitor all email delivery attempts
-          </p>
-        </div>
+    <AdminPageShell
+      title="Email Logs"
+      description="Track and monitor all email delivery attempts."
+      actions={
         <Button onClick={fetchEmailLogs} variant="outline">
           <RefreshCw className="h-4 w-4 mr-2" />
           Refresh
         </Button>
-      </div>
+      }
+    >
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -287,7 +286,7 @@ export default function EmailLogsPage() {
       {/* Filters */}
       <Card>
         <CardHeader>
-          <CardTitle>Filters</CardTitle>
+          <CardTitle className="text-lg">Filters</CardTitle>
           <CardDescription>Filter email logs by recipient, status, template type, or provider</CardDescription>
         </CardHeader>
         <CardContent>
@@ -374,13 +373,13 @@ export default function EmailLogsPage() {
       </Card>
 
       {/* Email Logs Table */}
-      <Card>
+      <Card className="flex flex-1 min-h-0 flex-col">
         <CardHeader>
-          <CardTitle>Email Logs ({filteredLogs.length.toLocaleString()})</CardTitle>
+          <CardTitle className="text-lg">Email Logs ({filteredLogs.length.toLocaleString()})</CardTitle>
           <CardDescription>Recent email delivery attempts</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
+        <CardContent className="flex flex-1 min-h-0 flex-col">
+          <div className="flex-1 min-h-0 border overflow-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -443,7 +442,7 @@ export default function EmailLogsPage() {
                               {log.metadata.trigger.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                             </Badge>
                           ) : (
-                            <span className="text-muted-foreground text-xs">—</span>
+                            <span className="text-muted-foreground text-xs">â€”</span>
                           )}
                         </TableCell>
                         <TableCell>
@@ -473,7 +472,7 @@ export default function EmailLogsPage() {
                               {log.error_message}
                             </div>
                           ) : (
-                            <span className="text-muted-foreground">—</span>
+                            <span className="text-muted-foreground">â€”</span>
                           )}
                         </TableCell>
                       </TableRow>
@@ -485,6 +484,6 @@ export default function EmailLogsPage() {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </AdminPageShell>
   );
 }

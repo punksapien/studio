@@ -24,9 +24,7 @@ import {
   Users,
   MessageSquare,
   LogOut,
-  HelpCircle,
   FileText,
-  MessageSquareQuote,
   Home,
   Briefcase,
   ShieldCheck,
@@ -35,61 +33,69 @@ import {
   RefreshCw,
   AlertTriangle,
   Mail,
+  MailWarning,
+  MailCheck,
+  ChevronDown,
 } from 'lucide-react';
 import LogoutButton from '@/components/auth/LogoutButton';
 import { useAuth } from '@/contexts/auth-context';
 
-// Add CSS for animations
+// Flat admin theme: square corners and no shadows everywhere in the admin area.
+// Applied via a class on <body> so portaled elements (dialogs, dropdowns,
+// tooltips) are covered as well.
 const sidebarStyles = `
-  @keyframes slideInLeft {
-    from {
-      opacity: 0;
-      transform: translateX(-20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateX(0);
-    }
+  body.admin-flat *,
+  body.admin-flat *::before,
+  body.admin-flat *::after {
+    border-radius: 0 !important;
   }
 
-  @keyframes glow {
-    0%, 100% {
-      box-shadow: 0 0 5px hsl(var(--primary) / 0.3);
-    }
-    50% {
-      box-shadow: 0 0 20px hsl(var(--primary) / 0.6);
-    }
-  }
-
-  .sidebar-item-animate {
-    animation: slideInLeft 0.6s ease-out;
-  }
-
-  .sidebar-active-glow {
-    animation: glow 2s ease-in-out infinite;
+  body.admin-flat [class*="shadow"] {
+    box-shadow: none !important;
   }
 `;
 
-const adminSidebarNavItems = [
-  { title: 'Dashboard', href: '/admin', icon: LayoutDashboard, tooltip: "Admin Overview" },
-  { title: 'User Management', href: '/admin/users', icon: Users, tooltip: "Manage Users" },
-  { title: 'Listing Management', href: '/admin/listings', icon: Briefcase, tooltip: "Manage Listings" },
-  { title: 'Blog Management', href: '/admin/blog', icon: FileText, tooltip: "Manage Blog Posts" },
-  { title: 'Appeal Management', href: '/admin/appeals', icon: MessageSquare, tooltip: "Review Listing Appeals" },
-  { title: 'Buyer Verification', href: '/admin/verification-queue/buyers', icon: ShieldCheck, tooltip: "Buyer Verifications" },
-  { title: 'Seller Verification', href: '/admin/verification-queue/sellers', icon: ShieldCheck, tooltip: "Seller/Listing Verifications" },
-  { title: 'Engagement Queue', href: '/admin/engagement-queue', icon: BellRing, tooltip: "Engagement Queue" },
-  // { title: 'Conversations', href: '/admin/conversations', icon: MessageSquare, tooltip: "Platform Conversations" },
-  { title: 'Email Logs', href: '/admin/email-logs', icon: Mail, tooltip: "Email Delivery Tracking" },
-  { title: 'Analytics', href: '/admin/analytics', icon: LineChart, tooltip: "Platform Analytics" },
-  { title: 'Sync Tools', href: '/admin/sync-tools', icon: RefreshCw, tooltip: "Data Synchronization Tools" },
+const adminSidebarNavGroups = [
+  {
+    label: 'Management',
+    items: [
+      { title: 'User Management', href: '/admin/users', icon: Users, tooltip: "Manage Users" },
+      { title: 'Listing Management', href: '/admin/listings', icon: Briefcase, tooltip: "Manage Listings" },
+      { title: 'Appeal Management', href: '/admin/appeals', icon: MessageSquare, tooltip: "Review Listing Appeals" },
+      { title: 'Engagement Queue', href: '/admin/engagement-queue', icon: BellRing, tooltip: "Engagement Queue" },
+    ],
+  },
+  {
+    label: 'Verification',
+    items: [
+      { title: 'Buyer Verification', href: '/admin/verification-queue/buyers', icon: ShieldCheck, tooltip: "Buyer Verifications" },
+      { title: 'Seller Verification', href: '/admin/verification-queue/sellers', icon: ShieldCheck, tooltip: "Seller/Listing Verifications" },
+    ],
+  },
+  {
+    label: 'General',
+    items: [
+      { title: 'Dashboard', href: '/admin', icon: LayoutDashboard, tooltip: "Admin Overview" },
+      { title: 'Analytics', href: '/admin/analytics', icon: LineChart, tooltip: "Platform Analytics" },
+    ],
+  },
+  {
+    label: 'Email',
+    items: [
+      { title: 'Email Logs', href: '/admin/email-logs', icon: Mail, tooltip: "Email Delivery Tracking" },
+      { title: 'Email Recovery', href: '/admin/email-recovery', icon: MailWarning, tooltip: "Email Recovery Tool" },
+      { title: 'Email Test', href: '/admin/email-test', icon: MailCheck, tooltip: "Send Test Emails" },
+    ],
+  },
+  {
+    label: 'Others',
+    items: [
+      { title: 'Blog Management', href: '/admin/blog', icon: FileText, tooltip: "Manage Blog Posts" },
+      { title: 'Sync Tools', href: '/admin/sync-tools', icon: RefreshCw, tooltip: "Data Synchronization Tools" },
+    ],
+  },
 ];
 
-const utilityNavItems = [
-  { title: 'Help', href: '/help', icon: HelpCircle, tooltip: "Get Help" },
-  { title: 'FAQ', href: '/faq', icon: MessageSquareQuote, tooltip: "Frequently Asked Questions" },
-  { title: 'Back to Homepage', href: '/', icon: Home, tooltip: "Go to Nobridge Homepage" },
-];
 
 // 🚀 ROBUST FIX: Simplified constants for admin layout
 
@@ -108,6 +114,11 @@ export default function AdminLayout({
   const [isClient, setIsClient] = React.useState(false);
   const [sessionError, setSessionError] = React.useState<string | null>(null);
   const [recoveryAttempts, setRecoveryAttempts] = React.useState(0);
+  const [collapsedGroups, setCollapsedGroups] = React.useState<Record<string, boolean>>({});
+
+  const toggleGroup = (label: string) => {
+    setCollapsedGroups(prev => ({ ...prev, [label]: !prev[label] }));
+  };
 
   // Simple admin check - trust that middleware has already validated access
   const isAdmin = profile?.role === 'admin';
@@ -116,6 +127,12 @@ export default function AdminLayout({
   // 🚀 ROBUST FIX: Client-side initialization without complex auth checks
   React.useEffect(() => {
     setIsClient(true);
+  }, []);
+
+  // Flat admin theme: covers portaled UI (dialogs, dropdowns, tooltips) too
+  React.useEffect(() => {
+    document.body.classList.add('admin-flat');
+    return () => document.body.classList.remove('admin-flat');
   }, []);
 
   // 🚀 ROBUST FIX: Minimal role-based redirect logic
@@ -231,15 +248,15 @@ export default function AdminLayout({
   }
 
   return (
-    <SidebarProvider defaultOpen>
+    <SidebarProvider defaultOpen style={{ '--sidebar-width': '19rem' } as React.CSSProperties}>
       <style dangerouslySetInnerHTML={{ __html: sidebarStyles }} />
-      <div className="flex min-h-screen bg-gray-50/30">
-        <Sidebar variant="sidebar" className="h-screen sticky top-0 border-r-0 bg-white text-foreground shadow-lg">
-          <div className="h-full bg-white rounded-r-3xl border-r border-gray-200 shadow-xl">
-            <SidebarHeader className="p-6 border-b border-gray-200 bg-white rounded-tr-3xl">
+      <div className="flex min-h-screen w-full bg-gray-50/30">
+        <Sidebar variant="sidebar" className="h-screen sticky top-0 border-r-0 bg-white text-foreground">
+          <div className="flex h-full flex-col bg-white border-r border-gray-200">
+            <SidebarHeader className="h-[88px] shrink-0 justify-center px-6 py-0 bg-white">
               <div className="flex items-center justify-between">
                 <Logo size="lg" forceTheme="light" />
-                <SidebarTrigger className="md:hidden rounded-lg hover:bg-gray-100 transition-colors duration-200" />
+                <SidebarTrigger className="md:hidden rounded-none hover:bg-gray-100 transition-colors duration-200" />
               </div>
               {/* Session recovery indicator */}
               {recoveryAttempts > 0 && (
@@ -250,108 +267,77 @@ export default function AdminLayout({
                 </div>
               )}
             </SidebarHeader>
-            <SidebarContent className="flex-grow px-4 py-6 space-y-2 bg-white">
-              <SidebarMenu className="space-y-1">
-                {adminSidebarNavItems.map((item, index) => {
-                  const IconComponent = item.icon;
-                  const iconProps = { className:"h-5 w-5 mr-3 shrink-0 transition-all duration-200 group-hover:scale-110" };
-                  const isActive = pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href));
-
-                  return (
-                  <SidebarMenuItem key={item.title} className="group sidebar-item-animate">
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isActive}
-                      tooltip={{ children: item.tooltip, className: "bg-gray-800 text-white border-gray-600 shadow-lg" }}
-                      className={`
-                        relative rounded-xl px-4 py-3 transition-all duration-300 ease-out
-                        hover:bg-gray-50 hover:scale-[1.02] hover:shadow-md
-                        focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-white
-                        ${isActive
-                          ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25 scale-[1.02] sidebar-active-glow'
-                          : 'text-gray-700 hover:text-gray-900'
-                        }
-                        before:absolute before:inset-0 before:rounded-xl before:bg-gradient-to-r
-                        before:from-primary/0 before:to-accent/0 before:opacity-0
-                        before:transition-opacity before:duration-300 hover:before:opacity-5
-                        group overflow-hidden
-                      `}
-                      style={{
-                        animationDelay: `${index * 50}ms`,
-                        animationFillMode: 'both'
-                      }}
-                    >
-                      <Link href={item.href} className="flex items-center relative z-10 w-full">
-                        <IconComponent {...iconProps} />
-                        <span className="truncate font-medium transition-all duration-200">{item.title}</span>
-                        {isActive && (
-                          <div className="absolute right-2 w-2 h-2 bg-primary-foreground rounded-full opacity-80 animate-pulse"></div>
-                        )}
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                )})}
-              </SidebarMenu>
-
-              <div className="py-4">
+            <SidebarContent className="flex-grow px-4 pb-6 bg-white">
+              <div className="pb-4">
                 <SidebarSeparator className="bg-gray-200" />
               </div>
+              {adminSidebarNavGroups.map((group, groupIndex) => (
+                <React.Fragment key={group.label}>
+                  <button
+                    type="button"
+                    onClick={() => toggleGroup(group.label)}
+                    className={`flex w-full items-center justify-between px-4 pb-1 text-[11px] font-semibold uppercase tracking-wider text-gray-400 transition-colors hover:text-gray-600 ${groupIndex === 0 ? '' : 'pt-4'}`}
+                  >
+                    {group.label}
+                    <ChevronDown className={`h-3 w-3 shrink-0 transition-transform duration-200 ${collapsedGroups[group.label] ? '-rotate-90' : ''}`} />
+                  </button>
+                  {!collapsedGroups[group.label] && (
+                  <SidebarMenu className="space-y-1">
+                    {group.items.map((item) => {
+                      const IconComponent = item.icon;
+                      const iconProps = { className: "h-4 w-4 mr-3 shrink-0" };
+                      const isActive = pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href));
 
-              <SidebarMenu className="space-y-1">
-                {utilityNavItems.map((item, index) => {
-                  const IconComponent = item.icon;
-                  const iconProps = { className:"h-5 w-5 mr-3 shrink-0 transition-all duration-200 group-hover:scale-110" };
-                  const isActive = pathname === item.href;
-
-                  return (
-                  <SidebarMenuItem key={item.title} className="group sidebar-item-animate">
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isActive}
-                      tooltip={{ children: item.tooltip, className: "bg-gray-800 text-white border-gray-600 shadow-lg" }}
-                      className={`
-                        relative rounded-xl px-4 py-3 transition-all duration-300 ease-out
-                        hover:bg-gray-50 hover:scale-[1.02] hover:shadow-md
-                        focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-white
-                        ${isActive
-                          ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25 scale-[1.02] sidebar-active-glow'
-                          : 'text-gray-700 hover:text-gray-900'
-                        }
-                        before:absolute before:inset-0 before:rounded-xl before:bg-gradient-to-r
-                        before:from-primary/0 before:to-accent/0 before:opacity-0
-                        before:transition-opacity before:duration-300 hover:before:opacity-5
-                        group overflow-hidden
-                      `}
-                      style={{
-                        animationDelay: `${(adminSidebarNavItems.length + index) * 50}ms`,
-                        animationFillMode: 'both'
-                      }}
-                    >
-                       <Link href={item.href} className="flex items-center relative z-10 w-full">
-                        <IconComponent {...iconProps} />
-                        <span className="truncate font-medium transition-all duration-200">{item.title}</span>
-                        {isActive && (
-                          <div className="absolute right-2 w-2 h-2 bg-primary-foreground rounded-full opacity-80 animate-pulse"></div>
-                        )}
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                )})}
-              </SidebarMenu>
+                      return (
+                      <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton
+                          asChild
+                          isActive={isActive}
+                          tooltip={{ children: item.tooltip, className: "bg-gray-800 text-white border-gray-600" }}
+                          className={`
+                            h-11 rounded-none px-4 transition-colors duration-200
+                            focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-white
+                            ${isActive
+                              ? 'bg-primary text-primary-foreground'
+                              : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                            }
+                          `}
+                        >
+                          <Link href={item.href} className="flex items-center w-full">
+                            <IconComponent {...iconProps} />
+                            <span className="truncate font-medium">{item.title}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    )})}
+                  </SidebarMenu>
+                  )}
+                </React.Fragment>
+              ))}
             </SidebarContent>
-            <SidebarFooter className="p-6 border-t border-gray-200 bg-white rounded-br-3xl">
-              <div className="transform transition-transform duration-200 hover:scale-[1.02]">
-                <LogoutButton fullWidth />
+            <SidebarFooter className="p-4 pb-4 md:pb-6 bg-white">
+              <div className="flex flex-col gap-3">
+                <Button
+                  asChild
+                  variant="outline"
+                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground flex items-center justify-start"
+                >
+                  <Link href="/">
+                    <Home className="h-5 w-5 mr-2" />
+                    Back to Homepage
+                  </Link>
+                </Button>
+                <LogoutButton fullWidth className="justify-start" />
               </div>
             </SidebarFooter>
           </div>
         </Sidebar>
-        <SidebarInset className="flex-grow flex flex-col overflow-hidden bg-white">
-           <header className="md:hidden flex items-center justify-between p-4 border-b bg-white/80 backdrop-blur-md sticky top-0 z-10 shadow-sm">
+        <SidebarInset className="flex-grow min-w-0 h-screen flex flex-col overflow-hidden bg-white">
+           <header className="md:hidden flex items-center justify-between p-4 border-b bg-white/80 backdrop-blur-md sticky top-0 z-10">
               <Logo size="lg" forceTheme="light" />
-              <SidebarTrigger className="rounded-lg hover:bg-gray-100 transition-colors duration-200"/>
+              <SidebarTrigger className="rounded-none hover:bg-gray-100 transition-colors duration-200"/>
            </header>
-           <div className="p-6 md:p-8 lg:p-10 flex-1 overflow-y-auto">
+           <div className="px-4 pb-4 pt-2 md:px-6 md:pb-6 md:pt-6 flex-1 min-h-0 overflow-hidden flex flex-col bg-brand-dark-blue">
             {children}
            </div>
         </SidebarInset>

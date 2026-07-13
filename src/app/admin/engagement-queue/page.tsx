@@ -1,10 +1,11 @@
-'use client';
+﻿'use client';
 
 // Force dynamic rendering due to client-side interactivity
 export const dynamic = 'force-dynamic'
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { AdminPageShell } from '@/components/admin/page-header';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -273,23 +274,21 @@ export default function AdminEngagementQueuePage() {
   // Loading state
   if (isLoading) {
     return (
-      <div className="space-y-8">
-        <h1 className="text-3xl font-semibold tracking-tight">Engagement Queue</h1>
+      <AdminPageShell title="Engagement Queue" description="Facilitate chat connections between verified buyers and sellers.">
         <div className="flex items-center justify-center py-12">
           <div className="flex items-center gap-2 text-muted-foreground">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
             <span>Loading engagement queue...</span>
           </div>
         </div>
-      </div>
+      </AdminPageShell>
     );
   }
 
   // Error state
   if (error) {
     return (
-      <div className="space-y-8">
-        <h1 className="text-3xl font-semibold tracking-tight">Engagement Queue</h1>
+      <AdminPageShell title="Engagement Queue" description="Facilitate chat connections between verified buyers and sellers.">
         <Card>
           <CardContent className="text-center py-12">
             <AlertCircle className="h-16 w-16 text-destructive mx-auto mb-4" />
@@ -301,25 +300,21 @@ export default function AdminEngagementQueuePage() {
             </Button>
           </CardContent>
         </Card>
-      </div>
+      </AdminPageShell>
     );
   }
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex justify-between items-start">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Engagement Queue</h1>
-          <p className="text-muted-foreground">
-            Manage and facilitate chat connections between verified buyers and sellers.
-          </p>
-        </div>
+    <AdminPageShell
+      title="Engagement Queue"
+      description="Facilitate chat connections between verified buyers and sellers."
+      actions={
         <Button onClick={fetchData} variant="outline">
           <RefreshCw className="mr-2 h-4 w-4" />
           Refresh
         </Button>
-      </div>
+      }
+    >
 
       {/* Stats Cards */}
       {stats && (
@@ -375,14 +370,14 @@ export default function AdminEngagementQueuePage() {
       )}
 
       {/* Engagement Requests */}
-      <Card>
+      <Card className="flex flex-1 min-h-0 flex-col">
         <CardHeader>
-          <CardTitle>Ready for Connection</CardTitle>
+          <CardTitle className="text-lg">Ready for Connection</CardTitle>
           <CardDescription>
             Inquiries where both parties are verified and ready for chat connection.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex flex-1 min-h-0 flex-col">
           {/* Search */}
           <div className="mb-6">
             <div className="relative">
@@ -398,7 +393,7 @@ export default function AdminEngagementQueuePage() {
 
           {/* Requests Table */}
           {filteredRequests.length === 0 ? (
-            <div className="text-center py-12">
+            <div className="flex flex-1 flex-col items-center justify-center py-12 text-center">
               <MessageSquare className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-semibold mb-2">No Pending Engagements</h3>
               <p className="text-muted-foreground">
@@ -406,7 +401,7 @@ export default function AdminEngagementQueuePage() {
               </p>
             </div>
           ) : (
-            <div className="rounded-md border overflow-x-auto">
+            <div className="flex-1 min-h-0 border overflow-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -461,7 +456,7 @@ export default function AdminEngagementQueuePage() {
                             </Link>
                             <div className="flex items-center gap-2 text-xs text-muted-foreground">
                               <span>{request.listing?.industry}</span>
-                              <span>•</span>
+                              <span>â€¢</span>
                               <span>${request.listing?.asking_price?.toLocaleString()}</span>
                             </div>
                           </div>
@@ -538,7 +533,7 @@ export default function AdminEngagementQueuePage() {
                               </Button>
                             )}
 
-                            {/* 🚀 VERIFICATION PROMPTING BUTTONS */}
+                            {/* ðŸš€ VERIFICATION PROMPTING BUTTONS */}
                             {request.status === 'seller_engaged_buyer_pending_verification' && (
                               <Button
                                 size="sm"
@@ -583,7 +578,7 @@ export default function AdminEngagementQueuePage() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </AdminPageShell>
   );
 }
 

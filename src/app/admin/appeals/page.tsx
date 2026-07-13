@@ -31,6 +31,7 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { MetricCard } from "@/components/admin/metric-card"; // Import MetricCard
+import { AdminPageShell } from "@/components/admin/page-header";
 import {
   MessageCircle,
   CheckCircle2,
@@ -192,23 +193,19 @@ export default function AdminAppealsPage() {
 
   if (isLoading && appeals.length === 0) {
     return (
-      <div className="space-y-6">
-        <div className="flex justify-between items-center"> <Skeleton className="h-8 w-64" /> <Skeleton className="h-10 w-32" /> </div>
+      <AdminPageShell title="Appeal Management" description="Review and manage listing rejection appeals.">
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4"> {[...Array(5)].map((_, i) => <Card key={i}><CardContent className="p-4"><Skeleton className="h-4 w-16 mb-2" /><Skeleton className="h-8 w-12" /></CardContent></Card>)} </div>
         <div className="space-y-4"> {[...Array(3)].map((_, i) => <Card key={i}><CardContent className="p-6"><div className="space-y-4"><div className="flex justify-between items-start"><Skeleton className="h-6 w-3/4" /><Skeleton className="h-6 w-1/5" /></div><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-3/4" /><div className="flex gap-2"><Skeleton className="h-8 w-20" /><Skeleton className="h-8 w-20" /></div></div></CardContent></Card>)} </div>
-      </div>
+      </AdminPageShell>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight font-heading">Appeal Management</h1>
-          <p className="text-muted-foreground">Review and manage listing rejection appeals.</p>
-        </div>
-        <Button onClick={fetchAppeals} variant="outline" size="sm"> <RefreshCw className="h-4 w-4 mr-2" /> Refresh Appeals </Button>
-      </div>
+    <AdminPageShell
+      title="Appeal Management"
+      description="Review and manage listing rejection appeals."
+      actions={<Button onClick={fetchAppeals} variant="outline" size="sm"> <RefreshCw className="h-4 w-4 mr-2" /> Refresh Appeals </Button>}
+    >
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <MetricCard title="Total Appeals" value={summary.total} icon={GitPullRequestArrow} />
@@ -218,8 +215,6 @@ export default function AdminAppealsPage() {
         <MetricCard title="Denied" value={summary.denied} icon={XCircle} trendDirection="down" className="text-red-600" />
       </div>
 
-      <Card>
-        <CardContent className="p-4">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1">
               <div className="relative">
@@ -232,21 +227,17 @@ export default function AdminAppealsPage() {
               <SelectContent><SelectItem value="all">All Statuses</SelectItem><SelectItem value="pending">Pending</SelectItem><SelectItem value="under_review">Under Review</SelectItem><SelectItem value="approved">Approved</SelectItem><SelectItem value="denied">Denied</SelectItem></SelectContent>
             </Select>
           </div>
-        </CardContent>
-      </Card>
 
       {isLoading ? (
         <div className="text-center py-8"><Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" /> <p className="mt-2 text-muted-foreground">Loading appeals...</p></div>
       ) : appeals.length === 0 ? (
-        <Card className="bg-card">
-          <CardContent className="p-12 text-center">
-            <Inbox className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
-            <h3 className="text-xl font-semibold mb-2 text-foreground">No Appeals Found</h3>
-            <p className="text-muted-foreground">{statusFilter !== 'all' || searchQuery ? 'No appeals match your current filters.' : 'No appeals have been submitted yet.'}</p>
-          </CardContent>
-        </Card>
+        <div className="flex flex-1 flex-col items-center justify-center py-12 text-center">
+          <Inbox className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
+          <h3 className="text-xl font-semibold mb-2 text-foreground">No Appeals Found</h3>
+          <p className="text-muted-foreground">{statusFilter !== 'all' || searchQuery ? 'No appeals match your current filters.' : 'No appeals have been submitted yet.'}</p>
+        </div>
       ) : (
-        <div className="space-y-4">
+        <div className="flex-1 min-h-0 overflow-y-auto space-y-4">
           {appeals.map((appeal) => (
             <Card key={appeal.id} className="overflow-hidden shadow-sm hover:shadow-md transition-shadow">
               <CardHeader className="pb-4 bg-muted/30">
@@ -328,6 +319,6 @@ export default function AdminAppealsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </AdminPageShell>
   );
 }

@@ -5,9 +5,10 @@
 export const dynamic = 'force-dynamic'
 import * as React from "react";
 import { MetricCard } from "@/components/admin/metric-card";
+import { AdminPageShell } from "@/components/admin/page-header";
 import useSWR from 'swr';
 import type { AdminDashboardMetrics } from '@/lib/types';
-import { Users, BellRing, LineChart, ListChecks, UserCheck, Building, DollarSign, Banknote, ListX, Handshake, Clock, AlertTriangle, UserX } from "lucide-react";
+import { Users, BellRing, ListChecks, UserCheck, Building, ListX, Handshake, Clock, AlertTriangle, UserX } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -22,7 +23,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import type { Inquiry } from "@/lib/types";
 import { NobridgeIcon, NobridgeIconType } from "@/components/ui/nobridge-icon";
-import { Settings } from "lucide-react";
 
 // Simple fetcher for SWR
 const fetcher = (url: string) => fetch(url).then(res => res.json());
@@ -49,11 +49,19 @@ export default function AdminDashboardPage() {
   );
 
   if (error) {
-    return <div className="p-8 text-destructive">Failed to load metrics: {error.message}</div>;
+    return (
+      <AdminPageShell scrollable title="Dashboard" description="Overview of platform activity, queues, and quick actions.">
+        <div className="text-destructive">Failed to load metrics: {error.message}</div>
+      </AdminPageShell>
+    );
   }
 
   if (isLoading || !metrics) {
-    return <div className="p-8 text-muted-foreground">Loading admin metrics...</div>;
+    return (
+      <AdminPageShell scrollable title="Dashboard" description="Overview of platform activity, queues, and quick actions.">
+        <div className="text-muted-foreground">Loading admin metrics...</div>
+      </AdminPageShell>
+    );
   }
 
   const buyerVerificationRequests = buyerVerificationData?.requests?.filter((req: any) =>
@@ -81,8 +89,7 @@ export default function AdminDashboardPage() {
   ];
 
   return (
-    <div className="space-y-8">
-      <h1 className="text-3xl font-semibold tracking-tight font-heading text-foreground">Admin Dashboard</h1>
+    <AdminPageShell scrollable title="Dashboard" description="Overview of platform activity, queues, and quick actions.">
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <MetricCard
@@ -114,24 +121,6 @@ export default function AdminDashboardPage() {
           value={metrics.closedOrDeactivatedListings}
           icon={ListX}
           description="Inactive or deal finalized"
-        />
-         <MetricCard
-          title="Total Platform Revenue (MTD)"
-          value={`$${(metrics.totalRevenueMTD || 0).toLocaleString()}`}
-          icon={() => <NobridgeIcon icon="revenue" size="sm" className="h-5 w-5 text-muted-foreground" />}
-          description="Sum of buyer & seller revenue"
-        />
-        <MetricCard
-          title="Revenue from Buyers (MTD)"
-          value={`$${(metrics.revenueFromBuyers || 0).toLocaleString()}`}
-          icon={() => <NobridgeIcon icon="investment" size="sm" className="h-5 w-5 text-muted-foreground" />}
-          description="From buyer subscriptions"
-        />
-        <MetricCard
-          title="Revenue from Sellers (MTD)"
-          value={`$${(metrics.revenueFromSellers || 0).toLocaleString()}`}
-          icon={DollarSign}
-          description="From seller subscriptions/services"
         />
         <MetricCard
           title="Buyer Verification Queue"
@@ -178,7 +167,7 @@ export default function AdminDashboardPage() {
          <Card className="shadow-md bg-card">
           <CardHeader>
             <div className="flex justify-between items-center">
-                <CardTitle className="font-heading text-foreground">Pending Buyer Verifications</CardTitle>
+                <CardTitle className="text-lg text-foreground">Pending Buyer Verifications</CardTitle>
                 <Button variant="outline" size="sm" asChild>
                     <Link href="/admin/verification-queue/buyers">View All</Link>
                 </Button>
@@ -227,7 +216,7 @@ export default function AdminDashboardPage() {
         <Card className="shadow-md bg-card">
           <CardHeader>
             <div className="flex justify-between items-center">
-                <CardTitle className="font-heading text-foreground">Pending Seller/Listing Verifications</CardTitle>
+                <CardTitle className="text-lg text-foreground">Pending Seller/Listing Verifications</CardTitle>
                 <Button variant="outline" size="sm" asChild>
                     <Link href="/admin/verification-queue/sellers">View All</Link>
                 </Button>
@@ -278,7 +267,7 @@ export default function AdminDashboardPage() {
         <Card className="shadow-md bg-card">
           <CardHeader>
              <div className="flex justify-between items-center">
-                <CardTitle className="font-heading text-foreground">Ready for Connection</CardTitle>
+                <CardTitle className="text-lg text-foreground">Ready for Connection</CardTitle>
                 <Button variant="outline" size="sm" asChild>
                     <Link href="/admin/engagement-queue">View All</Link>
                 </Button>
@@ -313,7 +302,7 @@ export default function AdminDashboardPage() {
         <Card className="shadow-md bg-card">
           <CardHeader>
             <div className="flex justify-between items-center">
-              <CardTitle className="font-heading text-foreground flex items-center gap-2">
+              <CardTitle className="text-lg text-foreground flex items-center gap-2">
                 <UserX className="h-5 w-5 text-destructive" />
                 Account Cleanup Queue
               </CardTitle>
@@ -378,20 +367,7 @@ export default function AdminDashboardPage() {
           </CardContent>
         </Card>
       </div>
-
-      <Card className="shadow-md bg-card">
-        <CardHeader>
-          <CardTitle className="font-heading text-foreground">Quick Links</CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            <Button variant="outline" asChild className="flex-col h-24"><Link href="/admin/users"><Users className="mb-1"/> User Management</Link></Button>
-            <Button variant="outline" asChild className="flex-col h-24"><Link href="/admin/listings"><ListChecks className="mb-1"/> Listing Management</Link></Button>
-            <Button variant="outline" asChild className="flex-col h-24"><Link href="/admin/analytics"><LineChart className="mb-1"/> View Full Analytics</Link></Button>
-            <Button variant="outline" asChild className="flex-col h-24"><Link href="/admin/email-recovery"><NobridgeIcon icon="email" className="mb-1"/> Email Recovery</Link></Button>
-            <Button variant="outline" asChild className="flex-col h-24"><Link href="/admin/email-test"><Settings className="mb-1"/> Email Test</Link></Button>
-        </CardContent>
-      </Card>
-    </div>
+    </AdminPageShell>
   );
 }
 

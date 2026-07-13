@@ -13,7 +13,7 @@ import Link from "next/link";
 import { Separator } from "@/components/ui/separator";
 import {
   Mail, Phone, MapPin, CalendarDays, Briefcase, UserCircle,
-  ShieldCheck, ShieldAlert, Edit3, Wallet, Building2, Users2,
+  ShieldCheck, ShieldAlert, Edit3, Building2, Users2,
   Clock, Loader2, ArrowLeft, RefreshCw, AlertCircle, Eye, Target,
   FileText, User, Activity, Crown, Sparkles, Zap, Key
 } from "lucide-react";
@@ -49,7 +49,6 @@ interface UserDetailResponse {
     submittedDocuments?: Record<string, any>;
     createdAt: string;
     updatedAt: string;
-    isPaid: boolean;
     listingCount: number;
     inquiryCount: number;
     recentListings: any[];
@@ -248,23 +247,6 @@ export default function AdminUserDetailPage() {
 
   const user = data.user;
 
-  // Action handlers
-  const handleTogglePaidStatus = async () => {
-    try {
-      // TODO: Implement API call to update paid status
-      toast({
-        title: "Feature Coming Soon",
-        description: "Paid status management will be available once subscription system is implemented.",
-      });
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to update paid status. Please try again.",
-      });
-    }
-  };
-
   const handleRefreshData = () => {
     refetchUser();
     toast({
@@ -314,10 +296,6 @@ export default function AdminUserDetailPage() {
                   Manage Verification
                 </Link>
               </Button>
-              <Button variant="outline" onClick={handleTogglePaidStatus}>
-                <Wallet className="h-4 w-4 mr-2" />
-                Make {user.isPaid ? 'Free' : 'Paid'}
-              </Button>
             </>
           ) : (
             <Button variant="outline" disabled className="opacity-50">
@@ -340,7 +318,7 @@ export default function AdminUserDetailPage() {
                 <Badge variant="outline" className="capitalize">
                   {user.role}
                 </Badge>
-                {user.role === 'admin' ? (
+                {user.role === 'admin' && (
                   <>
                     <Badge className="bg-purple-500 text-white">Platform Admin</Badge>
                     <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white">
@@ -348,12 +326,6 @@ export default function AdminUserDetailPage() {
                       Full Access
                     </Badge>
                   </>
-                ) : (
-                  user.isPaid ? (
-                    <Badge className="bg-green-500 text-white">Paid User</Badge>
-                  ) : (
-                    <Badge variant="secondary">Free User</Badge>
-                  )
                 )}
               </CardDescription>
             </div>
@@ -611,7 +583,7 @@ export default function AdminUserDetailPage() {
         <TabsContent value="profile_details" className="space-y-6">
           <Card>
               <CardHeader>
-              <CardTitle>Complete Profile Information</CardTitle>
+              <CardTitle className="text-lg">Complete Profile Information</CardTitle>
               <CardDescription>
                 Comprehensive view of user's profile data
               </CardDescription>
@@ -665,14 +637,6 @@ export default function AdminUserDetailPage() {
                         {user.isEmailVerified ? "Yes" : "No"}
                       </Badge>
                     </div>
-                    {user.role !== 'admin' && (
-                      <div className="flex justify-between">
-                        <span className="font-medium">Paid Status:</span>
-                        <Badge variant={user.isPaid ? "default" : "secondary"}>
-                          {user.isPaid ? "Paid" : "Free"}
-                        </Badge>
-                      </div>
-                    )}
                     <div className="flex justify-between">
                       <span className="font-medium">Created:</span>
                       <span><FormattedDate dateString={user.createdAt} /></span>
@@ -698,7 +662,7 @@ export default function AdminUserDetailPage() {
           <TabsContent value="buyer_persona" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Buyer Persona Information</CardTitle>
+                <CardTitle className="text-lg">Buyer Persona Information</CardTitle>
                 <CardDescription>
                   Investment preferences and buyer profile details
                 </CardDescription>
@@ -744,7 +708,7 @@ export default function AdminUserDetailPage() {
         <TabsContent value="onboarding_info" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Onboarding Information</CardTitle>
+              <CardTitle className="text-lg">Onboarding Information</CardTitle>
               <CardDescription>
                 User's onboarding progress and submitted documents
               </CardDescription>
@@ -788,7 +752,7 @@ export default function AdminUserDetailPage() {
           <div className="grid md:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle>
+                <CardTitle className="text-lg">
                   {user.role === 'admin' ? 'Administrative Activity' : 'Platform Activity Summary'}
                 </CardTitle>
               </CardHeader>
@@ -829,7 +793,7 @@ export default function AdminUserDetailPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Quick Actions</CardTitle>
+                <CardTitle className="text-lg">Quick Actions</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 {user.role === 'admin' ? (

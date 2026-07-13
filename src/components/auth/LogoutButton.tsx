@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "@/hooks/use-toast";
@@ -32,7 +33,7 @@ const LogoutButton: React.FC<LogoutButtonProps> = ({ fullWidth = false, classNam
     <Button
       variant="outline"
       onClick={handleLogout}
-      className={`text-destructive-foreground bg-destructive hover:bg-destructive/90 flex items-center justify-center ${fullWidth ? "w-full" : ""} ${className ?? ""}`}
+      className={cn("text-destructive-foreground bg-destructive hover:bg-destructive/90 flex items-center justify-center", fullWidth && "w-full", className)}
     >
       <LogOut className="h-5 w-5 mr-2" />
       Logout

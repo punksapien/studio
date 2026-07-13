@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 // Force dynamic rendering due to client-side interactivity
 export const dynamic = 'force-dynamic'
@@ -46,7 +46,7 @@ export default function AdminConversationsPage() {
     <div className="space-y-8">
       <Card className="shadow-md">
         <CardHeader>
-          <CardTitle>All Platform Conversations</CardTitle>
+          <CardTitle className="text-lg">All Platform Conversations</CardTitle>
           <CardDescription>Monitor and manage all active and archived conversations. Total: {conversations.length}</CardDescription>
         </CardHeader>
         <CardContent>

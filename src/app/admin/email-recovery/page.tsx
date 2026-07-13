@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AdminPageShell } from '@/components/admin/page-header';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
@@ -162,18 +162,12 @@ export default function EmailRecoveryPage() {
   };
 
   return (
-    <div className="container mx-auto py-8 max-w-4xl">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Mail className="h-5 w-5" />
-            Email Recovery Tool
-          </CardTitle>
-          <CardDescription>
-            Manually resend verification emails to users who didn't receive them
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
+    <AdminPageShell
+      title="Email Recovery"
+      description="Manually resend verification emails to users who didn't receive them."
+      scrollable
+    >
+        <div className="max-w-4xl space-y-6">
           {/* Unverified Users Summary */}
           <Alert>
             <Users className="h-4 w-4" />
@@ -283,8 +277,7 @@ export default function EmailRecoveryPage() {
               <p>• Check the Supabase Auth logs if emails continue to fail</p>
             </AlertDescription>
           </Alert>
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+    </AdminPageShell>
   );
 }

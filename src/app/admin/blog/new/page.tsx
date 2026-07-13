@@ -158,7 +158,7 @@ export default function NewBlogPostPage() {
           </Link>
         </Button>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">New Blog Post</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">New Blog Post</h1>
           <p className="text-muted-foreground">Create a new blog post</p>
         </div>
       </div>
@@ -167,7 +167,7 @@ export default function NewBlogPostPage() {
       <div className="grid gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Post Details</CardTitle>
+            <CardTitle className="text-lg">Post Details</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -221,7 +221,7 @@ export default function NewBlogPostPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Cover Image</CardTitle>
+            <CardTitle className="text-lg">Cover Image</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {coverImageUrl ? (
@@ -274,7 +274,7 @@ export default function NewBlogPostPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Metadata</CardTitle>
+            <CardTitle className="text-lg">Metadata</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -342,7 +342,7 @@ export default function NewBlogPostPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>SEO</CardTitle>
+            <CardTitle className="text-lg">SEO</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">

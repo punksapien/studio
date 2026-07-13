@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AdminPageShell } from "@/components/admin/page-header";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { VerificationRequestItem, VerificationQueueStatus, VerificationStatus, UserRole, AdminNote } from "@/lib/types";
 import Link from "next/link";
@@ -67,11 +67,11 @@ export default function AdminBuyerVerificationQueuePage() {
   const { toast } = useToast();
   const { updateVerificationRequest, isUpdating } = useAdminVerification();
   const [statusFilter, setStatusFilter] = React.useState<string>('all');
-  const [page, setPage] = React.useState(1);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [selectedRequest, setSelectedRequest] = React.useState<VerificationRequestItem | null>(null);
 
-  const apiUrl = `/api/admin/verification-queue/buyers?page=${page}&limit=10&status=${statusFilter}`;
+  // No pagination: load everything and scroll inside the table
+  const apiUrl = `/api/admin/verification-queue/buyers?page=1&limit=500&status=${statusFilter}`;
 
   const { data, error, isLoading, mutate } = useSWR<VerificationQueueResponse>(
     apiUrl,
@@ -141,7 +141,6 @@ export default function AdminBuyerVerificationQueuePage() {
 
   const handleStatusFilterChange = (newStatus: string) => {
     setStatusFilter(newStatus);
-    setPage(1);
   };
 
   const OperationalStatusBadge = ({ status }: { status: VerificationQueueStatus }) => {
@@ -175,52 +174,37 @@ export default function AdminBuyerVerificationQueuePage() {
 
   if (error) {
     return (
-      <div className="space-y-8">
-        <Card className="shadow-md bg-card">
-          <CardHeader>
-            <CardTitle className="text-foreground font-heading flex items-center"><Users className="mr-2 h-6 w-6 text-accent" />Buyer Verification Queue</CardTitle>
-            <CardDescription className="text-muted-foreground">Failed to load verification requests</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center py-8">
-              <p className="text-destructive mb-4">Error loading verification queue: {error.message}</p>
-              <Button onClick={handleRefresh} variant="outline">
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Retry
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <AdminPageShell title="Buyer Verification" description="Review and manage buyers awaiting verification.">
+        <div className="text-center py-8">
+          <p className="text-destructive mb-4">Error loading verification queue: {error.message}</p>
+          <Button onClick={handleRefresh} variant="outline">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Retry
+          </Button>
+        </div>
+      </AdminPageShell>
     );
   }
 
   const requests = data?.requests || [];
 
   return (
-    <div className="space-y-8">
-      <Card className="shadow-md bg-card">
-        <CardHeader>
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-            <div>
-              <CardTitle className="text-foreground font-heading flex items-center"><Users className="mr-3 h-7 w-7 text-accent" />Buyer Verification Queue</CardTitle>
-              <CardDescription className="text-muted-foreground">
-                Manage buyers awaiting verification. Total pending: {pendingCount} | Total requests: {data?.pagination.total || 0}
-              </CardDescription>
-            </div>
-             <div className="flex items-center gap-2 w-full sm:w-auto">
-                <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
-                  <SelectTrigger className="w-full sm:w-48 h-9 text-xs bg-background border-input"><SelectValue placeholder="Filter by status" /></SelectTrigger>
-                  <SelectContent>{["all", "New Request", "Contacted", "Docs Under Review", "More Info Requested", "Approved", "Rejected"].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-                </Select>
-                <Button onClick={handleRefresh} variant="outline" size="sm" className="h-9 text-xs">
-                  <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Refresh
-                </Button>
-              </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-md border overflow-x-auto">
+    <AdminPageShell
+      title="Buyer Verification"
+      description="Review and manage buyers awaiting verification."
+      actions={
+        <>
+          <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
+            <SelectTrigger className="w-48 h-9 text-xs bg-background border-input"><SelectValue placeholder="Filter by status" /></SelectTrigger>
+            <SelectContent>{["all", "New Request", "Contacted", "Docs Under Review", "More Info Requested", "Approved", "Rejected"].map(s => <SelectItem key={s} value={s}>{s === 'all' ? 'All' : s}</SelectItem>)}</SelectContent>
+          </Select>
+          <Button onClick={handleRefresh} variant="outline" size="sm" className="h-9 text-xs">
+            <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Refresh
+          </Button>
+        </>
+      }
+    >
+          <div className="flex-1 min-h-0 border overflow-auto">
             <Table className="w-full">
               <TableHeader>
                 <TableRow>
@@ -283,35 +267,9 @@ export default function AdminBuyerVerificationQueuePage() {
             </Table>
           </div>
 
-          {data?.pagination && data.pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between px-2 py-4 mt-4">
-              <div className="text-sm text-muted-foreground">
-                Showing {requests.length > 0 ? ((data.pagination.page - 1) * data.pagination.limit) + 1 : 0} to{' '}
-                {Math.min(data.pagination.page * data.pagination.limit, data.pagination.total)} of{' '}
-                {data.pagination.total} requests
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage(p => Math.max(1, p - 1))}
-                  disabled={page <= 1 || isLoading}
-                >
-                  Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage(p => Math.min(data.pagination.totalPages, p + 1))}
-                  disabled={page >= data.pagination.totalPages || isLoading}
-                >
-                  Next
-                </Button>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          <p className="text-sm text-muted-foreground">
+            Total pending: {pendingCount} | Total requests: {data?.pagination.total || 0}
+          </p>
 
       <UpdateVerificationStatusDialog
         isOpen={isDialogOpen}
@@ -319,7 +277,7 @@ export default function AdminBuyerVerificationQueuePage() {
         request={selectedRequest}
         onSave={handleSaveStatusUpdate}
       />
-    </div>
+    </AdminPageShell>
   );
 }
 

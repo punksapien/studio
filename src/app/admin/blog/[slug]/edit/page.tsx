@@ -191,7 +191,7 @@ export default function EditBlogPostPage() {
           </Link>
         </Button>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Edit Blog Post</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Edit Blog Post</h1>
           <p className="text-muted-foreground">Editing: {title}</p>
         </div>
       </div>
@@ -200,7 +200,7 @@ export default function EditBlogPostPage() {
       <div className="grid gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Post Details</CardTitle>
+            <CardTitle className="text-lg">Post Details</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -251,7 +251,7 @@ export default function EditBlogPostPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Cover Image</CardTitle>
+            <CardTitle className="text-lg">Cover Image</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {coverImageUrl ? (
@@ -304,7 +304,7 @@ export default function EditBlogPostPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Metadata</CardTitle>
+            <CardTitle className="text-lg">Metadata</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -372,7 +372,7 @@ export default function EditBlogPostPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>SEO</CardTitle>
+            <CardTitle className="text-lg">SEO</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">

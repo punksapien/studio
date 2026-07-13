@@ -87,11 +87,6 @@ export default async function AdminListingDetailPage({ params }: { params: { lis
                 <h2 className="text-2xl md:text-3xl font-semibold text-brand-white tracking-tight font-heading">{listing.listingTitleAnonymous}</h2>
                 <div className="mt-2 flex gap-2 flex-wrap">
                 {getListingStatusBadge(listing.status, listing.isSellerVerified)}
-                {seller && (
-                  <Badge variant={seller.isPaid ? "default" : "secondary"} className={`${seller.isPaid ? 'bg-accent text-accent-foreground' : 'bg-muted text-muted-foreground'} border-transparent`}>
-                    Seller: {seller.isPaid ? "Paid" : "Free"}
-                  </Badge>
-                )}
                 </div>
             </div>
         </CardHeader>
@@ -144,7 +139,6 @@ export default async function AdminListingDetailPage({ params }: { params: { lis
                                   <>
                                     <p><span className="font-medium text-brand-dark-blue">Seller:</span> <Link href={`/admin/users/${seller.id}`} className="text-primary hover:underline">{seller.fullName}</Link></p>
                                     <p><span className="font-medium text-brand-dark-blue">Seller Verified:</span> {seller.verificationStatus === 'verified' ? <Badge className="bg-green-100 text-green-700">Yes</Badge> : <Badge variant="secondary">No</Badge>}</p>
-                                    <p><span className="font-medium text-brand-dark-blue">Seller Paid:</span> {seller.isPaid ? <Badge className="bg-green-100 text-green-700">Yes</Badge> : <Badge variant="secondary">No</Badge>}</p>
                                   </>
                                 )}
                             </CardContent>
