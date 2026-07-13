@@ -1,5 +1,6 @@
 'use client';
 import * as React from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Table,
   TableBody,
@@ -116,8 +117,12 @@ interface AdminActionDialogState {
   listing: AdminListingWithContext | null;
 }
 
-export default function AdminListingsPage() {
+function AdminListingsPageContent() {
   const { toast } = useToast();
+  const searchParams = useSearchParams();
+
+  // Optional seller filter passed from the user-details popup (?sellerId=...)
+  const [sellerId, setSellerId] = React.useState<string | null>(searchParams.get('sellerId'));
 
   // State management
   const [listings, setListings] = React.useState<AdminListingWithContext[]>([]);
@@ -180,6 +185,7 @@ export default function AdminListingsPage() {
       if (filters.industry !== 'all') params.append('industry', filters.industry);
       if (filters.sellerVerification !== 'all') params.append('seller_verification', filters.sellerVerification);
       if (filters.search.trim()) params.append('search', filters.search.trim());
+      if (sellerId) params.append('seller_id', sellerId);
 
       const response = await fetch(`/api/admin/listings?${params}`);
 
@@ -208,7 +214,7 @@ export default function AdminListingsPage() {
     } finally {
       setLoading(false);
     }
-  }, [filters, pagination.limit, toast]);
+  }, [filters, sellerId, pagination.limit, toast]);
 
   // Initial load and filter changes
   React.useEffect(() => {
@@ -403,6 +409,24 @@ export default function AdminListingsPage() {
               </span>
               <span className="ml-auto text-sm underline">Review now</span>
             </button>
+          )}
+
+          {/* Seller filter chip (from user management "View Listings" eye) */}
+          {sellerId && (
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="gap-1 py-1 pl-2 pr-1 text-sm font-normal">
+                <Filter className="h-3 w-3" />
+                Filtered by seller: {listings[0]?.seller?.fullName || sellerId}
+                <button
+                  type="button"
+                  onClick={() => setSellerId(null)}
+                  className="ml-1 rounded-sm p-0.5 hover:bg-muted"
+                  aria-label="Clear seller filter"
+                >
+                  <XCircle className="h-3.5 w-3.5" />
+                </button>
+              </Badge>
+            </div>
           )}
 
           {/* Filters */}
@@ -684,5 +708,14 @@ export default function AdminListingsPage() {
         onVerificationUpdate={() => fetchListings(pagination.currentPage)}
       />
     </AdminPageShell>
+  );
+}
+
+export default function AdminListingsPage() {
+  // useSearchParams requires a Suspense boundary for prerendering
+  return (
+    <React.Suspense fallback={null}>
+      <AdminListingsPageContent />
+    </React.Suspense>
   );
 }

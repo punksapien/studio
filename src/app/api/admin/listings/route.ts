@@ -27,6 +27,7 @@ export async function GET(request: NextRequest) {
     const statusFilter = searchParams.get('status') as ListingStatus | null;
     const industryFilter = searchParams.get('industry');
     const sellerVerificationFilter = searchParams.get('seller_verification'); // 'verified', 'not_verified', 'all'
+    const sellerIdFilter = searchParams.get('seller_id');
     const searchQuery = searchParams.get('search');
     const sortBy = searchParams.get('sort_by') || 'created_at';
     const sortOrder = searchParams.get('sort_order') || 'desc';
@@ -76,6 +77,10 @@ export async function GET(request: NextRequest) {
       } else if (sellerVerificationFilter === 'not_verified') {
         query = query.eq('is_seller_verified', false);
       }
+    }
+
+    if (sellerIdFilter) {
+      query = query.eq('seller_id', sellerIdFilter);
     }
 
     // Apply search filter

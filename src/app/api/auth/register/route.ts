@@ -51,7 +51,32 @@ export async function POST(request: NextRequest): Promise<NextResponse<RegisterR
     const validatedData = registerSchema.parse(body);
     
     console.log(`[REGISTER-API-${requestId}] Validated input for email: ${validatedData.email}`);
-    
+
+    // Reject emails on the admin block list ("Delete & Block")
+    const { data: blockedEntry, error: blockCheckError } = await supabaseAdmin
+      .from('blocked_emails')
+      .select('email')
+      .eq('email', validatedData.email)
+      .maybeSingle();
+
+    if (blockCheckError) {
+      console.error(`[REGISTER-API-${requestId}] Block list check failed:`, blockCheckError);
+      return NextResponse.json({
+        success: false,
+        error: 'Unable to verify email availability',
+        code: 'BLOCK_CHECK_FAILED'
+      }, { status: 500 });
+    }
+
+    if (blockedEntry) {
+      console.log(`[REGISTER-API-${requestId}] Blocked email attempted registration: ${validatedData.email}`);
+      return NextResponse.json({
+        success: false,
+        error: 'This email address cannot be used to register.',
+        code: 'EMAIL_BLOCKED'
+      }, { status: 403 });
+    }
+
     // Check if user already exists
     const { data: existingUsers, error: listError } = await supabaseAdmin.auth.admin.listUsers();
     

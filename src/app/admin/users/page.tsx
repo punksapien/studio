@@ -281,6 +281,7 @@ export default function AdminUsersPage() {
         userId={viewedUserId}
         open={!!viewedUserId}
         onOpenChange={(open) => { if (!open) setViewedUserId(null); }}
+        onUserDeleted={() => { setViewedUserId(null); mutate(); }}
       />
     </AdminPageShell>
   );

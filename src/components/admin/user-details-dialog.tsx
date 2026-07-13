@@ -13,10 +13,12 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { AdminLoginLinkDialog } from '@/components/admin/admin-login-link-dialog';
+import { AdminSetPasswordDialog } from '@/components/admin/admin-set-password-dialog';
+import { AdminDeleteUserDialog } from '@/components/admin/admin-delete-user-dialog';
 import { useToast } from '@/hooks/use-toast';
 import {
-  Activity, AlertCircle, Crown, Edit3, Eye, Key, Loader2, RefreshCw,
-  ShieldAlert, ShieldCheck, UserCircle,
+  Activity, AlertCircle, Ban, Crown, Eye, Key, KeyRound, Loader2, RefreshCw,
+  ShieldAlert, ShieldCheck, Trash2, UserCircle,
 } from 'lucide-react';
 
 interface UserDetail {
@@ -53,6 +55,8 @@ interface UserDetailsDialogProps {
   userId: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Called after the user is deleted so the parent can refresh its list */
+  onUserDeleted?: () => void;
 }
 
 const fetcher = async (url: string): Promise<UserDetailResponse> => {
@@ -99,9 +103,11 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-export function UserDetailsDialog({ userId, open, onOpenChange }: UserDetailsDialogProps) {
+export function UserDetailsDialog({ userId, open, onOpenChange, onUserDeleted }: UserDetailsDialogProps) {
   const { toast } = useToast();
   const [isLoginLinkDialogOpen, setIsLoginLinkDialogOpen] = React.useState(false);
+  const [isSetPasswordDialogOpen, setIsSetPasswordDialogOpen] = React.useState(false);
+  const [deleteDialog, setDeleteDialog] = React.useState<{ open: boolean; block: boolean }>({ open: false, block: false });
 
   const { data, error, isLoading, mutate } = useSWR<UserDetailResponse>(
     open && userId ? `/api/admin/users/${userId}` : null,
@@ -140,41 +146,6 @@ export function UserDetailsDialog({ userId, open, onOpenChange }: UserDetailsDia
                   {user.fullName}
                 </DialogTitle>
                 <DialogDescription className="sr-only">Full user profile</DialogDescription>
-
-                {/* Action items */}
-                <div className="flex flex-wrap gap-2 pt-3">
-                  {user.role !== 'admin' && (
-                    <>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setIsLoginLinkDialogOpen(true)}
-                        className="w-[190px] border-orange-200 text-orange-600 hover:bg-orange-50 hover:text-orange-700"
-                      >
-                        <Key className="mr-2 h-4 w-4" />
-                        Generate Login Link
-                      </Button>
-                      <Button variant="outline" size="sm" asChild className="w-[190px]">
-                        <Link href={`/admin/verification-queue/${user.role === 'buyer' ? 'buyers' : 'sellers'}?userId=${user.id}`}>
-                          <Edit3 className="mr-2 h-4 w-4" />
-                          Manage Verification
-                        </Link>
-                      </Button>
-                      {user.role === 'seller' && (
-                        <Button variant="outline" size="sm" asChild className="w-[190px]">
-                          <Link href={`/admin/listings?sellerId=${user.id}`}>
-                            <Eye className="mr-2 h-4 w-4" />
-                            View Listings
-                          </Link>
-                        </Button>
-                      )}
-                    </>
-                  )}
-                  <Button variant="outline" size="sm" className="w-[190px]" onClick={() => { mutate(); toast({ title: 'Data Refreshed', description: 'User information has been updated.' }); }}>
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    Refresh
-                  </Button>
-                </div>
               </DialogHeader>
 
               <div className="flex-1 space-y-6 overflow-y-auto p-6">
@@ -184,7 +155,53 @@ export function UserDetailsDialog({ userId, open, onOpenChange }: UserDetailsDia
                     {user.role === 'admin' && (
                       <Badge className="bg-purple-500 text-white"><Crown className="mr-1 h-3 w-3" />Platform Admin</Badge>
                     )}
+                  </div>
+                </Section>
+
+                {user.role !== 'admin' && (
+                  <Section title="User Settings">
+                    <div className="flex flex-wrap items-center gap-2 px-3 py-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsLoginLinkDialogOpen(true)}
+                        className="border-orange-200 text-orange-600 hover:bg-orange-50 hover:text-orange-700"
+                      >
+                        <Key className="mr-2 h-4 w-4" />
+                        Generate Login Link
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => setIsSetPasswordDialogOpen(true)}>
+                        <KeyRound className="mr-2 h-4 w-4" />
+                        Change Password
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setDeleteDialog({ open: true, block: false })}
+                        className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                      </Button>
+                      <Button variant="destructive" size="sm" onClick={() => setDeleteDialog({ open: true, block: true })}>
+                        <Ban className="mr-2 h-4 w-4" />
+                        Delete & Block
+                      </Button>
+                    </div>
+                  </Section>
+                )}
+
+                <Section title="Verification Status">
+                  <div className="flex items-center justify-between gap-4 px-3 py-2">
                     <VerificationBadge status={user.verificationStatus} />
+                    {user.role !== 'admin' && (
+                      <Button variant="outline" size="icon" className="h-8 w-8" asChild title="View verification">
+                        <Link href={`/admin/verification-queue/${user.role === 'buyer' ? 'buyers' : 'sellers'}?userId=${user.id}`}>
+                          <Eye className="h-4 w-4" />
+                          <span className="sr-only">View verification</span>
+                        </Link>
+                      </Button>
+                    )}
                   </div>
                 </Section>
 
@@ -215,8 +232,30 @@ export function UserDetailsDialog({ userId, open, onOpenChange }: UserDetailsDia
                         ? <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">Completed</Badge>
                         : <span>Step {user.onboarding_step_completed}</span>}
                     </Row>
-                    {user.role === 'seller' && <Row label="Listings">{user.listingCount}</Row>}
-                    <Row label="Inquiries">{user.inquiryCount}</Row>
+                    {user.role === 'seller' && (
+                      <Row label="Listings">
+                        <span className="inline-flex items-center justify-end gap-2">
+                          {user.listingCount}
+                          <Button variant="outline" size="icon" className="h-7 w-7" asChild title="View listings">
+                            <Link href={`/admin/listings?sellerId=${user.id}`}>
+                              <Eye className="h-4 w-4" />
+                              <span className="sr-only">View listings</span>
+                            </Link>
+                          </Button>
+                        </span>
+                      </Row>
+                    )}
+                    <Row label="Inquiries">
+                      <span className="inline-flex items-center justify-end gap-2">
+                        {user.inquiryCount}
+                        <Button variant="outline" size="icon" className="h-7 w-7" asChild title="View inquiries">
+                          <Link href={`/admin/inquiries?userId=${user.id}`}>
+                            <Eye className="h-4 w-4" />
+                            <span className="sr-only">View inquiries</span>
+                          </Link>
+                        </Button>
+                      </span>
+                    </Row>
                     {user.role === 'seller' && user.initialCompanyName && (
                       <Row label="Company">{user.initialCompanyName}</Row>
                     )}
@@ -246,7 +285,18 @@ export function UserDetailsDialog({ userId, open, onOpenChange }: UserDetailsDia
                   <Activity className="mr-1 inline h-3 w-3" />
                   Fetched {formatDate(data?.metadata?.fetchedAt)}
                 </span>
-                <Button onClick={() => onOpenChange(false)}>Close</Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    title="Refresh"
+                    onClick={() => { mutate(); toast({ title: 'Data Refreshed', description: 'User information has been updated.' }); }}
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    <span className="sr-only">Refresh</span>
+                  </Button>
+                  <Button onClick={() => onOpenChange(false)}>Close</Button>
+                </div>
               </div>
             </>
           )}
@@ -254,16 +304,41 @@ export function UserDetailsDialog({ userId, open, onOpenChange }: UserDetailsDia
       </Dialog>
 
       {user && (
-        <AdminLoginLinkDialog
-          isOpen={isLoginLinkDialogOpen}
-          onOpenChange={setIsLoginLinkDialogOpen}
-          targetUser={user.role !== 'admin' ? {
-            id: user.id,
-            fullName: user.fullName,
-            email: user.email,
-            role: user.role,
-          } : null}
-        />
+        <>
+          <AdminLoginLinkDialog
+            isOpen={isLoginLinkDialogOpen}
+            onOpenChange={setIsLoginLinkDialogOpen}
+            targetUser={user.role !== 'admin' ? {
+              id: user.id,
+              fullName: user.fullName,
+              email: user.email,
+              role: user.role,
+            } : null}
+          />
+          <AdminSetPasswordDialog
+            isOpen={isSetPasswordDialogOpen}
+            onOpenChange={setIsSetPasswordDialogOpen}
+            targetUser={user.role !== 'admin' ? {
+              id: user.id,
+              fullName: user.fullName,
+              email: user.email,
+            } : null}
+          />
+          <AdminDeleteUserDialog
+            isOpen={deleteDialog.open}
+            onOpenChange={(open) => setDeleteDialog(prev => ({ ...prev, open }))}
+            block={deleteDialog.block}
+            targetUser={user.role !== 'admin' ? {
+              id: user.id,
+              fullName: user.fullName,
+              email: user.email,
+            } : null}
+            onDeleted={() => {
+              onOpenChange(false);
+              onUserDeleted?.();
+            }}
+          />
+        </>
       )}
     </>
   );
