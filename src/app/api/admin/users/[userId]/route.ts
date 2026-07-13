@@ -71,8 +71,8 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     // Fetch auth user data for email verification status and last login
     const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(userId)
 
-    // Get user's activity counts (listings, inquiries) in parallel
-    const [listingsResult, inquiriesAsBuyerResult, inquiriesAsSellerResult] = await Promise.all([
+    // Get user's activity counts (listings, inquiries, verification requests, conversations) in parallel
+    const [listingsResult, inquiriesAsBuyerResult, inquiriesAsSellerResult, verificationResult, conversationsResult] = await Promise.all([
       userProfile.role === 'seller'
         ? supabase
             .from('listings')
@@ -95,7 +95,18 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
             .select('id', { count: 'exact', head: true })
             .eq('seller_id', userId)
             .is('deleted_at', null)
-        : Promise.resolve({ count: 0 })
+        : Promise.resolve({ count: 0 }),
+
+      supabase
+        .from('verification_requests')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId),
+
+      supabase
+        .from('conversations')
+        .select('id', { count: 'exact', head: true })
+        .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
+        .is('deleted_at', null)
     ])
 
     // Transform the data to match frontend expectations
@@ -138,6 +149,8 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       // Activity counts
       listingCount: listingsResult.count || 0,
       inquiryCount: (inquiriesAsBuyerResult.count || 0) + (inquiriesAsSellerResult.count || 0),
+      verificationRequestCount: verificationResult.count || 0,
+      conversationCount: conversationsResult.count || 0,
     }
 
     console.log('Admin User Detail API - returning data for user:', userId, {

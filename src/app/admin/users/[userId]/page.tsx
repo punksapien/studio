@@ -54,8 +54,8 @@ interface UserDetailResponse {
     updatedAt: string;
     listingCount: number;
     inquiryCount: number;
-    recentListings: any[];
-    recentInquiries: any[];
+    verificationRequestCount: number;
+    conversationCount: number;
   };
   metadata: {
     fetchedAt: string;
@@ -121,6 +121,25 @@ function FormattedDate({ dateString }: { dateString?: string | null }) {
   }, [dateString]);
 
   return <span>{formattedDate || 'N/A'}</span>;
+}
+
+// Bordered key-value row primitives (label left, value right, divided rows)
+function Row({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-4 px-3 py-2">
+      <span className="shrink-0 text-muted-foreground">{label}</span>
+      <div className="min-w-0 text-right break-words">{children}</div>
+    </div>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <h4 className="mb-2 text-sm font-semibold text-foreground">{title}</h4>
+      <div className="divide-y border text-sm">{children}</div>
+    </div>
+  );
 }
 
 // Badge components
@@ -275,11 +294,11 @@ export default function AdminUserDetailPage() {
             Back
           </Button>
           <div>
-            <h1 className="text-3xl font-semibold tracking-tight flex items-center text-brand-dark-blue font-heading">
-              <UserCircle className="h-8 w-8 mr-3 text-primary" />
+            <h1 className="text-lg font-semibold tracking-tight flex items-center text-brand-dark-blue">
+              <UserCircle className="h-5 w-5 mr-2 text-primary" />
               {user.fullName}
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               Last updated: <FormattedDate dateString={data.metadata.fetchedAt} />
             </p>
           </div>
@@ -344,27 +363,27 @@ export default function AdminUserDetailPage() {
               <Button variant="outline" size="sm" asChild>
                 <Link href={`/admin/verification-queue/${user.role === 'buyer' ? 'buyers' : 'sellers'}?userId=${user.id}`}>
                   <ShieldCheck className="mr-2 h-4 w-4" />
-                  Open Verification
+                  View Verification ({user.verificationRequestCount})
                 </Link>
               </Button>
               {user.role === 'seller' && (
                 <Button variant="outline" size="sm" asChild>
                   <Link href={`/admin/listings?sellerId=${user.id}`}>
                     <Briefcase className="mr-2 h-4 w-4" />
-                    Open Listings ({user.listingCount})
+                    View Listings ({user.listingCount})
                   </Link>
                 </Button>
               )}
               <Button variant="outline" size="sm" asChild>
                 <Link href={`/admin/inquiries?userId=${user.id}`}>
                   <Activity className="mr-2 h-4 w-4" />
-                  Open Inquiries ({user.inquiryCount})
+                  {user.role === 'buyer' ? 'Inquiries Sent' : 'Inquiries Received'} ({user.inquiryCount})
                 </Link>
               </Button>
               <Button variant="outline" size="sm" asChild>
                 <Link href={`/admin/conversations?userId=${user.id}`}>
                   <MessageSquare className="mr-2 h-4 w-4" />
-                  Open Conversations
+                  View Conversations ({user.conversationCount})
                 </Link>
               </Button>
             </div>
@@ -377,7 +396,7 @@ export default function AdminUserDetailPage() {
         <CardHeader>
           <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
             <div>
-              <CardTitle className="text-2xl text-brand-dark-blue font-heading">
+              <CardTitle className="text-lg text-brand-dark-blue">
                 {user.fullName}
               </CardTitle>
               <CardDescription className="flex items-center gap-2 mt-2">
@@ -400,111 +419,47 @@ export default function AdminUserDetailPage() {
         </CardHeader>
 
         <CardContent>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 text-sm">
-            {/* Contact Information */}
-            <div className="space-y-3">
-              <h4 className="font-semibold text-brand-dark-blue mb-2">Contact Information</h4>
-              <p className="flex flex-wrap items-center gap-y-1">
-                <Mail className="h-4 w-4 mr-3 text-muted-foreground" />
-                <span className="font-medium mr-2">Email:</span>
-                <span className="mr-2 break-all">{user.email}</span>
-                {user.isEmailVerified
-                  ? <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">Confirmed</Badge>
-                  : <Badge variant="secondary">Unconfirmed</Badge>}
-              </p>
-              <p className="flex items-center">
-                <Phone className="h-4 w-4 mr-3 text-muted-foreground" />
-                <span className="font-medium mr-2">Phone:</span>
-                {user.phoneNumber}
-              </p>
-              <p className="flex items-center">
-                <MapPin className="h-4 w-4 mr-3 text-muted-foreground" />
-                <span className="font-medium mr-2">Country:</span>
-                {user.country}
-              </p>
-          </div>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <Section title="Contact Information">
+              <Row label="Email">
+                <span className="inline-flex flex-wrap items-center justify-end gap-2">
+                  <span className="break-all">{user.email}</span>
+                  {user.isEmailVerified
+                    ? <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">Confirmed</Badge>
+                    : <Badge variant="secondary">Unconfirmed</Badge>}
+                </span>
+              </Row>
+              <Row label="Phone">{user.phoneNumber || 'Not provided'}</Row>
+              <Row label="Country">{user.country || 'Not provided'}</Row>
+            </Section>
 
-            {/* Account Information */}
-            <div className="space-y-3">
-              <h4 className="font-semibold text-brand-dark-blue mb-2">Account Information</h4>
-              <p className="flex items-center">
-                <CalendarDays className="h-4 w-4 mr-3 text-muted-foreground" />
-                <span className="font-medium mr-2">Registered:</span>
-                <FormattedDate dateString={user.createdAt} />
-              </p>
-              <p className="flex items-center">
-                <ShieldCheck className="h-4 w-4 mr-3 text-muted-foreground" />
-                <span className="font-medium mr-2">Email Verified:</span>
-                {user.isEmailVerified ? 'Yes' : 'No'}
-              </p>
+            <Section title="Account Information">
+              <Row label="Registered"><FormattedDate dateString={user.createdAt} /></Row>
+              <Row label="Email Verified">{user.isEmailVerified ? 'Yes' : 'No'}</Row>
               {user.lastLogin && (
-                <p className="flex items-center">
-                  <Clock className="h-4 w-4 mr-3 text-muted-foreground" />
-                  <span className="font-medium mr-2">Last Login:</span>
-                  <FormattedDate dateString={user.lastLogin} />
-                </p>
+                <Row label="Last Login"><FormattedDate dateString={user.lastLogin} /></Row>
               )}
-          </div>
+            </Section>
 
-            {/* Platform Activity - Different for Admin vs Regular Users */}
-            <div className="space-y-3">
-              {user.role === 'admin' ? (
-                <>
-                  <h4 className="font-semibold text-brand-dark-blue mb-2 flex items-center">
-                    <Crown className="h-4 w-4 mr-2 text-purple-600" />
-                    Admin Status
-                  </h4>
-                  <div className="flex items-center">
-                    <ShieldCheck className="h-4 w-4 mr-3 text-purple-600" />
-                    <span className="font-medium mr-2">Access Level:</span>
-                    <Badge className="bg-purple-100 text-purple-700">Maximum</Badge>
-                  </div>
-                  <p className="flex items-center">
-                    <Users2 className="h-4 w-4 mr-3 text-purple-600" />
-                    <span className="font-medium mr-2">Privileges:</span>
-                    <span className="text-purple-700 font-medium">All Systems</span>
-                  </p>
-                  <div className="flex items-center">
-                    <Activity className="h-4 w-4 mr-3 text-purple-600" />
-                    <span className="font-medium mr-2">Security Clearance:</span>
-                    <Badge className="bg-green-100 text-green-700">Maximum</Badge>
-                  </div>
-                  <p className="flex items-center">
-                    <Zap className="h-4 w-4 mr-3 text-purple-600" />
-                    <span className="font-medium mr-2">Role:</span>
-                    <span className="text-purple-700 font-medium">Platform Administrator</span>
-                  </p>
-                </>
-              ) : (
-                <>
-                  <h4 className="font-semibold text-brand-dark-blue mb-2">Platform Activity</h4>
-                  <p className="flex items-center">
-                    <Users2 className="h-4 w-4 mr-3 text-muted-foreground" />
-                    <span className="font-medium mr-2">Onboarding:</span>
-                    {user.is_onboarding_completed ? 'Completed' : `Step ${user.onboarding_step_completed}`}
-                  </p>
-                  {user.role === 'seller' && (
-                    <p className="flex items-center">
-                      <Briefcase className="h-4 w-4 mr-3 text-muted-foreground" />
-                      <span className="font-medium mr-2">Listings:</span>
-                      {user.listingCount}
-                    </p>
-                  )}
-                  <p className="flex items-center">
-                    <Activity className="h-4 w-4 mr-3 text-muted-foreground" />
-                    <span className="font-medium mr-2">Inquiries:</span>
-                    {user.inquiryCount}
-                  </p>
-                  {user.role === 'seller' && user.initialCompanyName && (
-                    <p className="flex items-center">
-                      <Building2 className="h-4 w-4 mr-3 text-muted-foreground" />
-                      <span className="font-medium mr-2">Company:</span>
-                      {user.initialCompanyName}
-                    </p>
-                  )}
-                </>
-              )}
-            </div>
+            {user.role === 'admin' ? (
+              <Section title="Admin Status">
+                <Row label="Access Level"><Badge className="bg-purple-100 text-purple-700">Maximum</Badge></Row>
+                <Row label="Privileges"><span className="text-purple-700 font-medium">All Systems</span></Row>
+                <Row label="Security Clearance"><Badge className="bg-green-100 text-green-700">Maximum</Badge></Row>
+                <Row label="Role"><span className="text-purple-700 font-medium">Platform Administrator</span></Row>
+              </Section>
+            ) : (
+              <Section title="Platform Activity">
+                <Row label="Onboarding">
+                  {user.is_onboarding_completed ? 'Completed' : `Step ${user.onboarding_step_completed}`}
+                </Row>
+                {user.role === 'seller' && <Row label="Listings">{user.listingCount}</Row>}
+                <Row label={user.role === 'buyer' ? 'Inquiries Sent' : 'Inquiries Received'}>{user.inquiryCount}</Row>
+                {user.role === 'seller' && user.initialCompanyName && (
+                  <Row label="Company">{user.initialCompanyName}</Row>
+                )}
+              </Section>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -513,11 +468,11 @@ export default function AdminUserDetailPage() {
       {user.role === 'admin' && (
         <Card className="shadow-lg border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50">
           <CardHeader className="bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-t-lg">
-            <CardTitle className="text-2xl flex items-center justify-between">
+            <CardTitle className="text-lg flex items-center justify-between">
               <div className="flex items-center">
-                <Crown className="h-8 w-8 mr-3 animate-pulse" />
+                <Crown className="h-5 w-5 mr-2 animate-pulse" />
                 You Are Admin LOL!
-                <Sparkles className="h-6 w-6 ml-3 animate-bounce" />
+                <Sparkles className="h-5 w-5 ml-2 animate-bounce" />
               </div>
               {memeData && (
                 <Button
@@ -540,8 +495,8 @@ export default function AdminUserDetailPage() {
               {/* Admin Personality Section */}
               <div className="space-y-4">
                 <div className="flex items-center space-x-2 text-purple-700">
-                  <Zap className="h-5 w-5" />
-                  <h4 className="font-semibold text-lg">Admin Powers Activated!</h4>
+                  <Zap className="h-4 w-4" />
+                  <h4 className="text-sm font-semibold">Admin Powers Activated!</h4>
                 </div>
                 <div className="space-y-3 text-sm">
                   <div className="flex items-center space-x-2">
@@ -571,8 +526,8 @@ export default function AdminUserDetailPage() {
               {/* Meme Section */}
               <div className="space-y-4">
                 <div className="flex items-center space-x-2 text-pink-700">
-                  <Sparkles className="h-5 w-5" />
-                  <h4 className="font-semibold text-lg">Admin Mood Booster</h4>
+                  <Sparkles className="h-4 w-4" />
+                  <h4 className="text-sm font-semibold">Admin Mood Booster</h4>
                 </div>
 
                 {memeLoading && (
@@ -626,7 +581,11 @@ export default function AdminUserDetailPage() {
 
       {/* Detailed Information Tabs */}
       <Tabs defaultValue="profile_details" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 gap-2 mb-6">
+        <TabsList className={`grid w-full gap-2 mb-6 ${
+          user.role === 'buyer' ? 'grid-cols-2 md:grid-cols-4'
+          : user.role === 'seller' ? 'grid-cols-3'
+          : 'grid-cols-2'
+        }`}>
           <TabsTrigger value="profile_details">
             <User className="h-4 w-4 mr-2" />
             Profile Details
@@ -659,69 +618,34 @@ export default function AdminUserDetailPage() {
               </CardHeader>
               <CardContent>
               <div className="grid md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <h4 className="font-semibold">Basic Information</h4>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="font-medium">User ID:</span>
-                      <span className="font-mono text-xs">{user.id}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium">Full Name:</span>
-                      <span>{user.fullName}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium">Email:</span>
-                      <span>{user.email}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium">Phone:</span>
-                      <span>{user.phoneNumber}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium">Country:</span>
-                      <span>{user.country}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium">Role:</span>
-                      <span className="capitalize">{user.role}</span>
-                    </div>
-                  </div>
-                </div>
+                <Section title="Basic Information">
+                  <Row label="User ID"><span className="font-mono text-xs">{user.id}</span></Row>
+                  <Row label="Full Name">{user.fullName}</Row>
+                  <Row label="Email"><span className="break-all">{user.email}</span></Row>
+                  <Row label="Phone">{user.phoneNumber || 'Not provided'}</Row>
+                  <Row label="Country">{user.country || 'Not provided'}</Row>
+                  <Row label="Role"><span className="capitalize">{user.role}</span></Row>
+                </Section>
 
-                <div className="space-y-4">
-                  <h4 className="font-semibold">Account Status</h4>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="font-medium">Verification Status:</span>
-                      {user.role === 'admin' ? (
-                        <Badge className="bg-purple-100 text-purple-700">Admin Account</Badge>
-                      ) : (
-                        getProfileVerificationBadge(user.verificationStatus)
-                      )}
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium">Email Verified:</span>
-                      <Badge variant={user.isEmailVerified ? "default" : "secondary"}>
-                        {user.isEmailVerified ? "Yes" : "No"}
-                      </Badge>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium">Created:</span>
-                      <span><FormattedDate dateString={user.createdAt} /></span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium">Last Updated:</span>
-                      <span><FormattedDate dateString={user.updatedAt} /></span>
-                    </div>
-                    {user.lastLogin && (
-                      <div className="flex justify-between">
-                        <span className="font-medium">Last Login:</span>
-                        <span><FormattedDate dateString={user.lastLogin} /></span>
-                      </div>
+                <Section title="Account Status">
+                  <Row label="Verification Status">
+                    {user.role === 'admin' ? (
+                      <Badge className="bg-purple-100 text-purple-700">Admin Account</Badge>
+                    ) : (
+                      getProfileVerificationBadge(user.verificationStatus)
+                    )}
+                  </Row>
+                  <Row label="Email Verified">
+                    <Badge variant={user.isEmailVerified ? "default" : "secondary"}>
+                      {user.isEmailVerified ? "Yes" : "No"}
+                    </Badge>
+                  </Row>
+                  <Row label="Created"><FormattedDate dateString={user.createdAt} /></Row>
+                  <Row label="Last Updated"><FormattedDate dateString={user.updatedAt} /></Row>
+                  {user.lastLogin && (
+                    <Row label="Last Login"><FormattedDate dateString={user.lastLogin} /></Row>
                   )}
-                  </div>
-                </div>
+                </Section>
               </div>
                 </CardContent>
            </Card>
@@ -737,36 +661,14 @@ export default function AdminUserDetailPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {user.buyerPersonaType && (
-                    <div>
-                      <span className="font-medium">Buyer Type:</span>
-                      <p className="mt-1 text-sm text-muted-foreground">{user.buyerPersonaType}</p>
-                    </div>
-                  )}
-                  {user.buyerPersonaOther && (
-                    <div>
-                      <span className="font-medium">Other Buyer Type:</span>
-                      <p className="mt-1 text-sm text-muted-foreground">{user.buyerPersonaOther}</p>
-                    </div>
-                  )}
-                  {user.investmentFocusDescription && (
-                    <div>
-                      <span className="font-medium">Investment Focus:</span>
-                      <p className="mt-1 text-sm text-muted-foreground">{user.investmentFocusDescription}</p>
-                    </div>
-                  )}
-                  {user.preferredInvestmentSize && (
-                <div>
-                      <span className="font-medium">Preferred Investment Size:</span>
-                      <p className="mt-1 text-sm text-muted-foreground">{user.preferredInvestmentSize}</p>
-                </div>
-                  )}
-                  {user.keyIndustriesOfInterest && (
-                <div>
-                      <span className="font-medium">Industries of Interest:</span>
-                      <p className="mt-1 text-sm text-muted-foreground">{user.keyIndustriesOfInterest}</p>
-                    </div>
+                <div className="divide-y border text-sm">
+                  {user.buyerPersonaType && <Row label="Buyer Type">{user.buyerPersonaType}</Row>}
+                  {user.buyerPersonaOther && <Row label="Other Buyer Type">{user.buyerPersonaOther}</Row>}
+                  {user.investmentFocusDescription && <Row label="Investment Focus">{user.investmentFocusDescription}</Row>}
+                  {user.preferredInvestmentSize && <Row label="Preferred Investment Size">{user.preferredInvestmentSize}</Row>}
+                  {user.keyIndustriesOfInterest && <Row label="Industries of Interest">{user.keyIndustriesOfInterest}</Row>}
+                  {!user.buyerPersonaType && !user.buyerPersonaOther && !user.investmentFocusDescription && !user.preferredInvestmentSize && !user.keyIndustriesOfInterest && (
+                    <div className="px-3 py-2 text-muted-foreground">No buyer persona information provided.</div>
                   )}
                 </div>
               </CardContent>
@@ -782,37 +684,25 @@ export default function AdminUserDetailPage() {
                 User's onboarding progress and submitted documents
               </CardDescription>
             </CardHeader>
-                <CardContent>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">Onboarding Status:</span>
+                <CardContent className="space-y-6">
+              <div className="divide-y border text-sm">
+                <Row label="Onboarding Status">
                   <Badge variant={user.is_onboarding_completed ? "default" : "secondary"}>
                     {user.is_onboarding_completed ? "Completed" : "In Progress"}
                   </Badge>
-                </div>
-                <div className="flex justify-between">
-                  <span className="font-medium">Current Step:</span>
-                  <span>{user.onboarding_step_completed}</span>
-                </div>
+                </Row>
+                <Row label="Current Step">{user.onboarding_step_completed}</Row>
                 {user.onboardingCompletedAt && (
-                  <div className="flex justify-between">
-                    <span className="font-medium">Completed At:</span>
-                    <span><FormattedDate dateString={user.onboardingCompletedAt} /></span>
-                  </div>
+                  <Row label="Completed At"><FormattedDate dateString={user.onboardingCompletedAt} /></Row>
                 )}
-                {user.submittedDocuments && Object.keys(user.submittedDocuments).length > 0 && (
-                  <div>
-                    <span className="font-medium">Submitted Documents:</span>
-                    <div className="mt-2 space-y-1">
-                      {Object.entries(user.submittedDocuments).map(([key, value]) => (
-                        <div key={key} className="text-sm">
-                          <span className="font-medium">{key}:</span> {String(value)}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  )}
               </div>
+              {user.submittedDocuments && Object.keys(user.submittedDocuments).length > 0 && (
+                <Section title="Submitted Documents">
+                  {Object.entries(user.submittedDocuments).map(([key, value]) => (
+                    <Row key={key} label={key}>{String(value)}</Row>
+                  ))}
+                </Section>
+              )}
                 </CardContent>
             </Card>
         </TabsContent>
@@ -827,34 +717,18 @@ export default function AdminUserDetailPage() {
               </CardHeader>
               <CardContent>
                 {user.role === 'admin' ? (
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="font-medium">Access Level:</span>
-                      <Badge className="bg-purple-100 text-purple-700">System Administrator</Badge>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium">Admin Privileges:</span>
-                      <Badge className="bg-green-100 text-green-700">Full Platform Control</Badge>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium">Data Access:</span>
-                      <Badge className="bg-blue-100 text-blue-700">All Users & Analytics</Badge>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium">Management:</span>
-                      <Badge className="bg-orange-100 text-orange-700">Verification & Content</Badge>
-                    </div>
+                  <div className="divide-y border text-sm">
+                    <Row label="Access Level"><Badge className="bg-purple-100 text-purple-700">System Administrator</Badge></Row>
+                    <Row label="Admin Privileges"><Badge className="bg-green-100 text-green-700">Full Platform Control</Badge></Row>
+                    <Row label="Data Access"><Badge className="bg-blue-100 text-blue-700">All Users & Analytics</Badge></Row>
+                    <Row label="Management"><Badge className="bg-orange-100 text-orange-700">Verification & Content</Badge></Row>
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="font-medium">Total Listings:</span>
-                      <Badge variant="outline">{user.listingCount}</Badge>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium">Total Inquiries:</span>
-                      <Badge variant="outline">{user.inquiryCount}</Badge>
-                    </div>
+                  <div className="divide-y border text-sm">
+                    {user.role === 'seller' && <Row label="Total Listings"><Badge variant="outline">{user.listingCount}</Badge></Row>}
+                    <Row label={user.role === 'buyer' ? 'Inquiries Sent' : 'Inquiries Received'}><Badge variant="outline">{user.inquiryCount}</Badge></Row>
+                    <Row label="Conversations"><Badge variant="outline">{user.conversationCount}</Badge></Row>
+                    <Row label="Verification Requests"><Badge variant="outline">{user.verificationRequestCount}</Badge></Row>
                   </div>
                 )}
               </CardContent>
@@ -888,15 +762,23 @@ export default function AdminUserDetailPage() {
                   </>
                 ) : (
                   <>
+                    {user.role === 'seller' && (
+                      <Button variant="outline" size="sm" className="w-full" asChild>
+                        <Link href={`/admin/listings?sellerId=${user.id}`}>
+                          <Eye className="h-4 w-4 mr-2" />
+                          View User's Listings
+                        </Link>
+                      </Button>
+                    )}
                     <Button variant="outline" size="sm" className="w-full" asChild>
-                      <Link href={`/admin/listings?sellerId=${user.id}`}>
-                        <Eye className="h-4 w-4 mr-2" />
-                        View User's Listings
+                      <Link href={`/admin/inquiries?userId=${user.id}`}>
+                        <Activity className="h-4 w-4 mr-2" />
+                        View Inquiries
                       </Link>
                     </Button>
                     <Button variant="outline" size="sm" className="w-full" asChild>
                       <Link href={`/admin/conversations?userId=${user.id}`}>
-                        <Activity className="h-4 w-4 mr-2" />
+                        <MessageSquare className="h-4 w-4 mr-2" />
                         View Conversations
                       </Link>
                     </Button>

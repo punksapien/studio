@@ -4,6 +4,7 @@
 // Force dynamic rendering due to client-side interactivity
 export const dynamic = 'force-dynamic'
 import * as React from "react";
+import { useSearchParams } from "next/navigation";
 import useSWR from 'swr';
 import {
   Table,
@@ -19,7 +20,7 @@ import { AdminPageShell } from "@/components/admin/page-header";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { VerificationRequestItem, VerificationQueueStatus, VerificationStatus, UserRole, AdminNote } from "@/lib/types";
 import Link from "next/link";
-import { Eye, FileText, Edit, ShieldCheck, AlertTriangle, MailOpen, MessageSquare, Clock, FileSearch, Briefcase, RefreshCw, Loader2, Users, InboxIcon } from "lucide-react";
+import { Eye, FileText, Edit, ShieldCheck, AlertTriangle, MailOpen, MessageSquare, Clock, FileSearch, Briefcase, RefreshCw, Loader2, Users, InboxIcon, Filter, XCircle } from "lucide-react";
 import { UpdateVerificationStatusDialog } from "@/components/admin/update-verification-status-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAdminVerification } from "@/hooks/use-admin-verification";
@@ -63,10 +64,13 @@ const fetcher = async (url: string): Promise<VerificationQueueResponse> => {
   return response.json();
 };
 
-export default function AdminSellerVerificationQueuePage() {
+function AdminSellerVerificationQueuePageContent() {
   const { toast } = useToast();
+  const searchParams = useSearchParams();
   const { updateVerificationRequest, isUpdating } = useAdminVerification();
   const [statusFilter, setStatusFilter] = React.useState<string>('all');
+  // Optional user filter passed from the user details page (?userId=...)
+  const [userIdFilter, setUserIdFilter] = React.useState<string | null>(searchParams.get('userId'));
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [selectedRequest, setSelectedRequest] = React.useState<VerificationRequestItem | null>(null);
 
@@ -187,7 +191,11 @@ export default function AdminSellerVerificationQueuePage() {
     );
   }
 
-  const requests = data?.requests || [];
+  const allRequests = data?.requests || [];
+  const requests = userIdFilter ? allRequests.filter(r => r.userId === userIdFilter) : allRequests;
+  const filteredUserName = userIdFilter
+    ? (requests[0]?.userName || allRequests.find(r => r.userId === userIdFilter)?.userName || userIdFilter)
+    : null;
 
   return (
     <AdminPageShell
@@ -205,6 +213,24 @@ export default function AdminSellerVerificationQueuePage() {
         </>
       }
     >
+          {/* User filter chip (from user details page) */}
+          {userIdFilter && (
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="gap-1 py-1 pl-2 pr-1 text-sm font-normal">
+                <Filter className="h-3 w-3" />
+                Filtered by user: {filteredUserName}
+                <button
+                  type="button"
+                  onClick={() => setUserIdFilter(null)}
+                  className="ml-1 rounded-sm p-0.5 hover:bg-muted"
+                  aria-label="Clear user filter"
+                >
+                  <XCircle className="h-3.5 w-3.5" />
+                </button>
+              </Badge>
+            </div>
+          )}
+
           <div className="flex-1 min-h-0 border overflow-auto">
             <Table className="w-full">
               <TableHeader>
@@ -293,6 +319,15 @@ export default function AdminSellerVerificationQueuePage() {
         onSave={handleSaveStatusUpdate}
       />
     </AdminPageShell>
+  );
+}
+
+export default function AdminSellerVerificationQueuePage() {
+  // useSearchParams requires a Suspense boundary for prerendering
+  return (
+    <React.Suspense fallback={null}>
+      <AdminSellerVerificationQueuePageContent />
+    </React.Suspense>
   );
 }
 
