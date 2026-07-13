@@ -1,4 +1,3 @@
-
 'use client';
 
 // Force dynamic rendering due to client-side interactivity
@@ -6,216 +5,180 @@ export const dynamic = 'force-dynamic'
 
 import * as React from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useForm, FormProvider } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, ArrowRight, CheckCircle, FileText, Loader2, ShieldCheck, UserCircle } from 'lucide-react';
-import { updateOnboardingStatus, uploadOnboardingDocument } from '@/hooks/use-current-user';
-import Image from 'next/image'; // Import Image for preview
+import { ArrowLeft, ArrowRight, Briefcase, Building2, CheckCircle, Loader2, UserCircle } from 'lucide-react';
+import { updateOnboardingStatus, updateUserProfile } from '@/hooks/use-current-user';
+import { useCurrentUser } from '@/hooks/use-cached-profile';
+import { ContactStepFields } from '@/components/onboarding/steps/contact-step';
+import { CompanyStepFields } from '@/components/onboarding/steps/company-step';
+import { BuyerPersonaTypes, PreferredInvestmentSizes } from '@/lib/types';
 
 // --- Schemas ---
-const Step1BuyerSchema = z.object({});
-
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
-const ACCEPTED_ID_TYPES = ['image/jpeg', 'image/png', 'application/pdf'];
-
-const Step2BuyerSchema = z.object({
-  buyerIdentityFile: z.instanceof(File, { message: "Identity document is required." })
-    .refine(file => file.size <= MAX_FILE_SIZE, "File size must be 5MB or less.")
-    .refine(file => ACCEPTED_ID_TYPES.includes(file.type), "Invalid file type. JPG, PNG, or PDF only."),
+// Every field is optional: each step can be skipped entirely, and an empty
+// "Continue" is legal. Enum fields are validated only when a value is chosen.
+const Step1Schema = z.object({
+  fullName: z.string().optional(),
+  phoneNumber: z.string().optional(),
 });
 
-type BuyerFormValues = Partial<z.infer<typeof Step1BuyerSchema>> &
-                       Partial<z.infer<typeof Step2BuyerSchema>> &
-                       { submitted_documents?: Record<string, boolean | string> }; // Allow string for path
+const Step2Schema = z.object({
+  country: z.string().optional(),
+  companyName: z.string().optional(),
+});
 
-const buyerStepSchemas = [Step1BuyerSchema, Step2BuyerSchema];
+const Step3Schema = z.object({
+  buyerPersonaType: z.string().optional(),
+  buyerPersonaOther: z.string().optional(),
+  investmentFocusDescription: z.string().optional(),
+  preferredInvestmentSize: z.string().optional(),
+  keyIndustriesOfInterest: z.string().optional(),
+}).refine(
+  data => data.buyerPersonaType !== 'Other' || (data.buyerPersonaOther && data.buyerPersonaOther.trim() !== ''),
+  { message: "Please specify your role if 'Other' is selected.", path: ['buyerPersonaOther'] }
+);
 
-interface FileInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
-  label: string;
-  helperText?: string;
-  currentFile?: File | null;
-  onFileChange: (file: File | null) => void;
-  previewUrl?: string | null;
+const stepSchemas = [Step1Schema, Step2Schema, Step3Schema];
+
+type BuyerOnboardingValues = z.infer<typeof Step1Schema> &
+  z.infer<typeof Step2Schema> &
+  z.infer<typeof Step3Schema>;
+
+const TOTAL_STEPS = 3;
+
+/** Map the current step's form values to user_profiles columns, omitting empty values. */
+function profileUpdateForStep(step: number, values: BuyerOnboardingValues): Record<string, string> {
+  const pick = (obj: Record<string, string | undefined>) =>
+    Object.fromEntries(Object.entries(obj).filter(([, v]) => v && v.trim() !== '')) as Record<string, string>;
+
+  switch (step) {
+    case 1:
+      return pick({ full_name: values.fullName, phone_number: values.phoneNumber });
+    case 2:
+      return pick({ country: values.country, initial_company_name: values.companyName });
+    case 3:
+      return pick({
+        buyer_persona_type: values.buyerPersonaType,
+        buyer_persona_other: values.buyerPersonaType === 'Other' ? values.buyerPersonaOther : undefined,
+        investment_focus_description: values.investmentFocusDescription,
+        preferred_investment_size: values.preferredInvestmentSize,
+        key_industries_of_interest: values.keyIndustriesOfInterest,
+      });
+    default:
+      return {};
+  }
 }
-
-const StyledFileInput: React.FC<FileInputProps> = ({ label, helperText, currentFile, onFileChange, previewUrl, accept, ...props }) => {
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
-
-  const handleButtonClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0] || null;
-    onFileChange(file);
-  };
-
-  return (
-    <FormItem>
-      <FormLabel>{label}</FormLabel>
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-        <Button type="button" variant="outline" onClick={handleButtonClick} disabled={props.disabled} className="w-full sm:w-auto">
-          <FileText className="mr-2 h-4 w-4" /> Choose File
-        </Button>
-        <input
-          type="file"
-          ref={fileInputRef}
-          className="hidden"
-          onChange={handleChange}
-          accept={accept}
-          {...props}
-        />
-        {previewUrl && (
-            <div className="mt-2 sm:mt-0 w-full sm:w-auto max-w-[150px] border p-1 rounded-md bg-muted/30">
-                <Image src={previewUrl} alt="ID Preview" width={150} height={100} className="max-h-24 w-auto rounded object-contain" />
-            </div>
-        )}
-         {currentFile && !previewUrl && <span className="text-sm text-muted-foreground truncate max-w-[200px] mt-2 sm:mt-0">{currentFile.name}</span>}
-      </div>
-       {currentFile && previewUrl && <p className="text-xs text-muted-foreground mt-1">{currentFile.name} ({(currentFile.size / 1024 / 1024).toFixed(2)} MB)</p>}
-      {helperText && <FormDescription className="mt-1">{helperText}</FormDescription>}
-      <FormMessage />
-    </FormItem>
-  );
-};
-
 
 export default function BuyerOnboardingStepPage() {
   const router = useRouter();
   const params = useParams();
   const { toast } = useToast();
+  const { profile, refreshAuth } = useCurrentUser();
   const currentStep = parseInt(params.step as string, 10);
-  const totalSteps = 2;
 
   const [isLoading, setIsLoading] = React.useState(false);
-  const [filePreviewUrl, setFilePreviewUrl] = React.useState<string | null>(null);
-  const [formData, setFormData] = React.useState<BuyerFormValues>(() => {
-    if (typeof window !== 'undefined') {
-      const savedData = sessionStorage.getItem('buyerOnboardingData');
-      return savedData ? JSON.parse(savedData) : {};
-    }
-    return {};
-  });
+  const [isSkipping, setIsSkipping] = React.useState(false);
 
-  const currentSchema = buyerStepSchemas[currentStep - 1] || z.object({});
-  const methods = useForm<BuyerFormValues>({
+  const currentSchema = stepSchemas[currentStep - 1] || z.object({});
+  const form = useForm<BuyerOnboardingValues>({
     resolver: zodResolver(currentSchema as any),
-    defaultValues: formData,
+    defaultValues: {
+      fullName: '',
+      phoneNumber: '',
+      country: '',
+      companyName: '',
+      buyerPersonaType: '',
+      buyerPersonaOther: '',
+      investmentFocusDescription: '',
+      preferredInvestmentSize: '',
+      keyIndustriesOfInterest: '',
+    },
   });
 
+  // Prefill from the saved profile so revisiting a step shows saved values.
   React.useEffect(() => {
-    const loadedData = typeof window !== 'undefined' ? sessionStorage.getItem('buyerOnboardingData') : null;
-    const parsedData = loadedData ? JSON.parse(loadedData) : {};
-    const defaultVals: BuyerFormValues = { ...parsedData };
-    delete defaultVals.buyerIdentityFile;
-    methods.reset(defaultVals);
-    setFormData(parsedData);
+    if (!profile) return;
+    form.reset({
+      fullName: profile.full_name || '',
+      phoneNumber: profile.phone_number || '',
+      country: profile.country || '',
+      companyName: profile.initial_company_name || '',
+      buyerPersonaType: profile.buyer_persona_type || '',
+      buyerPersonaOther: profile.buyer_persona_other || '',
+      investmentFocusDescription: profile.investment_focus_description || '',
+      preferredInvestmentSize: profile.preferred_investment_size || '',
+      keyIndustriesOfInterest: profile.key_industries_of_interest || '',
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.id, currentStep]);
 
-    // Check if there's a stored document path to show as preview
-    if (currentStep === 2 && parsedData.submitted_documents?.buyer_identity && typeof parsedData.submitted_documents.buyer_identity === 'string') {
-        // This would ideally be a public URL or a temporary signed URL if it's an existing doc.
-        // For now, if it's just a path, we can't directly preview it without more logic.
-        // If we stored full URL from upload, we could use it: setFilePreviewUrl(parsedData.submitted_documents.buyer_identity);
-    }
+  const watchedBuyerPersonaType = form.watch('buyerPersonaType');
+  const isFinalStep = currentStep === TOTAL_STEPS;
 
-  }, [currentStep, methods]);
-
-
-  const handleFileChangeAndPreview = (file: File | null) => {
-    methods.setValue('buyerIdentityFile', file as any);
-    if (filePreviewUrl) {
-        URL.revokeObjectURL(filePreviewUrl);
-    }
-    if (file) {
-        setFilePreviewUrl(URL.createObjectURL(file));
-    } else {
-        setFilePreviewUrl(null);
-    }
-  };
-
-  React.useEffect(() => {
-    return () => { if (filePreviewUrl) URL.revokeObjectURL(filePreviewUrl); };
-  }, [filePreviewUrl]);
-
-
-  const onSubmit = async (data: BuyerFormValues) => {
+  const onSubmit = async (values: BuyerOnboardingValues) => {
     setIsLoading(true);
-    const updatedData = { ...formData, ...data };
-
     try {
-      let documentsToSubmitThisStep: Record<string, string | boolean> = updatedData.submitted_documents || {};
-
-      if (currentStep === 1) {
-        await updateOnboardingStatus({ step_completed: currentStep });
-      } else if (currentStep === 2) {
-        const fileToUpload = methods.getValues('buyerIdentityFile') as File | undefined;
-        if (fileToUpload instanceof File) {
-          const uploadResult = await uploadOnboardingDocument(fileToUpload, 'buyer_identity');
-          documentsToSubmitThisStep.buyer_identity = uploadResult.filePath; // Store path or URL
-          await updateOnboardingStatus({
-            step_completed: currentStep,
-            submitted_documents: documentsToSubmitThisStep,
-            complete_onboarding: true
-          });
-        } else if (formData.submitted_documents?.buyer_identity) {
-          // File was already uploaded and stored in session/formData
-          await updateOnboardingStatus({
-            step_completed: currentStep,
-            submitted_documents: documentsToSubmitThisStep, // Ensure existing doc path is saved
-            complete_onboarding: true
-          });
-        } else {
-          toast({ variant: "destructive", title: "Missing Document", description: "Please upload your identity document." });
-          setIsLoading(false);
-          return;
-        }
+      const update = profileUpdateForStep(currentStep, values);
+      if (Object.keys(update).length > 0) {
+        await updateUserProfile(update);
       }
-      
-      updatedData.submitted_documents = documentsToSubmitThisStep;
-      setFormData(updatedData);
+      await updateOnboardingStatus({
+        step_completed: currentStep,
+        ...(isFinalStep && { complete_onboarding: true }),
+      });
 
-      if (typeof window !== 'undefined') {
-        const dataToStore = { ...updatedData };
-        if (dataToStore.buyerIdentityFile instanceof File) {
-          // Don't store File object, but indicate a file *was* selected or its path if uploaded
-           dataToStore.buyerIdentityFile = documentsToSubmitThisStep.buyer_identity ? String(documentsToSubmitThisStep.buyer_identity) : ({ name: dataToStore.buyerIdentityFile.name, type: dataToStore.buyerIdentityFile.type } as any);
-        }
-        sessionStorage.setItem('buyerOnboardingData', JSON.stringify(dataToStore));
-      }
-
-      toast({ title: `Step ${currentStep} Saved`, description: "Progress saved successfully." });
-
-      if (currentStep < totalSteps) {
-        router.push(`/onboarding/buyer/${currentStep + 1}`);
+      if (isFinalStep) {
+        refreshAuth();
+        toast({ title: 'Profile Complete!', description: 'Welcome to Nobridge. Your profile has been saved.' });
+        router.push('/dashboard');
       } else {
-        router.push('/onboarding/buyer/success');
+        router.push(`/onboarding/buyer/${currentStep + 1}`);
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An error occurred';
-      toast({ variant: "destructive", title: "Error", description: errorMessage });
-    } finally {
+      toast({ variant: 'destructive', title: 'Error', description: errorMessage });
       setIsLoading(false);
+    }
+  };
+
+  const handleSkip = async () => {
+    setIsSkipping(true);
+    try {
+      // No profile write — just mark onboarding done so the user is never routed back in.
+      await updateOnboardingStatus({
+        step_completed: currentStep - 1,
+        complete_onboarding: true,
+      });
+      refreshAuth();
+      router.push('/dashboard');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred';
+      toast({ variant: 'destructive', title: 'Error', description: errorMessage });
+      setIsSkipping(false);
     }
   };
 
   const handlePrevious = () => {
     if (currentStep > 1) {
-       if (typeof window !== 'undefined') {
-        const currentValues = methods.getValues();
-        const dataToStore = { ...formData, ...currentValues };
-         if (dataToStore.buyerIdentityFile instanceof File) {
-            dataToStore.buyerIdentityFile = { name: dataToStore.buyerIdentityFile.name, type: dataToStore.buyerIdentityFile.type } as any;
-        }
-        sessionStorage.setItem('buyerOnboardingData', JSON.stringify(dataToStore));
-      }
       router.push(`/onboarding/buyer/${currentStep - 1}`);
     }
   };
+
+  const isBusy = isLoading || isSkipping;
 
   const renderStepContent = () => {
     switch (currentStep) {
@@ -223,23 +186,13 @@ export default function BuyerOnboardingStepPage() {
         return (
           <>
             <CardHeader>
-              <CardTitle className="font-heading flex items-center gap-2"><UserCircle className="h-7 w-7 text-primary" /> Welcome to Buyer Verification!</CardTitle>
-              <CardDescription>Verify your identity to access detailed business information, financials, and connect securely with sellers.</CardDescription>
+              <CardTitle className="font-heading flex items-center gap-2">
+                <UserCircle className="h-7 w-7 text-primary" /> About You
+              </CardTitle>
+              <CardDescription>Tell us who you are so sellers know who they&apos;re talking to.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-md border border-blue-200 dark:border-blue-800">
-                <h3 className="font-semibold text-blue-800 dark:text-blue-200 mb-2">Why Verify?</h3>
-                <ul className="list-disc list-inside space-y-1.5 text-sm text-blue-700 dark:text-blue-300">
-                  <li>Gain access to sensitive listing details and documents.</li>
-                  <li>Build trust with sellers for smoother transactions.</li>
-                  <li>Enable direct communication via Nobridge messaging (after admin facilitation).</li>
-                  <li>Ensure a secure and professional marketplace for all users.</li>
-                </ul>
-              </div>
-              <p className="text-muted-foreground">
-                The next step involves uploading a clear copy of your government-issued photo ID (e.g., Passport, National ID).
-                This information is handled securely and is solely for identity verification purposes.
-              </p>
+              <ContactStepFields control={form.control} isPending={isBusy} />
             </CardContent>
           </>
         );
@@ -247,23 +200,128 @@ export default function BuyerOnboardingStepPage() {
         return (
           <>
             <CardHeader>
-              <CardTitle className="font-heading flex items-center gap-2"><FileText className="h-7 w-7 text-primary"/>Upload Identity Document</CardTitle>
-              <CardDescription>Please upload a clear copy of your government-issued photo ID. Max 5MB. Accepts: JPG, PNG, PDF.</CardDescription>
+              <CardTitle className="font-heading flex items-center gap-2">
+                <Building2 className="h-7 w-7 text-primary" /> Your Company
+              </CardTitle>
+              <CardDescription>Where are you based and what company do you represent?</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <CompanyStepFields control={form.control} isPending={isBusy} />
+            </CardContent>
+          </>
+        );
+      case 3:
+        return (
+          <>
+            <CardHeader>
+              <CardTitle className="font-heading flex items-center gap-2">
+                <Briefcase className="h-7 w-7 text-primary" /> Investment Profile
+              </CardTitle>
+              <CardDescription>Help us match you with the right opportunities.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <FormField
-                control={methods.control}
-                name="buyerIdentityFile"
+                control={form.control}
+                name="buyerPersonaType"
                 render={({ field }) => (
-                  <StyledFileInput
-                    label="Proof of Identity"
-                    helperText="E.g., Passport, National ID Card, Driver's License."
-                    accept=".jpg,.jpeg,.png,.pdf"
-                    currentFile={field.value instanceof File ? field.value : null}
-                    previewUrl={filePreviewUrl}
-                    onFileChange={handleFileChangeAndPreview}
-                    disabled={isLoading}
-                  />
+                  <FormItem>
+                    <FormLabel>I am a/an: (Primary Role / Buyer Type)</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || ''} disabled={isBusy}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select your primary role" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {BuyerPersonaTypes.map((type) => (
+                          <SelectItem key={type} value={type}>
+                            {type}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {watchedBuyerPersonaType === 'Other' && (
+                <FormField
+                  control={form.control}
+                  name="buyerPersonaOther"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Please Specify Role</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="Your specific role" disabled={isBusy} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              <FormField
+                control={form.control}
+                name="investmentFocusDescription"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Investment Focus or What You&apos;re Looking For</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        {...field}
+                        placeholder="e.g., SaaS businesses in Southeast Asia with $100k-$1M ARR, turnarounds in manufacturing, e-commerce brands for scaling."
+                        disabled={isBusy}
+                        rows={3}
+                      />
+                    </FormControl>
+                    <FormDescription>Briefly describe your primary investment criteria or the types of businesses you are seeking.</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="preferredInvestmentSize"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Preferred Investment Size (Approximate)</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || ''} disabled={isBusy}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select preferred investment size" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {PreferredInvestmentSizes.map((size) => (
+                          <SelectItem key={size} value={size}>
+                            {size}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="keyIndustriesOfInterest"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Key Industries of Interest</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        {...field}
+                        placeholder="e.g., Technology, E-commerce, Healthcare, Manufacturing, B2B Services. Please list a few."
+                        disabled={isBusy}
+                        rows={3}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
                 )}
               />
             </CardContent>
@@ -275,37 +333,49 @@ export default function BuyerOnboardingStepPage() {
   };
 
   return (
-    <FormProvider {...methods}>
-      <form onSubmit={methods.handleSubmit(onSubmit)}>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)}>
         <Card className="bg-brand-white p-0">
           {renderStepContent()}
 
-          <CardFooter className="flex justify-between pt-8 border-t mt-6 p-6 md:p-10">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handlePrevious}
-              disabled={currentStep === 1 || isLoading}
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" /> Previous
-            </Button>
+          <CardFooter className="flex flex-col-reverse sm:flex-row sm:justify-between gap-3 pt-8 border-t mt-6 p-6 md:p-10">
+            <div className="flex w-full sm:w-auto gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handlePrevious}
+                disabled={currentStep === 1 || isBusy}
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" /> Previous
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={handleSkip}
+                disabled={isBusy}
+                className="text-muted-foreground"
+              >
+                {isSkipping && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Skip for now
+              </Button>
+            </div>
 
             <Button
               type="submit"
-              disabled={isLoading}
-              className="bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90"
+              disabled={isBusy}
+              className="bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90 w-full sm:w-auto"
             >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {currentStep < totalSteps ? 'Save & Next Step' : 'Submit Verification'}
-              {currentStep < totalSteps ? (
-                <ArrowRight className="ml-2 h-4 w-4" />
-              ) : (
+              {isFinalStep ? 'Finish' : 'Continue'}
+              {isFinalStep ? (
                 <CheckCircle className="ml-2 h-4 w-4" />
+              ) : (
+                <ArrowRight className="ml-2 h-4 w-4" />
               )}
             </Button>
           </CardFooter>
         </Card>
       </form>
-    </FormProvider>
+    </Form>
   );
 }

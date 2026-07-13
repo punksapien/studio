@@ -2,6 +2,8 @@
 // All components should use the cached version instead
 
 import { useCurrentUser as useCachedCurrentUser } from '@/hooks/use-cached-profile';
+import { supabase } from '@/lib/supabase';
+import type { UserProfile } from '@/lib/auth';
 
 // Legacy compatibility - redirect to cached version
 export function useCurrentUser() {

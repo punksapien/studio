@@ -1,10 +1,12 @@
 /**
- * CRM sync orchestrator — runs after a website sign-up's email is verified.
+ * CRM sync orchestrator — runs the moment a website sign-up is created.
  *
- * Wiring: the verify-otp and verify-email-bypass API routes call
- * `after(() => handleVerifiedSignup(email, requestId))` (Next.js `after()`), so this
- * runs AFTER the HTTP response is sent. Verification therefore never fails or slows
- * down because the CRM or Google Chat is unreachable.
+ * Wiring: the register API route calls
+ * `after(() => handleVerifiedSignup(email, requestId, user))` (Next.js `after()`), so
+ * this runs AFTER the HTTP response is sent. Registration therefore never fails or
+ * slows down because the CRM or Google Chat is unreachable. At sign-up time only the
+ * email and role are known (name/phone/company arrive later via onboarding), so the
+ * lead is created email-first; twenty-crm/google-chat both tolerate an empty name.
  *
  * Behaviour:
  *  - No-ops silently if the integration env vars are unset (local dev / preview).
@@ -12,8 +14,9 @@
  *    CRM push itself dedups by email (see twenty-crm.ts).
  *  - Best-effort: each step is isolated; errors are logged as [CRM-SYNC-*], never thrown.
  *  - `crm_synced_at` is only stamped when BOTH the CRM push and Chat ping succeed, so a
- *    re-verification naturally retries a partial failure.
+ *    retry (e.g. re-registration of an unverified email) naturally recovers a partial failure.
  */
+import type { User } from '@supabase/supabase-js';
 import { supabaseAdmin } from './supabase-admin';
 import { createSignupLead, type SignupLead } from './twenty-crm';
 import { postSignupCard, hasAnyChatWebhook } from './google-chat';
@@ -36,7 +39,7 @@ async function findUserByEmail(email: string) {
   return null;
 }
 
-export async function handleVerifiedSignup(email: string, requestId: string): Promise<void> {
+export async function handleVerifiedSignup(email: string, requestId: string, knownUser?: User): Promise<void> {
   const tag = `[CRM-SYNC-${requestId}]`;
   try {
     if (!isConfigured()) {
@@ -44,7 +47,7 @@ export async function handleVerifiedSignup(email: string, requestId: string): Pr
       return;
     }
 
-    const user = await findUserByEmail(email);
+    const user = knownUser ?? await findUserByEmail(email);
     if (!user) {
       console.error(`${tag} No auth user found for ${email} — cannot sync`);
       return;

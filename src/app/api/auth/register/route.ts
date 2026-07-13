@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { after } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { sendVerificationEmailDirect } from '@/lib/email-bypass';
+import { handleVerifiedSignup } from '@/lib/crm-sync';
 import { z } from 'zod';
 
 // Create admin client with proper error handling
@@ -19,12 +21,7 @@ const supabaseAdmin = createClient(
 const registerSchema = z.object({
   email: z.string().email('Invalid email address').toLowerCase(),
   password: z.string().min(8, 'Password must be at least 8 characters'),
-  full_name: z.string().min(1, 'Full name is required').max(100),
-  phone_number: z.string().optional(),
-  country: z.string().optional(),
   role: z.enum(['buyer', 'seller']).default('buyer'),
-  // Seller-specific fields
-  initialCompanyName: z.string().optional(),
 });
 
 interface RegisterResponse {
@@ -151,14 +148,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<RegisterR
       password: validatedData.password,
       email_confirm: false, // User needs to verify via OTP
       user_metadata: {
-        role: validatedData.role,
-        full_name: validatedData.full_name,
-        phone_number: validatedData.phone_number || '',
-        country: validatedData.country || '',
-        // Seller-specific metadata
-        ...(validatedData.role === 'seller' && validatedData.initialCompanyName && {
-          initial_company_name: validatedData.initialCompanyName
-        })
+        role: validatedData.role
       }
     });
     
@@ -191,7 +181,12 @@ export async function POST(request: NextRequest): Promise<NextResponse<RegisterR
     }
     
     console.log(`[REGISTER-API-${requestId}] User created successfully: ${newUser.user.id}`);
-    
+
+    // Notify sales the moment the account exists (email + role only at this point).
+    // Runs after the response is sent; idempotent via crm_synced_at in user metadata.
+    const createdUser = newUser.user;
+    after(() => handleVerifiedSignup(createdUser.email!, requestId, createdUser));
+
     // Send verification email via Resend
     console.log(`[REGISTER-API-${requestId}] Sending verification email via Resend`);
     

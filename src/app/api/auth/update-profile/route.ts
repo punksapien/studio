@@ -27,6 +27,8 @@ export async function PUT(request: NextRequest) {
       phone_number,
       country,
       initial_company_name,
+      company_size_range,
+      annual_revenue_range,
       buyer_persona_type,
       buyer_persona_other,
       investment_focus_description,
@@ -43,6 +45,8 @@ export async function PUT(request: NextRequest) {
     if (phone_number !== undefined) updateData.phone_number = phone_number
     if (country !== undefined) updateData.country = country
     if (initial_company_name !== undefined) updateData.initial_company_name = initial_company_name
+    if (company_size_range !== undefined) updateData.company_size_range = company_size_range
+    if (annual_revenue_range !== undefined) updateData.annual_revenue_range = annual_revenue_range
     if (buyer_persona_type !== undefined) updateData.buyer_persona_type = buyer_persona_type
     if (buyer_persona_other !== undefined) updateData.buyer_persona_other = buyer_persona_other
     if (investment_focus_description !== undefined) updateData.investment_focus_description = investment_focus_description

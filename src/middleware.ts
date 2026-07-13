@@ -308,17 +308,10 @@ export async function middleware(req: NextRequest) {
     return response
   }
 
-  // Handle onboarding routes
+  // Handle onboarding routes (post-signup profile wizard — steps are skippable,
+  // completed/skipped users are redirected out, skip-ahead is snapped back)
   if (pathname.startsWith('/onboarding')) {
-    // 🚀 MVP SIMPLIFICATION: Redirect onboarding routes to dashboard
-    // Original logic: Complex onboarding step validation and navigation
-    // MVP logic: Redirect to appropriate dashboard since onboarding is bypassed
-    // UNCOMMENT THE LINE BELOW TO RESTORE ONBOARDING ROUTES:
-    // return handleOnboardingRoutes(req, res, profile, correlationId, pathname)
-
-    console.log(`[MIDDLEWARE] ${correlationId} | Onboarding route ${pathname} redirected to dashboard (MVP bypass)`)
-    const dashboardUrl = profile.role === 'seller' ? '/seller-dashboard' : profile.role === 'admin' ? '/admin' : '/dashboard'
-    return NextResponse.redirect(new URL(dashboardUrl, req.url))
+    return handleOnboardingRoutes(req, res, profile, correlationId, pathname)
   }
 
   // Handle dashboard routes - enforce onboarding completion

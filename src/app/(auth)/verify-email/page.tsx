@@ -259,19 +259,21 @@ function VerifyEmailContent() {
           }
 
           if (profile) {
-            // 🚀 MVP SIMPLIFICATION: Direct dashboard redirect (bypass onboarding)
             console.log('[EMAIL-VERIFICATION] Determining redirect for role:', profile.role);
 
-            // Direct dashboard redirect based on role (no onboarding checks)
-            if (profile.role === 'seller') {
-              redirectUrl = '/seller-dashboard';
-              console.log('[EMAIL-VERIFICATION] Seller verified - redirecting to seller dashboard');
-            } else if (profile.role === 'buyer') {
-              redirectUrl = '/dashboard';
-              console.log('[EMAIL-VERIFICATION] Buyer verified - redirecting to buyer dashboard');
-            } else if (profile.role === 'admin') {
+            if (profile.role === 'admin') {
               redirectUrl = '/admin';
               console.log('[EMAIL-VERIFICATION] Admin verified - redirecting to admin dashboard');
+            } else if (profile.role === 'seller' || profile.role === 'buyer') {
+              if (!profile.is_onboarding_completed) {
+                // Fresh sign-up: enter the (skippable) profile wizard at their next step
+                const nextStep = (profile.onboarding_step_completed || 0) + 1;
+                redirectUrl = `/onboarding/${profile.role}/${nextStep}`;
+                console.log(`[EMAIL-VERIFICATION] ${profile.role} verified - entering onboarding step ${nextStep}`);
+              } else {
+                redirectUrl = profile.role === 'seller' ? '/seller-dashboard' : '/dashboard';
+                console.log(`[EMAIL-VERIFICATION] ${profile.role} verified - redirecting to dashboard`);
+              }
             } else {
               console.warn('[EMAIL-VERIFICATION] Unknown role:', profile.role, '- redirecting to home');
               redirectUrl = '/';

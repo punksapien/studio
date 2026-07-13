@@ -73,7 +73,7 @@ export function DebugState() {
     role: profile?.role,
     email: sessionInfo?.email,
     isEmailVerified: profile?.is_email_verified,
-    onboardingComplete: profile?.onboarding_complete,
+    onboardingComplete: profile?.is_onboarding_completed,
     profileId: profile?.id,
     pathname: pathname,
     cacheStatus: isLoading ? 'revalidating' : (profile ? 'fresh' : 'stale'),

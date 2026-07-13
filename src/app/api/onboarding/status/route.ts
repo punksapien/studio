@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
     }
 
     const currentStep = profile.onboarding_step_completed || 0;
-    const totalSteps = profile.role === 'seller' ? 5 : 2; // Buyer: 2 steps, Seller: 5 steps
+    const totalSteps = 3; // Post-signup profile wizard: 3 steps for both roles
     let nextStepPath = `/onboarding/${profile.role}/${currentStep + 1}`;
     if (currentStep >= totalSteps) {
         nextStepPath = profile.role === 'seller' ? '/seller-dashboard' : '/dashboard';

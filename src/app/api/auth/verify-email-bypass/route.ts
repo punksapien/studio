@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { after } from 'next/server';
 import { verifyEmailManually } from '@/lib/email-bypass';
-import { handleVerifiedSignup } from '@/lib/crm-sync';
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,10 +17,6 @@ export async function POST(request: NextRequest) {
     const result = await verifyEmailManually(email);
 
     if (result.success) {
-      // Fire-and-forget CRM + Google Chat sync after the response is sent.
-      const syncId = Math.random().toString(36).substring(7);
-      after(() => handleVerifiedSignup(String(email).trim().toLowerCase(), syncId));
-
       return NextResponse.json({
         success: true,
         message: 'Email verified successfully',
@@ -65,10 +59,6 @@ export async function GET(request: NextRequest) {
     const result = await verifyEmailManually(email);
 
     if (result.success) {
-      // Fire-and-forget CRM + Google Chat sync after the redirect is sent.
-      const syncId = Math.random().toString(36).substring(7);
-      after(() => handleVerifiedSignup(String(email).trim().toLowerCase(), syncId));
-
       // Redirect to success page
       const redirectUrl = new URL('/auth/verification-success', request.url);
       redirectUrl.searchParams.set('email', email);

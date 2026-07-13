@@ -25,6 +25,8 @@ export interface UserProfile {
 
   // Seller-specific fields
   initial_company_name?: string
+  company_size_range?: string
+  annual_revenue_range?: string
 
   // Buyer-specific fields
   buyer_persona_type?: string
@@ -32,6 +34,10 @@ export interface UserProfile {
   investment_focus_description?: string
   preferred_investment_size?: string
   key_industries_of_interest?: string
+
+  // Post-signup onboarding progress
+  is_onboarding_completed?: boolean
+  onboarding_step_completed?: number
 
   created_at: string
   updated_at: string
@@ -43,20 +49,7 @@ export interface UserProfile {
 export interface RegisterData {
   email: string
   password: string
-  full_name: string
-  phone_number?: string
-  country?: string
   role: UserRole
-
-  // Seller-specific
-  initial_company_name?: string
-
-  // Buyer-specific
-  buyer_persona_type?: string
-  buyer_persona_other?: string
-  investment_focus_description?: string
-  preferred_investment_size?: string
-  key_industries_of_interest?: string
 }
 
 // Authentication helper functions
@@ -129,11 +122,7 @@ export const auth = {
         body: JSON.stringify({
           email: registerData.email,
           password: registerData.password,
-          full_name: registerData.full_name,
-          phone_number: registerData.phone_number,
-          country: registerData.country,
-          role: registerData.role || 'buyer',
-          initialCompanyName: registerData.initialCompanyName
+          role: registerData.role || 'buyer'
         })
       })
       

@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import { cn } from '@/lib/utils';
-import { Check, User, FileText } from 'lucide-react';
+import { Check, User, Building2, Briefcase } from 'lucide-react';
 
 interface BuyerStepperProps {
   currentStep: number;
@@ -14,8 +14,9 @@ export function BuyerStepper({ currentStep, stepTitles }: BuyerStepperProps) {
   const totalSteps = stepTitles.length;
 
   const stepIcons = [
-    User,     // Icon for "Welcome & Info"
-    FileText, // Icon for "Identity Document"
+    User,      // "About You"
+    Building2, // "Your Company"
+    Briefcase, // "Investment Profile"
   ];
 
   return (

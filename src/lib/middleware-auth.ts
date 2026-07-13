@@ -381,7 +381,7 @@ export class MiddlewareAuthenticationService {
       if (currentStep === 0 && !profile.is_onboarding_completed) nextStep = 1
 
       if (profile.role === 'seller') {
-        const totalSteps = 5
+        const totalSteps = 3
         const onboardingUrl = nextStep <= totalSteps
           ? `/onboarding/seller/${nextStep}`
           : `/seller-dashboard`
@@ -392,7 +392,7 @@ export class MiddlewareAuthenticationService {
           reason: profile.is_onboarding_completed ? 'onboarding_completed_final_redirect' : `incomplete_onboarding_step_${nextStep}`
         }
       } else if (profile.role === 'buyer') {
-        const totalSteps = 2
+        const totalSteps = 3
         const onboardingUrl = nextStep <= totalSteps
           ? `/onboarding/buyer/${nextStep}`
           : `/dashboard`
