@@ -395,8 +395,8 @@ function handleOnboardingRoutes(
 ): NextResponse {
   const { role, is_onboarding_completed, onboarding_step_completed } = profile
 
-  // If onboarding is complete, redirect away from onboarding pages (unless it's success page)
-  if (is_onboarding_completed && !pathname.endsWith('/success')) {
+  // If onboarding is complete, redirect away from onboarding pages
+  if (is_onboarding_completed) {
     const dashboardUrl = role === 'seller' ? '/seller-dashboard' : role === 'admin' ? '/admin' : '/dashboard'
     console.log(`[MIDDLEWARE] ${correlationId} | Onboarding complete, redirecting from ${pathname} to ${dashboardUrl}`)
 

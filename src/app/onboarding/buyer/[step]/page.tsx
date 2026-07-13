@@ -140,9 +140,10 @@ export default function BuyerOnboardingStepPage() {
         step_completed: currentStep,
         ...(isFinalStep && { complete_onboarding: true }),
       });
+      // Refresh the cached profile so Previous/revisit prefills the values just saved
+      await refreshAuth();
 
       if (isFinalStep) {
-        refreshAuth();
         toast({ title: 'Profile Complete!', description: 'Welcome to Nobridge. Your profile has been saved.' });
         router.push('/dashboard');
       } else {

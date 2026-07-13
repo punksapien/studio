@@ -127,6 +127,10 @@ export async function POST(request: NextRequest): Promise<NextResponse<RegisterR
           }, { status: 500 });
         }
         
+        // Retry the CRM/Chat sync for users whose original sign-up sync partially
+        // failed — idempotent via crm_synced_at, so already-synced users are skipped.
+        after(() => handleVerifiedSignup(existingUser.email!, requestId, existingUser));
+
         return NextResponse.json({
           success: true,
           user: {

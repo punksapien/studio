@@ -119,6 +119,17 @@ export async function GET(request: NextRequest) {
         phone_number: result.profile.phone_number,
         phoneNumber: result.profile.phone_number, // Add camelCase version
         country: result.profile.country,
+
+        // Onboarding wizard fields (prefill on step revisits)
+        initial_company_name: result.profile.initial_company_name,
+        company_size_range: result.profile.company_size_range,
+        annual_revenue_range: result.profile.annual_revenue_range,
+        buyer_persona_type: result.profile.buyer_persona_type,
+        buyer_persona_other: result.profile.buyer_persona_other,
+        investment_focus_description: result.profile.investment_focus_description,
+        preferred_investment_size: result.profile.preferred_investment_size,
+        key_industries_of_interest: result.profile.key_industries_of_interest,
+
         is_onboarding_completed: result.profile.is_onboarding_completed,
         isOnboardingCompleted: result.profile.is_onboarding_completed, // Add camelCase version
         onboarding_step_completed: result.profile.onboarding_step_completed,
