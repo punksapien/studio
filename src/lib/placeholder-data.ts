@@ -13,7 +13,6 @@ export const sampleUsers: User[] = [
     role: 'seller',
     isEmailVerified: true,
     verificationStatus: 'verified',
-    isPaid: true,
     initialCompanyName: 'JD Web Solutions Pte Ltd',
     createdAt: new Date('2023-01-10T09:00:00Z'),
     updatedAt: new Date('2023-01-15T14:30:00Z'),
@@ -34,7 +33,6 @@ export const sampleUsers: User[] = [
     role: 'buyer',
     isEmailVerified: true,
     verificationStatus: 'verified',
-    isPaid: true,
     buyerPersonaType: BuyerPersonaTypes[0],
     investmentFocusDescription: "Early-stage SaaS and e-commerce businesses in Southeast Asia with strong growth potential.",
     preferredInvestmentSize: PreferredInvestmentSizes[1],
@@ -57,7 +55,6 @@ export const sampleUsers: User[] = [
     role: 'seller',
     isEmailVerified: true,
     verificationStatus: 'anonymous',
-    isPaid: false,
     initialCompanyName: 'Anonymous SaaS Co.',
     createdAt: new Date('2023-03-20T16:00:00Z'),
     updatedAt: new Date('2023-03-20T16:00:00Z'),
@@ -76,7 +73,6 @@ export const sampleUsers: User[] = [
     role: 'buyer',
     isEmailVerified: true,
     verificationStatus: 'pending_verification',
-    isPaid: false,
     buyerPersonaType: BuyerPersonaTypes[1],
     investmentFocusDescription: "Mid-market companies in consumer goods and services with established revenue streams. Looking for majority stakes.",
     preferredInvestmentSize: PreferredInvestmentSizes[3],
@@ -99,7 +95,6 @@ export const sampleUsers: User[] = [
     role: 'buyer',
     isEmailVerified: true,
     verificationStatus: 'verified',
-    isPaid: false,
     buyerPersonaType: BuyerPersonaTypes[2],
     investmentFocusDescription: "Acquiring businesses to integrate into our existing portfolio, primarily in logistics and supply chain.",
     preferredInvestmentSize: PreferredInvestmentSizes[2],
@@ -122,7 +117,6 @@ export const sampleUsers: User[] = [
     role: 'buyer',
     isEmailVerified: true,
     verificationStatus: 'anonymous',
-    isPaid: false,
     buyerPersonaType: BuyerPersonaTypes[0],
     investmentFocusDescription: "Looking for small, profitable online businesses to operate and grow.",
     preferredInvestmentSize: PreferredInvestmentSizes[0],
@@ -340,8 +334,6 @@ export const sampleBuyerInquiries: Inquiry[] = sampleInquiries.filter(i => sampl
 export const sampleSellerInquiries: Inquiry[] = sampleInquiries.filter(i => sampleUsers.find(u => u.id === i.sellerId));
 
 
-const revenueFromBuyersPlaceholder = 5600;
-const revenueFromSellersPlaceholder = 7850;
 const activeSuccessfulConnectionsPlaceholder = sampleInquiries.filter(i => i.status === 'connection_facilitated_in_app_chat_opened').length;
 const closedSuccessfulConnectionsPlaceholder = 0;
 
@@ -353,11 +345,7 @@ export const sampleAdminDashboardMetrics: AdminDashboardMetrics = {
   newListingsCreated24h: 2,
   newListingsCreated7d: 10,
   totalActiveSellers: sampleUsers.filter(u => u.role === 'seller').length,
-  totalPaidSellers: sampleUsers.filter(u => u.role === 'seller' && u.isPaid).length,
-  totalFreeSellers: sampleUsers.filter(u => u.role === 'seller' && !u.isPaid).length,
   totalActiveBuyers: sampleUsers.filter(u => u.role === 'buyer').length,
-  totalPaidBuyers: sampleUsers.filter(u => u.role === 'buyer' && u.isPaid).length,
-  totalFreeBuyers: sampleUsers.filter(u => u.role === 'buyer' && !u.isPaid).length,
   totalActiveListingsAnonymous: sampleListings.filter(l => (l.status === 'active' || l.status === 'verified_anonymous')).length,
   totalActiveListingsVerified: sampleListings.filter(l => l.status === 'verified_public').length,
   totalListingsAllStatuses: sampleListings.length,
@@ -365,13 +353,11 @@ export const sampleAdminDashboardMetrics: AdminDashboardMetrics = {
   buyerVerificationQueueCount: sampleUsers.filter(u => u.role === 'buyer' && u.verificationStatus === 'pending_verification').length,
   sellerVerificationQueueCount: sampleUsers.filter(u => u.role === 'seller' && u.verificationStatus === 'pending_verification').length + sampleListings.filter(l => l.status === 'pending_verification').length,
   readyToEngageQueueCount: sampleInquiries.filter(i => i.status === 'ready_for_admin_connection').length,
+  totalFacilitatedConnections: activeSuccessfulConnectionsPlaceholder + closedSuccessfulConnectionsPlaceholder,
   successfulConnectionsMTD: activeSuccessfulConnectionsPlaceholder + closedSuccessfulConnectionsPlaceholder,
   activeSuccessfulConnections: activeSuccessfulConnectionsPlaceholder,
   closedSuccessfulConnections: closedSuccessfulConnectionsPlaceholder,
   dealsClosedMTD: closedSuccessfulConnectionsPlaceholder,
-  revenueFromBuyers: revenueFromBuyersPlaceholder,
-  revenueFromSellers: revenueFromSellersPlaceholder,
-  totalRevenueMTD: revenueFromBuyersPlaceholder + revenueFromSellersPlaceholder,
 };
 
 export let sampleVerificationRequests: VerificationRequestItem[] = [

@@ -90,7 +90,6 @@ export interface User {
   role: UserRole;
   isEmailVerified: boolean;
   verificationStatus: VerificationStatus;
-  isPaid: boolean;
   initialCompanyName?: string;
   buyerType?: BuyerType; // Legacy, prefer buyerPersonaType
   createdAt: Date;
@@ -256,11 +255,7 @@ export interface AdminDashboardMetrics {
   newListingsCreated24h: number;
   newListingsCreated7d: number;
   totalActiveSellers: number;
-  totalPaidSellers: number;
-  totalFreeSellers: number;
   totalActiveBuyers: number;
-  totalPaidBuyers: number;
-  totalFreeBuyers: number;
   totalActiveListingsAnonymous: number;
   totalActiveListingsVerified: number;
   totalListingsAllStatuses: number;
@@ -268,13 +263,11 @@ export interface AdminDashboardMetrics {
   buyerVerificationQueueCount: number;
   sellerVerificationQueueCount: number;
   readyToEngageQueueCount: number;
+  totalFacilitatedConnections: number;
   successfulConnectionsMTD: number;
   activeSuccessfulConnections: number;
   closedSuccessfulConnections: number;
-  dealsClosedMTD?: number;
-  totalRevenueMTD?: number;
-  revenueFromBuyers: number;
-  revenueFromSellers: number;
+  dealsClosedMTD: number;
 }
 
 
@@ -395,7 +388,6 @@ export interface AdminListingWithContext {
     fullName: string;
     email: string;
     verificationStatus: VerificationStatus;
-    isPaid: boolean;
     createdAt: Date;
   };
   adminHistory: AdminListingAction[];

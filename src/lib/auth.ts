@@ -22,7 +22,6 @@ export interface UserProfile {
   is_email_verified: boolean
   email_verified_at?: string
   verification_status: 'anonymous' | 'pending_verification' | 'verified' | 'rejected'
-  is_paid: boolean
 
   // Seller-specific fields
   initial_company_name?: string

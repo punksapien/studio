@@ -121,7 +121,6 @@ export async function GET(request: NextRequest) {
         full_name,
         email,
         verification_status,
-        is_paid,
         created_at
       `)
       .in('id', sellerIds);
@@ -204,7 +203,6 @@ export async function GET(request: NextRequest) {
               fullName: sellerProfile.full_name,
               email: sellerProfile.email,
               verificationStatus: sellerProfile.verification_status,
-              isPaid: sellerProfile.is_paid,
               createdAt: new Date(sellerProfile.created_at),
             } : null;
           })(),

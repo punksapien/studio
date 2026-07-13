@@ -33,7 +33,6 @@ export async function GET(req: NextRequest) {
     const search = searchParams.get('search') || ''
     const role = searchParams.get('role') || 'all'
     const verificationStatus = searchParams.get('verification_status') || 'all'
-    const paidStatus = searchParams.get('paid_status') || 'all'
 
     // Build the query
     let query = supabase
@@ -66,9 +65,6 @@ export async function GET(req: NextRequest) {
       query = query.eq('verification_status', verificationStatus)
     }
 
-    // TODO: Add paid status filter once we have subscription/payment tracking
-    // For now, we'll mock this field as 'free' for all users
-
     // Apply pagination
     query = query
       .order('created_at', { ascending: false })
@@ -93,7 +89,6 @@ export async function GET(req: NextRequest) {
       country: user.country || 'Unknown',
       createdAt: user.created_at, // Keep as ISO string
       updatedAt: user.updated_at, // Keep as ISO string
-      isPaid: false, // TODO: Calculate from subscriptions table when available
       isOnboardingCompleted: user.is_onboarding_completed || false,
       is_onboarding_completed: user.is_onboarding_completed || false, // Add field name consistency
       onboardingStep: user.onboarding_step_completed || 0,
@@ -117,8 +112,7 @@ export async function GET(req: NextRequest) {
       filters: {
         search,
         role,
-        verificationStatus,
-        paidStatus
+        verificationStatus
       }
     }, {
       headers: {

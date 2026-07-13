@@ -338,7 +338,7 @@ export default function ListingDetailPage() {
         const response = await fetch('/api/auth/current-user');
         if (response.ok) {
           const data = await response.json();
-          const transformedUser = data.profile ? { ...data.profile, id: data.user.id, email: data.user.email, verificationStatus: data.profile.verificationStatus || data.profile.verification_status || 'anonymous', isPaid: data.profile.isPaid || (data.profile.verification_status === 'verified'), phoneNumber: data.profile.phoneNumber || data.profile.phone_number, isOnboardingCompleted: data.profile.isOnboardingCompleted || data.profile.is_onboarding_completed, isEmailVerified: data.profile.isEmailVerified || data.profile.is_email_verified } : null;
+          const transformedUser = data.profile ? { ...data.profile, id: data.user.id, email: data.user.email, verificationStatus: data.profile.verificationStatus || data.profile.verification_status || 'anonymous', phoneNumber: data.profile.phoneNumber || data.profile.phone_number, isOnboardingCompleted: data.profile.isOnboardingCompleted || data.profile.is_onboarding_completed, isEmailVerified: data.profile.isEmailVerified || data.profile.is_email_verified } : null;
           setCurrentUser(transformedUser);
         } else {
           setCurrentUser(null);
@@ -411,9 +411,7 @@ export default function ListingDetailPage() {
   const isVerifiedBuyer = (user: any): boolean => {
     if (!user) return false;
     const verificationStatus = user.verificationStatus || user.verification_status;
-    const isVerified = verificationStatus === 'verified';
-    const isPaid = user.isPaid || isVerified; // Assuming verified implies paid access for MVP
-    return isVerified && isPaid;
+    return verificationStatus === 'verified';
   };
 
   /**

@@ -126,9 +126,6 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       createdAt: userProfile.created_at,
       updatedAt: userProfile.updated_at,
 
-      // Payment status (placeholder - will be calculated from subscriptions in future)
-      isPaid: false, // TODO: Calculate from subscriptions table when available
-
       // Activity counts
       listingCount: listingsResult.count || 0,
       inquiryCount: (inquiriesAsBuyerResult.count || 0) + (inquiriesAsSellerResult.count || 0),

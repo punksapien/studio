@@ -115,9 +115,6 @@ export async function GET(request: NextRequest) {
         verification_status: result.profile.verification_status, // Keep original for compatibility
         verificationStatus: result.profile.verification_status, // Add camelCase version
 
-        // Payment/subscription status - derived field
-        isPaid: determinePaymentStatus(result.profile),
-
         // Additional profile fields with proper transformation
         phone_number: result.profile.phone_number,
         phoneNumber: result.profile.phone_number, // Add camelCase version
@@ -138,7 +135,6 @@ export async function GET(request: NextRequest) {
         role: 'buyer',
         verification_status: 'anonymous',
         verificationStatus: 'anonymous',
-        isPaid: false,
         is_onboarding_completed: false,
         isOnboardingCompleted: false,
         onboarding_step_completed: 0,
@@ -176,24 +172,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     )
   }
-}
-
-/**
- * Determines payment/subscription status for a user profile
- * This is a business logic function that should be enhanced based on actual payment system
- */
-function determinePaymentStatus(profile: any): boolean {
-  if (!profile) return false;
-
-  // For now, we consider verified users as "paid" since verification implies access to premium features
-  // This should be replaced with actual subscription/payment status checking
-  const verificationStatus = profile.verification_status;
-
-  // Verified users have paid access to premium features
-  if (verificationStatus === 'verified') return true;
-
-  // Add additional payment status checks here when payment system is implemented
-  // Example: check for active subscription, payment history, etc.
-
-  return false;
 }

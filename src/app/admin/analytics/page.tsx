@@ -7,7 +7,7 @@ import * as React from "react";
 import useSWR from 'swr';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
-import { BarChart, LineChart, PieChart, Users, Briefcase, DollarSign, CheckCircle, TrendingUp, UserMinus, UserPlus, Banknote, ShieldCheck, Handshake, ListX, ListChecks, RefreshCw, AlertCircle, Zap, DatabaseZap, ShieldAlert as CircuitBreakerIcon, BellRing as AlertsIcon } from "lucide-react";
+import { BarChart, LineChart, PieChart, Users, Briefcase, CheckCircle, TrendingUp, UserPlus, ShieldCheck, Handshake, ListX, ListChecks, RefreshCw, AlertCircle, Zap, DatabaseZap, ShieldAlert as CircuitBreakerIcon, BellRing as AlertsIcon } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import type { AdminDashboardMetrics, SyncPerformanceMetrics, SyncCachePerformance, SyncCircuitBreakerStatus, CircuitBreakerInfo, SyncAlertsSummary, SyncAlertItem } from '@/lib/types';
 import { NobridgeIcon, NobridgeIconType } from '@/components/ui/nobridge-icon';
 import { MetricCard } from "@/components/admin/metric-card";
+import { AdminPageShell } from "@/components/admin/page-header";
 
 // Chart color configurations
 const userGrowthChartConfig = {
@@ -105,14 +106,17 @@ export default function AdminAnalyticsPage() {
   // Loading state
   if (isLoading) {
     return (
-      <div className="space-y-8">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-semibold tracking-tight text-brand-dark-blue">Platform Analytics</h1>
+      <AdminPageShell
+        scrollable
+        title="Analytics"
+        description="Platform metrics, growth trends, and system health."
+        actions={
           <Button disabled variant="outline" size="sm">
             <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
             Loading...
           </Button>
-        </div>
+        }
+      >
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {[...Array(8)].map((_, i) => ( // Increased skeleton count
             <Card key={i} className="shadow-md bg-brand-white">
@@ -126,21 +130,23 @@ export default function AdminAnalyticsPage() {
             </Card>
           ))}
         </div>
-      </div>
+      </AdminPageShell>
     );
   }
 
   // Error state
   if (error) {
     return (
-      <div className="space-y-8">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-semibold tracking-tight text-brand-dark-blue">Platform Analytics</h1>
+      <AdminPageShell
+        title="Analytics"
+        description="Platform metrics, growth trends, and system health."
+        actions={
           <Button onClick={handleRefreshAll} variant="outline" size="sm">
             <RefreshCw className="h-4 w-4 mr-2" />
             Retry All
           </Button>
-        </div>
+        }
+      >
         <Card className="shadow-md bg-red-50 border-red-200">
           <CardContent className="pt-6">
             <div className="flex items-center space-x-2">
@@ -152,7 +158,7 @@ export default function AdminAnalyticsPage() {
             </div>
           </CardContent>
         </Card>
-      </div>
+      </AdminPageShell>
     );
   }
 
@@ -183,19 +189,22 @@ export default function AdminAnalyticsPage() {
       : syncCircuitBreakers ?? { circuitBreakers: [] };
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-semibold tracking-tight text-brand-dark-blue">Platform Analytics</h1>
-        <div className="flex items-center space-x-2">
-          <Badge variant="outline" className="text-green-600">
+    <AdminPageShell
+      scrollable
+      title="Analytics"
+      description="Platform metrics, growth trends, and system health."
+      actions={
+        <>
+          <Badge variant="outline" className="h-9 px-3 text-sm font-medium text-green-600">
             Live Data
           </Badge>
           <Button onClick={handleRefreshAll} variant="outline" size="sm">
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh All
           </Button>
-        </div>
-      </div>
+        </>
+      }
+    >
 
       {/* General Platform Metrics */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
@@ -217,9 +226,6 @@ export default function AdminAnalyticsPage() {
           <CardContent>
             <div className="text-2xl font-semibold text-brand-dark-blue">{metrics.totalListingsAllStatuses}</div>
             <p className="text-xs text-brand-dark-blue/70">{metrics.totalActiveListingsVerified + metrics.totalActiveListingsAnonymous} active</p>
-            {metrics.totalListingsAllStatuses === 0 && (
-              <Badge variant="outline" className="text-orange-600 mt-1">Coming Soon</Badge>
-            )}
           </CardContent>
         </Card>
          <Card className="shadow-md bg-brand-white">
@@ -230,9 +236,6 @@ export default function AdminAnalyticsPage() {
           <CardContent>
             <div className="text-2xl font-semibold text-brand-dark-blue">{metrics.closedOrDeactivatedListings}</div>
             <p className="text-xs text-brand-dark-blue/70">Inactive or deal finalized</p>
-            {metrics.closedOrDeactivatedListings === 0 && (
-              <Badge variant="outline" className="text-orange-600 mt-1">Coming Soon</Badge>
-            )}
           </CardContent>
         </Card>
          <Card className="shadow-md bg-brand-white">
@@ -241,17 +244,14 @@ export default function AdminAnalyticsPage() {
             <Handshake className="h-5 w-5 text-brand-dark-blue/70" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-semibold text-brand-dark-blue">{metrics.successfulConnectionsMTD}</div>
-            <p className="text-xs text-brand-dark-blue/70">{metrics.activeSuccessfulConnections} active, {metrics.closedSuccessfulConnections} closed (MTD)</p>
-            {metrics.successfulConnectionsMTD === 0 && (
-              <Badge variant="outline" className="text-orange-600 mt-1">Coming Soon</Badge>
-            )}
+            <div className="text-2xl font-semibold text-brand-dark-blue">{metrics.totalFacilitatedConnections}</div>
+            <p className="text-xs text-brand-dark-blue/70">{metrics.successfulConnectionsMTD} this month, {metrics.activeSuccessfulConnections} active</p>
           </CardContent>
         </Card>
       </div>
       {/* ... other existing metric sections ... */}
       <Separator className="bg-brand-light-gray/80"/>
-      <h2 className="text-2xl font-semibold tracking-tight pt-4 text-brand-dark-blue">Recent Activity (7 Days)</h2>
+      <h2 className="text-lg font-semibold tracking-tight pt-4 text-brand-dark-blue" style={{ fontFamily: "'Satoshi', sans-serif" }}>Recent Activity (7 Days)</h2>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <Card className="shadow-md bg-brand-white">
           <CardHeader className="pb-2">
@@ -287,9 +287,6 @@ export default function AdminAnalyticsPage() {
           <CardContent>
             <div className="text-2xl font-semibold text-brand-dark-blue">{metrics.newListingsCreated7d}</div>
             <p className="text-xs text-brand-dark-blue/70">{metrics.newListingsCreated24h} in last 24h</p>
-            {metrics.newListingsCreated7d === 0 && (
-              <Badge variant="outline" className="text-orange-600 mt-1">Coming Soon</Badge>
-            )}
           </CardContent>
         </Card>
         <Card className="shadow-md bg-brand-white">
@@ -307,88 +304,7 @@ export default function AdminAnalyticsPage() {
       </div>
 
       <Separator className="bg-brand-light-gray/80"/>
-      <h2 className="text-2xl font-semibold tracking-tight pt-4 text-brand-dark-blue">User Segmentation</h2>
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="shadow-md bg-brand-white">
-          <CardHeader className="pb-2"> <CardTitle className="text-sm font-medium flex items-center justify-between text-brand-dark-blue">Paid Buyers <UserPlus className="h-5 w-5 text-green-500" /></CardTitle></CardHeader>
-          <CardContent>
-            <div className="text-2xl font-semibold text-brand-dark-blue">{metrics.totalPaidBuyers}</div>
-            {metrics.totalPaidBuyers === 0 && (
-              <Badge variant="outline" className="text-orange-600 mt-1">Coming Soon</Badge>
-            )}
-          </CardContent>
-        </Card>
-        <Card className="shadow-md bg-brand-white">
-          <CardHeader className="pb-2"> <CardTitle className="text-sm font-medium flex items-center justify-between text-brand-dark-blue">Free Buyers <UserMinus className="h-5 w-5 text-orange-500" /></CardTitle></CardHeader>
-          <CardContent>
-            <div className="text-2xl font-semibold text-brand-dark-blue">{metrics.totalFreeBuyers}</div>
-            <p className="text-xs text-brand-dark-blue/70">All users currently free</p>
-          </CardContent>
-        </Card>
-        <Card className="shadow-md bg-brand-white">
-         <CardHeader className="pb-2"> <CardTitle className="text-sm font-medium flex items-center justify-between text-brand-dark-blue">Paid Sellers <UserPlus className="h-5 w-5 text-green-500" /></CardTitle></CardHeader>
-          <CardContent>
-            <div className="text-2xl font-semibold text-brand-dark-blue">{metrics.totalPaidSellers}</div>
-            {metrics.totalPaidSellers === 0 && (
-              <Badge variant="outline" className="text-orange-600 mt-1">Coming Soon</Badge>
-            )}
-          </CardContent>
-        </Card>
-        <Card className="shadow-md bg-brand-white">
-          <CardHeader className="pb-2"> <CardTitle className="text-sm font-medium flex items-center justify-between text-brand-dark-blue">Free Sellers <UserMinus className="h-5 w-5 text-orange-500" /></CardTitle></CardHeader>
-          <CardContent>
-            <div className="text-2xl font-semibold text-brand-dark-blue">{metrics.totalFreeSellers}</div>
-            <p className="text-xs text-brand-dark-blue/70">All users currently free</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Separator className="bg-brand-light-gray/80"/>
-      <h2 className="text-2xl font-semibold tracking-tight pt-4 text-brand-dark-blue">Revenue Breakdown (MTD)</h2>
-       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-         <Card className="shadow-md bg-brand-white">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-brand-dark-blue">Total Revenue (MTD)</CardTitle>
-            <Banknote className="h-5 w-5 text-brand-dark-blue/70" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-semibold text-brand-dark-blue">${(metrics.totalRevenueMTD || 0).toLocaleString()}</div>
-            <p className="text-xs text-brand-dark-blue/70">Sum from subscriptions</p>
-            {(metrics.totalRevenueMTD || 0) === 0 && (
-              <Badge variant="outline" className="text-orange-600 mt-1">Coming Soon</Badge>
-            )}
-          </CardContent>
-        </Card>
-        <Card className="shadow-md bg-brand-white">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-brand-dark-blue">Revenue from Buyers (MTD)</CardTitle>
-            <DollarSign className="h-5 w-5 text-brand-dark-blue/70" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-semibold text-brand-dark-blue">${(metrics.revenueFromBuyers || 0).toLocaleString()}</div>
-            <p className="text-xs text-brand-dark-blue/70">Buyer subscriptions</p>
-            {(metrics.revenueFromBuyers || 0) === 0 && (
-              <Badge variant="outline" className="text-orange-600 mt-1">Coming Soon</Badge>
-            )}
-          </CardContent>
-        </Card>
-        <Card className="shadow-md bg-brand-white">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-brand-dark-blue">Revenue from Sellers (MTD)</CardTitle>
-            <DollarSign className="h-5 w-5 text-brand-dark-blue/70" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-semibold text-brand-dark-blue">${(metrics.revenueFromSellers || 0).toLocaleString()}</div>
-            <p className="text-xs text-brand-dark-blue/70">Seller subscriptions/services</p>
-            {(metrics.revenueFromSellers || 0) === 0 && (
-              <Badge variant="outline" className="text-orange-600 mt-1">Coming Soon</Badge>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      <Separator className="bg-brand-light-gray/80"/>
-      <h2 className="text-2xl font-semibold tracking-tight pt-4 text-brand-dark-blue">Connection Funnel</h2>
+      <h2 className="text-lg font-semibold tracking-tight pt-4 text-brand-dark-blue" style={{ fontFamily: "'Satoshi', sans-serif" }}>Connection Funnel</h2>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card className="shadow-md bg-brand-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -398,9 +314,6 @@ export default function AdminAnalyticsPage() {
             <CardContent>
                 <div className="text-2xl font-semibold text-brand-dark-blue">{metrics.activeSuccessfulConnections}</div>
                 <p className="text-xs text-brand-dark-blue/70">Connections facilitated, ongoing</p>
-                {metrics.activeSuccessfulConnections === 0 && (
-                  <Badge variant="outline" className="text-orange-600 mt-1">Coming Soon</Badge>
-                )}
             </CardContent>
         </Card>
         <Card className="shadow-md bg-brand-white">
@@ -409,11 +322,8 @@ export default function AdminAnalyticsPage() {
                 <CheckCircle className="h-5 w-5 text-green-500"/>
             </CardHeader>
             <CardContent>
-                <div className="text-2xl font-semibold text-brand-dark-blue">{metrics.closedSuccessfulConnections}</div>
-                <p className="text-xs text-brand-dark-blue/70">Connections marked as deal closed/archived</p>
-                {metrics.closedSuccessfulConnections === 0 && (
-                  <Badge variant="outline" className="text-orange-600 mt-1">Coming Soon</Badge>
-                )}
+                <div className="text-2xl font-semibold text-brand-dark-blue">{metrics.dealsClosedMTD}</div>
+                <p className="text-xs text-brand-dark-blue/70">Listings marked sold or deal closed this month</p>
             </CardContent>
         </Card>
         <Card className="shadow-md bg-brand-white">
@@ -424,20 +334,17 @@ export default function AdminAnalyticsPage() {
             <CardContent>
                 <div className="text-2xl font-semibold text-brand-dark-blue">{metrics.readyToEngageQueueCount}</div>
                 <p className="text-xs text-brand-dark-blue/70">Pending admin facilitation</p>
-                {metrics.readyToEngageQueueCount === 0 && (
-                  <Badge variant="outline" className="text-orange-600 mt-1">Coming Soon</Badge>
-                )}
             </CardContent>
         </Card>
       </div>
       {/* Charts Section */}
       <Separator className="bg-brand-light-gray/80"/>
-      <h2 className="text-2xl font-semibold tracking-tight pt-4 text-brand-dark-blue">Activity Charts</h2>
+      <h2 className="text-lg font-semibold tracking-tight pt-4 text-brand-dark-blue" style={{ fontFamily: "'Satoshi', sans-serif" }}>Activity Charts</h2>
       <div className="grid gap-6 lg:grid-cols-2">
         {/* User Growth Over Time Chart */}
         <Card className="shadow-md bg-brand-white">
           <CardHeader>
-            <CardTitle className="text-brand-dark-blue flex items-center justify-between">
+            <CardTitle className="text-lg text-brand-dark-blue flex items-center justify-between">
               User Growth Over Time
               <Badge variant="outline" className="text-green-600">Live Data</Badge>
             </CardTitle>
@@ -501,7 +408,7 @@ export default function AdminAnalyticsPage() {
         {/* User Role Distribution Chart */}
         <Card className="shadow-md bg-brand-white">
           <CardHeader>
-            <CardTitle className="text-brand-dark-blue flex items-center justify-between">
+            <CardTitle className="text-lg text-brand-dark-blue flex items-center justify-between">
               User Role Distribution
               <Badge variant="outline" className="text-green-600">Live Data</Badge>
             </CardTitle>
@@ -550,7 +457,7 @@ export default function AdminAnalyticsPage() {
 
       {/* Sync System Observability Section */}
       <Separator className="bg-brand-light-gray/80 my-8" />
-      <h2 className="text-2xl font-semibold tracking-tight pt-4 text-brand-dark-blue">Universal Sync System Observability</h2>
+      <h2 className="text-lg font-semibold tracking-tight pt-4 text-brand-dark-blue" style={{ fontFamily: "'Satoshi', sans-serif" }}>Universal Sync System Observability</h2>
 
       {/* Sync Performance Metrics */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
@@ -573,7 +480,7 @@ export default function AdminAnalyticsPage() {
       {/* Circuit Breaker Status */}
       <Card className="mt-6 shadow-md bg-brand-white">
         <CardHeader>
-          <CardTitle className="text-brand-dark-blue flex items-center"><CircuitBreakerIcon className="mr-2 h-5 w-5" />Sync Circuit Breaker Status</CardTitle>
+          <CardTitle className="text-lg text-brand-dark-blue flex items-center"><CircuitBreakerIcon className="mr-2 h-5 w-5" />Sync Circuit Breaker Status</CardTitle>
           <CardDescription>Real-time status of service circuit breakers.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -613,7 +520,7 @@ export default function AdminAnalyticsPage() {
       {/* Sync Alerts Summary */}
       <Card className="mt-6 shadow-md bg-brand-white">
         <CardHeader>
-          <CardTitle className="text-brand-dark-blue flex items-center"><AlertsIcon className="mr-2 h-5 w-5" />Active Sync System Alerts</CardTitle>
+          <CardTitle className="text-lg text-brand-dark-blue flex items-center"><AlertsIcon className="mr-2 h-5 w-5" />Active Sync System Alerts</CardTitle>
           <CardDescription>Overview of critical and high-priority system alerts.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -656,7 +563,7 @@ export default function AdminAnalyticsPage() {
         </CardContent>
       </Card>
 
-    </div>
+    </AdminPageShell>
   );
 }
 

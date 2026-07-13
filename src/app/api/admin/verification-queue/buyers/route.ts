@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
     // Get query parameters
     const url = new URL(request.url)
     const page = Math.max(1, parseInt(url.searchParams.get('page') || '1'))
-    const limit = Math.min(50, Math.max(1, parseInt(url.searchParams.get('limit') || '20')))
+    const limit = Math.min(1000, Math.max(1, parseInt(url.searchParams.get('limit') || '20')))
     const status = url.searchParams.get('status') || 'all'
 
     const offset = (page - 1) * limit

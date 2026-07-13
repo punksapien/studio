@@ -1234,7 +1234,6 @@ export type Database = {
           is_email_verified: boolean | null
           is_identity_verified: boolean | null
           is_onboarding_completed: boolean | null
-          is_paid: boolean | null
           key_industries_of_interest: string | null
           last_login: string | null
           last_name: string | null
@@ -1274,7 +1273,6 @@ export type Database = {
           is_email_verified?: boolean | null
           is_identity_verified?: boolean | null
           is_onboarding_completed?: boolean | null
-          is_paid?: boolean | null
           key_industries_of_interest?: string | null
           last_login?: string | null
           last_name?: string | null
@@ -1314,7 +1312,6 @@ export type Database = {
           is_email_verified?: boolean | null
           is_identity_verified?: boolean | null
           is_onboarding_completed?: boolean | null
-          is_paid?: boolean | null
           key_industries_of_interest?: string | null
           last_login?: string | null
           last_name?: string | null
@@ -2111,7 +2108,6 @@ export type Database = {
           investment_focus_description: string | null
           is_email_verified: boolean | null
           is_onboarding_completed: boolean | null
-          is_paid: boolean | null
           key_industries_of_interest: string | null
           last_login: string | null
           listing_count: number | null
@@ -2146,7 +2142,6 @@ export type Database = {
           investment_focus_description?: string | null
           is_email_verified?: boolean | null
           is_onboarding_completed?: boolean | null
-          is_paid?: boolean | null
           key_industries_of_interest?: string | null
           last_login?: string | null
           listing_count?: number | null
@@ -2181,7 +2176,6 @@ export type Database = {
           investment_focus_description?: string | null
           is_email_verified?: boolean | null
           is_onboarding_completed?: boolean | null
-          is_paid?: boolean | null
           key_industries_of_interest?: string | null
           last_login?: string | null
           listing_count?: number | null

@@ -211,7 +211,8 @@ export async function GET(req: NextRequest) {
     totalFacilitatedConnections,
     activeFacilitatedConnections,
     facilitatedConnectionsThisMonth,
-    archivedConnections
+    archivedConnections,
+    dealsClosedThisMonth
   ] = await Promise.all([
     // Inquiries ready for admin connection facilitation
     countInquiries({ status: 'ready_for_admin_connection' }),
@@ -231,7 +232,16 @@ export async function GET(req: NextRequest) {
       .then(({ count }) => count ?? 0),
 
     // Archived/closed conversations
-    countConversations({ status: ['ARCHIVED_BY_ADMIN', 'CLOSED_BY_PARTICIPANT'] })
+    countConversations({ status: ['ARCHIVED_BY_ADMIN', 'CLOSED_BY_PARTICIPANT'] }),
+
+    // Deals closed this month: listings marked sold or deal closed
+    // (updated_at is the closest available proxy for the close date)
+    supabase
+      .from('listings')
+      .select('id', { count: 'exact', head: true })
+      .in('status', ['sold', 'closed_deal'])
+      .gte('updated_at', monthStart)
+      .then(({ count }) => count ?? 0)
   ])
 
   // Listing metrics - replacing hardcoded placeholders with actual database queries
@@ -267,7 +277,7 @@ export async function GET(req: NextRequest) {
     countListings({ status: 'verified_public' }),
 
     // Closed/deactivated listings
-    countListings({ status: ['inactive', 'closed_deal', 'rejected_by_admin'] })
+    countListings({ status: ['inactive', 'withdrawn', 'sold', 'closed_deal', 'rejected_by_admin'] })
   ])
 
   const metrics: AdminDashboardMetrics = {
@@ -283,11 +293,7 @@ export async function GET(req: NextRequest) {
 
     // Totals
     totalActiveSellers: totalSellers,
-    totalPaidSellers: 0, // will implement once subscriptions exist
-    totalFreeSellers: totalSellers, // same rationale
     totalActiveBuyers: totalBuyers,
-    totalPaidBuyers: 0,
-    totalFreeBuyers: totalBuyers,
 
     // Listing counts - now using real data
     totalActiveListingsAnonymous: totalActiveListingsAnonymous,
@@ -301,15 +307,11 @@ export async function GET(req: NextRequest) {
 
     // Engagement metrics - now using real data from inquiries and conversations
     readyToEngageQueueCount: readyToEngageQueue,
+    totalFacilitatedConnections: totalFacilitatedConnections,
     successfulConnectionsMTD: facilitatedConnectionsThisMonth,
     activeSuccessfulConnections: activeFacilitatedConnections,
     closedSuccessfulConnections: archivedConnections,
-    dealsClosedMTD: archivedConnections, // Same as closed connections for now
-
-    // Revenue placeholders (not implemented yet)
-    revenueFromBuyers: 0,
-    revenueFromSellers: 0,
-    totalRevenueMTD: 0,
+    dealsClosedMTD: dealsClosedThisMonth,
   }
 
   return NextResponse.json(metrics, {
