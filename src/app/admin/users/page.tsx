@@ -29,7 +29,6 @@ import useSWR from 'swr';
 import { useState, useCallback, useMemo } from 'react';
 import { useDebounce } from '@/hooks/use-debounce';
 import { CreateUserDialog } from '@/components/admin/create-user-dialog';
-import { UserDetailsDialog } from '@/components/admin/user-details-dialog';
 
 // Simplified interface for admin user data that matches API response exactly
 interface AdminUser {
@@ -76,7 +75,6 @@ export default function AdminUsersPage() {
   const [role, setRole] = useState('all');
   const [verificationStatus, setVerificationStatus] = useState('all');
   const [createUserDialogOpen, setCreateUserDialogOpen] = useState(false);
-  const [viewedUserId, setViewedUserId] = useState<string | null>(null);
   // No pagination: load everything and scroll inside the table
   const limit = 1000;
 
@@ -247,8 +245,10 @@ export default function AdminUsersPage() {
                           <TableCell>{getProfileVerificationBadge(user.verificationStatus)}</TableCell>
                           <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
                           <TableCell className="text-right whitespace-nowrap">
-                            <Button variant="ghost" size="icon" title="View User Details" onClick={() => setViewedUserId(user.id)}>
-                              <Eye className="h-4 w-4" />
+                            <Button variant="ghost" size="icon" asChild title="View User Details">
+                              <Link href={`/admin/users/${user.id}`}>
+                                <Eye className="h-4 w-4" />
+                              </Link>
                             </Button>
                             <Button variant="ghost" size="icon" asChild title="Manage Verification">
                               <Link href={`/admin/verification-queue/${user.role === 'buyer' ? 'buyers' : 'sellers'}?userId=${user.id}`}>
@@ -276,13 +276,6 @@ export default function AdminUsersPage() {
         onSuccess={handleUserCreated}
       />
 
-      {/* Full user profile popup */}
-      <UserDetailsDialog
-        userId={viewedUserId}
-        open={!!viewedUserId}
-        onOpenChange={(open) => { if (!open) setViewedUserId(null); }}
-        onUserDeleted={() => { setViewedUserId(null); mutate(); }}
-      />
     </AdminPageShell>
   );
 }

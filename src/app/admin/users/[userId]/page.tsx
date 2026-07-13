@@ -15,13 +15,16 @@ import {
   Mail, Phone, MapPin, CalendarDays, Briefcase, UserCircle,
   ShieldCheck, ShieldAlert, Edit3, Building2, Users2,
   Clock, Loader2, ArrowLeft, RefreshCw, AlertCircle, Eye, Target,
-  FileText, User, Activity, Crown, Sparkles, Zap, Key
+  FileText, User, Activity, Crown, Sparkles, Zap, Key,
+  KeyRound, Trash2, Ban, MessageSquare
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AdminPageShell } from "@/components/admin/page-header";
 import { AdminLoginLinkDialog } from "@/components/admin/admin-login-link-dialog";
+import { AdminSetPasswordDialog } from "@/components/admin/admin-set-password-dialog";
+import { AdminDeleteUserDialog } from "@/components/admin/admin-delete-user-dialog";
 
 // Types for API response
 interface UserDetailResponse {
@@ -153,8 +156,10 @@ export default function AdminUserDetailPage() {
   const userId = params.userId as string;
   const { toast } = useToast();
 
-  // State for admin login link dialog
+  // State for admin action dialogs
   const [isLoginLinkDialogOpen, setIsLoginLinkDialogOpen] = React.useState(false);
+  const [isSetPasswordDialogOpen, setIsSetPasswordDialogOpen] = React.useState(false);
+  const [deleteDialog, setDeleteDialog] = React.useState<{ open: boolean; block: boolean }>({ open: false, block: false });
 
   // Fetch user data with SWR
   const {
@@ -191,15 +196,17 @@ export default function AdminUserDetailPage() {
   // Handle loading state
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center space-y-4">
-          <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary" />
-          <div className="space-y-2">
-            <h3 className="text-lg font-semibold">Loading user details...</h3>
-            <p className="text-muted-foreground text-sm">Fetching comprehensive user information</p>
+      <AdminPageShell title="User Details" description="Full profile, activity and management actions for this user." scrollable>
+        <div className="flex flex-1 items-center justify-center py-24">
+          <div className="text-center space-y-4">
+            <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary" />
+            <div className="space-y-2">
+              <h3 className="text-lg font-semibold">Loading user details...</h3>
+              <p className="text-muted-foreground text-sm">Fetching comprehensive user information</p>
+            </div>
           </div>
         </div>
-      </div>
+      </AdminPageShell>
     );
   }
 
@@ -211,31 +218,33 @@ export default function AdminUserDetailPage() {
     }
 
     return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-4">
-          <Button variant="outline" onClick={() => router.back()}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Users
-          </Button>
-        </div>
+      <AdminPageShell title="User Details" description="Full profile, activity and management actions for this user." scrollable>
+        <div className="space-y-6">
+          <div className="flex items-center gap-4">
+            <Button variant="outline" onClick={() => router.push('/admin/users')}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Users
+            </Button>
+          </div>
 
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Failed to load user details: {error.message}
-          </AlertDescription>
-        </Alert>
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Failed to load user details: {error.message}
+            </AlertDescription>
+          </Alert>
 
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => refetchUser()}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Try Again
-          </Button>
-          <Button variant="outline" onClick={() => router.push('/admin/users')}>
-            Return to User List
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => refetchUser()}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Try Again
+            </Button>
+            <Button variant="outline" onClick={() => router.push('/admin/users')}>
+              Return to User List
+            </Button>
+          </div>
         </div>
-      </div>
+      </AdminPageShell>
     );
   }
 
@@ -256,19 +265,20 @@ export default function AdminUserDetailPage() {
   };
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto">
+    <AdminPageShell title="User Details" description="Full profile, activity and management actions for this user." scrollable>
+      <div className="space-y-8">
       {/* Header Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="flex items-center gap-4">
-          <Button variant="outline" onClick={() => router.back()}>
+          <Button variant="outline" onClick={() => router.push('/admin/users')}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
           </Button>
           <div>
-        <h1 className="text-3xl font-semibold tracking-tight flex items-center text-brand-dark-blue font-heading">
+            <h1 className="text-3xl font-semibold tracking-tight flex items-center text-brand-dark-blue font-heading">
               <UserCircle className="h-8 w-8 mr-3 text-primary" />
               {user.fullName}
-        </h1>
+            </h1>
             <p className="text-muted-foreground">
               Last updated: <FormattedDate dateString={data.metadata.fetchedAt} />
             </p>
@@ -276,35 +286,91 @@ export default function AdminUserDetailPage() {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={handleRefreshData}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
-          </Button>
-          {user.role !== 'admin' ? (
-            <>
-              <Button
-                variant="outline"
-                onClick={() => setIsLoginLinkDialogOpen(true)}
-                className="border-orange-200 text-orange-600 hover:bg-orange-50 hover:text-orange-700"
-              >
-                <Key className="h-4 w-4 mr-2" />
-                Generate Login Link
-              </Button>
-              <Button variant="outline" asChild>
-                <Link href={`/admin/verification-queue/${user.role === 'buyer' ? 'buyers' : 'sellers'}?userId=${user.id}`}>
-                  <Edit3 className="h-4 w-4 mr-2" />
-                  Manage Verification
-                </Link>
-              </Button>
-            </>
-          ) : (
+          {user.role === 'admin' && (
             <Button variant="outline" disabled className="opacity-50">
               <Crown className="h-4 w-4 mr-2" />
               Admin Account
             </Button>
           )}
+          <Button variant="outline" size="icon" title="Refresh" onClick={handleRefreshData}>
+            <RefreshCw className="h-4 w-4" />
+            <span className="sr-only">Refresh</span>
+          </Button>
         </div>
       </div>
+
+      {/* User Settings & Quick Access */}
+      {user.role !== 'admin' && (
+        <Card className="shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-lg">User Settings</CardTitle>
+            <CardDescription>
+              Account actions and quick access to this user's platform activity
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsLoginLinkDialogOpen(true)}
+                className="border-orange-200 text-orange-600 hover:bg-orange-50 hover:text-orange-700"
+              >
+                <Key className="mr-2 h-4 w-4" />
+                Generate Login Link
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setIsSetPasswordDialogOpen(true)}>
+                <KeyRound className="mr-2 h-4 w-4" />
+                Change Password
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setDeleteDialog({ open: true, block: false })}
+                className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
+              </Button>
+              <Button variant="destructive" size="sm" onClick={() => setDeleteDialog({ open: true, block: true })}>
+                <Ban className="mr-2 h-4 w-4" />
+                Delete & Block
+              </Button>
+            </div>
+
+            <Separator />
+
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" asChild>
+                <Link href={`/admin/verification-queue/${user.role === 'buyer' ? 'buyers' : 'sellers'}?userId=${user.id}`}>
+                  <ShieldCheck className="mr-2 h-4 w-4" />
+                  Open Verification
+                </Link>
+              </Button>
+              {user.role === 'seller' && (
+                <Button variant="outline" size="sm" asChild>
+                  <Link href={`/admin/listings?sellerId=${user.id}`}>
+                    <Briefcase className="mr-2 h-4 w-4" />
+                    Open Listings ({user.listingCount})
+                  </Link>
+                </Button>
+              )}
+              <Button variant="outline" size="sm" asChild>
+                <Link href={`/admin/inquiries?userId=${user.id}`}>
+                  <Activity className="mr-2 h-4 w-4" />
+                  Open Inquiries ({user.inquiryCount})
+                </Link>
+              </Button>
+              <Button variant="outline" size="sm" asChild>
+                <Link href={`/admin/conversations?userId=${user.id}`}>
+                  <MessageSquare className="mr-2 h-4 w-4" />
+                  Open Conversations
+                </Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Main Profile Card */}
       <Card className="shadow-lg">
@@ -338,10 +404,13 @@ export default function AdminUserDetailPage() {
             {/* Contact Information */}
             <div className="space-y-3">
               <h4 className="font-semibold text-brand-dark-blue mb-2">Contact Information</h4>
-              <p className="flex items-center">
+              <p className="flex flex-wrap items-center gap-y-1">
                 <Mail className="h-4 w-4 mr-3 text-muted-foreground" />
                 <span className="font-medium mr-2">Email:</span>
-                {user.email}
+                <span className="mr-2 break-all">{user.email}</span>
+                {user.isEmailVerified
+                  ? <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">Confirmed</Badge>
+                  : <Badge variant="secondary">Unconfirmed</Badge>}
               </p>
               <p className="flex items-center">
                 <Phone className="h-4 w-4 mr-3 text-muted-foreground" />
@@ -839,7 +908,7 @@ export default function AdminUserDetailPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Admin Login Link Dialog */}
+      {/* Admin action dialogs */}
       <AdminLoginLinkDialog
         isOpen={isLoginLinkDialogOpen}
         onOpenChange={setIsLoginLinkDialogOpen}
@@ -850,7 +919,28 @@ export default function AdminUserDetailPage() {
           role: user.role
         } : null}
       />
-    </div>
+      <AdminSetPasswordDialog
+        isOpen={isSetPasswordDialogOpen}
+        onOpenChange={setIsSetPasswordDialogOpen}
+        targetUser={user.role !== 'admin' ? {
+          id: user.id,
+          fullName: user.fullName,
+          email: user.email,
+        } : null}
+      />
+      <AdminDeleteUserDialog
+        isOpen={deleteDialog.open}
+        onOpenChange={(open) => setDeleteDialog(prev => ({ ...prev, open }))}
+        block={deleteDialog.block}
+        targetUser={user.role !== 'admin' ? {
+          id: user.id,
+          fullName: user.fullName,
+          email: user.email,
+        } : null}
+        onDeleted={() => router.push('/admin/users')}
+      />
+      </div>
+    </AdminPageShell>
   );
 }
 
