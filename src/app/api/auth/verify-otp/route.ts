@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { after } from 'next/server';
 import { verifyOTP } from '@/lib/otp-service';
+import { handleVerifiedSignup } from '@/lib/crm-sync';
 import { z } from 'zod';
 
 // Input validation schema
@@ -43,7 +45,11 @@ export async function POST(request: NextRequest): Promise<NextResponse<VerifyOTP
     
     const duration = Date.now() - startTime;
     console.log(`[VERIFY-OTP-API-${requestId}] OTP verification successful in ${duration}ms`);
-    
+
+    // Fire-and-forget: push the verified sign-up into the CRM + Google Chat after the
+    // response is sent. Best-effort — never blocks or fails verification.
+    after(() => handleVerifiedSignup(validatedData.email, requestId));
+
     return NextResponse.json({
       success: true,
       message: 'Email verified successfully! You can now sign in to your account.',
