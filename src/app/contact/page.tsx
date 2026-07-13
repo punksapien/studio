@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -165,15 +166,18 @@ export default function ContactPage() {
         <div className="container mx-auto">
           <div className="flex flex-col md:flex-row">
             {/* Buyer Partner Box */}
-            <FadeIn delay={100} className="flex-1">
-              <div className="border border-brand-dark-blue/10 p-8 md:p-10 h-full flex flex-col">
+            <FadeIn delay={100} className="flex-1 flex flex-col">
+              <div className="border border-brand-dark-blue/10 h-56 bg-white relative overflow-hidden">
+                <Image src="/assets/what-we-do-marketplace.png" alt="Buy-Side Advisory" fill className="object-contain scale-[0.8]" />
+              </div>
+              <div className="border border-brand-dark-blue/10 border-t-0 border-b-0 md:border-b p-8 md:p-10 flex-1 flex flex-col">
                 <h2 className="text-2xl font-normal mb-4 font-heading text-brand-dark-blue">Talk to a buyer partner.</h2>
                 <p className="text-muted-foreground text-lg mb-8 leading-relaxed">
                   Looking to expand through strategic acquisitions in Asia? Our buyer partners get exclusive access to off-market opportunities across Indonesia, Malaysia, and emerging Asian markets.
                 </p>
 
                 <div className="mb-8 flex-grow">
-                  <h3 className="text-base font-semibold mb-4 text-brand-dark-blue">Why Leading Acquirers Choose Nobridge:</h3>
+                  <h3 className="text-base font-sans font-semibold mb-4 text-brand-dark-blue">Why Leading Acquirers Choose Nobridge:</h3>
                   <ul className="space-y-3">
                     {buyerReasons.map((reason, i) => {
                       const Icon = reason.icon;
@@ -195,19 +199,28 @@ export default function ContactPage() {
                 >
                   Schedule Buyer Consultation <ArrowRight className="ml-2 h-5 w-5" />
                 </a>
+                <a
+                  href="mailto:Vilca@nobridge.co"
+                  className="mt-3 inline-flex items-center justify-center w-full px-8 py-3 text-sm font-medium text-brand-dark-blue bg-brand-light-gray hover:bg-brand-light-gray/70 rounded-none transition-colors"
+                >
+                  <Mail className="mr-2 h-4 w-4" /> Email a Buyer Partner
+                </a>
               </div>
             </FadeIn>
 
             {/* Seller Partner Box */}
-            <FadeIn delay={200} className="flex-1">
-              <div className="border border-brand-dark-blue/10 border-t-0 md:border-t md:border-l-0 p-8 md:p-10 h-full flex flex-col">
+            <FadeIn delay={200} className="flex-1 flex flex-col">
+              <div className="border border-brand-dark-blue/10 md:border-l-0 h-56 bg-white relative overflow-hidden">
+                <Image src="/assets/what-we-do-sell-side.png" alt="Sell-Side Advisory" fill className="object-contain scale-[0.8]" />
+              </div>
+              <div className="border border-brand-dark-blue/10 border-t-0 md:border-l-0 p-8 md:p-10 flex-1 flex flex-col">
                 <h2 className="text-2xl font-normal mb-4 font-heading text-brand-dark-blue">Talk to a seller partner.</h2>
                 <p className="text-muted-foreground text-lg mb-8 leading-relaxed">
                   Ready to explore your exit options or fundraise? Our seller partners work with business owners who have built something valuable and want to ensure their legacy continues with the right acquirer.
                 </p>
 
                 <div className="mb-8 flex-grow">
-                  <h3 className="text-base font-semibold mb-4 text-brand-dark-blue">Why Successful Founders Trust Nobridge:</h3>
+                  <h3 className="text-base font-sans font-semibold mb-4 text-brand-dark-blue">Why Successful Founders Trust Nobridge:</h3>
                   <ul className="space-y-3">
                     {sellerReasons.map((reason, i) => {
                       const Icon = reason.icon;
@@ -228,6 +241,12 @@ export default function ContactPage() {
                   className="inline-flex items-center justify-center w-full px-8 py-3 text-sm font-medium text-white bg-brand-dark-blue hover:bg-brand-dark-blue/90 rounded-none transition-colors"
                 >
                   Schedule Seller Consultation <ArrowRight className="ml-2 h-5 w-5" />
+                </a>
+                <a
+                  href="mailto:Fachri@nobridge.co"
+                  className="mt-3 inline-flex items-center justify-center w-full px-8 py-3 text-sm font-medium text-brand-dark-blue bg-brand-light-gray hover:bg-brand-light-gray/70 rounded-none transition-colors"
+                >
+                  <Mail className="mr-2 h-4 w-4" /> Email a Seller Partner
                 </a>
               </div>
             </FadeIn>
@@ -250,27 +269,27 @@ export default function ContactPage() {
           <FadeIn delay={200}>
             <div className="flex flex-col md:flex-row">
               {/* Form */}
-              <div className="flex-[2] border border-white/15 p-5 sm:p-8 md:p-12">
+              <div className="flex-[2] border border-brand-dark-blue/10 bg-white p-5 sm:p-8 md:p-12">
                 <form onSubmit={handleSubmit} className="space-y-5">
                   <div className="grid md:grid-cols-2 gap-5">
                     <div className="space-y-2">
-                      <Label htmlFor="name" className="text-white">Full Name</Label>
+                      <Label htmlFor="name" className="text-brand-dark-blue">Full Name</Label>
                       <Input
                         id="name"
                         value={formData.name}
                         onChange={(e) => handleInputChange('name', e.target.value)}
                         placeholder="John Doe"
                         className={cn(
-                          "bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-brand-sky-blue focus:ring-brand-sky-blue rounded-none",
+                          "bg-brand-light-gray border-brand-dark-blue/10 text-brand-dark-blue placeholder:text-brand-dark-blue/40 focus:border-brand-sky-blue focus:ring-brand-sky-blue rounded-none",
                           errors.name && "border-red-400"
                         )}
                         disabled={isLoading}
                         required
                       />
-                      {errors.name && <p className="text-sm text-red-300 mt-1">{errors.name}</p>}
+                      {errors.name && <p className="text-sm text-red-500 mt-1">{errors.name}</p>}
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="email" className="text-white">Email Address</Label>
+                      <Label htmlFor="email" className="text-brand-dark-blue">Email Address</Label>
                       <Input
                         id="email"
                         type="email"
@@ -278,30 +297,30 @@ export default function ContactPage() {
                         onChange={(e) => handleInputChange('email', e.target.value)}
                         placeholder="you@example.com"
                         className={cn(
-                          "bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-brand-sky-blue focus:ring-brand-sky-blue rounded-none",
+                          "bg-brand-light-gray border-brand-dark-blue/10 text-brand-dark-blue placeholder:text-brand-dark-blue/40 focus:border-brand-sky-blue focus:ring-brand-sky-blue rounded-none",
                           errors.email && "border-red-400"
                         )}
                         disabled={isLoading}
                         required
                       />
-                      {errors.email && <p className="text-sm text-red-300 mt-1">{errors.email}</p>}
+                      {errors.email && <p className="text-sm text-red-500 mt-1">{errors.email}</p>}
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="subject" className="text-white">Subject (Optional)</Label>
+                    <Label htmlFor="subject" className="text-brand-dark-blue">Subject (Optional)</Label>
                     <Input
                       id="subject"
                       value={formData.subject}
                       onChange={(e) => handleInputChange('subject', e.target.value)}
                       placeholder="Inquiry about advisory services"
-                      className="bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-brand-sky-blue focus:ring-brand-sky-blue rounded-none"
+                      className="bg-brand-light-gray border-brand-dark-blue/10 text-brand-dark-blue placeholder:text-brand-dark-blue/40 focus:border-brand-sky-blue focus:ring-brand-sky-blue rounded-none"
                       disabled={isLoading}
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="message" className="text-white">Message</Label>
+                    <Label htmlFor="message" className="text-brand-dark-blue">Message</Label>
                     <Textarea
                       id="message"
                       value={formData.message}
@@ -309,18 +328,18 @@ export default function ContactPage() {
                       placeholder="Your message..."
                       rows={5}
                       className={cn(
-                        "bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-brand-sky-blue focus:ring-brand-sky-blue rounded-none",
+                        "bg-brand-light-gray border-brand-dark-blue/10 text-brand-dark-blue placeholder:text-brand-dark-blue/40 focus:border-brand-sky-blue focus:ring-brand-sky-blue rounded-none",
                         errors.message && "border-red-400"
                       )}
                       disabled={isLoading}
                       required
                     />
-                    {errors.message && <p className="text-sm text-red-300 mt-1">{errors.message}</p>}
+                    {errors.message && <p className="text-sm text-red-500 mt-1">{errors.message}</p>}
                   </div>
 
                   <button
                     type="submit"
-                    className="inline-flex items-center justify-center w-full px-8 py-3 text-sm font-medium text-brand-dark-blue bg-white hover:bg-white/90 rounded-none transition-colors disabled:opacity-50 disabled:pointer-events-none"
+                    className="inline-flex items-center justify-center w-full px-8 py-3 text-sm font-medium text-white bg-brand-dark-blue hover:bg-brand-dark-blue/90 rounded-none transition-colors disabled:opacity-50 disabled:pointer-events-none"
                     disabled={isLoading}
                   >
                     {isLoading ? (
@@ -336,42 +355,52 @@ export default function ContactPage() {
               </div>
 
               {/* Contact Info */}
-              <div className="flex-1 border border-white/15 border-t-0 md:border-t md:border-l-0 p-5 sm:p-8 md:p-12 flex flex-col justify-between">
+              <div className="flex-1 border border-brand-dark-blue/10 border-t-0 md:border-t md:border-l-0 bg-brand-light-gray p-5 sm:p-8 md:p-12 flex flex-col justify-between">
                 <div>
-                  <h3 className="text-lg font-semibold text-white font-heading mb-6">
+                  <h3 className="text-lg font-semibold text-brand-dark-blue font-heading mb-6">
                     Contact Information
                   </h3>
                   <div className="space-y-6">
-                    <div className="flex items-start space-x-3">
-                      <Mail className="h-5 w-5 text-brand-sky-blue mt-0.5" />
-                      <div>
-                        <p className="text-sm text-blue-200 mb-1">Email Us</p>
-                        <a
-                          href="mailto:Business@nobridge.co"
-                          className="text-white hover:text-brand-sky-blue transition-colors font-medium"
-                        >
-                          Business@nobridge.co
-                        </a>
-                      </div>
+                    <div>
+                      <p className="flex items-center gap-2 text-sm text-brand-dark-blue/60 mb-1">
+                        <Mail className="h-4 w-4 text-brand-sky-blue shrink-0" />
+                        Email Us
+                      </p>
+                      <a
+                        href="mailto:Business@nobridge.co"
+                        className="text-brand-dark-blue hover:text-brand-sky-blue transition-colors font-medium"
+                      >
+                        Business@nobridge.co
+                      </a>
                     </div>
 
-                    <div className="flex items-start space-x-3">
-                      <Phone className="h-5 w-5 text-brand-sky-blue mt-0.5" />
-                      <div>
-                        <p className="text-sm text-blue-200 mb-1">Call Us</p>
-                        <a
-                          href="tel:+62816104334"
-                          className="text-white hover:text-brand-sky-blue transition-colors font-medium"
-                        >
-                          + 62 816 10 4334
-                        </a>
-                      </div>
+                    <div>
+                      <p className="flex items-center gap-2 text-sm text-brand-dark-blue/60 mb-1">
+                        <Phone className="h-4 w-4 text-brand-sky-blue shrink-0" />
+                        Call Us
+                      </p>
+                      <a
+                        href="tel:+62816104334"
+                        className="text-brand-dark-blue hover:text-brand-sky-blue transition-colors font-medium"
+                      >
+                        + 62 816 10 4334
+                      </a>
+                    </div>
+
+                    <div>
+                      <p className="flex items-center gap-2 text-sm text-brand-dark-blue/60 mb-1">
+                        <MapPin className="h-4 w-4 text-brand-sky-blue shrink-0" />
+                        Visit Our Office <span className="italic">(Please Contact Us To Schedule)</span>
+                      </p>
+                      <p className="text-brand-dark-blue font-medium">
+                        Regus, Kota Kasablanka Lantai 22, Jakarta 12870
+                      </p>
                     </div>
                   </div>
                 </div>
 
-                <div className="border border-white/15 p-4 mt-8">
-                  <p className="text-sm text-blue-100 leading-relaxed">
+                <div className="border border-brand-dark-blue/10 bg-white p-4 mt-8">
+                  <p className="text-sm text-brand-dark-blue/70 leading-relaxed">
                     "We are committed to help you in every aspect of M&A from beginning to end."
                   </p>
                 </div>
@@ -381,7 +410,7 @@ export default function ContactPage() {
         </div>
       </section>
 
-      <div className="border-t border-white/15" />
+      <div className="bg-brand-dark-blue border-t border-white/15" />
     </div>
   );
 }

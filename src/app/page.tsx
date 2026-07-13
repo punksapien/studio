@@ -714,13 +714,16 @@ export default function HomePage() {
               { title: "Confidential by Design", body: "Every deal is handled with strict confidentiality protocols. NDA-gated information flow, anonymous teasers, and controlled buyer access keep your business protected throughout.", icon: ShieldCheck },
               { title: "Aligned Incentives", body: "Success-fee based pricing means we only win when you do. Optional retainer structures for buyers ensure dedicated sourcing without misaligned incentives.", icon: HandCoins },
             ].map((card, index) => (
-              <FadeIn key={card.title} delay={(index + 2) * 100}>
-                <div className={cn(
-                  "bg-white p-5 sm:p-8 md:p-10 h-full flex flex-col",
+              <FadeIn
+                key={card.title}
+                delay={(index + 2) * 100}
+                className={cn(
                   (index === 1) && "md:border-l border-brand-dark-blue/10",
                   (index === 2) && "border-t border-brand-dark-blue/10",
                   (index === 3) && "border-t md:border-l border-brand-dark-blue/10"
-                )}>
+                )}
+              >
+                <div className="bg-white p-5 sm:p-8 md:p-10 h-full flex flex-col">
                   <card.icon className="h-5 w-5 text-brand-dark-blue/70 mb-4" strokeWidth={1.5} />
                   <h4 className="text-lg font-normal text-brand-dark-blue font-heading mb-3">{card.title}</h4>
                   <p className="text-muted-foreground text-sm leading-relaxed text-justify">{card.body}</p>

@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { forwardRef, useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 
-interface FadeInProps {
+interface FadeInProps extends React.HTMLAttributes<HTMLDivElement> {
     children: React.ReactNode;
     className?: string;
     delay?: number;
@@ -12,16 +12,24 @@ interface FadeInProps {
     fullWidth?: boolean;
 }
 
-export function FadeIn({
-    children,
-    className,
-    delay = 0,
-    duration = 700,
-    direction = 'up',
-    fullWidth = false,
-}: FadeInProps) {
+// Forwards refs and spreads extra props so FadeIn can be used as an
+// `asChild` target (e.g. Radix DialogTrigger), which injects onClick/aria
+// props into its immediate child.
+export const FadeIn = forwardRef<HTMLDivElement, FadeInProps>(function FadeIn(
+    {
+        children,
+        className,
+        delay = 0,
+        duration = 700,
+        direction = 'up',
+        fullWidth = false,
+        style,
+        ...rest
+    },
+    forwardedRef
+) {
     const [isVisible, setIsVisible] = useState(false);
-    const ref = useRef<HTMLDivElement>(null);
+    const ref = useRef<HTMLDivElement | null>(null);
 
     useEffect(() => {
         const observer = new IntersectionObserver(
@@ -65,7 +73,15 @@ export function FadeIn({
 
     return (
         <div
-            ref={ref}
+            {...rest}
+            ref={(node) => {
+                ref.current = node;
+                if (typeof forwardedRef === 'function') {
+                    forwardedRef(node);
+                } else if (forwardedRef) {
+                    forwardedRef.current = node;
+                }
+            }}
             className={cn(
                 'transition-all',
                 isVisible ? 'opacity-100 animate-in fade-in zoom-in-95' : 'opacity-0',
@@ -77,9 +93,10 @@ export function FadeIn({
                 animationDuration: `${duration}ms`,
                 animationDelay: `${delay}ms`,
                 animationFillMode: 'both',
+                ...style,
             }}
         >
             {children}
         </div>
     );
-}
+});
