@@ -538,7 +538,7 @@ export default function ListingDetailPage() {
                 {listing.is_seller_verified ? (
                   <Badge variant="secondary" className="bg-green-500/10 text-green-400 border border-green-500/30"><ShieldCheck className="h-4 w-4 mr-1.5" /> Verified Seller</Badge>
                 ) : (
-                  <Badge variant="secondary" className="bg-amber-500/10 text-amber-400 border border-amber-500/30"><Info className="h-4 w-4 mr-1.5" /> Unverified Seller</Badge>
+                  <Badge variant="secondary" className="bg-amber-500/10 text-amber-400 border border-amber-500/30"><Info className="h-4 w-4 mr-1.5" /> Not Verified</Badge>
                 )}
                 {/* Listing Verification Badge */}
                 {(() => {
@@ -776,7 +776,7 @@ export default function ListingDetailPage() {
                       <div className="flex items-start"><HandCoins className="h-5 w-5 mr-3 text-white/80 flex-shrink-0 mt-0.5" /><div><p className="font-medium text-white">Deal Structure</p><p className="text-gray-300">{dealStructure.join(', ')}</p></div></div>
                     );
                   })()}
-                  <div className="flex items-center"><UserCircle className="h-5 w-5 mr-3 text-white/80 flex-shrink-0" /><div><p className="font-medium text-white">Seller Status</p><p className="text-gray-300">{listing.is_seller_verified ? 'Verified Seller' : 'Unverified Seller'}</p></div></div>
+                  <div className="flex items-center"><UserCircle className="h-5 w-5 mr-3 text-white/80 flex-shrink-0" /><div><p className="font-medium text-white">Seller Status</p><p className="text-gray-300">{listing.is_seller_verified ? 'Verified Seller' : 'Not Verified'}</p></div></div>
                 </CardContent>
                 <CardFooter className="flex flex-col gap-2">
                   <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-none" disabled={!currentUser || currentUser.role === 'seller' || inquirySent || isSubmittingInquiry || isCheckingInquiry} onClick={handleInquireClick}>

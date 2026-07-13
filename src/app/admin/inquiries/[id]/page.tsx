@@ -6,6 +6,7 @@ export const dynamic = 'force-dynamic'
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { VerificationStatusBadge } from '@/components/shared/verification-status-badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -238,11 +239,7 @@ export default function AdminInquiryDetailPage() {
     }
   };
 
-  const getVerificationBadge = (status: string) => {
-    return status === 'verified'
-      ? <Badge className="bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" />Verified</Badge>
-      : <Badge variant="outline"><AlertCircle className="w-3 h-3 mr-1" />Unverified</Badge>;
-  };
+  const getVerificationBadge = (status: string) => <VerificationStatusBadge status={status} />;
 
   if (isLoading) {
     return (

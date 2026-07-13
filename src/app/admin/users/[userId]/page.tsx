@@ -22,6 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AdminPageShell } from "@/components/admin/page-header";
 import { AdminLoginLinkDialog } from "@/components/admin/admin-login-link-dialog";
+import { VerificationStatusBadge } from "@/components/shared/verification-status-badge";
 import { AdminSetPasswordDialog } from "@/components/admin/admin-set-password-dialog";
 import { AdminDeleteUserDialog } from "@/components/admin/admin-delete-user-dialog";
 
@@ -142,33 +143,6 @@ function Section({ title, children }: { title: string; children: React.ReactNode
     </div>
   );
 }
-
-// Badge components
-const getProfileVerificationBadge = (status: string, large: boolean = false) => {
-  const iconSize = large ? "h-5 w-5 mr-2" : "h-3 w-3 mr-1";
-  const textSize = large ? 'p-2 text-lg' : 'text-xs';
-
-  switch (status) {
-    case 'verified':
-      return (
-        <Badge className={`${textSize} bg-green-100 text-green-700 dark:bg-green-800 dark:text-green-200 border-green-300 dark:border-green-600`}>
-          <ShieldCheck className={iconSize} /> Profile Verified
-        </Badge>
-      );
-    case 'pending_verification':
-      return (
-        <Badge variant="secondary" className={`${textSize} bg-yellow-100 text-yellow-700 dark:bg-yellow-800 dark:text-yellow-200 border-yellow-300 dark:border-yellow-600`}>
-          <ShieldAlert className={iconSize} /> In Progress
-        </Badge>
-      );
-    case 'anonymous':
-      return <Badge variant="outline" className={textSize}>Anonymous</Badge>;
-    case 'rejected':
-      return <Badge variant="destructive" className={textSize}>Rejected</Badge>;
-    default:
-      return <Badge variant="outline" className={textSize}>Unverified</Badge>;
-  }
-};
 
 export default function AdminUserDetailPage() {
   const params = useParams();
@@ -384,7 +358,7 @@ export default function AdminUserDetailPage() {
                 )}
               </CardDescription>
             </div>
-            {getProfileVerificationBadge(user.verificationStatus, true)}
+            <VerificationStatusBadge status={user.verificationStatus} size="lg" />
           </div>
         </CardHeader>
 
@@ -599,7 +573,7 @@ export default function AdminUserDetailPage() {
                     {user.role === 'admin' ? (
                       <Badge className="bg-purple-100 text-purple-700">Admin Account</Badge>
                     ) : (
-                      getProfileVerificationBadge(user.verificationStatus)
+                      <VerificationStatusBadge status={user.verificationStatus} />
                     )}
                   </Row>
                   <Row label="Email Verified">

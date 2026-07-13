@@ -171,7 +171,7 @@ function BuyerVerificationContent() {
         <Card className="shadow-lg bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-700/50">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
-              <Mail className="h-7 w-7" /> Verification Pending
+              <Mail className="h-7 w-7" /> Pending Verification
             </CardTitle>
           </CardHeader>
           <CardContent>

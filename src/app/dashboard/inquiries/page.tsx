@@ -238,7 +238,7 @@ export default function InquiriesPage() {
           {inquiries.map((inquiry) => {
             const statusDisplay = getStatusDisplay(inquiry);
             const listingTitle = inquiry.listing?.listing_title_anonymous || 'Untitled Listing';
-            const sellerStatus = inquiry.listing?.is_seller_verified ? 'Platform Verified Seller' : 'Anonymous Seller';
+            const sellerStatus = inquiry.listing?.is_seller_verified ? 'Verified Seller' : 'Not Verified';
 
             return (
             <Card key={inquiry.id} id={inquiry.id} className="shadow-lg bg-brand-white">

@@ -29,6 +29,7 @@ import useSWR from 'swr';
 import { useState, useCallback, useMemo } from 'react';
 import { useDebounce } from '@/hooks/use-debounce';
 import { CreateUserDialog } from '@/components/admin/create-user-dialog';
+import { VerificationStatusBadge } from '@/components/shared/verification-status-badge';
 
 // Simplified interface for admin user data that matches API response exactly
 interface AdminUser {
@@ -124,22 +125,6 @@ export default function AdminUsersPage() {
     mutate();
   }, [mutate]);
 
-  // Badge component for verification status
-  const getProfileVerificationBadge = (status: string) => {
-    switch (status) {
-      case 'verified':
-        return <Badge className="bg-green-100 text-green-700 dark:bg-green-800 dark:text-green-200 border-green-300 dark:border-green-600"><ShieldCheck className="h-3 w-3 mr-1" /> Verified</Badge>;
-      case 'pending_verification':
-        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-700 dark:bg-yellow-800 dark:text-yellow-200 border-yellow-300 dark:border-yellow-600"><ShieldAlert className="h-3 w-3 mr-1" /> Pending</Badge>;
-      case 'anonymous':
-        return <Badge variant="outline">Anonymous</Badge>;
-      case 'rejected':
-        return <Badge variant="destructive">Rejected</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  };
-
   return (
     <AdminPageShell
       title="User Management"
@@ -177,9 +162,8 @@ export default function AdminUsersPage() {
                   <SelectItem value="all">All Statuses</SelectItem>
                   <SelectItem value="verified">Verified</SelectItem>
                   <SelectItem value="pending_verification">Pending Verification</SelectItem>
-                  <SelectItem value="anonymous">Anonymous</SelectItem>
+                  <SelectItem value="anonymous">Not Verified</SelectItem>
                   <SelectItem value="rejected">Rejected</SelectItem>
-                  <SelectItem value="unverified">Unverified</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -242,7 +226,7 @@ export default function AdminUsersPage() {
                           <TableCell>{user.email}</TableCell>
                           <TableCell><Badge variant="outline" className="capitalize">{user.role}</Badge></TableCell>
                           <TableCell>{user.country}</TableCell>
-                          <TableCell>{getProfileVerificationBadge(user.verificationStatus)}</TableCell>
+                          <TableCell><VerificationStatusBadge status={user.verificationStatus} /></TableCell>
                           <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
                           <TableCell className="text-right whitespace-nowrap">
                             <Button variant="ghost" size="icon" asChild title="View User Details">

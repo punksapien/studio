@@ -81,7 +81,7 @@ export default function SellerDashboard() {
       case 'verified':
         return {
           icon: <CheckCircle2 className="h-5 w-5 text-green-600" />,
-          status: 'Verified Seller',
+          status: 'Verified',
           description: 'Your profile has been verified by our team.',
           badgeVariant: 'default' as const,
           badgeColor: 'bg-green-100 text-green-800 border-green-200',
@@ -94,7 +94,7 @@ export default function SellerDashboard() {
       case 'pending_verification':
         return {
           icon: <Clock className="h-5 w-5 text-yellow-600" />,
-          status: 'Verification Pending',
+          status: 'Pending Verification',
           description: pendingUserRequest ?
             `Your verification request is ${pendingUserRequest.status.toLowerCase()}. ${pendingUserRequest.can_bump ? 'You can bump it to the top!' : (pendingUserRequest.hours_until_can_bump && pendingUserRequest.hours_until_can_bump > 0) ? `You can bump it in ${VERIFICATION_CONFIG.formatTimeRemaining(pendingUserRequest.hours_until_can_bump)}.` : ''}` :
             'Your profile verification is being reviewed.',
@@ -106,7 +106,7 @@ export default function SellerDashboard() {
           hoursUntilBump: pendingUserRequest?.hours_until_can_bump || 0,
           progress: 80,
           progressColor: 'bg-yellow-500',
-          progressText: 'Profile 80% Complete (Verification Pending)'
+          progressText: 'Profile 80% Complete (Pending Verification)'
         };
       case 'rejected':
         const canSubmitAfterRejection = canSubmitNewRequest('user_verification');
@@ -121,7 +121,7 @@ export default function SellerDashboard() {
 
         return {
           icon: <AlertCircle className="h-5 w-5 text-red-600" />,
-          status: 'Verification Rejected',
+          status: 'Rejected',
           description: canSubmitAfterRejection.canSubmit ?
             'Your previous verification was rejected. You can submit a new request with additional information.' :
             canSubmitAfterRejection.message || 'Previous verification rejected. You can resubmit after the cooldown period.',
@@ -148,7 +148,7 @@ export default function SellerDashboard() {
 
         return {
           icon: <User className="h-5 w-5 text-muted-foreground" />,
-          status: 'Anonymous Seller',
+          status: 'Not Verified',
           description: canSubmit.canSubmit ?
             'Get verified to build trust and increase visibility.' :
             canSubmit.message || 'Verification request pending.',

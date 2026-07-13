@@ -22,6 +22,7 @@ import type { VerificationRequestItem, VerificationQueueStatus, VerificationStat
 import Link from "next/link";
 import { Eye, Edit, ShieldCheck, AlertTriangle, MailOpen, MessageSquare, Clock, FileSearch, RefreshCw, Loader2, Users, InboxIcon, Filter, XCircle } from "lucide-react";
 import { UpdateVerificationStatusDialog } from "@/components/admin/update-verification-status-dialog";
+import { VerificationStatusBadge } from "@/components/shared/verification-status-badge";
 import { useToast } from "@/hooks/use-toast";
 import { useAdminVerification } from "@/hooks/use-admin-verification";
 import { cn } from "@/lib/utils";
@@ -160,17 +161,9 @@ function AdminBuyerVerificationQueuePageContent() {
     }
   };
 
-  const ProfileStatusBadge = ({ status }: { status?: VerificationStatus }) => {
-    const badgeBaseClasses = "text-xs px-2 py-0.5 rounded-full font-medium flex items-center gap-1";
-    if (!status) return <Badge variant="outline" className={cn(badgeBaseClasses)}>Unknown</Badge>;
-    switch (status) {
-      case 'verified': return <Badge variant="outline" className={cn(badgeBaseClasses, "bg-green-100 text-green-700 border-green-300")}><ShieldCheck className="h-3 w-3" />Verified</Badge>;
-      case 'pending_verification': return <Badge variant="outline" className={cn(badgeBaseClasses, "bg-yellow-100 text-yellow-700 border-yellow-300")}><AlertTriangle className="h-3 w-3" />Pending</Badge>;
-      case 'rejected': return <Badge variant="destructive" className={cn(badgeBaseClasses, "bg-red-100 text-red-700 border-red-300")}><AlertTriangle className="h-3 w-3" />Rejected</Badge>;
-      case 'anonymous':
-      default: return <Badge variant="outline" className={cn(badgeBaseClasses, "capitalize")}>{(status as string).replace(/_/g, ' ')}</Badge>;
-    }
-  };
+  const ProfileStatusBadge = ({ status }: { status?: VerificationStatus }) => (
+    <VerificationStatusBadge status={status} />
+  );
 
   const pendingCount = data?.requests.filter(r =>
     r.operationalStatus !== 'Approved' && r.operationalStatus !== 'Rejected'

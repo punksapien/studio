@@ -26,6 +26,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import type { VerificationRequestItem, VerificationStatus, VerificationQueueStatus, AdminNote } from '@/lib/types';
+import { VerificationStatusBadge, verificationStatusLabel } from '@/components/shared/verification-status-badge';
 import { useToast } from '@/hooks/use-toast';
 import { Trash2, UserCircle, Clock, ShieldCheck, AlertTriangle, Info, Edit, CheckSquare, ListChecks, MessageSquareWarning } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -55,21 +56,9 @@ const OperationalStatusBadge = ({ status }: { status: VerificationQueueStatus })
   }
 };
 
-const ProfileStatusBadge = ({ status }: { status: VerificationStatus | undefined }) => {
-  const commonClasses = "text-xs px-2 py-1 h-5 gap-1";
-
-  if (!status) {
-    return <Badge variant="outline" className={cn(commonClasses, "capitalize")}>Unknown</Badge>;
-  }
-
-  switch (status) {
-    case 'verified': return <Badge variant="outline" className={cn(commonClasses, "bg-green-100 text-green-700 border-green-300")}><ShieldCheck className="h-3 w-3" />Verified</Badge>;
-    case 'pending_verification': return <Badge variant="outline" className={cn(commonClasses, "bg-yellow-100 text-yellow-700 border-yellow-300")}><AlertTriangle className="h-3 w-3" />Pending</Badge>;
-    case 'rejected': return <Badge variant="destructive" className={cn(commonClasses, "bg-red-100 text-red-700 border-red-300")}><AlertTriangle className="h-3 w-3" />Rejected</Badge>;
-    case 'anonymous':
-    default: return <Badge variant="outline" className={cn(commonClasses, "capitalize")}>{(status as string).replace(/_/g, ' ')}</Badge>;
-  }
-};
+const ProfileStatusBadge = ({ status }: { status: VerificationStatus | undefined }) => (
+  <VerificationStatusBadge status={status} />
+);
 
 
 export function UpdateVerificationStatusDialog({
@@ -270,7 +259,7 @@ export function UpdateVerificationStatusDialog({
                     <Label className="text-sm font-medium text-foreground">Profile Status</Label>
                     <Select value={selectedProfileStatus} onValueChange={(value) => setSelectedProfileStatus(value as VerificationStatus)}>
                       <SelectTrigger id="profileStatus" className="h-9 text-sm bg-background border-input"><SelectValue placeholder="Select new profile status" /></SelectTrigger>
-                      <SelectContent>{profileStatusOptions.map(s => <SelectItem key={s} value={s} className="capitalize">{s.replace('_', ' ')}</SelectItem>)}</SelectContent>
+                      <SelectContent>{profileStatusOptions.map(s => <SelectItem key={s} value={s}>{verificationStatusLabel(s)}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
 
@@ -361,7 +350,7 @@ export function UpdateVerificationStatusDialog({
                   <div>
                     <p><strong>New Note to Add:</strong></p>
                     <p className="text-muted-foreground p-3 border rounded bg-muted/40 whitespace-pre-wrap text-xs">{newNoteText.trim()}</p>
-                    <p className="text-xs text-muted-foreground mt-1">(Will be saved with statuses: Ops: {selectedOperationalStatus}, Profile: {selectedProfileStatus})</p>
+                    <p className="text-xs text-muted-foreground mt-1">(Will be saved with statuses: Ops: {selectedOperationalStatus}, Profile: {verificationStatusLabel(selectedProfileStatus)})</p>
                   </div>
                 )}
                 {notesChanged && !newNoteAdded && (JSON.stringify(currentAdminNotes) !== JSON.stringify(initialRequestStateRef.current?.adminNotes || [])) && (
