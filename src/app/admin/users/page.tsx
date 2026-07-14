@@ -24,7 +24,7 @@ import {
 import { AdminPageShell } from "@/components/admin/page-header";
 import type { User, VerificationStatus } from "@/lib/types";
 import Link from "next/link";
-import { Eye, ShieldCheck, ShieldAlert, Filter, Search, Edit, Loader2, UserPlus } from "lucide-react";
+import { ShieldCheck, Filter, Search, Edit, Loader2, UserPlus } from "lucide-react";
 import useSWR from 'swr';
 import { useState, useCallback, useMemo } from 'react';
 import { useDebounce } from '@/hooks/use-debounce';
@@ -231,12 +231,12 @@ export default function AdminUsersPage() {
                           <TableCell className="text-right whitespace-nowrap">
                             <Button variant="ghost" size="icon" asChild title="View User Details">
                               <Link href={`/admin/users/${user.id}`}>
-                                <Eye className="h-4 w-4" />
+                                <Edit className="h-4 w-4" />
                               </Link>
                             </Button>
                             <Button variant="ghost" size="icon" asChild title="Manage Verification">
                               <Link href={`/admin/verification-queue/${user.role === 'buyer' ? 'buyers' : 'sellers'}?userId=${user.id}`}>
-                                <Edit className="h-4 w-4" />
+                                <ShieldCheck className="h-4 w-4" />
                               </Link>
                             </Button>
                           </TableCell>
