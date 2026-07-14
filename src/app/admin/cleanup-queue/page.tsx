@@ -75,10 +75,7 @@ export default function CleanupQueuePage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...actionForm,
-          admin_user_id: 'current-admin-id' // TODO: Get from auth context
-        })
+        body: JSON.stringify(actionForm)
       });
 
       const result = await response.json();

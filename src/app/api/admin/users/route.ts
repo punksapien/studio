@@ -49,6 +49,7 @@ export async function GET(req: NextRequest) {
         is_onboarding_completed,
         onboarding_step_completed
       `, { count: 'exact' })
+      .is('deleted_at', null)
 
     // Apply search filter (name or email)
     if (search) {
@@ -116,7 +117,7 @@ export async function GET(req: NextRequest) {
       }
     }, {
       headers: {
-        'Cache-Control': 's-maxage=60', // 1-minute cache
+        'Cache-Control': 'no-store', // admin data must never be edge-cached
         'X-Total-Count': count?.toString() || '0'
       }
     })
