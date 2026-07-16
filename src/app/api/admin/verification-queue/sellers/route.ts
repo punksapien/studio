@@ -64,6 +64,8 @@ export async function GET(request: NextRequest) {
         user_notes,
         phone_number,
         best_time_to_call,
+        additional_email,
+        additional_phone,
         user_profiles!verification_requests_user_id_fkey!inner (
           id,
           full_name,
@@ -138,6 +140,8 @@ export async function GET(request: NextRequest) {
       userNotes: item.user_notes,
       phoneNumber: item.phone_number, // Add phone number from request
       bestTimeToCall: item.best_time_to_call, // Add best time to call
+      additionalEmail: item.additional_email, // Optional additional email (post-revamp requests)
+      additionalPhone: item.additional_phone, // Optional additional phone (post-revamp requests)
       createdAt: item.created_at,
       updatedAt: item.updated_at
     }));

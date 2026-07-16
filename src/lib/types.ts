@@ -335,8 +335,10 @@ export interface VerificationRequestItem {
 
   // Contact preferences from verification form
   phoneNumber?: string;  // Alternative to userPhone for consistency
-  bestTimeToCall?: string;
-  userNotes?: string;  // User's additional notes/questions
+  additionalEmail?: string;  // Optional additional email captured on the request
+  additionalPhone?: string;  // Optional additional phone captured on the request
+  bestTimeToCall?: string;  // Legacy field: only present on pre-revamp requests
+  userNotes?: string;  // Legacy field: user's additional notes/questions, only present on pre-revamp requests
 }
 
 

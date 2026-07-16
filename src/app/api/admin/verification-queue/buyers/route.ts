@@ -63,6 +63,8 @@ export async function GET(request: NextRequest) {
         phone_number,
         best_time_to_call,
         user_notes,
+        additional_email,
+        additional_phone,
         admin_notes,
         documents_submitted,
         created_at,
@@ -137,6 +139,8 @@ export async function GET(request: NextRequest) {
       phoneNumber: req.phone_number, // Add phone number from request
       bestTimeToCall: req.best_time_to_call, // Add best time to call
       userNotes: req.user_notes, // Add user notes
+      additionalEmail: req.additional_email, // Optional additional email (post-revamp requests)
+      additionalPhone: req.additional_phone, // Optional additional phone (post-revamp requests)
     }))
 
     const responseTime = Date.now() - startTime

@@ -10,18 +10,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { CheckCircle, Clock, XCircle, AlertCircle, Loader2, Shield, FileText, Building, RefreshCw } from 'lucide-react';
+import { CheckCircle, Clock, XCircle, AlertCircle, Loader2, Shield, FileText, Building, RefreshCw, Pencil, Check, X, Plus } from 'lucide-react';
 import { Suspense } from 'react';
 import Link from 'next/link';
 
 // Import our new TanStack Query hooks
 import { useCurrentUser } from '@/hooks/queries/use-user-data';
 import { useVerificationRequest } from '@/hooks/queries/use-verification-data';
+import { updateUserProfile } from '@/hooks/use-current-user';
 
 // Loading skeleton component
 function LoadingSkeleton() {
@@ -69,38 +69,6 @@ function ErrorFallback({ error, retry }: { error: Error; retry: () => void }) {
   );
 }
 
-// Form field component with proper loading state
-function FormField({ label, value, isLoading, placeholder }: {
-  label: string;
-  value?: string;
-  isLoading?: boolean;
-  placeholder?: string;
-}) {
-  if (isLoading) {
-    return (
-      <div className="space-y-2">
-        <div className="h-4 bg-muted animate-pulse rounded-md w-1/4" />
-        <div className="h-9 bg-muted animate-pulse rounded-md" />
-      </div>
-    );
-  }
-
-  const displayValue = value || '';
-  const placeholderText = placeholder || `Your ${label.toLowerCase()}`;
-
-  return (
-    <div className="space-y-2">
-      <Label className="text-sm text-muted-foreground">{label}</Label>
-      <Input
-        value={displayValue}
-        disabled
-        className="bg-muted/50"
-        placeholder={!displayValue ? placeholderText : undefined}
-      />
-    </div>
-  );
-}
-
 // Status badge component
 function StatusBadge({ status }: { status: string }) {
   const getStatusConfig = (status: string) => {
@@ -139,6 +107,48 @@ function VerificationContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [verificationType, setVerificationType] = useState<'profile' | 'listing'>('profile');
   const [selectedListingId, setSelectedListingId] = useState<string | undefined>(searchParams.get('listingId') || undefined);
+
+  // Inline name editing
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [nameValue, setNameValue] = useState('');
+  const [isSavingName, setIsSavingName] = useState(false);
+
+  // Optional additional contact fields
+  const [additionalEmail, setAdditionalEmail] = useState('');
+  const [additionalPhone, setAdditionalPhone] = useState('');
+  const [showEmailInput, setShowEmailInput] = useState(false);
+  const [showPhoneInput, setShowPhoneInput] = useState(false);
+
+  const handleSaveName = async () => {
+    const trimmed = nameValue.trim();
+    if (!trimmed) {
+      toast({
+        title: 'Name Required',
+        description: 'Your name cannot be empty.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsSavingName(true);
+    try {
+      await updateUserProfile({ full_name: trimmed });
+      await refetchUser();
+      setIsEditingName(false);
+      toast({
+        title: 'Name Updated',
+        description: 'Your name has been saved.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to update your name. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSavingName(false);
+    }
+  };
 
   // Combined loading state
   const isLoading = isLoadingUser || isLoadingRequests;
@@ -319,10 +329,6 @@ function VerificationContent() {
      setIsSubmitting(true);
 
      try {
-       const formData = new FormData(e.currentTarget as HTMLFormElement);
-       const bestTimeToCall = formData.get('bestTimeToCall') as string;
-       const notes = formData.get('notes') as string;
-
        const requestData = {
          request_type: verificationType === 'profile' ? 'user_verification' : 'listing_verification',
          listing_id: verificationType === 'listing' ? selectedListingId : undefined,
@@ -330,8 +336,8 @@ function VerificationContent() {
            ? 'Seller profile verification request'
            : `Listing verification request for listing ID: ${selectedListingId}`,
          phone_number: profile?.phone_number || '',
-         best_time_to_call: bestTimeToCall,
-         user_notes: notes
+         additional_email: additionalEmail.trim() || undefined,
+         additional_phone: additionalPhone.trim() || undefined
        };
 
        const response = await fetch('/api/verification/request', {
@@ -418,31 +424,149 @@ function VerificationContent() {
               </h3>
               <Separator />
 
-                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                 <FormField
-                   label="Full Name"
-                   value={profile.full_name}
-                   placeholder="Your full name"
-                 />
-                 <FormField
-                   label="Email"
-                   value={user.email}
-                   placeholder="Your email address"
-                 />
-                 <FormField
-                   label="Phone Number"
-                   value={profile.phone_number}
-                   placeholder="Your phone number"
-                 />
-                 {/* Only show company field if we have company data */}
-                 {(profile.company_name || profile.initial_company_name || profile.company) && (
-                   <FormField
-                     label="Company"
-                     value={profile.company_name || profile.initial_company_name || profile.company}
-                     placeholder="Your company name"
-                   />
-                 )}
-               </div>
+              <div className="rounded-lg border divide-y">
+                {/* Name row (inline editable) */}
+                <div className="flex items-start justify-between gap-3 p-4">
+                  <div className="min-w-0 flex-1">
+                    <Label className="text-sm text-muted-foreground">Full Name</Label>
+                    {isEditingName ? (
+                      <div className="mt-1 flex items-center gap-2">
+                        <Input
+                          value={nameValue}
+                          onChange={(e) => setNameValue(e.target.value)}
+                          disabled={isSavingName}
+                          autoFocus
+                          placeholder="Your full name"
+                        />
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          onClick={handleSaveName}
+                          disabled={isSavingName}
+                          aria-label="Save name"
+                        >
+                          {isSavingName ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Check className="h-4 w-4" />
+                          )}
+                        </Button>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => setIsEditingName(false)}
+                          disabled={isSavingName}
+                          aria-label="Cancel editing name"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <p className="mt-1 text-sm">{profile.full_name || 'Not provided'}</p>
+                    )}
+                  </div>
+                  {!isEditingName && (
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => {
+                        setNameValue(profile.full_name || '');
+                        setIsEditingName(true);
+                      }}
+                      aria-label="Edit name"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+
+                {/* Email row */}
+                <div className="p-4">
+                  <Label className="text-sm text-muted-foreground">Email</Label>
+                  <p className="mt-1 text-sm">{user.email || 'Not provided'}</p>
+                  {showEmailInput ? (
+                    <div className="mt-2 flex items-center gap-2">
+                      <Input
+                        type="email"
+                        placeholder="Additional email (optional)"
+                        value={additionalEmail}
+                        onChange={(e) => setAdditionalEmail(e.target.value)}
+                      />
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => {
+                          setShowEmailInput(false);
+                          setAdditionalEmail('');
+                        }}
+                        aria-label="Remove additional email"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="link"
+                      size="sm"
+                      className="mt-1 h-auto p-0 text-primary"
+                      onClick={() => setShowEmailInput(true)}
+                    >
+                      <Plus className="mr-1 h-3 w-3" /> Add another email
+                    </Button>
+                  )}
+                </div>
+
+                {/* Phone row */}
+                <div className="p-4">
+                  <Label className="text-sm text-muted-foreground">Phone Number</Label>
+                  <p className="mt-1 text-sm">{profile.phone_number || 'Not provided'}</p>
+                  {showPhoneInput ? (
+                    <div className="mt-2 flex items-center gap-2">
+                      <Input
+                        type="tel"
+                        placeholder="Additional phone (optional)"
+                        value={additionalPhone}
+                        onChange={(e) => setAdditionalPhone(e.target.value)}
+                      />
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => {
+                          setShowPhoneInput(false);
+                          setAdditionalPhone('');
+                        }}
+                        aria-label="Remove additional phone"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="link"
+                      size="sm"
+                      className="mt-1 h-auto p-0 text-primary"
+                      onClick={() => setShowPhoneInput(true)}
+                    >
+                      <Plus className="mr-1 h-3 w-3" /> Add another phone
+                    </Button>
+                  )}
+                </div>
+
+                {/* Company (read-only) */}
+                {(profile.company_name || profile.initial_company_name || profile.company) && (
+                  <div className="p-4">
+                    <Label className="text-sm text-muted-foreground">Company</Label>
+                    <p className="mt-1 text-sm">{profile.company_name || profile.initial_company_name || profile.company}</p>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Verification Type */}
@@ -485,35 +609,6 @@ function VerificationContent() {
                </div>
              )}
 
-                         {/* Contact Information */}
-             <div className="space-y-4">
-               <h3 className="text-lg font-medium">Contact Preferences</h3>
-               <Separator />
-
-               <div className="space-y-4">
-                 <div>
-                   <Label htmlFor="bestTimeToCall">Best Time to Call (Optional)</Label>
-                   <Input
-                     id="bestTimeToCall"
-                     name="bestTimeToCall"
-                     placeholder="e.g., Weekdays 2-4 PM SGT"
-                     className="mt-1"
-                   />
-                 </div>
-
-                 <div>
-                   <Label htmlFor="notes">Additional Notes (Optional)</Label>
-                   <Textarea
-                     id="notes"
-                     name="notes"
-                     placeholder="Any specific information or questions for our team?"
-                     className="resize-none mt-1"
-                     rows={4}
-                   />
-                 </div>
-               </div>
-             </div>
-
              {/* Submit Button */}
              <div className="flex justify-end">
                <Button
@@ -527,7 +622,7 @@ function VerificationContent() {
                      Submitting...
                    </>
                  ) : (
-                   'Request Verification Call'
+                   'Request Verification'
                  )}
                </Button>
              </div>

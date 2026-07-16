@@ -26,12 +26,40 @@ export async function POST(request: NextRequest) {
       action,
       request_id,
       phone_number,
-      best_time_to_call,
-      user_notes
+      additional_email,
+      additional_phone
     } = body;
 
     // Handle different actions: 'submit' (new request) or 'bump' (bump existing)
     const requestAction = action || 'submit';
+
+    // Normalize + validate optional extra contact fields (no zod in this file)
+    const trimmedAdditionalEmail = typeof additional_email === 'string' ? additional_email.trim() : '';
+    const trimmedAdditionalPhone = typeof additional_phone === 'string' ? additional_phone.trim() : '';
+    const normalizedAdditionalEmail = trimmedAdditionalEmail === '' ? null : trimmedAdditionalEmail;
+    const normalizedAdditionalPhone = trimmedAdditionalPhone === '' ? null : trimmedAdditionalPhone;
+
+    if (normalizedAdditionalEmail !== null) {
+      if (normalizedAdditionalEmail.length > 255) {
+        return NextResponse.json(
+          { error: 'additional_email must be 255 characters or fewer' },
+          { status: 400 }
+        );
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedAdditionalEmail)) {
+        return NextResponse.json(
+          { error: 'additional_email must be a valid email address' },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (normalizedAdditionalPhone !== null && !/^[+]?[\d\s\-().]{5,24}$/.test(normalizedAdditionalPhone)) {
+      return NextResponse.json(
+        { error: 'additional_phone must be a valid phone number' },
+        { status: 400 }
+      );
+    }
 
     // Validate required fields for submission
     if (requestAction === 'submit' && (!request_type || !reason)) {
@@ -128,8 +156,8 @@ export async function POST(request: NextRequest) {
           p_request_type: request_type,
           p_reason: reason,
           p_phone_number: phone_number || authResult.profile.phone_number,
-          p_best_time_to_call: best_time_to_call || null,
-          p_user_notes: user_notes || null
+          p_additional_email: normalizedAdditionalEmail,
+          p_additional_phone: normalizedAdditionalPhone
         });
 
       if (createError) {
@@ -172,8 +200,8 @@ export async function POST(request: NextRequest) {
           status: 'New Request',
           reason,
           phone_number: phone_number || authResult.profile.phone_number,
-          best_time_to_call: best_time_to_call || null,
-          user_notes: user_notes || null
+          additional_email: normalizedAdditionalEmail,
+          additional_phone: normalizedAdditionalPhone
         },
         // ✅ PRODUCTION: Updated message for admin review workflow
         message: `Your ${request_type.replace('_', ' ')} request has been submitted successfully. Our team will review it and contact you soon.`,
@@ -284,6 +312,8 @@ export async function GET(request: NextRequest) {
         admin_locked_at,
         admin_lock_reason,
         user_notes,
+        additional_email,
+        additional_phone,
         listings (
           listing_title_anonymous,
           status

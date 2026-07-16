@@ -86,6 +86,8 @@ export async function GET(
         created_at,
         status,
         user_notes,
+        additional_email,
+        additional_phone,
         bump_count,
         priority_score,
         request_type

@@ -25,6 +25,8 @@ interface VerificationRequest {
   admin_locked_at?: string;
   admin_lock_reason?: string;
   user_notes?: string;
+  additional_email?: string;
+  additional_phone?: string;
   listings?: {
     listing_title_anonymous: string;
     status: string;
@@ -36,6 +38,9 @@ interface VerificationRequestPayload {
   listing_id?: string;
   reason: string;
   action?: 'submit' | 'bump';
+  phone_number?: string;
+  additional_email?: string;
+  additional_phone?: string;
 }
 
 interface UseVerificationRequestReturn {

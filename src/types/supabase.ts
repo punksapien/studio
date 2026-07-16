@@ -2461,24 +2461,17 @@ export type Database = {
         Returns: undefined
       }
       create_verification_request: {
-        Args:
-          | {
-              p_user_id: string
-              p_listing_id?: string
-              p_request_type?: string
-              p_reason?: string
-              p_phone_number?: string
-              p_best_time_to_call?: string
-              p_user_notes?: string
-            }
-          | {
-              p_user_id: string
-              p_request_type: string
-              p_reason: string
-              p_phone_number?: string
-              p_best_time_to_call?: string
-              p_user_notes?: string
-            }
+        Args: {
+          p_user_id: string
+          p_listing_id?: string
+          p_request_type?: string
+          p_reason?: string
+          p_phone_number?: string
+          p_additional_email?: string
+          p_additional_phone?: string
+          p_best_time_to_call?: string
+          p_user_notes?: string
+        }
         Returns: {
           success: boolean
           request_id: string

@@ -5,20 +5,19 @@ export const dynamic = 'force-dynamic'
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ShieldCheck, CheckCircle2, Loader2, Mail, AlertCircle } from "lucide-react";
+import { ShieldCheck, CheckCircle2, Loader2, Mail, AlertCircle, Pencil, Check, X, Plus } from "lucide-react";
 import { useState, Suspense } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import Link from "next/link";
-import { useCurrentUser } from "@/hooks/use-current-user";
+import { useCurrentUser, updateUserProfile } from "@/hooks/use-current-user";
 import { useVerificationRequest } from "@/hooks/use-verification-request";
 
 // Fallback if Suspense is not wrapping this page for searchParams
 function BuyerVerificationContent() {
   const { toast } = useToast();
-  const { user, profile, loading: isLoadingUser } = useCurrentUser();
+  const { user, profile, loading: isLoadingUser, refreshAuth } = useCurrentUser();
   const {
     requests,
     currentStatus: userProfileVerificationStatus,
@@ -29,7 +28,49 @@ function BuyerVerificationContent() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Inline name editing
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [nameValue, setNameValue] = useState('');
+  const [isSavingName, setIsSavingName] = useState(false);
+
+  // Optional additional contact fields
+  const [additionalEmail, setAdditionalEmail] = useState('');
+  const [additionalPhone, setAdditionalPhone] = useState('');
+  const [showEmailInput, setShowEmailInput] = useState(false);
+  const [showPhoneInput, setShowPhoneInput] = useState(false);
+
   const isLoading = isLoadingUser || isLoadingRequests;
+
+  const handleSaveName = async () => {
+    const trimmed = nameValue.trim();
+    if (!trimmed) {
+      toast({
+        title: "Name Required",
+        description: "Your name cannot be empty.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsSavingName(true);
+    try {
+      await updateUserProfile({ full_name: trimmed });
+      await refreshAuth();
+      setIsEditingName(false);
+      toast({
+        title: "Name Updated",
+        description: "Your name has been saved.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update your name. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSavingName(false);
+    }
+  };
 
   const handleBump = async (requestId: string, reason?: string) => {
     const success = await bumpRequest(requestId, reason, () => {
@@ -52,19 +93,15 @@ function BuyerVerificationContent() {
       return;
     }
 
-    const formData = new FormData(event.currentTarget);
-    const bestTimeToCall = formData.get('bestTimeToCall') as string;
-    const notes = formData.get('notes') as string;
-
     setIsSubmitting(true);
 
     try {
       const requestData = {
         request_type: 'user_verification',
         reason: 'Buyer profile verification request',
-        phone_number: profile?.phone_number || '', // Use phone number from profile
-        best_time_to_call: bestTimeToCall,
-        user_notes: notes
+        phone_number: profile.phone_number, // Use phone number from profile
+        additional_email: additionalEmail.trim() || undefined,
+        additional_phone: additionalPhone.trim() || undefined
       };
 
       const response = await fetch('/api/verification/request', {
@@ -179,11 +216,6 @@ function BuyerVerificationContent() {
               Your verification request has been submitted and is currently {pendingRequest?.status.toLowerCase() || 'being processed'}.
               Our team will contact you at the phone number provided.
             </p>
-            {pendingRequest?.best_time_to_call && (
-              <p className="text-sm text-blue-500 dark:text-blue-300 mt-2">
-                Best time to call: {pendingRequest.best_time_to_call}
-              </p>
-            )}
           </CardContent>
         </Card>
       );
@@ -224,10 +256,140 @@ function BuyerVerificationContent() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleRequestVerification} className="space-y-6">
-          <div className="grid sm:grid-cols-2 gap-4">
-            <FormItemDisabled label="Full Name" value={profile?.full_name} />
-            <FormItemDisabled label="Email" value={profile?.email || user?.email} />
-            <FormItemDisabled label="Phone Number" value={profile?.phone_number} />
+          <div className="rounded-lg border divide-y">
+            {/* Name row (inline editable) */}
+            <div className="flex items-start justify-between gap-3 p-4">
+              <div className="min-w-0 flex-1">
+                <Label className="text-sm font-medium text-muted-foreground">Full Name</Label>
+                {isEditingName ? (
+                  <div className="mt-1 flex items-center gap-2">
+                    <Input
+                      value={nameValue}
+                      onChange={(e) => setNameValue(e.target.value)}
+                      disabled={isSavingName}
+                      autoFocus
+                      placeholder="Your full name"
+                    />
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      onClick={handleSaveName}
+                      disabled={isSavingName}
+                      aria-label="Save name"
+                    >
+                      {isSavingName ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Check className="h-4 w-4" />
+                      )}
+                    </Button>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => setIsEditingName(false)}
+                      disabled={isSavingName}
+                      aria-label="Cancel editing name"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="mt-1 text-sm">{profile?.full_name || 'Not provided'}</p>
+                )}
+              </div>
+              {!isEditingName && (
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => {
+                    setNameValue(profile?.full_name || '');
+                    setIsEditingName(true);
+                  }}
+                  aria-label="Edit name"
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+
+            {/* Email row */}
+            <div className="p-4">
+              <Label className="text-sm font-medium text-muted-foreground">Email</Label>
+              <p className="mt-1 text-sm">{profile?.email || user?.email || 'Not provided'}</p>
+              {showEmailInput ? (
+                <div className="mt-2 flex items-center gap-2">
+                  <Input
+                    type="email"
+                    placeholder="Additional email (optional)"
+                    value={additionalEmail}
+                    onChange={(e) => setAdditionalEmail(e.target.value)}
+                  />
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => {
+                      setShowEmailInput(false);
+                      setAdditionalEmail('');
+                    }}
+                    aria-label="Remove additional email"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant="link"
+                  size="sm"
+                  className="mt-1 h-auto p-0 text-primary"
+                  onClick={() => setShowEmailInput(true)}
+                >
+                  <Plus className="mr-1 h-3 w-3" /> Add another email
+                </Button>
+              )}
+            </div>
+
+            {/* Phone row */}
+            <div className="p-4">
+              <Label className="text-sm font-medium text-muted-foreground">Phone Number</Label>
+              <p className="mt-1 text-sm">{profile?.phone_number || 'Not provided'}</p>
+              {showPhoneInput ? (
+                <div className="mt-2 flex items-center gap-2">
+                  <Input
+                    type="tel"
+                    placeholder="Additional phone (optional)"
+                    value={additionalPhone}
+                    onChange={(e) => setAdditionalPhone(e.target.value)}
+                  />
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => {
+                      setShowPhoneInput(false);
+                      setAdditionalPhone('');
+                    }}
+                    aria-label="Remove additional phone"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant="link"
+                  size="sm"
+                  className="mt-1 h-auto p-0 text-primary"
+                  onClick={() => setShowPhoneInput(true)}
+                >
+                  <Plus className="mr-1 h-3 w-3" /> Add another phone
+                </Button>
+              )}
+            </div>
           </div>
 
           {!profile?.phone_number && (
@@ -242,25 +404,6 @@ function BuyerVerificationContent() {
               </CardContent>
             </Card>
           )}
-
-          <div>
-            <Label htmlFor="bestTimeToCall">Best Time to Call (Optional)</Label>
-            <Input
-              id="bestTimeToCall"
-              name="bestTimeToCall"
-              placeholder="e.g., Weekdays 2-4 PM SGT"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="notes">Additional Notes (Optional)</Label>
-            <Textarea
-              id="notes"
-              name="notes"
-              placeholder="Any additional information you'd like to share..."
-              rows={3}
-            />
-          </div>
 
           <Button
             type="submit"
@@ -299,20 +442,6 @@ function BuyerVerificationContent() {
       </div>
     );
   }
-
-// Helper component for disabled form fields
-function FormItemDisabled({ label, value }: { label: string; value?: string }) {
-    return (
-    <div>
-      <Label className="text-sm font-medium">{label}</Label>
-      <Input
-        value={value || 'Not provided'}
-        disabled
-        className="bg-muted text-muted-foreground"
-      />
-    </div>
-  );
-}
 
 export default function BuyerVerificationPage() {
   return (

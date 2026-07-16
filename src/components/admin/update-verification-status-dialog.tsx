@@ -228,12 +228,30 @@ export function UpdateVerificationStatusDialog({
                         {request.phoneNumber || request.userPhone || 'Not provided'}
                       </span>
                     </div>
-                    <div className="sm:col-span-2 lg:col-span-1">
-                      <span className="font-medium text-blue-800 dark:text-blue-200">Best time to call:</span>
-                      <span className="ml-1 text-blue-700 dark:text-blue-300">
-                        {request.bestTimeToCall || 'No preference'}
-                      </span>
-                    </div>
+                    {request.additionalEmail && (
+                      <div>
+                        <span className="font-medium text-blue-800 dark:text-blue-200">Additional Email:</span>
+                        <span className="ml-1 text-blue-700 dark:text-blue-300 break-all">
+                          {request.additionalEmail}
+                        </span>
+                      </div>
+                    )}
+                    {request.additionalPhone && (
+                      <div>
+                        <span className="font-medium text-blue-800 dark:text-blue-200">Additional Phone:</span>
+                        <span className="ml-1 text-blue-700 dark:text-blue-300">
+                          {request.additionalPhone}
+                        </span>
+                      </div>
+                    )}
+                    {request.bestTimeToCall && (
+                      <div className="sm:col-span-2 lg:col-span-1">
+                        <span className="font-medium text-blue-800 dark:text-blue-200">Best time to call:</span>
+                        <span className="ml-1 text-blue-700 dark:text-blue-300">
+                          {request.bestTimeToCall}
+                        </span>
+                      </div>
+                    )}
                   </div>
                   {request.userNotes && (
                     <div className="mt-2">

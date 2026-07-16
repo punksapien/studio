@@ -8,6 +8,8 @@ interface VerificationRequestDetail {
     request_type: string;
     status: string;
     user_notes: string;
+    additional_email?: string;
+    additional_phone?: string;
     admin_notes: Array<{
       note: string;
       admin_id: string;
