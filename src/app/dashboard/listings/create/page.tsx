@@ -32,6 +32,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useTransition, useState } from "react";
 import { Separator } from "@/components/ui/separator";
 import { PlusCircle, Trash2 } from "lucide-react";
+import { DashboardPageShell } from "@/components/shared/dashboard-page-shell";
 
 const ListingSchema = z.object({
   listingTitleAnonymous: z.string().min(5, "Title must be at least 5 characters.").max(100, "Title too long."),
@@ -122,13 +123,12 @@ export default function CreateListingPage() {
   };
 
   return (
-    <div className="space-y-8">
-      <h1 className="text-3xl font-semibold tracking-tight">Create New Business Listing</h1>
+    <DashboardPageShell title="Create Listing" description="Create a new anonymous business listing." scrollable>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          <Card className="shadow-md">
+          <Card>
             <CardHeader>
-              <CardTitle>Section 1: Basic Information</CardTitle>
+              <CardTitle className="text-lg">Section 1: Basic Information</CardTitle>
               <CardDescription>Provide the essential details for your listing. This information will be displayed anonymously initially.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -177,9 +177,9 @@ export default function CreateListingPage() {
             </CardContent>
           </Card>
 
-          <Card className="shadow-md">
+          <Card>
             <CardHeader>
-              <CardTitle>Section 2: Business Details (Anonymous Version)</CardTitle>
+              <CardTitle className="text-lg">Section 2: Business Details (Anonymous Version)</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <FormField control={form.control} name="anonymousBusinessDescription" render={({ field }) => (
@@ -226,9 +226,9 @@ export default function CreateListingPage() {
             </CardContent>
           </Card>
           
-          <Card className="shadow-md">
+          <Card>
             <CardHeader>
-                <CardTitle>Section 3: Financial Summary (Ranges - Anonymous)</CardTitle>
+                <CardTitle className="text-lg">Section 3: Financial Summary (Ranges - Anonymous)</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
                 <div className="grid md:grid-cols-2 gap-6">
@@ -266,9 +266,9 @@ export default function CreateListingPage() {
             </CardContent>
           </Card>
 
-          <Card className="shadow-md">
+          <Card>
             <CardHeader>
-                <CardTitle>Section 4: Deal Structure (Optional, Anonymous)</CardTitle>
+                <CardTitle className="text-lg">Section 4: Deal Structure (Optional, Anonymous)</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
                 <FormField
@@ -337,6 +337,6 @@ export default function CreateListingPage() {
           </div>
         </form>
       </Form>
-    </div>
+    </DashboardPageShell>
   );
 }

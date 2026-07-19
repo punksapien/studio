@@ -34,6 +34,8 @@ import { useVerificationRequest } from '@/hooks/use-verification-request';
 import { VERIFICATION_CONFIG } from '@/lib/verification-config';
 import React from 'react';
 import { NobridgeIcon } from '@/components/ui/nobridge-icon';
+import { DashboardPageShell } from '@/components/shared/dashboard-page-shell';
+import { MetricCard } from '@/components/shared/metric-card';
 
 export default function SellerDashboard() {
   const { user, stats, recentListings, isLoading, error, refreshData, isPolling } = useSellerDashboard();
@@ -169,52 +171,51 @@ export default function SellerDashboard() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
-          <span>Loading dashboard...</span>
+      <DashboardPageShell title="Overview" description="Here's an overview of your seller activity.">
+        <div className="flex flex-1 items-center justify-center">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            <span>Loading dashboard...</span>
+          </div>
         </div>
-      </div>
+      </DashboardPageShell>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <AlertCircle className="h-12 w-12 text-destructive mx-auto" />
-          <div>
-            <h2 className="text-xl font-semibold text-destructive">Error Loading Dashboard</h2>
-            <p className="text-muted-foreground">{error}</p>
-            <Button onClick={refreshData} className="mt-4">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Retry
-            </Button>
+      <DashboardPageShell title="Overview" description="Here's an overview of your seller activity.">
+        <div className="flex flex-1 items-center justify-center">
+          <div className="text-center space-y-4">
+            <AlertCircle className="h-12 w-12 text-destructive mx-auto" />
+            <div>
+              <h2 className="text-lg font-semibold text-destructive">Error Loading Dashboard</h2>
+              <p className="text-muted-foreground">{error}</p>
+              <Button onClick={refreshData} className="mt-4">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Retry
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
+      </DashboardPageShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
-        {/* Header */}
-        <div className="flex justify-between items-start mb-8">
-          <div>
-            <h1 className="text-3xl font-semibold text-foreground font-heading">Seller Dashboard</h1>
-            <div className="text-muted-foreground mt-1">
-              Welcome back, {user?.fullName || 'User'}!
-            </div>
-          </div>
-          <Button onClick={refreshData} variant="outline" size="sm">
-            <RefreshCw className={`h-4 w-4 mr-2 ${isPolling && !isLoading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-        </div>
-
+    <DashboardPageShell
+      scrollable
+      title="Overview"
+      description="Here's an overview of your seller activity."
+      actions={
+        <Button onClick={refreshData} variant="outline" size="sm">
+          <RefreshCw className={`h-4 w-4 mr-2 ${isPolling && !isLoading ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
+      }
+    >
         {/* Verification Status Card */}
-         <Card className={`mb-8 border-2 shadow-md ${
+         <Card className={`border-2 ${
           verificationStatus === 'verified' ? 'border-green-500/50 bg-green-500/5' :
           verificationStatus === 'pending_verification' ? 'border-yellow-500/50 bg-yellow-500/5' :
           verificationStatus === 'rejected' ? 'border-red-500/50 bg-red-500/5' :
@@ -318,52 +319,32 @@ export default function SellerDashboard() {
 
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="shadow-md bg-card">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-foreground">Active Listings</CardTitle>
-              <NobridgeIcon icon="business-listing" size="sm" className="text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-semibold text-primary">{stats.activeListingsCount}</div>
-              <p className="text-xs text-muted-foreground">
-                Listings currently visible to buyers
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-md bg-card">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-foreground">Total Inquiries</CardTitle>
-              <NobridgeIcon icon="interaction" size="sm" className="text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-semibold text-primary">{stats.totalInquiriesReceived}</div>
-              <p className="text-xs text-muted-foreground">
-                All-time inquiries received
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-md bg-card">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-foreground">Awaiting Response</CardTitle>
-              <NobridgeIcon icon="verification" size="sm" className="text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-semibold text-destructive">{stats.inquiriesAwaitingEngagement}</div>
-              <p className="text-xs text-muted-foreground">
-                New inquiries needing attention
-              </p>
-            </CardContent>
-          </Card>
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <MetricCard
+            title="Active Listings"
+            value={stats.activeListingsCount}
+            icon={FileText}
+            description="Listings currently visible to buyers"
+          />
+          <MetricCard
+            title="Total Inquiries"
+            value={stats.totalInquiriesReceived}
+            icon={MessageSquare}
+            description="All-time inquiries received"
+          />
+          <MetricCard
+            title="Awaiting Response"
+            value={stats.inquiriesAwaitingEngagement}
+            icon={AlertCircle}
+            description="New inquiries needing attention"
+          />
         </div>
 
         {/* Quick Actions & Performance */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <Card className="shadow-md bg-card">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card className="bg-card">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-foreground font-heading">
+              <CardTitle className="flex items-center gap-2 text-lg text-foreground font-heading">
                 <NobridgeIcon icon="core-details" size="md" className="text-accent" />
                 Quick Actions
               </CardTitle>
@@ -390,9 +371,9 @@ export default function SellerDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="shadow-md bg-card">
+          <Card className="bg-card">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-foreground font-heading">
+              <CardTitle className="flex items-center gap-2 text-lg text-foreground font-heading">
                 <NobridgeIcon icon="growth" size="md" className="text-accent" />
                 Profile Performance
               </CardTitle>
@@ -422,9 +403,9 @@ export default function SellerDashboard() {
         </div>
 
         {/* Recent Listings */}
-        <Card className="shadow-md bg-card">
+        <Card className="bg-card">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-foreground font-heading">
+            <CardTitle className="flex items-center gap-2 text-lg text-foreground font-heading">
               <NobridgeIcon icon="transactions" size="md" className="text-accent" />
               Recent Listings
             </CardTitle>
@@ -439,7 +420,7 @@ export default function SellerDashboard() {
             {recentListings.length > 0 ? (
               <div className="space-y-4">
                 {recentListings.map((listing) => (
-                  <div key={listing.id} className="flex items-center justify-between p-4 border rounded-lg hover:shadow-sm transition-shadow">
+                  <div key={listing.id} className="flex items-center justify-between p-4 border">
                     <div className="flex-1">
                       <h3 className="font-medium text-foreground">{listing.title}</h3>
                       <div className="flex items-center gap-2 mt-1">
@@ -481,8 +462,7 @@ export default function SellerDashboard() {
             )}
           </CardContent>
         </Card>
-      </div>
-    </div>
+    </DashboardPageShell>
   );
 }
 

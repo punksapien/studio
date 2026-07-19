@@ -5,25 +5,28 @@ import { Badge } from "@/components/ui/badge";
 import { sampleListings } from "@/lib/placeholder-data"; // Assuming current user is seller1
 import type { Listing } from "@/lib/types";
 import Image from "next/image";
-import { PlusCircle, Edit3, Trash2, Eye, ShieldCheck, AlertTriangle } from "lucide-react";
+import { PlusCircle, Edit3, Trash2, Eye, ShieldCheck, AlertTriangle, Briefcase } from "lucide-react";
+import { DashboardPageShell } from "@/components/shared/dashboard-page-shell";
 
 // Filter listings for the current seller (placeholder: 'user1')
 const sellerListings: Listing[] = sampleListings.filter(l => l.sellerId === 'user1');
 
 export default function ManageListingsPage() {
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
-        <h1 className="text-3xl font-semibold tracking-tight">My Business Listings</h1>
-        <Button asChild>
+    <DashboardPageShell
+      title="Listings"
+      description="Manage your business listings."
+      scrollable
+      actions={
+        <Button asChild size="sm">
           <Link href="/dashboard/listings/create">
             <PlusCircle className="mr-2 h-4 w-4" /> Create New Listing
           </Link>
         </Button>
-      </div>
-
+      }
+    >
       {sellerListings.length === 0 ? (
-        <Card className="shadow-md text-center py-12">
+        <Card className="text-center py-12">
           <CardContent>
             <Briefcase className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
             <p className="text-xl font-semibold text-muted-foreground">No listings yet.</p>
@@ -38,14 +41,14 @@ export default function ManageListingsPage() {
       ) : (
         <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
           {sellerListings.map((listing) => (
-            <Card key={listing.id} className="shadow-lg flex flex-col">
+            <Card key={listing.id} className="flex flex-col">
               <CardHeader className="relative p-0">
                  <Image
                     src={listing.imageUrl || "https://placehold.co/400x200.png"}
                     alt={listing.listingTitleAnonymous}
                     width={400}
                     height={200}
-                    className="w-full h-40 object-cover rounded-t-lg"
+                    className="w-full h-40 object-cover"
                     data-ai-hint="business building city"
                   />
                    {listing.isSellerVerified ? (
@@ -91,6 +94,6 @@ export default function ManageListingsPage() {
           ))}
         </div>
       )}
-    </div>
+    </DashboardPageShell>
   );
 }

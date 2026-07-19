@@ -27,10 +27,11 @@ import { useState, useTransition, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
 import { useSellerProfile } from "@/hooks/use-seller-profile";
-import { Loader2, RefreshCw, AlertCircle } from "lucide-react";
+import { Loader2, RefreshCw, AlertCircle, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { DashboardPageShell } from "@/components/shared/dashboard-page-shell";
 
 const ProfileSchema = z.object({
   fullName: z.string().min(1, { message: "Full name is required." }),
@@ -205,29 +206,35 @@ export default function SellerProfilePage() {
     });
   };
 
+  const backToSettings = (
+    <Button asChild variant="outline" size="sm" className="border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white">
+      <Link href="/seller-dashboard/settings"><ArrowLeft className="h-4 w-4 mr-2" />Back to Settings</Link>
+    </Button>
+  );
+
   // Show loading state while checking authentication
   if (isLoading) {
     return (
-      <div className="space-y-8">
-        <div className="flex items-center justify-center min-h-[400px]">
+      <DashboardPageShell headerActions={backToSettings} title="My Profile" description="Update your personal details and account security.">
+        <div className="flex flex-1 items-center justify-center">
           <div className="text-center">
             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
             <p className="text-muted-foreground">Loading your profile...</p>
           </div>
         </div>
-      </div>
+      </DashboardPageShell>
     );
   }
 
   // Show error state with retry option
   if (error || (!user && hasInitialized)) {
     return (
-      <div className="space-y-8">
-        <div className="flex flex-col items-center justify-center min-h-[400px]">
+      <DashboardPageShell headerActions={backToSettings} title="My Profile" description="Update your personal details and account security.">
+        <div className="flex flex-1 flex-col items-center justify-center">
           <AlertCircle className="h-12 w-12 text-destructive mb-4" />
-          <h1 className="text-2xl font-semibold text-destructive mb-2">
+          <h2 className="text-lg font-semibold text-destructive mb-2">
             {error || "Failed to Load Profile"}
-          </h1>
+          </h2>
           <p className="text-muted-foreground mb-6 text-center max-w-md">
             We're having trouble loading your profile data. This can happen due to session issues.
             {retryCount > 0 && " Please try refreshing the page."}
@@ -247,28 +254,28 @@ export default function SellerProfilePage() {
             </p>
           )}
         </div>
-      </div>
+      </DashboardPageShell>
     );
   }
 
   // Show not found state if no user after loading
   if (!user && !profileLoading) {
     return (
-      <div className="container py-8 text-center">
-        <h1 className="text-3xl font-semibold tracking-tight">Profile Not Found</h1>
-        <p className="text-muted-foreground mb-4">Unable to load your profile. Please try logging in again.</p>
-        <Button asChild>
-          <Link href="/auth/login?redirectTo=/seller-dashboard/profile">Login</Link>
-        </Button>
-      </div>
+      <DashboardPageShell headerActions={backToSettings} title="My Profile" description="Update your personal details and account security.">
+        <div className="flex flex-1 flex-col items-center justify-center text-center">
+          <h2 className="text-lg font-semibold tracking-tight">Profile Not Found</h2>
+          <p className="text-muted-foreground mb-4">Unable to load your profile. Please try logging in again.</p>
+          <Button asChild>
+            <Link href="/auth/login?redirectTo=/seller-dashboard/profile">Login</Link>
+          </Button>
+        </div>
+      </DashboardPageShell>
     );
   }
 
   return (
-    <div className="space-y-8">
-      <h1 className="text-3xl font-semibold tracking-tight">My Seller Profile</h1>
-
-      <Card className="shadow-md">
+    <DashboardPageShell scrollable headerActions={backToSettings} title="My Profile" description="Update your personal details and account security.">
+      <Card>
         <CardHeader>
           <CardTitle>Personal Information</CardTitle>
           <CardDescription>Update your personal details. Your email ({user?.email}) cannot be changed here.</CardDescription>
@@ -362,7 +369,7 @@ export default function SellerProfilePage() {
 
       <Separator />
 
-      <Card className="shadow-md">
+      <Card>
         <CardHeader>
           <CardTitle>Change Password</CardTitle>
           <CardDescription>Update your account password.</CardDescription>
@@ -418,6 +425,6 @@ export default function SellerProfilePage() {
           </Form>
         </CardContent>
       </Card>
-    </div>
+    </DashboardPageShell>
   );
 }

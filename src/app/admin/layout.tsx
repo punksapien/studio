@@ -251,7 +251,7 @@ export default function AdminLayout({
     <SidebarProvider defaultOpen style={{ '--sidebar-width': '19rem' } as React.CSSProperties}>
       <style dangerouslySetInnerHTML={{ __html: sidebarStyles }} />
       <div className="flex min-h-screen w-full bg-gray-50/30">
-        <Sidebar variant="sidebar" className="h-screen sticky top-0 border-r-0 bg-white text-foreground">
+        <Sidebar variant="sidebar" className="h-screen sticky top-0 shrink-0 border-r-0 bg-white text-foreground">
           <div className="flex h-full flex-col bg-white border-r border-gray-200">
             <SidebarHeader className="h-[88px] shrink-0 justify-center px-6 py-0 bg-white">
               <div className="flex items-center justify-between">

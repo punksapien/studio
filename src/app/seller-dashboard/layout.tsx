@@ -21,60 +21,36 @@ import { Logo } from '@/components/shared/logo';
 import { Button } from '@/components/ui/button';
 import {
   LayoutDashboard,
-  UserCircle,
   MessageSquare,
   Settings,
-  LogOut,
   Bell,
-  PlusCircle,
-  FileText,
   MessageSquareQuote,
   Home,
-  Mail,
   Briefcase,
   ShieldCheck
 } from 'lucide-react';
-import type { UserRole } from '@/lib/types';
 import LogoutButton from '@/components/auth/LogoutButton';
 import { Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
-// Add CSS for animations
+// Flat seller theme: square corners and no shadows everywhere in the seller area.
+// Applied via a class on <body> so portaled elements (dialogs, dropdowns,
+// tooltips) are covered as well.
 const sidebarStyles = `
-  @keyframes slideInLeft {
-    from {
-      opacity: 0;
-      transform: translateX(-20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateX(0);
-    }
+  body.seller-flat *,
+  body.seller-flat *::before,
+  body.seller-flat *::after {
+    border-radius: 0 !important;
   }
 
-  @keyframes glow {
-    0%, 100% {
-      box-shadow: 0 0 5px hsl(var(--primary) / 0.3);
-    }
-    50% {
-      box-shadow: 0 0 20px hsl(var(--primary) / 0.6);
-    }
-  }
-
-  .sidebar-item-animate {
-    animation: slideInLeft 0.6s ease-out;
-  }
-
-  .sidebar-active-glow {
-    animation: glow 2s ease-in-out infinite;
+  body.seller-flat [class*="shadow"] {
+    box-shadow: none !important;
   }
 `;
 
 const sellerSidebarNavItems = [
   { title: 'Overview', href: '/seller-dashboard', icon: LayoutDashboard, tooltip: "Dashboard Overview" },
-  { title: 'My Profile', href: '/seller-dashboard/profile', icon: UserCircle, tooltip: "Manage Profile" },
   { title: 'My Listings', href: '/seller-dashboard/listings', icon: Briefcase, tooltip: "Manage Listings" },
-  { title: 'Create Listing', href: '/seller-dashboard/listings/create', icon: PlusCircle, tooltip: "Create New Listing" },
   { title: 'My Inquiries', href: '/seller-dashboard/inquiries', icon: MessageSquare, tooltip: "View Inquiries" },
   // { title: 'Messages', href: '/seller-dashboard/messages', icon: Mail, tooltip: "My Conversations" },
   { title: 'Verification', href: '/seller-dashboard/verification', icon: ShieldCheck, tooltip: "Account/Listing Verification" },
@@ -84,7 +60,6 @@ const sellerSidebarNavItems = [
 
 const utilityNavItems = [
   { title: 'FAQ', href: '/faq', icon: MessageSquareQuote, tooltip: "Frequently Asked Questions" },
-  { title: 'Back to Homepage', href: '/', icon: Home, tooltip: "Go to Homepage" },
 ];
 
 export default function SellerDashboardLayout({
@@ -93,8 +68,14 @@ export default function SellerDashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const { profile, isLoading, error } = useAuth();
+  const { profile, isLoading } = useAuth();
   const [inquiryCount, setInquiryCount] = React.useState(0);
+
+  // Flat seller theme: covers portaled UI (dialogs, dropdowns, tooltips) too
+  React.useEffect(() => {
+    document.body.classList.add('seller-flat');
+    return () => document.body.classList.remove('seller-flat');
+  }, []);
 
   // Fetch inquiry count for notification badge
   React.useEffect(() => {
@@ -115,6 +96,21 @@ export default function SellerDashboardLayout({
 
     fetchInquiryCount();
   }, [profile]);
+
+  // Compute active state for a nav item. General rule: exact match for the
+  // dashboard root, otherwise startsWith with a path-boundary check so the
+  // more specific route wins. "My Listings" therefore highlights across
+  // /listings, /listings/create, and /listings/[id]/edit.
+  const getIsActive = (href: string, title?: string) => {
+    const overviewPath = '/seller-dashboard';
+
+    if (href === overviewPath) {
+      return pathname === overviewPath;
+    }
+    // Profile is now reached via Settings, so Settings stays active on the profile page too.
+    if (title === 'Settings') return pathname.startsWith('/seller-dashboard/settings') || pathname.startsWith('/seller-dashboard/profile');
+    return pathname.startsWith(href) && (pathname.length === href.length || pathname[href.length] === '/');
+  };
 
   // Show loading state while fetching user data - but don't block access
   if (isLoading) {
@@ -149,67 +145,47 @@ export default function SellerDashboardLayout({
   }
 
   return (
-    <SidebarProvider defaultOpen>
+    <SidebarProvider defaultOpen style={{ '--sidebar-width': '19rem' } as React.CSSProperties}>
       <style dangerouslySetInnerHTML={{ __html: sidebarStyles }} />
-      <div className="flex min-h-screen bg-gray-50/30">
-        <Sidebar variant="sidebar" className="h-screen sticky top-0 border-r-0 bg-white text-foreground shadow-lg">
-          <div className="h-full bg-white rounded-r-3xl border-r border-gray-200 shadow-xl">
-            <SidebarHeader className="p-6 border-b border-gray-200 bg-white rounded-tr-3xl">
+      <div className="flex min-h-screen w-full bg-gray-50/30">
+        <Sidebar variant="sidebar" className="h-screen sticky top-0 shrink-0 border-r-0 bg-white text-foreground">
+          <div className="flex h-full flex-col bg-white border-r border-gray-200">
+            <SidebarHeader className="h-[88px] shrink-0 justify-center px-6 py-0 bg-white">
               <div className="flex items-center justify-between">
                 <Logo size="lg" forceTheme="light" />
-                <SidebarTrigger className="md:hidden rounded-lg hover:bg-gray-100 transition-colors duration-200" />
+                <SidebarTrigger className="md:hidden rounded-none hover:bg-gray-100 transition-colors duration-200" />
               </div>
             </SidebarHeader>
-            <SidebarContent className="flex-grow px-4 py-6 space-y-2 bg-white">
+            <SidebarContent className="flex-grow px-4 pb-6 bg-white">
+              <div className="pb-4">
+                <SidebarSeparator className="bg-gray-200" />
+              </div>
               <SidebarMenu className="space-y-1">
-                {sellerSidebarNavItems.map((item, index) => {
+                {sellerSidebarNavItems.map((item) => {
                   const IconComponent = item.icon;
-                  const iconProps = { className:"h-5 w-5 mr-3 shrink-0 transition-all duration-200 group-hover:scale-110" };
-
-                  const overviewPath = '/seller-dashboard';
-                  let itemIsActive = pathname === item.href;
-                  if (item.href === overviewPath && pathname === overviewPath) {
-                      itemIsActive = true;
-                  } else if (item.href !== overviewPath && pathname.startsWith(item.href) && (pathname.length === item.href.length || pathname[item.href.length] === '/')) {
-                      itemIsActive = true;
-                  }
-
-                  if (item.title === "My Listings") {
-                      itemIsActive = pathname.startsWith("/seller-dashboard/listings") && !pathname.startsWith("/seller-dashboard/listings/create");
-                  }
-                  if (item.title === "Create Listing") {
-                      itemIsActive = pathname === "/seller-dashboard/listings/create";
-                  }
+                  const iconProps = { className: "h-4 w-4 mr-3 shrink-0" };
+                  const isActive = getIsActive(item.href, item.title);
 
                   return (
-                  <SidebarMenuItem key={item.title} className="group sidebar-item-animate">
+                  <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
                       asChild
-                      isActive={itemIsActive}
-                      tooltip={{ children: item.tooltip, className: "bg-gray-800 text-white border-gray-600 shadow-lg" }}
+                      isActive={isActive}
+                      tooltip={{ children: item.tooltip, className: "bg-gray-800 text-white border-gray-600" }}
                       className={`
-                        relative rounded-xl px-4 py-3 transition-all duration-300 ease-out
-                        hover:bg-gray-50 hover:scale-[1.02] hover:shadow-md
+                        h-11 rounded-none px-4 transition-colors duration-200
                         focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-white
-                        ${itemIsActive
-                          ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25 scale-[1.02] sidebar-active-glow'
-                          : 'text-gray-700 hover:text-gray-900'
+                        ${isActive
+                          ? 'bg-primary text-primary-foreground'
+                          : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
                         }
-                        before:absolute before:inset-0 before:rounded-xl before:bg-gradient-to-r
-                        before:from-primary/0 before:to-accent/0 before:opacity-0
-                        before:transition-opacity before:duration-300 hover:before:opacity-5
-                        group overflow-hidden
                       `}
-                      style={{
-                        animationDelay: `${index * 50}ms`,
-                        animationFillMode: 'both'
-                      }}
                     >
-                      <Link href={item.href} className="flex items-center relative z-10 w-full">
+                      <Link href={item.href} className="flex items-center w-full">
                         <IconComponent {...iconProps} />
-                        <span className="truncate font-medium transition-all duration-200">{item.title}</span>
-                        {itemIsActive && (
-                          <div className="absolute right-2 w-2 h-2 bg-primary-foreground rounded-full opacity-80 animate-pulse"></div>
+                        <span className="truncate font-medium">{item.title}</span>
+                        {item.title === 'My Inquiries' && inquiryCount > 0 && (
+                          <Badge variant="secondary" className="ml-auto">{inquiryCount}</Badge>
                         )}
                       </Link>
                     </SidebarMenuButton>
@@ -222,62 +198,60 @@ export default function SellerDashboardLayout({
               </div>
 
               <SidebarMenu className="space-y-1">
-                {utilityNavItems.map((item, index) => {
+                {utilityNavItems.map((item) => {
                   const IconComponent = item.icon;
-                  const iconProps = { className:"h-5 w-5 mr-3 shrink-0 transition-all duration-200 group-hover:scale-110" };
-                  const isActive = pathname === item.href;
+                  const iconProps = { className: "h-4 w-4 mr-3 shrink-0" };
+                  const isActive = getIsActive(item.href, item.title);
 
                   return (
-                  <SidebarMenuItem key={item.title} className="group sidebar-item-animate">
+                  <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
                       asChild
                       isActive={isActive}
-                      tooltip={{ children: item.tooltip, className: "bg-gray-800 text-white border-gray-600 shadow-lg" }}
+                      tooltip={{ children: item.tooltip, className: "bg-gray-800 text-white border-gray-600" }}
                       className={`
-                        relative rounded-xl px-4 py-3 transition-all duration-300 ease-out
-                        hover:bg-gray-50 hover:scale-[1.02] hover:shadow-md
+                        h-11 rounded-none px-4 transition-colors duration-200
                         focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-white
                         ${isActive
-                          ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25 scale-[1.02] sidebar-active-glow'
-                          : 'text-gray-700 hover:text-gray-900'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
                         }
-                        before:absolute before:inset-0 before:rounded-xl before:bg-gradient-to-r
-                        before:from-primary/0 before:to-accent/0 before:opacity-0
-                        before:transition-opacity before:duration-300 hover:before:opacity-5
-                        group overflow-hidden
                       `}
-                      style={{
-                        animationDelay: `${(sellerSidebarNavItems.length + index) * 50}ms`,
-                        animationFillMode: 'both'
-                      }}
                     >
-                       <Link href={item.href} className="flex items-center relative z-10 w-full">
+                      <Link href={item.href} className="flex items-center w-full">
                         <IconComponent {...iconProps} />
-                        <span className="truncate font-medium transition-all duration-200">{item.title}</span>
-                        {isActive && (
-                          <div className="absolute right-2 w-2 h-2 bg-primary-foreground rounded-full opacity-80 animate-pulse"></div>
-                        )}
+                        <span className="truncate font-medium">{item.title}</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 )})}
               </SidebarMenu>
             </SidebarContent>
-            <SidebarFooter className="p-6 border-t border-gray-200 bg-white rounded-br-3xl">
-              <div className="transform transition-transform duration-200 hover:scale-[1.02]">
-                <LogoutButton fullWidth />
+            <SidebarFooter className="p-4 pb-4 md:pb-6 bg-white">
+              <div className="flex flex-col gap-3">
+                <Button
+                  asChild
+                  variant="outline"
+                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground flex items-center justify-start"
+                >
+                  <Link href="/">
+                    <Home className="h-5 w-5 mr-2" />
+                    Back to Homepage
+                  </Link>
+                </Button>
+                <LogoutButton fullWidth className="justify-start" />
               </div>
             </SidebarFooter>
           </div>
         </Sidebar>
-        <SidebarInset className="flex-grow flex flex-col overflow-hidden bg-white">
-            <header className="md:hidden flex items-center justify-between p-4 border-b bg-white/80 backdrop-blur-md sticky top-0 z-10 shadow-sm">
+        <SidebarInset className="flex-grow min-w-0 h-screen flex flex-col overflow-hidden bg-white">
+           <header className="md:hidden flex items-center justify-between p-4 border-b bg-white/80 sticky top-0 z-10">
               <Logo size="lg" forceTheme="light" />
-              <SidebarTrigger className="rounded-lg hover:bg-gray-100 transition-colors duration-200"/>
-            </header>
-            <div className="p-6 md:p-8 lg:p-10 flex-grow flex flex-col overflow-y-auto">
-             {children}
-            </div>
+              <SidebarTrigger className="rounded-none hover:bg-gray-100 transition-colors duration-200"/>
+           </header>
+           <div className="px-4 pb-4 pt-2 md:px-6 md:pb-6 md:pt-6 flex-1 min-h-0 overflow-hidden flex flex-col bg-brand-dark-blue">
+            {children}
+           </div>
         </SidebarInset>
       </div>
     </SidebarProvider>

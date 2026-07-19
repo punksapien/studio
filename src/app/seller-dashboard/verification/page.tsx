@@ -17,6 +17,9 @@ import { Separator } from '@/components/ui/separator';
 import { CheckCircle, Clock, XCircle, AlertCircle, Loader2, Shield, FileText, Building, RefreshCw, Pencil, Check, X, Plus } from 'lucide-react';
 import { Suspense } from 'react';
 import Link from 'next/link';
+import { DashboardPageShell } from '@/components/shared/dashboard-page-shell';
+
+const VERIFICATION_DESCRIPTION = 'Get verified to build trust with potential buyers and access premium features.';
 
 // Import our new TanStack Query hooks
 import { useCurrentUser } from '@/hooks/queries/use-user-data';
@@ -159,30 +162,38 @@ function VerificationContent() {
   // Handle errors
   if (error && !isLoading) {
     return (
-      <ErrorFallback
-        error={error as Error}
-        retry={() => {
-          refetchUser();
-          refetchRequests();
-        }}
-      />
+      <DashboardPageShell title="Verification" description={VERIFICATION_DESCRIPTION} scrollable>
+        <ErrorFallback
+          error={error as Error}
+          retry={() => {
+            refetchUser();
+            refetchRequests();
+          }}
+        />
+      </DashboardPageShell>
     );
   }
 
   // Handle loading state
   if (isLoading) {
-    return <LoadingSkeleton />;
+    return (
+      <DashboardPageShell title="Verification" description={VERIFICATION_DESCRIPTION} scrollable>
+        <LoadingSkeleton />
+      </DashboardPageShell>
+    );
   }
 
   // Handle unauthenticated state
   if (!user || !profile) {
     return (
-      <Card className="border-destructive">
-        <CardHeader>
-          <CardTitle className="text-destructive">Authentication Required</CardTitle>
-          <CardDescription>Please log in to access verification.</CardDescription>
-        </CardHeader>
-      </Card>
+      <DashboardPageShell title="Verification" description="Please log in to access verification." scrollable>
+        <Card className="border-destructive">
+          <CardHeader>
+            <CardTitle className="text-destructive">Authentication Required</CardTitle>
+            <CardDescription>Please log in to access verification.</CardDescription>
+          </CardHeader>
+        </Card>
+      </DashboardPageShell>
     );
   }
 
@@ -198,19 +209,13 @@ function VerificationContent() {
     );
 
     return (
-      <div className="container mx-auto py-6 space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Seller Verification</h1>
-            <p className="text-muted-foreground">
-              Get verified to build trust with potential buyers and access premium features.
-            </p>
-          </div>
-          <StatusBadge status="pending" />
-        </div>
-
-        <Card className="shadow-lg bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-700/50">
+      <DashboardPageShell
+        title="Verification"
+        description={VERIFICATION_DESCRIPTION}
+        scrollable
+        actions={<StatusBadge status="pending" />}
+      >
+        <Card className="bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-700/50">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
               <Clock className="h-7 w-7" /> Verification Pending
@@ -234,27 +239,21 @@ function VerificationContent() {
             )}
           </CardContent>
         </Card>
-      </div>
+      </DashboardPageShell>
     );
   }
 
   // If user is already verified
   if (currentStatus === 'verified') {
     return (
-      <div className="container mx-auto py-6 space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Seller Verification</h1>
-            <p className="text-muted-foreground">
-              You are a verified seller with full platform access.
-            </p>
-          </div>
-          <StatusBadge status="approved" />
-        </div>
-
+      <DashboardPageShell
+        title="Verification"
+        description="You are a verified seller with full platform access."
+        scrollable
+        actions={<StatusBadge status="approved" />}
+      >
         {/* Verification Success Card */}
-        <Card className="shadow-lg bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-700/50">
+        <Card className="bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-700/50">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-300">
               <CheckCircle className="h-7 w-7" /> You are a Verified Seller!
@@ -266,7 +265,7 @@ function VerificationContent() {
               You can now create verified listings that will display full details to buyers.
             </p>
 
-            <div className="bg-white/50 dark:bg-black/20 rounded-lg p-4">
+            <div className="bg-white/50 dark:bg-black/20 p-4">
               <h4 className="font-medium text-green-700 dark:text-green-300 mb-2">Verification Benefits:</h4>
               <ul className="text-sm text-green-600 dark:text-green-400 space-y-1">
                 <li>• Create listings with full business details visible to buyers</li>
@@ -304,7 +303,7 @@ function VerificationContent() {
             <CardContent>
               <div className="space-y-3">
                 {requests.map((request: any, index: number) => (
-                  <div key={request.id || index} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div key={request.id || index} className="flex items-center justify-between p-3 border">
                     <div>
                       <p className="font-medium">
                         {request.verification_type === 'profile' ? 'Profile Verification' : 'Listing Verification'}
@@ -320,7 +319,7 @@ function VerificationContent() {
             </CardContent>
           </Card>
         )}
-      </div>
+      </DashboardPageShell>
     );
   }
 
@@ -371,18 +370,12 @@ function VerificationContent() {
   };
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Seller Verification</h1>
-          <p className="text-muted-foreground">
-            Get verified to build trust with potential buyers and access premium features.
-          </p>
-        </div>
-        <StatusBadge status={currentStatus || 'not_submitted'} />
-      </div>
-
+    <DashboardPageShell
+      title="Verification"
+      description={VERIFICATION_DESCRIPTION}
+      scrollable
+      actions={<StatusBadge status={currentStatus || 'not_submitted'} />}
+    >
       {/* Current Status Card */}
       {requests.length > 0 && (
         <Card>
@@ -424,7 +417,7 @@ function VerificationContent() {
               </h3>
               <Separator />
 
-              <div className="rounded-lg border divide-y">
+              <div className="border divide-y">
                 {/* Name row (inline editable) */}
                 <div className="flex items-start justify-between gap-3 p-4">
                   <div className="min-w-0 flex-1">
@@ -579,14 +572,14 @@ function VerificationContent() {
                 onValueChange={(value: 'profile' | 'listing') => setVerificationType(value)}
                 className="grid grid-cols-1 md:grid-cols-2 gap-4"
               >
-                <div className="flex items-center space-x-2 p-4 border rounded-lg">
+                <div className="flex items-center space-x-2 p-4 border">
                   <RadioGroupItem value="profile" id="profile" />
                   <div className="flex-1">
                     <Label htmlFor="profile" className="font-medium">Profile Verification</Label>
                     <p className="text-sm text-muted-foreground">Verify your identity and business information</p>
                   </div>
                 </div>
-                                 <div className="flex items-center space-x-2 p-4 border rounded-lg opacity-50">
+                                 <div className="flex items-center space-x-2 p-4 border opacity-50">
                    <RadioGroupItem value="listing" id="listing" disabled />
                    <div className="flex-1">
                      <Label htmlFor="listing" className="font-medium text-muted-foreground">Listing Verification</Label>
@@ -629,14 +622,20 @@ function VerificationContent() {
           </form>
         </CardContent>
       </Card>
-    </div>
+    </DashboardPageShell>
   );
 }
 
 // Main page component with Suspense boundary
 export default function SellerVerificationPage() {
   return (
-    <Suspense fallback={<LoadingSkeleton />}>
+    <Suspense
+      fallback={
+        <DashboardPageShell title="Verification" description={VERIFICATION_DESCRIPTION} scrollable>
+          <LoadingSkeleton />
+        </DashboardPageShell>
+      }
+    >
       <VerificationContent />
     </Suspense>
   );

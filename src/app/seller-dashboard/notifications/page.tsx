@@ -1,142 +1,274 @@
-
 'use client';
 
 // Force dynamic rendering due to client-side interactivity
 export const dynamic = 'force-dynamic'
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import * as React from "react";
 import Link from "next/link";
-import { Bell, Check, Mail, ShieldCheck, MessageSquare, Edit3, CheckCircle2 } from "lucide-react"; // Added CheckCircle2
-import type { NotificationItem, User } from "@/lib/types";
-import { sampleSellerNotifications, sampleUsers } from "@/lib/placeholder-data";
-import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { DashboardPageShell } from "@/components/shared/dashboard-page-shell";
+import {
+  Bell,
+  Check,
+  CheckCheck,
+  Loader2,
+  RefreshCw,
+  AlertCircle,
+  MessageSquare,
+  ShieldCheck,
+  CheckCircle2,
+  Edit3,
+} from "lucide-react";
 
-// Placeholder for current seller ID
-const currentSellerId = 'user1'; // Or 'user3'
-const currentUser: User | undefined = sampleUsers.find(u => u.id === currentSellerId && u.role === 'seller');
-
-const getInitialNotifications = (): NotificationItem[] => {
-  if (typeof window === "undefined") { // Prevent running filter on server if sampleSellerNotifications might not be fully initialized
-    return [];
-  }
-  return sampleSellerNotifications
-    .filter(notif => notif.userId === currentUser?.id)
-    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()); 
+interface Notification {
+  id: string;
+  user_id: string;
+  type: string;
+  message: string;
+  link: string | null;
+  is_read: boolean;
+  created_at: string;
 }
 
+function formatTimestamp(value: string): string {
+  const date = new Date(value);
+  const now = Date.now();
+  const diffMs = now - date.getTime();
+  const diffMins = Math.round(diffMs / 60000);
+  const diffHours = Math.round(diffMs / 3600000);
+  const diffDays = Math.round(diffMs / 86400000);
 
-function FormattedTimestamp({ timestamp }: { timestamp: Date | string }) {
-  const [formattedDate, setFormattedDate] = useState<string | null>(null);
-
-  useEffect(() => {
-    setFormattedDate(new Date(timestamp).toLocaleString());
-  }, [timestamp]);
-
-  if (!formattedDate) {
-    return <span className="italic">Loading date...</span>; 
-  }
-  return <>{formattedDate}</>;
+  if (diffMs < 60000) return "Just now";
+  if (diffMins < 60) return `${diffMins} minute${diffMins === 1 ? "" : "s"} ago`;
+  if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? "" : "s"} ago`;
+  if (diffDays < 7) return `${diffDays} day${diffDays === 1 ? "" : "s"} ago`;
+  return date.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
 }
 
+function getIconForType(type: string) {
+  switch (type) {
+    case "inquiry":
+    case "new_message":
+      return MessageSquare;
+    case "verification":
+      return ShieldCheck;
+    case "engagement":
+      return CheckCircle2;
+    case "listing_update":
+      return Edit3;
+    case "system":
+    default:
+      return Bell;
+  }
+}
 
 export default function SellerNotificationsPage() {
-  
-  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [notifications, setNotifications] = React.useState<Notification[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
+  const [isMarkingAll, setIsMarkingAll] = React.useState(false);
 
-  useEffect(() => {
-    setNotifications(getInitialNotifications());
+  const fetchNotifications = React.useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const response = await fetch("/api/notifications?limit=100");
+      const data = await response.json();
+
+      if (!response.ok || data.error) {
+        throw new Error(data.error || "Failed to load notifications");
+      }
+
+      setNotifications(data.notifications || []);
+    } catch (err) {
+      console.error("[SELLER-NOTIFICATIONS] Error fetching notifications:", err);
+      setError(err instanceof Error ? err.message : "Failed to load notifications");
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
+  React.useEffect(() => {
+    fetchNotifications();
+  }, [fetchNotifications]);
 
-  const handleMarkAsRead = (notificationId: string) => {
-    console.log("Marking notification as read:", notificationId);
-    setNotifications(prev => prev.map(n => n.id === notificationId ? {...n, isRead: true} : n));
-  };
-
-  if (typeof window !== 'undefined' && !currentUser) { // Added typeof window check for currentUser access
-     return (
-      <div className="space-y-8 text-center">
-        <h1 className="text-3xl font-semibold tracking-tight">Access Denied</h1>
-        <p className="text-muted-foreground">You must be logged in as a seller to view this page.</p>
-        <Button asChild><Link href="/auth/login">Login</Link></Button>
-      </div>
+  const markAsRead = React.useCallback(async (id: string) => {
+    // Optimistic update
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
     );
-  }
-  
-  if (typeof window === 'undefined' && !currentUser) { // SSR fallback or initial loading
-    return <div className="space-y-8 text-center"><p>Loading notifications...</p></div>
-  }
 
+    try {
+      const response = await fetch("/api/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notification_id: id }),
+      });
 
-  const getIconForNotificationType = (type: NotificationItem['type']) => {
-    switch(type) {
-      case 'inquiry': return <MessageSquare className="mr-2 h-4 w-4"/>;
-      case 'verification': return <ShieldCheck className="mr-2 h-4 w-4"/>;
-      case 'engagement': return <CheckCircle2 className="mr-2 h-4 w-4"/>; // Correctly uses CheckCircle2
-      case 'listing_update': return <Edit3 className="mr-2 h-4 w-4"/>;
-      case 'system': 
-      default: return <Bell className="mr-2 h-4 w-4"/>;
+      if (!response.ok) {
+        throw new Error("Failed to mark notification as read");
+      }
+    } catch (err) {
+      console.error("[SELLER-NOTIFICATIONS] Error marking as read:", err);
+      // Revert on failure
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, is_read: false } : n))
+      );
     }
-  }
+  }, []);
+
+  const markAllAsRead = React.useCallback(async () => {
+    const previous = notifications;
+    setIsMarkingAll(true);
+    // Optimistic update
+    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+
+    try {
+      const response = await fetch("/api/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mark_all: true }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to mark all as read");
+      }
+    } catch (err) {
+      console.error("[SELLER-NOTIFICATIONS] Error marking all as read:", err);
+      setNotifications(previous);
+    } finally {
+      setIsMarkingAll(false);
+    }
+  }, [notifications]);
+
+  const unreadCount = notifications.filter((n) => !n.is_read).length;
+
+  const headerActions = (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={markAllAsRead}
+      disabled={isLoading || isMarkingAll || unreadCount === 0}
+    >
+      {isMarkingAll ? (
+        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+      ) : (
+        <CheckCheck className="mr-2 h-4 w-4" />
+      )}
+      Mark all as read
+    </Button>
+  );
 
   return (
-    <div className="space-y-8">
-      <h1 className="text-3xl font-semibold tracking-tight">My Notifications</h1>
-      <p className="text-muted-foreground">
-        Stay updated with important alerts and messages related to your activity.
-      </p>
-
-      {notifications.length === 0 ? (
-        <Card className="shadow-md text-center py-12">
-          <CardContent>
-            <Bell className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-            <p className="text-xl font-semibold text-muted-foreground">No notifications yet.</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Important updates and alerts will appear here.
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card className="shadow-lg">
-          <CardHeader>
-            <CardTitle>All Notifications</CardTitle>
-            <CardDescription>You have {notifications.filter(n => !n.isRead).length} unread notifications.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {notifications.map((notification) => (
-              <div 
-                key={notification.id} 
-                className={`p-4 border rounded-lg flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 ${notification.isRead ? 'bg-card hover:bg-muted/30' : 'bg-primary/10 hover:bg-primary/20 border-primary/50'}`}
-              >
-                <div className="flex-grow">
-                  <p className={`text-sm ${notification.isRead ? 'text-muted-foreground' : 'text-foreground'}`}>
+    <DashboardPageShell
+      title="Notifications"
+      description="Stay updated with important alerts and messages related to your activity."
+      actions={headerActions}
+    >
+      <div className="flex-1 min-h-0 border overflow-y-auto">
+        {isLoading ? (
+          <div className="flex h-full items-center justify-center py-16">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : error ? (
+          <div className="flex h-full flex-col items-center justify-center gap-4 py-16 text-center">
+            <AlertCircle className="h-10 w-10 text-destructive" />
+            <div>
+              <p className="text-lg font-semibold text-foreground">Something went wrong</p>
+              <p className="mt-1 text-sm text-muted-foreground">{error}</p>
+            </div>
+            <Button variant="outline" size="sm" onClick={fetchNotifications}>
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Retry
+            </Button>
+          </div>
+        ) : notifications.length === 0 ? (
+          <div className="flex h-full flex-col items-center justify-center gap-3 py-16 text-center">
+            <Bell className="h-12 w-12 text-muted-foreground" />
+            <div>
+              <p className="text-lg font-semibold text-foreground">No notifications yet</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Important updates and alerts will appear here.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col">
+            {notifications.map((notification) => {
+            const Icon = getIconForType(notification.type);
+            const rowInner = (
+              <>
+                <div
+                  className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
+                    notification.is_read ? "bg-transparent" : "bg-primary"
+                  }`}
+                  aria-hidden="true"
+                />
+                <Icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                <div className="min-w-0 flex-1">
+                  <p
+                    className={`text-sm ${
+                      notification.is_read
+                        ? "text-muted-foreground"
+                        : "font-semibold text-foreground"
+                    }`}
+                  >
                     {notification.message}
                   </p>
-                  <p className={`text-xs mt-1 ${notification.isRead ? 'text-muted-foreground/70' : 'text-primary/80'}`}>
-                    <FormattedTimestamp timestamp={notification.timestamp} />
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {formatTimestamp(notification.created_at)}
                   </p>
                 </div>
-                <div className="flex-shrink-0 flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
-                  {notification.link && (
-                    <Button variant="outline" size="sm" asChild>
-                      <Link href={notification.link}>
-                        {getIconForNotificationType(notification.type)}
-                        View Details
-                      </Link>
-                    </Button>
-                  )}
-                  {!notification.isRead && (
-                    <Button variant="ghost" size="sm" onClick={() => handleMarkAsRead(notification.id)}>
-                      <Check className="mr-2 h-4 w-4"/> Mark as Read
-                    </Button>
-                  )}
-                </div>
+                {!notification.is_read && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="shrink-0"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      markAsRead(notification.id);
+                    }}
+                  >
+                    <Check className="mr-1 h-4 w-4" />
+                    Mark read
+                  </Button>
+                )}
+              </>
+            );
+
+            const rowClasses = `flex items-start gap-3 border-b px-4 py-4 transition-colors ${
+              notification.is_read ? "bg-transparent" : "border-l-2 border-l-primary bg-primary/5"
+            } ${notification.link ? "hover:bg-muted/50" : ""}`;
+
+            if (notification.link) {
+              return (
+                <Link
+                  key={notification.id}
+                  href={notification.link}
+                  className={rowClasses}
+                  onClick={() => {
+                    if (!notification.is_read) markAsRead(notification.id);
+                  }}
+                >
+                  {rowInner}
+                </Link>
+              );
+            }
+
+            return (
+              <div key={notification.id} className={rowClasses}>
+                {rowInner}
               </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
-    </div>
+            );
+          })}
+          </div>
+        )}
+      </div>
+    </DashboardPageShell>
   );
 }

@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Mail, ArrowRight, Info } from 'lucide-react';
 import type { Conversation, User, Listing } from '@/lib/types';
 import { sampleUsers, sampleListings, sampleConversations } from '@/lib/placeholder-data';
+import { DashboardPageShell } from '@/components/shared/dashboard-page-shell';
 
 const currentUserId = 'user2'; // Placeholder for current buyer (Jane Smith)
 
@@ -56,15 +57,26 @@ export default function BuyerMessagesPage() {
   };
 
   if (isLoading) {
-    return <div className="p-6 text-center">Loading conversations...</div>;
+    return (
+      <DashboardPageShell
+        title="Messages"
+        description="Your ongoing conversations with sellers."
+        scrollable
+      >
+        <div className="p-6 text-center">Loading conversations...</div>
+      </DashboardPageShell>
+    );
   }
 
   return (
-    <div className="space-y-8">
-      <h1 className="text-3xl font-semibold tracking-tight text-brand-dark-blue">My Messages</h1>
-      <Card className="shadow-lg bg-brand-white">
+    <DashboardPageShell
+      title="Messages"
+      description="Your ongoing conversations with sellers."
+      scrollable
+    >
+      <Card className="bg-brand-white">
         <CardHeader>
-          <CardTitle className="text-brand-dark-blue">Active Conversations</CardTitle>
+          <CardTitle className="text-lg font-semibold text-brand-dark-blue">Active Conversations</CardTitle>
           <CardDescription>
             {conversations.length > 0
               ? 'Here are your ongoing conversations with sellers.'
@@ -87,7 +99,7 @@ export default function BuyerMessagesPage() {
                 <div
                   key={conv.conversationId}
                   onClick={() => handleConversationClick(conv.conversationId)}
-                  className="block p-4 border border-brand-light-gray rounded-lg hover:shadow-md transition-shadow cursor-pointer hover:border-brand-sky-blue"
+                  className="block p-4 border border-brand-light-gray transition-colors cursor-pointer hover:border-brand-sky-blue"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -105,7 +117,7 @@ export default function BuyerMessagesPage() {
                   <p className="mt-2 text-sm text-brand-dark-blue/90 truncate">{conv.lastMessageSnippet || 'No messages yet.'}</p>
                   {conv.buyerUnreadCount && conv.buyerUnreadCount > 0 && (
                      <div className="mt-2 flex justify-end">
-                      <span className="px-2 py-0.5 text-xs font-semibold bg-brand-sky-blue text-brand-white rounded-full">
+                      <span className="px-2 py-0.5 text-xs font-semibold bg-brand-sky-blue text-brand-white">
                         {conv.buyerUnreadCount} New
                       </span>
                     </div>
@@ -116,7 +128,7 @@ export default function BuyerMessagesPage() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </DashboardPageShell>
   );
 }
 

@@ -12,6 +12,8 @@ import { AlertTriangle, Loader2 } from "lucide-react";
 import { useUserSettings } from "@/hooks/use-user-settings";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import Link from "next/link";
+import { DashboardPageShell } from "@/components/shared/dashboard-page-shell";
 
 export default function SellerSettingsPage() {
   const { settings, isLoading, error, updateSettings } = useUserSettings();
@@ -46,33 +48,49 @@ export default function SellerSettingsPage() {
 
   if (error) {
     return (
-      <div className="space-y-8 text-center">
-        <h1 className="text-3xl font-semibold tracking-tight text-red-600">Error Loading Settings</h1>
-        <p className="text-muted-foreground">{error}</p>
-        <Button onClick={() => window.location.reload()}>Try Again</Button>
-      </div>
+      <DashboardPageShell title="Settings" description="Manage your notification preferences and account.">
+        <div className="flex flex-1 flex-col items-center justify-center text-center space-y-4">
+          <h2 className="text-lg font-semibold tracking-tight text-red-600">Error Loading Settings</h2>
+          <p className="text-muted-foreground">{error}</p>
+          <Button onClick={() => window.location.reload()}>Try Again</Button>
+        </div>
+      </DashboardPageShell>
     );
   }
 
   if (isLoading) {
     return (
-      <div className="space-y-8">
-        <h1 className="text-3xl font-semibold tracking-tight">Seller Account Settings</h1>
-        <div className="flex items-center justify-center min-h-[400px]">
+      <DashboardPageShell title="Settings" description="Manage your notification preferences and account.">
+        <div className="flex flex-1 items-center justify-center">
           <div className="text-center">
             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
             <p className="text-muted-foreground">Loading your settings...</p>
           </div>
         </div>
-      </div>
+      </DashboardPageShell>
     );
   }
 
   return (
-    <div className="space-y-8">
-      <h1 className="text-3xl font-semibold tracking-tight">Seller Account Settings</h1>
+    <DashboardPageShell scrollable title="Settings" description="Manage your notification preferences and account.">
+      <Card>
+        <CardHeader>
+          <CardTitle>Profile & Account Management</CardTitle>
+          <CardDescription>Links to manage your public profile and account security.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+            <Button variant="outline" asChild>
+                <Link href="/seller-dashboard/profile">Edit My Seller Profile</Link>
+            </Button>
+            <p className="text-sm text-muted-foreground">
+                To change your password, please go to your profile page.
+            </p>
+        </CardContent>
+      </Card>
 
-      <Card className="shadow-md">
+      <Separator/>
+
+      <Card>
         <CardHeader>
           <CardTitle>Notification Preferences</CardTitle>
           <CardDescription>Manage how you receive notifications related to your listings and inquiries.</CardDescription>
@@ -145,27 +163,10 @@ export default function SellerSettingsPage() {
 
       <Separator/>
 
-      <Card className="shadow-md">
-        <CardHeader>
-          <CardTitle>Profile & Account Management</CardTitle>
-          <CardDescription>Links to manage your public profile and account security.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-            <Button variant="outline" asChild>
-                <a href="/seller-dashboard/profile">Edit My Seller Profile</a>
-            </Button>
-            <p className="text-sm text-muted-foreground">
-                To change your password, please go to your profile page.
-            </p>
-        </CardContent>
-      </Card>
-
-      <Separator/>
-
-      <Card className="shadow-md border-destructive">
+      <Card className="border-destructive">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-destructive">
-                <AlertTriangle className="h-6 w-6" /> Danger Zone
+                <AlertTriangle className="h-5 w-5" /> Danger Zone
             </CardTitle>
             <CardDescription>Manage sensitive account actions.</CardDescription>
           </CardHeader>
@@ -175,21 +176,23 @@ export default function SellerSettingsPage() {
                 <p className="text-sm text-muted-foreground mb-2">
                     Deactivating your account will temporarily hide your profile and all your listings. You can reactivate it later by contacting support.
                 </p>
-                <Button variant="outline" className="border-destructive text-destructive hover:bg-destructive/10">
-                    Deactivate My Account (Placeholder)
+                <Button variant="outline" disabled className="border-destructive text-destructive hover:bg-destructive/10">
+                    Deactivate My Account
                 </Button>
+                <p className="text-xs text-muted-foreground mt-2">Coming soon</p>
             </div>
              <div>
                 <h3 className="font-medium text-foreground">Delete Account</h3>
                 <p className="text-sm text-muted-foreground mb-2">
                     Permanently delete your account and all associated data, including your listings and inquiries. This action cannot be undone.
                 </p>
-                <Button variant="destructive">
-                    Delete My Account (Placeholder)
+                <Button variant="destructive" disabled>
+                    Delete My Account
                 </Button>
+                <p className="text-xs text-muted-foreground mt-2">Coming soon</p>
             </div>
           </CardContent>
       </Card>
-    </div>
+    </DashboardPageShell>
   );
 }

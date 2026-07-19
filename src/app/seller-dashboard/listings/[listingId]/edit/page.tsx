@@ -36,6 +36,7 @@ import { Loader2, FileText, ArrowLeft, AlertCircle, CheckCircle2, PlusCircle, Tr
 import { notFound, useRouter, useParams } from 'next/navigation';
 import { Label } from "@/components/ui/label";
 import { NobridgeIcon } from '@/components/ui/nobridge-icon';
+import { DashboardPageShell } from "@/components/shared/dashboard-page-shell";
 import Link from "next/link";
 import { useAuth } from '@/contexts/auth-context';
 import { supabase } from '@/lib/supabase';
@@ -520,19 +521,19 @@ export default function EditSellerListingPage() {
 
   if (authLoading || isLoading) {
     return (
-      <div className="container py-8 text-center">
-        <div className="flex items-center justify-center gap-2">
+      <DashboardPageShell title="Edit Listing" description="Update the details of your business listing.">
+        <div className="flex items-center justify-center gap-2 py-8">
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
           <span>Loading listing data...</span>
         </div>
-      </div>
+      </DashboardPageShell>
     );
   }
 
   if (error) {
     return (
-      <div className="container py-8 text-center">
-        <div className="flex flex-col items-center gap-4">
+      <DashboardPageShell title="Edit Listing" description="Update the details of your business listing.">
+        <div className="flex flex-col items-center gap-4 py-8 text-center">
           <AlertCircle className="h-12 w-12 text-destructive" />
           <div>
             <h2 className="text-xl font-semibold text-destructive mb-2">
@@ -552,14 +553,14 @@ export default function EditSellerListingPage() {
             </div>
           </div>
         </div>
-      </div>
+      </DashboardPageShell>
     );
   }
 
   if (!profile || profile.role !== 'seller') {
     return (
-      <div className="container py-8 text-center">
-        <div className="flex flex-col items-center gap-4">
+      <DashboardPageShell title="Edit Listing" description="Update the details of your business listing.">
+        <div className="flex flex-col items-center gap-4 py-8 text-center">
           <AlertCircle className="h-12 w-12 text-destructive" />
           <div>
             <h2 className="text-xl font-semibold text-destructive mb-2">
@@ -573,14 +574,14 @@ export default function EditSellerListingPage() {
             </Button>
           </div>
         </div>
-      </div>
+      </DashboardPageShell>
     );
   }
 
   if (!listing) {
     return (
-      <div className="container py-8 text-center">
-        <div className="flex flex-col items-center gap-4">
+      <DashboardPageShell title="Edit Listing" description="Update the details of your business listing.">
+        <div className="flex flex-col items-center gap-4 py-8 text-center">
           <AlertCircle className="h-12 w-12 text-destructive" />
           <div>
             <h2 className="text-xl font-semibold text-destructive mb-2">
@@ -597,26 +598,27 @@ export default function EditSellerListingPage() {
             </Button>
           </div>
         </div>
-      </div>
+      </DashboardPageShell>
     );
   }
 
   const { isSubmitting } = form.formState;
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center gap-4">
+    <DashboardPageShell
+      title="Edit Listing"
+      description={listing?.title ? `Editing: ${listing.title}` : "Update the details of your business listing."}
+      scrollable
+      actions={
         <Button variant="outline" size="sm" asChild className="border-input hover:bg-accent/50">
           <Link href="/seller-dashboard/listings"><ArrowLeft className="h-4 w-4 mr-2" />Back to Listings</Link>
         </Button>
-        <div className="flex-1">
-          <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-brand-dark-blue font-heading">Edit Listing: {listing?.title}</h1>
-        </div>
-      </div>
+      }
+    >
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
           {/* Basic Information Card */}
-          <Card className="shadow-md bg-brand-white">
+          <Card className="border bg-brand-white">
             <CardHeader><CardTitle className="text-brand-dark-blue font-heading flex items-center gap-2"><Info className="h-5 w-5 text-primary" />Basic Information</CardTitle></CardHeader>
             <CardContent className="space-y-6">
               <FormField control={form.control} name="listingTitleAnonymous" render={({ field }) => (<FormItem><FormLabel>Listing Title (Anonymous)</FormLabel><FormControl><Input {...field} disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>)} />
@@ -629,7 +631,7 @@ export default function EditSellerListingPage() {
           </Card>
 
           {/* Business Profile & Operations Card */}
-          <Card className="shadow-md bg-brand-white">
+          <Card className="border bg-brand-white">
             <CardHeader><CardTitle className="text-brand-dark-blue font-heading flex items-center gap-2"><Building className="h-5 w-5 text-primary" />Business Profile &amp; Operations</CardTitle></CardHeader>
             <CardContent className="space-y-6">
               <FormField control={form.control} name="anonymousBusinessDescription" render={({ field }) => (<FormItem><FormLabel>Business Description</FormLabel><FormControl><Textarea {...field} rows={6} disabled={isSubmitting} /></FormControl><FormDescription>Max 2000 characters.</FormDescription><FormMessage /></FormItem>)} />
@@ -649,7 +651,7 @@ export default function EditSellerListingPage() {
           </Card>
 
           {/* Business Images Section */}
-          <Card className="shadow-md bg-brand-white">
+          <Card className="border bg-brand-white">
             <CardHeader>
               <CardTitle className="text-brand-dark-blue font-heading flex items-center gap-2">
                 <ImagePlus className="h-5 w-5 text-primary" />Manage Business Images
@@ -662,8 +664,8 @@ export default function EditSellerListingPage() {
               {[0, 1, 2, 3, 4].map(i => (
                 <FormItem key={`imageSlot${i}`}>
                   <FormLabel>Image Slot {i + 1}</FormLabel>
-                  <div className="flex flex-col sm:flex-row items-center gap-4 p-3 border rounded-md">
-                    <div className="w-32 h-32 relative border rounded-md overflow-hidden bg-muted flex items-center justify-center flex-shrink-0">
+                  <div className="flex flex-col sm:flex-row items-center gap-4 p-3 border">
+                    <div className="w-32 h-32 relative border overflow-hidden bg-muted flex items-center justify-center flex-shrink-0">
                       {imageSlots[i]?.previewUrl ? (
                         <Image src={imageSlots[i].previewUrl!} alt={`Preview ${i + 1}`} layout="fill" objectFit="contain" />
                       ) : (
@@ -698,7 +700,7 @@ export default function EditSellerListingPage() {
           </Card>
 
           {/* ... other form sections ... */}
-          <Card className="shadow-md bg-brand-white">
+          <Card className="border bg-brand-white">
             <CardHeader><CardTitle className="text-brand-dark-blue font-heading flex items-center gap-2"><NobridgeIcon icon="calculator" size="sm" />Financial Performance</CardTitle></CardHeader>
             <CardContent className="space-y-6">
               <div className="grid md:grid-cols-2 gap-6">
@@ -716,7 +718,7 @@ export default function EditSellerListingPage() {
           </Card>
 
           {/* Supporting Documents Section */}
-          <Card className="shadow-md bg-brand-white">
+          <Card className="border bg-brand-white">
             <CardHeader><CardTitle className="text-brand-dark-blue font-heading flex items-center gap-2"><FileText className="h-5 w-5 text-primary" />Supporting Documents & Information</CardTitle><CardDescription>Update supporting documents. These are visible to verified buyers. Max 5MB each. PDF, XLSX, CSV.</CardDescription></CardHeader>
             <CardContent className="space-y-6">
               <div className="grid md:grid-cols-2 gap-6">
@@ -746,7 +748,7 @@ export default function EditSellerListingPage() {
           </Card>
 
           {/* Deal & Seller Information */}
-          <Card className="shadow-md bg-brand-white">
+          <Card className="border bg-brand-white">
             <CardHeader><CardTitle className="text-brand-dark-blue font-heading flex items-center gap-2"><NobridgeIcon icon="deal-structure" size="sm" />Deal &amp; Seller Information</CardTitle></CardHeader>
             <CardContent className="space-y-6">
               <FormField control={form.control} name="dealStructureLookingFor" render={() => (<FormItem><FormLabel>Looking for (Deal Structure):</FormLabel><FormDescription>Select all that apply.</FormDescription><div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 pt-2">{dealStructures.map((item) => (<FormField key={item} control={form.control} name="dealStructureLookingFor" render={({ field }) => (<FormItem className="flex flex-row items-start space-x-3 space-y-0"><FormControl><Checkbox checked={field.value?.includes(item)} onCheckedChange={(checked) => checked ? field.onChange([...(field.value || []), item]) : field.onChange(field.value?.filter(v => v !== item))} disabled={isSubmitting} /></FormControl><FormLabel className="font-normal">{item}</FormLabel></FormItem>)} />))}</div><FormMessage /></FormItem>)} />
@@ -758,7 +760,7 @@ export default function EditSellerListingPage() {
           </Card>
 
           {/* Growth & Future Potential */}
-          <Card className="shadow-md bg-brand-white">
+          <Card className="border bg-brand-white">
             <CardHeader><CardTitle className="text-brand-dark-blue font-heading flex items-center gap-2"><NobridgeIcon icon="growth" size="sm" />Growth &amp; Future Potential</CardTitle></CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
@@ -771,7 +773,7 @@ export default function EditSellerListingPage() {
           </Card>
 
           {/* Additional Business Details */}
-          <Card className="shadow-md bg-brand-white">
+          <Card className="border bg-brand-white">
             <CardHeader><CardTitle className="text-brand-dark-blue font-heading flex items-center gap-2"><Building className="h-5 w-5" />Additional Business Details</CardTitle><CardDescription>Optional information to make your listing more comprehensive.</CardDescription></CardHeader>
             <CardContent className="space-y-6">
               <FormField control={form.control} name="technologyStack" render={({ field }) => (<FormItem><FormLabel>Technology Stack (for tech businesses)</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={3} placeholder="e.g., React, Node.js, AWS, PostgreSQL, etc." disabled={isSubmitting} /></FormControl><FormMessage /></FormItem>)} />
@@ -793,7 +795,7 @@ export default function EditSellerListingPage() {
           </div>
         </form>
       </Form>
-    </div>
+    </DashboardPageShell>
   );
 }
 

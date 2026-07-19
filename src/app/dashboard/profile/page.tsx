@@ -28,11 +28,12 @@ import { useTransition, useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
 import { useCurrentUser } from "@/hooks/use-cached-profile";
-import { Loader2, User, RefreshCw, AlertCircle } from "lucide-react";
+import { Loader2, RefreshCw, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
+import { DashboardPageShell } from "@/components/shared/dashboard-page-shell";
 
 const ProfileSchema = z.object({
   fullName: z.string().min(1, { message: "Full name is required." }),
@@ -224,24 +225,24 @@ export default function BuyerProfilePage() {
   // Show loading state
   if (isLoading || !isSessionReady) {
     return (
-      <div className="space-y-8">
-        <div className="flex items-center justify-center min-h-[400px]">
+      <DashboardPageShell title="My Profile" description="Update your personal details and investment focus.">
+        <div className="flex flex-1 items-center justify-center">
           <div className="text-center">
             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
             <p className="text-muted-foreground">Loading your profile...</p>
           </div>
         </div>
-      </div>
+      </DashboardPageShell>
     );
   }
 
   // Show error state if no user/profile after loading
   if (!authUser && !user && hasInitialized) {
     return (
-      <div className="space-y-8">
-        <div className="flex flex-col items-center justify-center min-h-[400px]">
+      <DashboardPageShell title="My Profile" description="Update your personal details and investment focus.">
+        <div className="flex flex-1 flex-col items-center justify-center">
           <AlertCircle className="h-12 w-12 text-destructive mb-4" />
-          <h1 className="text-2xl font-semibold text-destructive mb-2">Session Error</h1>
+          <h2 className="text-lg font-semibold text-destructive mb-2">Session Error</h2>
           <p className="text-muted-foreground mb-6 text-center max-w-md">
             We're having trouble accessing your profile. This can happen if your session has expired.
             {retryCount > 0 && " Please try logging in again."}
@@ -256,7 +257,7 @@ export default function BuyerProfilePage() {
             </Button>
           </div>
         </div>
-      </div>
+      </DashboardPageShell>
     );
   }
 
@@ -266,26 +267,23 @@ export default function BuyerProfilePage() {
   // Check role after loading
   if (currentProfile && currentProfile.role !== 'buyer') {
     return (
-      <div className="space-y-8 text-center">
-        <h1 className="text-3xl font-semibold tracking-tight">Access Denied</h1>
-        <p className="text-muted-foreground">This page is only accessible to buyer accounts.</p>
-        <Button asChild>
-          <Link href="/seller-dashboard">Go to Seller Dashboard</Link>
-        </Button>
-      </div>
+      <DashboardPageShell title="My Profile" description="Update your personal details and investment focus.">
+        <div className="flex flex-1 flex-col items-center justify-center text-center">
+          <h2 className="text-lg font-semibold tracking-tight">Access Denied</h2>
+          <p className="text-muted-foreground mb-4">This page is only accessible to buyer accounts.</p>
+          <Button asChild>
+            <Link href="/seller-dashboard">Go to Seller Dashboard</Link>
+          </Button>
+        </div>
+      </DashboardPageShell>
     );
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center gap-3">
-        <User className="h-8 w-8" />
-        <h1 className="text-3xl font-semibold tracking-tight">My Buyer Profile</h1>
-      </div>
-
-      <Card className="shadow-md">
+    <DashboardPageShell scrollable title="My Profile" description="Update your personal details and investment focus.">
+      <Card>
         <CardHeader>
-          <CardTitle>Personal Information</CardTitle>
+          <CardTitle className="text-lg font-semibold">Personal Information</CardTitle>
           <CardDescription>
             Update your personal details. Your email ({currentUser?.email}) cannot be changed here.
           </CardDescription>
@@ -478,9 +476,9 @@ export default function BuyerProfilePage() {
 
       <Separator />
 
-      <Card className="shadow-md">
+      <Card>
         <CardHeader>
-          <CardTitle>Additional Settings</CardTitle>
+          <CardTitle className="text-lg font-semibold">Additional Settings</CardTitle>
           <CardDescription>Access additional account settings and security options.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -489,6 +487,6 @@ export default function BuyerProfilePage() {
           </Button>
         </CardContent>
       </Card>
-    </div>
+    </DashboardPageShell>
   );
 }

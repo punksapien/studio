@@ -14,6 +14,8 @@ import { Progress } from "@/components/ui/progress";
 import { VERIFICATION_CONFIG } from "@/lib/verification-config";
 import { useBuyerDashboard } from "@/hooks/use-buyer-dashboard";
 import { useVerificationRequest } from "@/hooks/use-verification-request";
+import { DashboardPageShell } from "@/components/shared/dashboard-page-shell";
+import { MetricCard } from "@/components/shared/metric-card";
 
 // Helper to format timestamp
 function FormattedTimestamp({ timestamp }: { timestamp: Date | string }) {
@@ -147,72 +149,73 @@ export default function BuyerDashboardPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
-          <span>Loading dashboard...</span>
+      <DashboardPageShell title="Overview" description="Here's an overview of your buyer activity.">
+        <div className="flex flex-1 items-center justify-center">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            <span>Loading dashboard...</span>
+          </div>
         </div>
-      </div>
+      </DashboardPageShell>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <AlertCircle className="h-12 w-12 text-destructive mx-auto" />
-          <div>
-            <h2 className="text-xl font-semibold text-destructive">Error Loading Dashboard</h2>
-            <p className="text-muted-foreground">{error}</p>
-            <Button onClick={refreshData} className="mt-4">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Retry
-            </Button>
+      <DashboardPageShell title="Overview" description="Here's an overview of your buyer activity.">
+        <div className="flex flex-1 items-center justify-center">
+          <div className="text-center space-y-4">
+            <AlertCircle className="h-12 w-12 text-destructive mx-auto" />
+            <div>
+              <h2 className="text-lg font-semibold text-destructive">Error Loading Dashboard</h2>
+              <p className="text-muted-foreground">{error}</p>
+              <Button onClick={refreshData} className="mt-4">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Retry
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
+      </DashboardPageShell>
     );
   }
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <AlertCircle className="h-12 w-12 text-destructive mx-auto" />
-          <div>
-            <h2 className="text-xl font-semibold text-destructive">Authentication Required</h2>
-            <p className="text-muted-foreground">Please log in to access your dashboard.</p>
-            <Button asChild className="mt-4">
-              <Link href="/auth/login">Login</Link>
-            </Button>
+      <DashboardPageShell title="Overview" description="Here's an overview of your buyer activity.">
+        <div className="flex flex-1 items-center justify-center">
+          <div className="text-center space-y-4">
+            <AlertCircle className="h-12 w-12 text-destructive mx-auto" />
+            <div>
+              <h2 className="text-lg font-semibold text-destructive">Authentication Required</h2>
+              <p className="text-muted-foreground">Please log in to access your dashboard.</p>
+              <Button asChild className="mt-4">
+                <Link href="/auth/login">Login</Link>
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
+      </DashboardPageShell>
     );
   }
 
   const verificationInfo = getVerificationStatusInfo();
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
-        {/* Header */}
-        <div className="flex justify-between items-start mb-8">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-brand-dark-blue font-heading">
-              Welcome back, {user.fullName}!
-          </h1>
-            <p className="text-muted-foreground">Here's an overview of your buyer activity.</p>
-        </div>
-        <Button variant="outline" asChild className="border-brand-dark-blue/50 text-brand-dark-blue hover:bg-brand-light-gray/70">
+    <DashboardPageShell
+      scrollable
+      title="Overview"
+      description="Here's an overview of your buyer activity."
+      actions={
+        <Button variant="outline" size="sm" asChild>
           <Link href="/marketplace">
             <Search className="mr-2 h-4 w-4" /> Explore Marketplace
           </Link>
         </Button>
-      </div>
-
+      }
+    >
         {/* Verification Status Card */}
-        <Card className={`mb-8 border-2 shadow-md ${
+        <Card className={`border-2 ${
           stats.verificationStatus === 'verified' ? 'border-green-500/50 bg-green-500/5' :
           stats.verificationStatus === 'pending_verification' ? 'border-yellow-500/50 bg-yellow-500/5' :
           stats.verificationStatus === 'rejected' ? 'border-red-500/50 bg-red-500/5' :
@@ -321,43 +324,28 @@ export default function BuyerDashboardPage() {
         </Card>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="shadow-md">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Inquiries</CardTitle>
-              <MessageSquare className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-              <div className="text-2xl font-semibold">{stats.activeInquiriesCount}</div>
-              <p className="text-xs text-muted-foreground">
-                Inquiries awaiting response
-              </p>
-          </CardContent>
-        </Card>
-
-
-
-          <Card className="shadow-md">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">New Messages</CardTitle>
-              <Inbox className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-              <div className="text-2xl font-semibold">{stats.newMessagesCount}</div>
-              <p className="text-xs text-muted-foreground">
-                Unread conversations
-              </p>
-          </CardContent>
-        </Card>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <MetricCard
+            title="Active Inquiries"
+            value={stats.activeInquiriesCount}
+            icon={MessageSquare}
+            description="Inquiries awaiting response"
+          />
+          <MetricCard
+            title="New Messages"
+            value={stats.newMessagesCount}
+            icon={Inbox}
+            description="Unread conversations"
+          />
       </div>
 
         {/* Recent Activity */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Recent Inquiries */}
-          <Card className="shadow-lg">
+          <Card>
           <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-lg font-semibold">
                   <MessageSquare className="h-5 w-5" />
                   Recent Inquiries
                 </CardTitle>
@@ -402,9 +390,9 @@ export default function BuyerDashboardPage() {
         </Card>
 
           {/* Quick Actions */}
-          <Card className="shadow-lg">
+          <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-lg font-semibold">
                 <LayoutDashboard className="h-5 w-5" />
                 Quick Actions
               </CardTitle>
@@ -439,7 +427,6 @@ export default function BuyerDashboardPage() {
             </CardContent>
         </Card>
       </div>
-                    </div>
-    </div>
+    </DashboardPageShell>
   );
 }

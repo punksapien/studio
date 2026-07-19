@@ -33,11 +33,12 @@ import { industries, asianCountries, revenueRanges, profitMarginRanges, dealStru
 import { useToast } from "@/hooks/use-toast";
 import { useTransition, useState, useEffect } from "react";
 import { Separator } from "@/components/ui/separator";
-import { ImagePlus, AlertCircle, ShieldCheck, Save, RotateCcw, FileText, Building, Loader2 } from "lucide-react";
+import { ImagePlus, AlertCircle, ShieldCheck, Save, RotateCcw, FileText, Building, Loader2, ArrowLeft } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { NobridgeIcon } from '@/components/ui/nobridge-icon';
 import Link from "next/link";
 import { useFormPersistence } from '@/hooks/use-form-persistence';
+import { DashboardPageShell } from "@/components/shared/dashboard-page-shell";
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
@@ -502,16 +503,24 @@ export default function CreateSellerListingPage() {
   }, [saveNow]);
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-semibold tracking-tight text-brand-dark-blue font-heading">Create New Business Listing</h1>
+    <DashboardPageShell
+      title="Create Listing"
+      description="Provide the details of your business to list it on the marketplace."
+      scrollable
+      headerActions={
+        <Button asChild variant="outline" size="sm" className="border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white">
+          <Link href="/seller-dashboard/listings"><ArrowLeft className="h-4 w-4 mr-2" />Back to My Listings</Link>
+        </Button>
+      }
+      actions={
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Save className="h-4 w-4" /><span>Form auto-saves as you type</span>
         </div>
-      </div>
+      }
+    >
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          <Card className="shadow-md bg-brand-white">
+          <Card className="border bg-brand-white">
             <CardHeader><CardTitle className="text-brand-dark-blue font-heading">Section 1: Basic Information (Anonymous)</CardTitle><CardDescription>Provide the essential details for your listing. This information will be displayed anonymously initially.</CardDescription></CardHeader>
             <CardContent className="space-y-6">
               <FormField control={form.control} name="listingTitleAnonymous" render={({ field }) => (<FormItem><FormLabel>Listing Title (Anonymous)</FormLabel><FormControl><Input {...field} placeholder="e.g., Profitable E-commerce Store in Southeast Asia" disabled={isPending} /></FormControl><FormDescription>A catchy, anonymous title for your business.</FormDescription><FormMessage /></FormItem>)} />
@@ -523,7 +532,7 @@ export default function CreateSellerListingPage() {
             </CardContent>
           </Card>
 
-          <Card className="shadow-md bg-brand-white">
+          <Card className="border bg-brand-white">
             <CardHeader><CardTitle className="text-brand-dark-blue font-heading">Section 2: Business Profile &amp; Operations</CardTitle></CardHeader>
             <CardContent className="space-y-6">
               <FormField control={form.control} name="anonymousBusinessDescription" render={({ field }) => (<FormItem><FormLabel>Business Description</FormLabel><FormControl><Textarea {...field} rows={6} placeholder="Describe your business, products/services, market position, and growth potential without revealing identifying details." disabled={isPending} /></FormControl><FormDescription>Max 2000 characters.</FormDescription><FormMessage /></FormItem>)} />
@@ -542,7 +551,7 @@ export default function CreateSellerListingPage() {
             </CardContent>
           </Card>
 
-          <Card className="shadow-md bg-brand-white">
+          <Card className="border bg-brand-white">
             <CardHeader><CardTitle className="text-brand-dark-blue font-heading flex items-center gap-2"><ImagePlus className="h-5 w-5 text-primary" />Business Images</CardTitle><CardDescription>Upload up to 5 images for your listing (e.g., logo, storefront, product shots). Max 5MB each. JPG, PNG, WebP.</CardDescription></CardHeader>
             <CardContent className="space-y-4">
               {[0, 1, 2, 3, 4].map(i => (
@@ -564,7 +573,7 @@ export default function CreateSellerListingPage() {
                           />
                         </FormControl>
                         {previewUrls[i] && (
-                          <div className="w-20 h-20 relative border rounded-md overflow-hidden flex-shrink-0">
+                          <div className="w-20 h-20 relative border overflow-hidden flex-shrink-0">
                             <Image src={previewUrls[i]!} alt={`Preview ${i + 1}`} layout="fill" objectFit="cover" />
                           </div>
                         )}
@@ -577,7 +586,7 @@ export default function CreateSellerListingPage() {
             </CardContent>
           </Card>
 
-          <Card className="shadow-md bg-brand-white">
+          <Card className="border bg-brand-white">
             <CardHeader><CardTitle className="text-brand-dark-blue font-heading flex items-center gap-2"><NobridgeIcon icon="calculator" size="sm" />Financial Performance</CardTitle></CardHeader>
             <CardContent className="space-y-6">
               <div className="grid md:grid-cols-2 gap-6">
@@ -611,7 +620,7 @@ export default function CreateSellerListingPage() {
             </CardContent>
           </Card>
 
-          <Card className="shadow-md bg-brand-white">
+          <Card className="border bg-brand-white">
             <CardHeader><CardTitle className="text-brand-dark-blue font-heading flex items-center gap-2"><NobridgeIcon icon="deal-structure" size="sm" />Deal &amp; Seller Information</CardTitle></CardHeader>
             <CardContent className="space-y-6">
               <FormField control={form.control} name="dealStructureLookingFor" render={() => (<FormItem><FormLabel>Looking for (Deal Structure):</FormLabel><FormDescription>Select all that apply.</FormDescription><div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 pt-2">{dealStructures.map((item) => (<FormField key={item} control={form.control} name="dealStructureLookingFor" render={({ field }) => (<FormItem className="flex flex-row items-start space-x-3 space-y-0"><FormControl><Checkbox checked={field.value?.includes(item)} onCheckedChange={(checked) => checked ? field.onChange([...(field.value || []), item]) : field.onChange(field.value?.filter(v => v !== item))} disabled={isPending} /></FormControl><FormLabel className="font-normal">{item}</FormLabel></FormItem>)} />))}</div><FormMessage /></FormItem>)} />
@@ -622,7 +631,7 @@ export default function CreateSellerListingPage() {
             </CardContent>
           </Card>
 
-          <Card className="shadow-md bg-brand-white">
+          <Card className="border bg-brand-white">
             <CardHeader><CardTitle className="text-brand-dark-blue font-heading flex items-center gap-2"><NobridgeIcon icon="growth" size="sm" />Growth &amp; Future Potential</CardTitle></CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
@@ -634,7 +643,7 @@ export default function CreateSellerListingPage() {
             </CardContent>
           </Card>
 
-          <Card className="shadow-md bg-brand-white">
+          <Card className="border bg-brand-white">
             <CardHeader><CardTitle className="text-brand-dark-blue font-heading flex items-center gap-2"><Building className="h-5 w-5" />Additional Business Details</CardTitle><CardDescription>Optional information to make your listing more comprehensive.</CardDescription></CardHeader>
             <CardContent className="space-y-6">
               <FormField control={form.control} name="technologyStack" render={({ field }) => (<FormItem><FormLabel>Technology Stack (for tech businesses)</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={3} placeholder="e.g., React, Node.js, AWS, PostgreSQL, etc." disabled={isPending} /></FormControl><FormMessage /></FormItem>)} />
@@ -646,7 +655,7 @@ export default function CreateSellerListingPage() {
             </CardContent>
           </Card>
 
-          <Card className="shadow-md bg-brand-white">
+          <Card className="border bg-brand-white">
             <CardHeader><CardTitle className="text-brand-dark-blue font-heading flex items-center gap-2"><FileText className="h-5 w-5 text-primary" />Supporting Documents & Information</CardTitle><CardDescription>All documents are optional but highly recommended for verified listings.{isSellerVerified ? " Upload documents to provide transparency." : " These fields are available to verified sellers."}</CardDescription></CardHeader>
             <CardContent className="space-y-6">
               {isSellerVerified ? (
@@ -696,6 +705,6 @@ export default function CreateSellerListingPage() {
           </div>
         </form>
       </Form>
-    </div>
+    </DashboardPageShell>
   );
 }

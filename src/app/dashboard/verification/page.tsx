@@ -13,6 +13,9 @@ import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { useCurrentUser, updateUserProfile } from "@/hooks/use-current-user";
 import { useVerificationRequest } from "@/hooks/use-verification-request";
+import { DashboardPageShell } from "@/components/shared/dashboard-page-shell";
+
+const VERIFICATION_DESCRIPTION = 'Get verified to unlock full marketplace access and build trust with sellers.';
 
 // Fallback if Suspense is not wrapping this page for searchParams
 function BuyerVerificationContent() {
@@ -140,10 +143,12 @@ function BuyerVerificationContent() {
   // 🚀 GRACEFUL LOADING: Show loading state while auth context initializes
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="ml-3 text-muted-foreground">Loading verification status...</p>
-      </div>
+      <DashboardPageShell title="Verification" description={VERIFICATION_DESCRIPTION} scrollable>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="ml-3 text-muted-foreground">Loading verification status...</p>
+        </div>
+      </DashboardPageShell>
     );
   }
 
@@ -151,43 +156,47 @@ function BuyerVerificationContent() {
   // If middleware allowed access, user is authenticated as buyer
   if (!profile && !isLoadingUser) {
     return (
-      <div className="space-y-8 text-center max-w-md mx-auto">
-        <AlertCircle className="h-16 w-16 text-amber-500 mx-auto" />
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Profile Loading Issue</h1>
-          <p className="text-muted-foreground mt-2">
-            We're having trouble loading your profile data. This is usually temporary.
-          </p>
+      <DashboardPageShell title="Verification" description={VERIFICATION_DESCRIPTION} scrollable>
+        <div className="space-y-8 text-center max-w-md mx-auto">
+          <AlertCircle className="h-16 w-16 text-amber-500 mx-auto" />
+          <div>
+            <h2 className="text-2xl font-semibold tracking-tight">Profile Loading Issue</h2>
+            <p className="text-muted-foreground mt-2">
+              We're having trouble loading your profile data. This is usually temporary.
+            </p>
+          </div>
+          <div className="flex flex-col gap-2">
+            <Button onClick={() => window.location.reload()} className="w-full">
+              Refresh Page
+            </Button>
+            <Button variant="outline" asChild className="w-full">
+              <Link href="/dashboard">Back to Dashboard</Link>
+            </Button>
+          </div>
         </div>
-        <div className="flex flex-col gap-2">
-          <Button onClick={() => window.location.reload()} className="w-full">
-            Refresh Page
-          </Button>
-          <Button variant="outline" asChild className="w-full">
-            <Link href="/dashboard">Back to Dashboard</Link>
-          </Button>
-        </div>
-      </div>
+      </DashboardPageShell>
     );
   }
 
   // 🛡️ ROLE VALIDATION: Only validate role if we have profile data
   if (profile && profile.role !== 'buyer') {
      return (
-      <div className="space-y-8 text-center max-w-md mx-auto">
-        <AlertCircle className="h-16 w-16 text-amber-500 mx-auto" />
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Incorrect Role</h1>
-          <p className="text-muted-foreground mt-2">
-            This is the buyer verification page. Your current role: {profile.role}
-          </p>
+      <DashboardPageShell title="Verification" description={VERIFICATION_DESCRIPTION} scrollable>
+        <div className="space-y-8 text-center max-w-md mx-auto">
+          <AlertCircle className="h-16 w-16 text-amber-500 mx-auto" />
+          <div>
+            <h2 className="text-2xl font-semibold tracking-tight">Incorrect Role</h2>
+            <p className="text-muted-foreground mt-2">
+              This is the buyer verification page. Your current role: {profile.role}
+            </p>
+          </div>
+          <Button asChild className="w-full">
+            <Link href={profile.role === 'seller' ? '/seller-dashboard' : '/dashboard'}>
+              Go to {profile.role === 'seller' ? 'Seller' : 'Main'} Dashboard
+            </Link>
+          </Button>
         </div>
-        <Button asChild className="w-full">
-          <Link href={profile.role === 'seller' ? '/seller-dashboard' : '/dashboard'}>
-            Go to {profile.role === 'seller' ? 'Seller' : 'Main'} Dashboard
-          </Link>
-        </Button>
-      </div>
+      </DashboardPageShell>
     );
   }
 
@@ -205,9 +214,9 @@ function BuyerVerificationContent() {
       );
 
       return (
-        <Card className="shadow-lg bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-700/50">
+        <Card className="bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-700/50">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+            <CardTitle className="flex items-center gap-2 text-lg text-blue-700 dark:text-blue-300">
               <Mail className="h-7 w-7" /> Pending Verification
             </CardTitle>
           </CardHeader>
@@ -224,9 +233,9 @@ function BuyerVerificationContent() {
     // If user is already verified
     if (userProfileVerificationStatus === 'verified') {
       return (
-        <Card className="shadow-lg bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-700/50">
+        <Card className="bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-700/50">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-300">
+            <CardTitle className="flex items-center gap-2 text-lg text-green-700 dark:text-green-300">
               <CheckCircle2 className="h-7 w-7" /> You are a Verified Buyer!
             </CardTitle>
           </CardHeader>
@@ -245,9 +254,9 @@ function BuyerVerificationContent() {
   };
 
     const renderVerificationForm = () => (
-    <Card className="shadow-lg">
+    <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2 text-lg">
           <ShieldCheck className="h-7 w-7 text-primary" /> Become a Verified Buyer
         </CardTitle>
         <CardDescription>
@@ -428,24 +437,24 @@ function BuyerVerificationContent() {
   );
 
     return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <div className="space-y-8">
-        <div className="text-center space-y-4">
-          <h1 className="text-4xl font-semibold tracking-tight">Buyer Verification</h1>
-          <p className="text-xl text-muted-foreground">
-            Get verified to unlock full marketplace access and build trust with sellers.
-          </p>
-        </div>
-
-        {renderStatusCard()}
-      </div>
-      </div>
+    <DashboardPageShell title="Verification" description={VERIFICATION_DESCRIPTION} scrollable>
+      {renderStatusCard()}
+    </DashboardPageShell>
     );
   }
 
 export default function BuyerVerificationPage() {
   return (
-    <Suspense fallback={<div className="flex h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary"/> Loading...</div>}>
+    <Suspense
+      fallback={
+        <DashboardPageShell title="Verification" description={VERIFICATION_DESCRIPTION} scrollable>
+          <div className="flex items-center justify-center min-h-[400px]">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="ml-3 text-muted-foreground">Loading...</p>
+          </div>
+        </DashboardPageShell>
+      }
+    >
       <BuyerVerificationContent />
     </Suspense>
   );

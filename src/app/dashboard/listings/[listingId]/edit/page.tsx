@@ -36,6 +36,7 @@ import { PlusCircle, Trash2, FileText, Upload } from "lucide-react";
 import { notFound } from 'next/navigation';
 import { FileUploadWithProgress } from "@/components/shared/FileUploadWithProgress";
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { DashboardPageShell } from "@/components/shared/dashboard-page-shell";
 
 
 const ListingSchema = z.object({
@@ -159,18 +160,21 @@ export default function EditListingPage({ params }: EditListingPageProps) {
   };
 
   if (!listing) {
-    return <div className="container py-8 text-center">Loading listing data or listing not found...</div>; // Or a skeleton loader
+    return (
+      <DashboardPageShell title="Edit Listing" description="Update your business listing." scrollable>
+        <div className="py-8 text-center">Loading listing data or listing not found...</div>
+      </DashboardPageShell>
+    );
   }
 
   return (
-    <div className="space-y-8">
-      <h1 className="text-3xl font-semibold tracking-tight">Edit Listing: {listing.listingTitleAnonymous}</h1>
+    <DashboardPageShell title="Edit Listing" description="Update your business listing." scrollable>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
           {/* Sections identical to CreateListingPage, but pre-filled */}
-          <Card className="shadow-md">
+          <Card>
             <CardHeader>
-              <CardTitle>Section 1: Basic Information</CardTitle>
+              <CardTitle className="text-lg">Section 1: Basic Information</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <FormField control={form.control} name="listingTitleAnonymous" render={({ field }) => (
@@ -216,9 +220,9 @@ export default function EditListingPage({ params }: EditListingPageProps) {
             </CardContent>
           </Card>
 
-           <Card className="shadow-md">
+           <Card>
             <CardHeader>
-              <CardTitle>Section 2: Business Details (Anonymous Version)</CardTitle>
+              <CardTitle className="text-lg">Section 2: Business Details (Anonymous Version)</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <FormField control={form.control} name="anonymousBusinessDescription" render={({ field }) => (
@@ -264,9 +268,9 @@ export default function EditListingPage({ params }: EditListingPageProps) {
             </CardContent>
           </Card>
 
-          <Card className="shadow-md">
+          <Card>
             <CardHeader>
-                <CardTitle>Section 3: Financial Summary (Ranges - Anonymous)</CardTitle>
+                <CardTitle className="text-lg">Section 3: Financial Summary (Ranges - Anonymous)</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
                 <div className="grid md:grid-cols-2 gap-6">
@@ -304,9 +308,9 @@ export default function EditListingPage({ params }: EditListingPageProps) {
             </CardContent>
           </Card>
 
-          <Card className="shadow-md">
+          <Card>
             <CardHeader>
-                <CardTitle>Section 4: Deal Structure (Optional, Anonymous)</CardTitle>
+                <CardTitle className="text-lg">Section 4: Deal Structure (Optional, Anonymous)</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
                 <FormField
@@ -362,9 +366,9 @@ export default function EditListingPage({ params }: EditListingPageProps) {
           </Card>
 
           {/* Document Upload Section */}
-          <Card className="shadow-md">
+          <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-lg">
                 <FileText className="h-5 w-5" />
                 Supporting Documents
               </CardTitle>
@@ -552,7 +556,7 @@ export default function EditListingPage({ params }: EditListingPageProps) {
           </div>
         </form>
       </Form>
-    </div>
+    </DashboardPageShell>
   );
 }
 

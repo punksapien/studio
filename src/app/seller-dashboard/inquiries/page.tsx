@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { ArrowRight, MessageSquare, Users, Eye, ShieldAlert, CheckCircle2, ExternalLink, Loader2, RefreshCw, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { DashboardPageShell } from "@/components/shared/dashboard-page-shell";
 
 interface Inquiry {
   id: string;
@@ -217,27 +218,31 @@ export default function SellerInquiriesPage() {
   // Loading state
   if (isLoading) {
     return (
-      <div className="space-y-8">
-        <h1 className="text-3xl font-semibold tracking-tight text-brand-dark-blue">My Inquiries</h1>
+      <DashboardPageShell
+        title="My Inquiries"
+        description="Manage inquiries from potential buyers for your business listings."
+      >
         <div className="flex items-center justify-center py-12">
           <div className="flex items-center gap-2 text-muted-foreground">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
             <span>Loading inquiries...</span>
           </div>
         </div>
-      </div>
+      </DashboardPageShell>
     );
   }
 
   // Error state
   if (error) {
     return (
-      <div className="space-y-8">
-        <h1 className="text-3xl font-semibold tracking-tight text-brand-dark-blue">My Inquiries</h1>
-        <Card className="shadow-md text-center py-12 bg-brand-white">
+      <DashboardPageShell
+        title="My Inquiries"
+        description="Manage inquiries from potential buyers for your business listings."
+      >
+        <Card className="text-center py-12 bg-brand-white">
           <CardContent>
             <AlertCircle className="h-16 w-16 text-destructive mx-auto mb-4" />
-            <p className="text-xl font-semibold text-destructive mb-2">Error Loading Inquiries</p>
+            <p className="text-lg font-semibold text-destructive mb-2">Error Loading Inquiries</p>
             <p className="text-sm text-muted-foreground mb-4">{error}</p>
             <Button onClick={fetchData} variant="outline">
               <RefreshCw className="mr-2 h-4 w-4" />
@@ -245,40 +250,40 @@ export default function SellerInquiriesPage() {
             </Button>
           </CardContent>
         </Card>
-      </div>
+      </DashboardPageShell>
     );
   }
 
   // Auth check
   if (!currentUser) {
     return (
-      <div className="space-y-8 text-center">
-        <h1 className="text-3xl font-semibold tracking-tight">Access Denied</h1>
-        <p className="text-muted-foreground">You must be logged in as a seller to view this page.</p>
-        <Button asChild><Link href="/auth/login">Login</Link></Button>
-      </div>
+      <DashboardPageShell
+        title="My Inquiries"
+        description="Manage inquiries from potential buyers for your business listings."
+      >
+        <div className="text-center py-12">
+          <p className="text-lg font-semibold mb-2">Access Denied</p>
+          <p className="text-muted-foreground mb-4">You must be logged in as a seller to view this page.</p>
+          <Button asChild><Link href="/auth/login">Login</Link></Button>
+        </div>
+      </DashboardPageShell>
     );
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex justify-between items-start">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-brand-dark-blue">
-            My Inquiries {inquiries.length > 0 && `(${inquiries.length})`}
-          </h1>
-          <p className="text-muted-foreground">
-            Manage inquiries from potential buyers for your business listings.
-          </p>
-        </div>
+    <DashboardPageShell
+      title={`My Inquiries${inquiries.length > 0 ? ` (${inquiries.length})` : ''}`}
+      description="Manage inquiries from potential buyers for your business listings."
+      actions={
         <Button onClick={fetchData} variant="outline" size="sm">
           <RefreshCw className="mr-2 h-4 w-4" />
           Refresh
         </Button>
-      </div>
-
+      }
+    >
       {inquiries.length === 0 ? (
-        <Card className="shadow-md text-center py-12 bg-brand-white">
+        <div className="flex-1 min-h-0 overflow-auto">
+        <Card className="text-center py-12 bg-brand-white">
           <CardContent>
             <MessageSquare className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
             {userListings.length === 0 ? (
@@ -328,13 +333,15 @@ export default function SellerInquiriesPage() {
             )}
           </CardContent>
         </Card>
+        </div>
       ) : (
+        <div className="flex-1 min-h-0 overflow-auto">
         <div className="space-y-6">
           {inquiries.map((inquiry) => (
-            <Card key={inquiry.id} className="shadow-lg bg-brand-white">
+            <Card key={inquiry.id} className="bg-brand-white">
               <CardHeader className="pb-4">
                 <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-2">
-                  <CardTitle className="text-xl text-brand-dark-blue">
+                  <CardTitle className="text-lg text-brand-dark-blue">
                     Inquiry for:{" "}
                     <Link
                       href={`/listings/${inquiry.listing_id}`}
@@ -363,12 +370,13 @@ export default function SellerInquiriesPage() {
                   </div>
                 </CardDescription>
               </CardHeader>
-              <CardFooter className="flex flex-col sm:flex-row justify-end gap-2 pt-4 border-t">
+              {/* Action row — equal-width columns, single row */}
+              <CardFooter className="grid grid-flow-col auto-cols-fr gap-2 pt-4 border-t">
                 <Button
                   size="sm"
                   variant="outline"
                   asChild
-                  className="border-brand-dark-blue/50 text-brand-dark-blue hover:bg-brand-light-gray/70"
+                  className="w-full border-brand-dark-blue/50 text-brand-dark-blue hover:bg-brand-light-gray/70"
                 >
                   <Link href={`/listings/${inquiry.listing_id}`} target="_blank">
                     <Eye className="mr-2 h-4 w-4" />View Listing
@@ -379,9 +387,10 @@ export default function SellerInquiriesPage() {
                   <>
                     {currentUser.verificationStatus === 'verified' ? (
                         <Button
+                            size="sm"
                             onClick={() => handleEngage(inquiry.id, inquiry.listing?.listing_title_anonymous || 'listing', inquiry.buyer?.full_name)}
                             disabled={engagingInquiry === inquiry.id}
-                            className="bg-blue-600 hover:bg-blue-700 text-white"
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white"
                         >
                             {engagingInquiry === inquiry.id ? (
                                 <>
@@ -391,12 +400,12 @@ export default function SellerInquiriesPage() {
                             ) : (
                                 <>
                                     <MessageSquare className="mr-2 h-4 w-4" />
-                                    Engage in Conversation
+                                    Engage
                                 </>
                             )}
                         </Button>
                     ) : (
-                        <Button asChild variant="secondary" className="bg-amber-100 text-amber-800 hover:bg-amber-200">
+                        <Button size="sm" asChild variant="secondary" className="w-full bg-amber-100 text-amber-800 hover:bg-amber-200">
                             <Link href="/seller-dashboard/verification">
                                 <ShieldAlert className="mr-2 h-4 w-4" />
                                 Verify to Engage
@@ -407,7 +416,7 @@ export default function SellerInquiriesPage() {
                 )}
 
                 {inquiry.status === 'seller_engaged_seller_pending_verification' && (
-                  <Button size="sm" variant="default" asChild className="bg-amber-500 hover:bg-amber-600 text-white">
+                  <Button size="sm" variant="default" asChild className="w-full bg-amber-500 hover:bg-amber-600 text-white">
                     <Link href="/seller-dashboard/verification">
                       <ShieldAlert className="mr-2 h-4 w-4" />
                       Complete Verification
@@ -416,14 +425,14 @@ export default function SellerInquiriesPage() {
                 )}
 
                 {inquiry.status === 'ready_for_admin_connection' && (
-                  <Button size="sm" variant="default" className="bg-blue-100 text-blue-800 hover:bg-blue-200" disabled>
+                  <Button size="sm" variant="default" className="w-full bg-blue-100 text-blue-800 hover:bg-blue-200" disabled>
                     <Users className="mr-2 h-4 w-4" />
                     Awaiting Admin Approval
                   </Button>
                 )}
 
                 {inquiry.status === 'connection_facilitated_in_app_chat_opened' && inquiry.conversation_id && (
-                  <Button size="sm" variant="default" asChild className="bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90">
+                  <Button size="sm" variant="default" asChild className="w-full bg-brand-dark-blue text-brand-white hover:bg-brand-dark-blue/90">
                     <Link href={`/seller-dashboard/messages/${inquiry.conversation_id}`}>
                       <MessageSquare className="mr-2 h-4 w-4" />
                       Open Chat
@@ -434,8 +443,9 @@ export default function SellerInquiriesPage() {
             </Card>
           ))}
         </div>
+        </div>
       )}
-    </div>
+    </DashboardPageShell>
   );
 }
 

@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic'
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -33,12 +33,17 @@ import {
   FileText,
   Clock,
   AlertCircle,
-  MessageCircle
+  MessageCircle,
+  ChevronLeft,
+  ChevronRight,
+  TrendingUp,
+  ExternalLink
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect, useState } from "react";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { NobridgeIcon } from "@/components/ui/nobridge-icon"; // Import NobridgeIcon
+import { DashboardPageShell } from "@/components/shared/dashboard-page-shell";
 
 interface ListingData {
   id: string;
@@ -76,12 +81,16 @@ interface ListingData {
   admin_response?: string;
 }
 
+// Shared badge geometry so status + verification badges read as one system.
+const BADGE_GEO = "text-xs font-medium py-1 px-2.5 inline-flex items-center gap-1.5 border";
+
 export default function ManageSellerListingsPage() {
   const { toast } = useToast();
   const { profile } = useCurrentUser();
   const [listings, setListings] = useState<ListingData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
 
   // Appeal dialog state
   const [appealDialog, setAppealDialog] = useState<{
@@ -329,8 +338,8 @@ export default function ManageSellerListingsPage() {
     switch (status) {
       case 'active':
         return (
-          <Badge className="bg-green-100 text-green-700 dark:bg-green-700/20 dark:text-green-300">
-            <CheckCircle2 className="h-3 w-3 mr-1" />
+          <Badge variant="outline" className={`${BADGE_GEO} bg-green-100 text-green-700 border-green-300 dark:bg-green-700/20 dark:text-green-300 dark:border-green-700`}>
+            <CheckCircle2 className="h-3.5 w-3.5" />
             Active
           </Badge>
         );
@@ -338,55 +347,55 @@ export default function ManageSellerListingsPage() {
       case 'inactive':
       case 'withdrawn':
         return (
-          <Badge variant="secondary" className="bg-gray-100 text-gray-700 dark:bg-gray-700/20 dark:text-gray-300">
-            <XCircle className="h-3 w-3 mr-1" />
+          <Badge variant="outline" className={`${BADGE_GEO} bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-700/20 dark:text-gray-300 dark:border-gray-700`}>
+            <XCircle className="h-3.5 w-3.5" />
             {status === 'withdrawn' ? 'Withdrawn' : 'Inactive'}
           </Badge>
         );
 
       case 'pending_approval':
         return (
-          <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-700/20 dark:text-blue-300">
-            <Clock className="h-3 w-3 mr-1" />
+          <Badge variant="outline" className={`${BADGE_GEO} bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-700/20 dark:text-blue-300 dark:border-blue-700`}>
+            <Clock className="h-3.5 w-3.5" />
             Pending Approval
           </Badge>
         );
 
       case 'under_review':
         return (
-          <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-700/20 dark:text-purple-300">
-            <AlertCircle className="h-3 w-3 mr-1" />
+          <Badge variant="outline" className={`${BADGE_GEO} bg-purple-100 text-purple-700 border-purple-300 dark:bg-purple-700/20 dark:text-purple-300 dark:border-purple-700`}>
+            <AlertCircle className="h-3.5 w-3.5" />
             Under Review
           </Badge>
         );
 
       case 'rejected_by_admin':
         return (
-          <Badge variant="destructive" className="bg-red-100 text-red-700 dark:bg-red-700/20 dark:text-red-300">
-            <XCircle className="h-3 w-3 mr-1" />
+          <Badge variant="outline" className={`${BADGE_GEO} bg-red-100 text-red-700 border-red-300 dark:bg-red-700/20 dark:text-red-300 dark:border-red-700`}>
+            <XCircle className="h-3.5 w-3.5" />
             Rejected
           </Badge>
         );
 
       case 'appealing_rejection':
         return (
-          <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-700/20 dark:text-amber-300">
-            <MessageCircle className="h-3 w-3 mr-1" />
+          <Badge variant="outline" className={`${BADGE_GEO} bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-700/20 dark:text-amber-300 dark:border-amber-700`}>
+            <MessageCircle className="h-3.5 w-3.5" />
             Appeal Submitted
           </Badge>
         );
 
       case 'draft':
         return (
-          <Badge variant="outline" className="bg-slate-100 text-slate-700 dark:bg-slate-700/20 dark:text-slate-300">
-            <FileText className="h-3 w-3 mr-1" />
+          <Badge variant="outline" className={`${BADGE_GEO} bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-700/20 dark:text-slate-300 dark:border-slate-700`}>
+            <FileText className="h-3.5 w-3.5" />
             Draft
           </Badge>
         );
 
       default:
         return (
-          <Badge variant="outline">
+          <Badge variant="outline" className={`${BADGE_GEO} bg-muted text-muted-foreground border-border`}>
             {status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, ' ')}
           </Badge>
         );
@@ -419,106 +428,210 @@ export default function ManageSellerListingsPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-8">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
-          <Skeleton className="h-9 w-64 rounded-md" />
-          <Skeleton className="h-10 w-48 mt-4 md:mt-0 rounded-md" />
-        </div>
-        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
-          {[1, 2, 3].map((i) => (
-            <Card key={i} className="shadow-lg flex flex-col bg-card rounded-lg">
-              <CardHeader className="p-0">
-                <Skeleton className="w-full h-40 rounded-t-lg" />
-              </CardHeader>
-              <CardContent className="p-4 space-y-2">
-                <Skeleton className="h-6 w-3/4 rounded" />
-                <Skeleton className="h-4 w-1/2 rounded" />
-                <Skeleton className="h-4 w-2/3 rounded" />
-                <Skeleton className="h-4 w-1/3 rounded" />
-              </CardContent>
-              <CardFooter className="p-4 border-t border-border">
-                <div className="grid grid-cols-2 gap-2 w-full">
-                  <Skeleton className="h-8 rounded-md" />
-                  <Skeleton className="h-8 rounded-md" />
-                  <Skeleton className="h-8 rounded-md" />
-                  <Skeleton className="h-8 rounded-md" />
-                </div>
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
-      </div>
+      <DashboardPageShell
+        title="My Listings"
+        description="Manage your business listings, track their status, and respond to inquiries."
+      >
+        <Card className="flex-1 min-h-0 w-full flex flex-col overflow-hidden bg-card border">
+          {/* Top band: half image + badge/title/quick-facts lines */}
+          <div className="h-2/5 min-h-0 flex flex-row border-b">
+            <Skeleton className="w-1/2 shrink-0 rounded-none" />
+            <div className="w-1/2 flex flex-col justify-center gap-3 p-8">
+              <Skeleton className="h-6 w-24" />
+              <Skeleton className="h-9 w-3/4" />
+              <Skeleton className="h-5 w-1/2" />
+              <Skeleton className="h-4 w-2/3" />
+            </div>
+          </div>
+          {/* Bottom band: two text columns + 3 tiles + button row */}
+          <div className="flex-1 min-h-0 flex flex-col gap-5 p-8">
+            <div className="grid grid-cols-2 gap-8 flex-1 min-h-0">
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-5/6" />
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-4/5" />
+                <Skeleton className="h-4 w-3/4" />
+              </div>
+            </div>
+            <div className="shrink-0 grid grid-cols-3 gap-4">
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-16 w-full" />
+            </div>
+            <div className="shrink-0 flex flex-wrap gap-2">
+              <Skeleton className="h-10 w-28" />
+              <Skeleton className="h-10 w-28" />
+              <Skeleton className="h-10 w-28" />
+              <Skeleton className="h-10 w-28" />
+            </div>
+          </div>
+        </Card>
+      </DashboardPageShell>
     );
   }
 
-  return (
-    <div className="space-y-8">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
-        <h1 className="text-3xl font-semibold tracking-tight text-foreground font-heading">My Business Listings</h1>
-        {/* "Create New Listing" button is in the sidebar and empty state card, removed from header */}
-      </div>
+  // Guard against a shrinking array after a refetch, then render only this listing.
+  const i = Math.min(currentIndex, listings.length - 1);
+  const listing = listings[i];
 
+  return (
+    <DashboardPageShell
+      title="My Listings"
+      description="Manage your business listings, track their status, and respond to inquiries."
+      headerActions={listings.length > 0 ? (
+        <Button asChild variant="outline" size="sm" className="border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white">
+          <Link href="/seller-dashboard/listings/create"><PlusCircle className="h-4 w-4 mr-2" />Create New Listing</Link>
+        </Button>
+      ) : undefined}
+    >
       {listings.length === 0 ? (
-        <Card className="shadow-lg text-center py-12 md:py-20 bg-card border border-dashed border-border rounded-lg">
-          <CardContent className="flex flex-col items-center">
-            <NobridgeIcon icon="business-listing" size="xl" className="mb-6 text-muted-foreground opacity-70" />
-            <h2 className="text-2xl font-semibold text-foreground mb-2 font-heading">No Listings Yet</h2>
-            <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-              Showcase your business to motivated buyers. Create your first listing to get started.
-            </p>
-            <Button asChild size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90">
-              <Link href="/seller-dashboard/listings/create">
-                <PlusCircle className="mr-2 h-5 w-5" /> Create First Listing
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="flex flex-1 h-full flex-col items-center justify-center text-center border border-dashed border-border p-8">
+          <NobridgeIcon icon="business-listing" size="xl" className="mb-6 text-muted-foreground opacity-70" />
+          <h2 className="text-lg font-semibold text-foreground mb-2 font-heading">No Listings Yet</h2>
+          <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+            Showcase your business to motivated buyers. Create your first listing to get started.
+          </p>
+          <Button asChild size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90">
+            <Link href="/seller-dashboard/listings/create">
+              <PlusCircle className="mr-2 h-5 w-5" /> Create Your First Listing
+            </Link>
+          </Button>
+        </div>
       ) : (
-        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
-          {listings.map((listing) => (
-            <Card key={listing.id} className="shadow-lg flex flex-col bg-card rounded-lg overflow-hidden transition-all hover:shadow-xl">
-              <CardHeader className="relative p-0">
-                 <Image
+        <>
+          <Card className="flex-1 min-h-0 w-full flex flex-col overflow-hidden bg-card border">
+              {/* TOP ROW: image (left half) + title & status (right half) */}
+              <div className="h-2/5 min-h-0 flex flex-row border-b">
+                {/* Image fills its half edge-to-edge, verification badge overlaid */}
+                <div className="relative w-1/2 shrink-0">
+                  <Image
                     src={listing.images?.[0] || "https://placehold.co/400x200.png"}
                     alt={listing.title}
-                    width={400}
-                    height={200}
-                    className="w-full h-48 object-cover" // Consistent image height
+                    fill
+                    className="object-cover"
                     data-ai-hint="business building city"
                   />
-                   {listing.verification_status === 'verified' ? (
-                    <Badge className="absolute top-3 right-3 bg-green-100 text-green-700 border-green-300 dark:bg-green-700/20 dark:text-green-300">
-                        <ShieldCheck className="h-3 w-3 mr-1.5" /> Verified
+                  {listing.verification_status === 'verified' ? (
+                    <Badge variant="outline" className={`${BADGE_GEO} absolute top-4 right-4 bg-green-100 text-green-700 border-green-300 dark:bg-green-700/20 dark:text-green-300 dark:border-green-700`}>
+                        <ShieldCheck className="h-3.5 w-3.5" /> Verified
                     </Badge>
                     ) : listing.verification_status === 'pending' ? (
-                    <Badge variant="outline" className="absolute top-3 right-3 bg-yellow-100 text-yellow-700 border-yellow-300 dark:bg-yellow-700/20 dark:text-yellow-300">
-                        <AlertTriangle className="h-3 w-3 mr-1.5" /> Pending Verification
+                    <Badge variant="outline" className={`${BADGE_GEO} absolute top-4 right-4 bg-yellow-100 text-yellow-700 border-yellow-300 dark:bg-yellow-700/20 dark:text-yellow-300 dark:border-yellow-700`}>
+                        <AlertTriangle className="h-3.5 w-3.5" /> Pending Verification
                     </Badge>
                     ) : (
-                    <Badge variant="outline" className="absolute top-3 right-3 bg-muted text-muted-foreground border-border">
-                        <AlertTriangle className="h-3 w-3 mr-1.5" /> Anonymous
+                    <Badge variant="outline" className={`${BADGE_GEO} absolute top-4 right-4 bg-muted text-muted-foreground border-border`}>
+                        <AlertTriangle className="h-3.5 w-3.5" /> Anonymous
                     </Badge>
-                )}
-              </CardHeader>
-              <CardContent className="p-5 flex-grow space-y-2">
-                <CardTitle className="text-lg font-semibold text-foreground font-heading leading-tight hover:text-primary transition-colors">
-                  <Link href={`/listings/${listing.id}`} target="_blank" title={`View public page for ${listing.title}`}>
-                    {listing.title}
-                  </Link>
-                </CardTitle>
-                <CardDescription className="text-xs text-muted-foreground line-clamp-2">{listing.industry} - {listing.location_city}, {listing.location_country}</CardDescription>
-                <p className="text-sm text-muted-foreground">Revenue: {listing.annual_revenue_range || 'Not specified'}</p>
-                <p className="text-sm text-muted-foreground">Asking Price: ${listing.asking_price?.toLocaleString() || 'Not specified'}</p>
-                <p className="text-xs text-muted-foreground">Created: {new Date(listing.created_at).toLocaleDateString()}</p>
+                  )}
+                </div>
 
-                {/* Enhanced status badge */}
-                <div className="mt-2">
-                  {getStatusBadge(listing)}
+                {/* Right half: title + location + quick facts, with the status badge
+                    absolutely aligned to the same top offset as the image badge */}
+                <div className="relative w-1/2 flex flex-col justify-center gap-3 p-8 pt-14">
+                  {/* Enhanced status badge — top-4 mirrors the image's verification badge */}
+                  <div className="absolute top-4 left-8">
+                    {getStatusBadge(listing)}
+                  </div>
+                  <div>
+                    <CardTitle className="text-2xl xl:text-3xl font-semibold text-foreground font-heading leading-tight line-clamp-2 hover:text-primary transition-colors">
+                      <Link href={`/listings/${listing.id}`} target="_blank" title={`View public page for ${listing.title}`}>
+                        {listing.title}
+                      </Link>
+                    </CardTitle>
+                    <p className="mt-2 text-base text-muted-foreground truncate">{listing.industry} — {listing.location_city}, {listing.location_country}</p>
+                  </div>
+                  {/* Quick facts — only present parts, joined by · */}
+                  {(listing.established_year || listing.number_of_employees || listing.website_url) && (
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+                      {listing.established_year && <span>Est. {listing.established_year}</span>}
+                      {listing.established_year && listing.number_of_employees && <span aria-hidden>·</span>}
+                      {listing.number_of_employees && <span>{listing.number_of_employees} employees</span>}
+                      {(listing.established_year || listing.number_of_employees) && listing.website_url && <span aria-hidden>·</span>}
+                      {listing.website_url && (
+                        <a href={listing.website_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 hover:text-primary">
+                          <ExternalLink className="h-3.5 w-3.5" /> Website
+                        </a>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* BOTTOM ROW: the details */}
+              <div className="flex-1 min-h-0 flex flex-col gap-5 p-8">
+                {/* Detail grid: about (left) + strengths & growth (right) */}
+                <div className="grid grid-cols-2 gap-8 flex-1 min-h-0 overflow-hidden">
+                  {/* Left: about the business */}
+                  <div className="min-h-0 overflow-hidden">
+                    <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">About the Business</div>
+                    {listing.short_description ? (
+                      <p className="text-sm leading-relaxed line-clamp-[8]">{listing.short_description}</p>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No description provided.</p>
+                    )}
+                  </div>
+
+                  {/* Right: key strengths + growth opportunities (each block omitted when empty) */}
+                  <div className="min-h-0 overflow-hidden">
+                    {(listing.key_strength_1 || listing.key_strength_2 || listing.key_strength_3) && (
+                      <div>
+                        <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Key Strengths</div>
+                        <ul className="space-y-1.5">
+                          {[listing.key_strength_1, listing.key_strength_2, listing.key_strength_3]
+                            .filter(Boolean)
+                            .map((s, idx) => (
+                              <li key={idx} className="flex gap-2 text-sm">
+                                <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />
+                                <span className="line-clamp-1">{s}</span>
+                              </li>
+                            ))}
+                        </ul>
+                      </div>
+                    )}
+                    {(listing.growth_opportunity_1 || listing.growth_opportunity_2 || listing.growth_opportunity_3) && (
+                      <div className="mt-3">
+                        <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Growth Opportunities</div>
+                        <ul className="space-y-1.5">
+                          {[listing.growth_opportunity_1, listing.growth_opportunity_2, listing.growth_opportunity_3]
+                            .filter(Boolean)
+                            .map((g, idx) => (
+                              <li key={idx} className="flex gap-2 text-sm">
+                                <TrendingUp className="h-4 w-4 text-accent shrink-0 mt-0.5" />
+                                <span className="line-clamp-1">{g}</span>
+                              </li>
+                            ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Stat tiles */}
+                <div className="shrink-0 grid grid-cols-3 gap-4">
+                  <div className="border bg-brand-light-gray p-4">
+                    <div className="text-xs uppercase tracking-wide text-muted-foreground">Revenue</div>
+                    <div className="mt-1 text-lg font-semibold">{listing.annual_revenue_range || 'Not specified'}</div>
+                  </div>
+                  <div className="border bg-brand-light-gray p-4">
+                    <div className="text-xs uppercase tracking-wide text-muted-foreground">Asking Price</div>
+                    <div className="mt-1 text-lg font-semibold">${listing.asking_price?.toLocaleString() || 'Not specified'}</div>
+                  </div>
+                  <div className="border bg-brand-light-gray p-4">
+                    <div className="text-xs uppercase tracking-wide text-muted-foreground">{listing.net_profit_margin_range ? 'Net Profit Margin' : 'Created'}</div>
+                    <div className="mt-1 text-lg font-semibold">{listing.net_profit_margin_range || new Date(listing.created_at).toLocaleDateString()}</div>
+                  </div>
                 </div>
 
                 {/* Rejection information */}
                 {listing.status === 'rejected_by_admin' && (
-                  <Alert className="mt-3 border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20">
+                  <Alert className="mt-3 shrink-0 border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20">
                     <XCircle className="h-4 w-4 text-red-600" />
                     <AlertDescription className="text-sm">
                       <div className="font-medium text-red-800 dark:text-red-200 mb-1">
@@ -540,7 +653,7 @@ export default function ManageSellerListingsPage() {
 
                 {/* Appeal status information */}
                 {listing.appeal_status && (
-                  <Alert className="mt-3 border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20">
+                  <Alert className="mt-3 shrink-0 border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20">
                     <MessageCircle className="h-4 w-4 text-amber-600" />
                     <AlertDescription className="text-sm">
                       <div className="font-medium text-amber-800 dark:text-amber-200 mb-1">
@@ -559,11 +672,11 @@ export default function ManageSellerListingsPage() {
                     </AlertDescription>
                   </Alert>
                 )}
-              </CardContent>
-              <CardFooter className="p-4 border-t border-border bg-muted/30">
-                <div className="grid grid-cols-2 gap-2 w-full">
+
+                {/* Action row — equal-width columns, single row */}
+                <div className="shrink-0 grid grid-flow-col auto-cols-fr gap-2 pt-1">
                     {/* Public View - Always available */}
-                    <Button variant="outline" size="sm" asChild className="border-input hover:bg-accent/50 hover:text-accent-foreground">
+                    <Button variant="outline" asChild className="w-full border-input hover:bg-accent/50 hover:text-accent-foreground">
                         <Link href={`/listings/${listing.id}`} target="_blank">
                         <Eye className="h-4 w-4 mr-1 sm:mr-2" /> <span className="hidden sm:inline">Public View</span>
                         </Link>
@@ -571,19 +684,19 @@ export default function ManageSellerListingsPage() {
 
                     {/* Edit - Only if listing can be edited */}
                     {canEditListing(listing.status) ? (
-                      <Button variant="outline" size="sm" asChild className="border-input hover:bg-accent/50 hover:text-accent-foreground">
+                      <Button variant="outline" asChild className="w-full border-input hover:bg-accent/50 hover:text-accent-foreground">
                           <Link href={`/seller-dashboard/listings/${listing.id}/edit`}>
                           <Edit3 className="h-4 w-4 mr-1 sm:mr-2" /> <span className="hidden sm:inline">Edit</span>
                           </Link>
                       </Button>
                     ) : (
-                      <Button variant="outline" size="sm" disabled className="border-input opacity-50">
+                      <Button variant="outline" disabled className="w-full border-input opacity-50">
                           <Edit3 className="h-4 w-4 mr-1 sm:mr-2" /> <span className="hidden sm:inline">Edit</span>
                       </Button>
                     )}
 
                     {/* Inquiries - Always available */}
-                    <Button variant="outline" size="sm" asChild className="border-input hover:bg-accent/50 hover:text-accent-foreground">
+                    <Button variant="outline" asChild className="w-full border-input hover:bg-accent/50 hover:text-accent-foreground">
                         <Link href={`/seller-dashboard/inquiries?listingId=${listing.id}`}>
                         <MessageSquare className="h-4 w-4 mr-1 sm:mr-2" /> Inquiries
                         </Link>
@@ -593,10 +706,9 @@ export default function ManageSellerListingsPage() {
                     {listing.status === 'active' ? (
                         <Button
                           variant="outline"
-                          size="sm"
                           onClick={() => handleDeactivate(listing.id, listing.title)}
                           disabled={isUpdating === listing.id}
-                          className="border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                          className="w-full border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive"
                         >
                           {isUpdating === listing.id ? (
                             <Loader2 className="h-4 w-4 mr-1 sm:mr-2 animate-spin" />
@@ -611,10 +723,9 @@ export default function ManageSellerListingsPage() {
                           * the admin review queue instead. */
                          <Button
                            variant="outline"
-                           size="sm"
                            onClick={() => handleReactivate(listing.id, listing.title)}
                            disabled={isUpdating === listing.id}
-                           className="border-green-500/50 text-green-600 hover:bg-green-500/10 hover:text-green-700"
+                           className="w-full border-green-500/50 text-green-600 hover:bg-green-500/10 hover:text-green-700"
                          >
                            {isUpdating === listing.id ? (
                              <Loader2 className="h-4 w-4 mr-1 sm:mr-2 animate-spin" />
@@ -626,9 +737,8 @@ export default function ManageSellerListingsPage() {
                     ) : canAppealListing(listing) ? (
                         <Button
                           variant="outline"
-                          size="sm"
                           onClick={() => openAppealDialog(listing)}
-                          className="border-amber-500/50 text-amber-600 hover:bg-amber-500/10 hover:text-amber-700"
+                          className="w-full border-amber-500/50 text-amber-600 hover:bg-amber-500/10 hover:text-amber-700"
                         >
                           <MessageCircle className="h-4 w-4 mr-1 sm:mr-2" />
                           Appeal
@@ -648,10 +758,9 @@ export default function ManageSellerListingsPage() {
                          */
                         <Button
                           variant="outline"
-                          size="sm"
                           onClick={() => handleDeactivate(listing.id, listing.title)}
                           disabled={isUpdating === listing.id}
-                          className="border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                          className="w-full border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive"
                         >
                           {isUpdating === listing.id ? (
                             <Loader2 className="h-4 w-4 mr-1 sm:mr-2 animate-spin" />
@@ -661,7 +770,7 @@ export default function ManageSellerListingsPage() {
                           Deactivate
                         </Button>
                     ) : (
-                        <Button variant="outline" size="sm" disabled className="border-input opacity-50">
+                        <Button variant="outline" disabled className="w-full border-input opacity-50">
                           <Clock className="h-4 w-4 mr-1 sm:mr-2" />
                           {listing.status === 'pending_approval' ? 'Pending Review' :
                            listing.status === 'under_review' ? 'Reviewing' :
@@ -669,18 +778,31 @@ export default function ManageSellerListingsPage() {
                            (listing.status === 'inactive' || listing.status === 'withdrawn') && !listing.approved_at ? 'Awaiting Approval' : 'Processing'}
                         </Button>
                     )}
+
+                    {/* Get Verified - joins the action row when applicable */}
+                    {profile?.verification_status !== 'verified' && listing.verification_status !== 'pending' && (
+                      <Button variant="secondary" className="w-full bg-yellow-100 text-yellow-700 hover:bg-yellow-200 dark:bg-yellow-700/20 dark:text-yellow-300" asChild>
+                          <Link href="/seller-dashboard/verification">
+                              <ShieldCheck className="h-4 w-4 mr-2" /> Get Verified
+                          </Link>
+                      </Button>
+                    )}
                 </div>
-                 {profile?.verification_status !== 'verified' && listing.verification_status !== 'pending' && (
-                    <Button variant="secondary" size="sm" className="w-full mt-2 bg-yellow-100 text-yellow-700 hover:bg-yellow-200 dark:bg-yellow-700/20 dark:text-yellow-300" asChild>
-                         <Link href="/seller-dashboard/verification">
-                            <ShieldCheck className="h-4 w-4 mr-2" /> Get Verified
-                        </Link>
-                    </Button>
-                )}
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
+              </div>
+          </Card>
+
+          {listings.length > 1 && (
+            <div className="shrink-0 flex items-center justify-center gap-4 pt-4">
+              <Button variant="outline" size="sm" disabled={i === 0} onClick={() => setCurrentIndex(i - 1)}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-sm text-muted-foreground">Listing {i + 1} of {listings.length}</span>
+              <Button variant="outline" size="sm" disabled={i === listings.length - 1} onClick={() => setCurrentIndex(i + 1)}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+        </>
       )}
 
       {/* Appeal Dialog */}
@@ -783,6 +905,6 @@ export default function ManageSellerListingsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </DashboardPageShell>
   );
 }
