@@ -38,5 +38,40 @@
 - Messages inbox (both dashboards) still placeholder data and hidden from nav — needs a conversations-list endpoint.
 - Settings "Deactivate/Delete Account" buttons visibly disabled ("Coming soon") — endpoints not built.
 - Draft listings show "Processing" as the 4th action button label (pre-existing status-label fallback; reads oddly for drafts).
+
+---
+
+# UPDATES — Admin-Managed Listings + Seller Concierge Onboarding (July 19–20, 2026)
+
+> Second push on top of the dashboard rework. Committed to VAV-2-TECH (feature branch). Two DB migrations are PENDING — they must be applied with `supabase db push` at deploy time (validated via `--dry-run` only; local Docker unavailable).
+
+## Concierge model: sellers are hands-off, admins run listings
+- **Sellers can no longer create/edit/deactivate/appeal listings.** All those paths return 403 server-side (`POST /api/listings`, `PUT/PATCH/DELETE /api/listings/[id]`, `PUT /api/listings/[id]/status`); appeal POST returns 410. The seller-create/edit pages were deleted (seller + legacy buyer). Seller "My Listings" is now read-only with a "managed by the Nobridge team" notice and a public-listing link when live.
+- **Admins own the full lifecycle.** New `POST /api/admin/listings` (create on behalf of a seller) + new page `src/app/admin/listings/create/` with a `SellerPicker` (`src/components/admin/seller-picker.tsx`); existing edit/approve/reject/status tools unchanged. The `~45` editable-field whitelist was extracted to `src/lib/admin-listing-fields.ts` (shared by create + edit). Fixed a latent bug: the admin edit PATCH audit insert used non-existent columns (`admin_id`/`action`/`details`) and silently failed — now writes the real schema (`admin_user_id`/`action_type: 'edited'`/`admin_notes`) and the GET join FK was corrected.
+- **Direct seller verification (no request needed).** New `PATCH /api/admin/users/[userId]` (`action: 'verify_seller' | 'revoke_seller_verification'`) sets `user_profiles.verification_status` via service role; a DB trigger syncs `listings.is_seller_verified`; closes any open queue requests; audits to `admin_actions`; notifies the seller. UI card on `src/app/admin/users/[userId]/page.tsx`.
+
+## Verification is team-initiated + pre-verification lockdown
+- Seller "Verification" nav item removed. Sellers can no longer self-request verification (`POST /api/verification/request` 403s sellers; buyers unaffected). The seller verification page is now a passive status display.
+- **New Onboarding page** `src/app/seller-dashboard/onboarding/page.tsx`: greets the seller by name, explains the team will verify them within 72 hours, and offers optional extra contact fields (Additional Email / Additional Phone).
+- **Pre-verification lockdown, enforced in TWO layers:**
+  - Client: seller layout (`src/app/seller-dashboard/layout.tsx`) pins "Onboarding" on top and greys/disables every nav item except Settings (no lock icon, non-clickable).
+  - Server: `src/middleware.ts` redirects any unverified seller hitting a locked `/seller-dashboard/*` route to `/seller-dashboard/onboarding` (allowed prefixes: onboarding, settings, profile). This closes the JS-off / direct-URL / re-login bypass. Auto-unlocks the moment `verification_status === 'verified'`; the onboarding page also refreshes auth on focus + every 60s so a just-verified seller unlocks within ~1 min.
+- **Verified end-to-end** with a throwaway remote seller (created via service role to avoid firing the signup→CRM/Chat integration, then deleted): unverified → locked routes 307 to onboarding, allowed routes 200, write APIs 403; flipped to verified → all routes 200. `npm run build` green; typecheck steady at the ~132 baseline (down from ~190).
+
+## New DB migrations (PENDING — apply at deploy)
+1. `supabase/migrations/20260719092739_admin_managed_listings.sql` — drops the seller INSERT/UPDATE RLS policies on `listings`; widens `admin_listing_actions_action_type_check` to add `created`/`edited`.
+2. `supabase/migrations/20260720050554_seller_additional_contact.sql` — adds `user_profiles.additional_email` / `additional_phone` (whitelisted in `PUT /api/auth/update-profile`, shown on the admin user page).
+Until these are pushed, seller listing writes are blocked at the API layer regardless; the RLS drop is defense-in-depth.
+
+## Signup-flow rework — now committed
+The previously-deferred signup-flow files (item 3 of the prior push: `verify-email`, `onboarding/{buyer,seller}`, `auth-card-wrapper`, `contact-step`, plus the middleware changes) are included in this commit since they are intertwined with the new middleware verification gate and the tree builds green.
+
+## Still NOT committed (local-only)
+- `src/app/dev-preview/**` — no-login previews (now includes a seller Onboarding preview + a dev-only `?preview_status=` override on the verification/onboarding pages). Still `// TEMPORARY DEV PREVIEW`. `src/middleware.ts` `/dev-preview` whitelist and the `GlobalLayoutWrapper.tsx` dev-preview exclusion ARE committed (harmless in prod — a whitelisted path with no committed page just 404s), but the preview page tree itself is not. Strip/ignore before Studio go-live.
+
+## Go-live additions for this push
+1. `supabase db push` the two pending migrations (verify with `supabase migration list` first).
+2. Delete `src/app/dev-preview/**` (and optionally the middleware `/dev-preview` whitelist + `GlobalLayoutWrapper` lines) before Studio deploy.
+3. Smoke-test: unverified seller sees only Onboarding + Settings and is redirected off locked routes; admin can create a listing on behalf of a seller and verify a seller directly; verified seller has full access.
 - Mobile (<768px): listing titles truncate aggressively; sidebar collapses into a Sheet (works, but not polished).
 - `/admin/login` shows an endless spinner in HEADLESS screenshot tools only (real-network wait vs virtual time) — renders fine in a real browser.

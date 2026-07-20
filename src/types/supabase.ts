@@ -1211,6 +1211,8 @@ export type Database = {
       user_profiles: {
         Row: {
           account_status: string | null
+          additional_email: string | null
+          additional_phone: string | null
           avatar_url: string | null
           buyer_persona_other: string | null
           buyer_persona_type: string | null
@@ -1250,6 +1252,8 @@ export type Database = {
         }
         Insert: {
           account_status?: string | null
+          additional_email?: string | null
+          additional_phone?: string | null
           avatar_url?: string | null
           buyer_persona_other?: string | null
           buyer_persona_type?: string | null
@@ -1289,6 +1293,8 @@ export type Database = {
         }
         Update: {
           account_status?: string | null
+          additional_email?: string | null
+          additional_phone?: string | null
           avatar_url?: string | null
           buyer_persona_other?: string | null
           buyer_persona_type?: string | null

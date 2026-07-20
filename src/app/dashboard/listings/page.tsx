@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { sampleListings } from "@/lib/placeholder-data"; // Assuming current user is seller1
 import type { Listing } from "@/lib/types";
 import Image from "next/image";
-import { PlusCircle, Edit3, Trash2, Eye, ShieldCheck, AlertTriangle, Briefcase } from "lucide-react";
+import { Eye, ShieldCheck, AlertTriangle, Briefcase, Info } from "lucide-react";
 import { DashboardPageShell } from "@/components/shared/dashboard-page-shell";
 
 // Filter listings for the current seller (placeholder: 'user1')
@@ -15,27 +16,23 @@ export default function ManageListingsPage() {
   return (
     <DashboardPageShell
       title="Listings"
-      description="Manage your business listings."
+      description="View your business listings."
       scrollable
-      actions={
-        <Button asChild size="sm">
-          <Link href="/dashboard/listings/create">
-            <PlusCircle className="mr-2 h-4 w-4" /> Create New Listing
-          </Link>
-        </Button>
-      }
     >
+      <Alert className="mb-6">
+        <Info className="h-4 w-4" />
+        <AlertTitle>Managed by the Nobridge team</AlertTitle>
+        <AlertDescription>
+          Your listings are created and managed by the Nobridge team. Contact us to request changes.
+        </AlertDescription>
+      </Alert>
+
       {sellerListings.length === 0 ? (
         <Card className="text-center py-12">
           <CardContent>
             <Briefcase className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
             <p className="text-xl font-semibold text-muted-foreground">No listings yet.</p>
-            <p className="text-sm text-muted-foreground mt-1">Start by creating your first business listing.</p>
-            <Button asChild className="mt-6">
-              <Link href="/dashboard/listings/create">
-                Create Listing
-              </Link>
-            </Button>
+            <p className="text-sm text-muted-foreground mt-1">The Nobridge team will create your listing on your behalf.</p>
           </CardContent>
         </Card>
       ) : (
@@ -44,7 +41,7 @@ export default function ManageListingsPage() {
             <Card key={listing.id} className="flex flex-col">
               <CardHeader className="relative p-0">
                  <Image
-                    src={listing.imageUrl || "https://placehold.co/400x200.png"}
+                    src={listing.imageUrls?.[0] || "https://placehold.co/400x200.png"}
                     alt={listing.listingTitleAnonymous}
                     width={400}
                     height={200}
@@ -65,29 +62,19 @@ export default function ManageListingsPage() {
                 <CardTitle className="text-lg mb-1">{listing.listingTitleAnonymous}</CardTitle>
                 <CardDescription className="text-xs mb-2">{listing.industry} - {listing.locationCityRegionGeneral}, {listing.locationCountry}</CardDescription>
                 <p className="text-sm text-muted-foreground mb-1">Revenue: {listing.annualRevenueRange}</p>
-                <p className="text-sm text-muted-foreground">Asking Price: {listing.askingPriceRange}</p>
-                <Badge 
+                <p className="text-sm text-muted-foreground">Asking Price: {listing.askingPrice}</p>
+                <Badge
                   variant={listing.status === 'active' ? 'default' : 'secondary'}
                   className={`mt-2 ${listing.status === 'active' ? 'bg-accent text-accent-foreground' : 'bg-muted text-muted-foreground'}`}
                 >
                   Status: {listing.status.charAt(0).toUpperCase() + listing.status.slice(1)}
                 </Badge>
               </CardContent>
-              <CardFooter className="p-4 border-t flex flex-col sm:flex-row gap-2 justify-between">
-                <div className="flex gap-2 w-full sm:w-auto">
-                  <Button variant="outline" size="sm" asChild className="flex-1 sm:flex-none">
-                    <Link href={`/listings/${listing.id}`} target="_blank">
-                      <Eye className="h-4 w-4 sm:mr-2" /> <span className="hidden sm:inline">View</span>
-                    </Link>
-                  </Button>
-                  <Button variant="outline" size="sm" asChild className="flex-1 sm:flex-none">
-                    <Link href={`/dashboard/listings/${listing.id}/edit`}>
-                      <Edit3 className="h-4 w-4 sm:mr-2" /> <span className="hidden sm:inline">Edit</span>
-                    </Link>
-                  </Button>
-                </div>
-                <Button variant="destructive" size="sm" className="w-full sm:w-auto">
-                  <Trash2 className="h-4 w-4 sm:mr-2" /> <span className="hidden sm:inline">Deactivate</span>
+              <CardFooter className="p-4 border-t flex justify-end">
+                <Button variant="outline" size="sm" asChild>
+                  <Link href={`/listings/${listing.id}`} target="_blank">
+                    <Eye className="h-4 w-4 sm:mr-2" /> <span className="hidden sm:inline">View</span>
+                  </Link>
                 </Button>
               </CardFooter>
             </Card>

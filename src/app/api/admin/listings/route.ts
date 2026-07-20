@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authServer } from '@/lib/auth-server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { ADMIN_LISTING_UPDATABLE_FIELDS } from '@/lib/admin-listing-fields';
 import type { AdminListingWithContext, ListingStatus, RejectionCategory } from '@/lib/types';
 
 // GET /api/admin/listings - Fetch all listings with admin context
@@ -289,6 +290,184 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('[ADMIN-LISTINGS] Unexpected error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+// POST /api/admin/listings - Create a listing on behalf of a seller (admin-managed)
+export async function POST(request: NextRequest) {
+  try {
+    // Authenticate and verify admin role
+    const user = await authServer.getCurrentUser(request);
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const profile = await authServer.getCurrentUserProfile(request);
+    if (profile?.role !== 'admin') {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+    }
+
+    // Parse request body
+    let body: any;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: 'Invalid request body - must be valid JSON' },
+        { status: 400 }
+      );
+    }
+
+    const { seller_id, status: requestedStatus, adminReason, notifySeller, ...listingFields } = body;
+
+    // Require seller and admin reason
+    if (!seller_id || typeof seller_id !== 'string') {
+      return NextResponse.json(
+        { error: 'A seller (seller_id) is required' },
+        { status: 400 }
+      );
+    }
+    if (!adminReason || typeof adminReason !== 'string' || adminReason.trim().length === 0) {
+      return NextResponse.json(
+        { error: 'Admin reason for creation is required' },
+        { status: 400 }
+      );
+    }
+
+    // Validate status (default pending_approval)
+    const validStatuses = ['draft', 'pending_approval', 'active', 'inactive'];
+    const status = requestedStatus || 'pending_approval';
+    if (!validStatuses.includes(status)) {
+      return NextResponse.json(
+        { error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` },
+        { status: 400 }
+      );
+    }
+
+    // Validate the target seller: exists, is a seller, not soft-deleted
+    const { data: targetSeller, error: sellerError } = await supabaseAdmin
+      .from('user_profiles')
+      .select('id, full_name, email, role, verification_status, deleted_at')
+      .eq('id', seller_id)
+      .single();
+
+    if (sellerError || !targetSeller) {
+      return NextResponse.json(
+        { error: 'Target seller not found' },
+        { status: 404 }
+      );
+    }
+    if (targetSeller.deleted_at) {
+      return NextResponse.json(
+        { error: 'Target seller account has been deleted' },
+        { status: 400 }
+      );
+    }
+    if (targetSeller.role !== 'seller') {
+      return NextResponse.json(
+        { error: 'Target user is not a seller' },
+        { status: 400 }
+      );
+    }
+
+    console.log(`[ADMIN-CREATE-LISTING] Admin ${user.id} creating listing for seller ${seller_id} with status ${status}`);
+
+    // Build the insert payload from the shared admin-updatable field whitelist.
+    // `status` is handled explicitly below, so it is skipped here.
+    const insertData: Record<string, any> = {};
+    for (const field of ADMIN_LISTING_UPDATABLE_FIELDS) {
+      if (field === 'status') continue;
+      if (field in listingFields) {
+        insertData[field] = listingFields[field];
+      }
+    }
+
+    // Derived / admin-controlled fields
+    const nowIso = new Date().toISOString();
+    insertData.seller_id = seller_id;
+    insertData.status = status;
+    insertData.is_seller_verified = targetSeller.verification_status === 'verified';
+    insertData.admin_action_by = user.id;
+    insertData.admin_action_at = nowIso;
+    insertData.admin_notes = adminReason;
+    insertData.created_at = nowIso;
+    insertData.updated_at = nowIso;
+
+    // A publicly visible status implies admin approval
+    if (status === 'active') {
+      insertData.approved_at = nowIso;
+      insertData.approved_by = user.id;
+    }
+
+    // Insert via service role (bypasses RLS + approval-gate trigger)
+    const { data: listing, error: insertError } = await supabaseAdmin
+      .from('listings')
+      .insert(insertData)
+      .select('*')
+      .single();
+
+    if (insertError) {
+      console.error('[ADMIN-CREATE-LISTING] Failed to create listing:', insertError);
+      if (insertError.code === '23502' || insertError.code === '23514') {
+        return NextResponse.json(
+          { error: 'Invalid or missing listing data. Please check all required fields.' },
+          { status: 400 }
+        );
+      }
+      return NextResponse.json(
+        { error: 'Failed to create listing' },
+        { status: 500 }
+      );
+    }
+
+    console.log(`[ADMIN-CREATE-LISTING] Created listing ${listing.id} for seller ${seller_id}`);
+
+    // Audit trail
+    const { error: auditError } = await supabaseAdmin
+      .from('admin_listing_actions')
+      .insert({
+        listing_id: listing.id,
+        admin_user_id: user.id,
+        action_type: 'created',
+        new_status: status,
+        admin_notes: adminReason,
+      });
+    if (auditError) {
+      console.warn('[ADMIN-CREATE-LISTING] Failed to log audit trail:', auditError);
+      // Non-fatal: the listing was created successfully
+    }
+
+    // Notify the seller (unless explicitly suppressed)
+    if (notifySeller !== false) {
+      const { error: notificationError } = await supabaseAdmin
+        .from('notifications')
+        .insert({
+          user_id: seller_id,
+          type: 'listing_update',
+          message: `A new listing "${listing.listing_title_anonymous}" has been created for you by the Nobridge team.`,
+          link: '/seller-dashboard/listings',
+          is_read: false,
+        });
+      if (notificationError) {
+        console.warn('[ADMIN-CREATE-LISTING] Failed to create seller notification:', notificationError);
+        // Non-fatal
+      }
+    }
+
+    return NextResponse.json(
+      {
+        success: true,
+        data: { listing },
+      },
+      { status: 201 }
+    );
+
+  } catch (error) {
+    console.error('[ADMIN-CREATE-LISTING] Unexpected error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

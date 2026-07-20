@@ -38,7 +38,7 @@ const navLinkGroups: NavLinkGroup[] = [
     label: "Sell Your Business",
     triggerIcon: Briefcase,
     items: [
-      { href: "/seller-dashboard/listings/create", label: "List Your Business", icon: FileText },
+      { href: "/how-selling-works", label: "List Your Business", icon: FileText },
       { href: "/how-selling-works", label: "How Selling Works", icon: Info },
       { href: "/seller-services", label: "Seller Services", icon: Briefcase },
     ],

@@ -8,27 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import Image from "next/image";
 import {
-  PlusCircle,
-  Edit3,
-  Trash2,
   Eye,
   ShieldCheck,
   AlertTriangle,
   MessageSquare,
   CheckCircle2,
-  Loader2,
   XCircle,
   FileText,
   Clock,
@@ -37,11 +24,11 @@ import {
   ChevronLeft,
   ChevronRight,
   TrendingUp,
-  ExternalLink
+  ExternalLink,
+  Info
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect, useState } from "react";
-import { useCurrentUser } from "@/hooks/use-current-user";
 import { NobridgeIcon } from "@/components/ui/nobridge-icon"; // Import NobridgeIcon
 import { DashboardPageShell } from "@/components/shared/dashboard-page-shell";
 
@@ -84,24 +71,14 @@ interface ListingData {
 // Shared badge geometry so status + verification badges read as one system.
 const BADGE_GEO = "text-xs font-medium py-1 px-2.5 inline-flex items-center gap-1.5 border";
 
+// Listings that are live on the public marketplace and therefore safe to link to.
+const PUBLICLY_VISIBLE_STATUSES = ['active', 'verified_anonymous', 'verified_public'];
+
 export default function ManageSellerListingsPage() {
   const { toast } = useToast();
-  const { profile } = useCurrentUser();
   const [listings, setListings] = useState<ListingData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isUpdating, setIsUpdating] = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
-
-  // Appeal dialog state
-  const [appealDialog, setAppealDialog] = useState<{
-    isOpen: boolean;
-    listing: ListingData | null;
-  }>({
-    isOpen: false,
-    listing: null,
-  });
-  const [appealMessage, setAppealMessage] = useState('');
-  const [isSubmittingAppeal, setIsSubmittingAppeal] = useState(false);
 
   useEffect(() => {
     const fetchListings = async () => {
@@ -131,205 +108,6 @@ export default function ManageSellerListingsPage() {
     };
     fetchListings();
   }, [toast]);
-
-  const handleDeactivate = async (listingId: string, listingTitle: string) => {
-    setIsUpdating(listingId);
-    try {
-      console.log(`[DEACTIVATE] Attempting to deactivate listing ${listingId}: "${listingTitle}"`);
-
-      const response = await fetch(`/api/listings/${listingId}/status`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'inactive' }), // Use 'inactive' for soft delete
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        console.log(`[DEACTIVATE] Success:`, result);
-
-        // Update local state with the new status
-        setListings(prev => prev.map(listing =>
-          listing.id === listingId ? { ...listing, status: 'inactive' } : listing
-        ));
-
-        toast({
-          title: "✅ Listing Deactivated",
-          description: result.message || `'${listingTitle}' has been deactivated and withdrawn from the marketplace.`
-        });
-      } else {
-        // Enhanced error handling with specific status codes
-        let errorMessage = 'Failed to deactivate listing';
-
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.error || errorMessage;
-
-          // Handle specific error cases
-          if (response.status === 401) {
-            errorMessage = 'You are not authorized to perform this action. Please log in again.';
-          } else if (response.status === 403) {
-            errorMessage = 'You do not have permission to deactivate this listing.';
-          } else if (response.status === 404) {
-            errorMessage = 'Listing not found. It may have already been removed.';
-          }
-
-          console.error(`[DEACTIVATE] Error ${response.status}:`, errorData);
-        } catch (parseError) {
-          console.error(`[DEACTIVATE] Failed to parse error response:`, parseError);
-          errorMessage = `Server error (${response.status}). Please try again.`;
-        }
-
-        throw new Error(errorMessage);
-      }
-    } catch (error) {
-      console.error('[DEACTIVATE] Error:', error);
-      toast({
-        title: "❌ Deactivation Failed",
-        description: error instanceof Error ? error.message : "Failed to deactivate listing. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsUpdating(null);
-    }
-  };
-
-  const handleReactivate = async (listingId: string, listingTitle: string) => {
-    setIsUpdating(listingId);
-    try {
-      console.log(`[REACTIVATE] Attempting to reactivate listing ${listingId}: "${listingTitle}"`);
-
-      const response = await fetch(`/api/listings/${listingId}/status`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'active' }), // Reactivate to active status
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        console.log(`[REACTIVATE] Success:`, result);
-
-        // Update local state with the new status
-        setListings(prev => prev.map(listing =>
-          listing.id === listingId ? { ...listing, status: 'active' } : listing
-        ));
-
-        toast({
-          title: "✅ Listing Reactivated",
-          description: result.message || `'${listingTitle}' is now active and visible to buyers.`
-        });
-      } else {
-        // Enhanced error handling with specific status codes
-        let errorMessage = 'Failed to reactivate listing';
-
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.error || errorMessage;
-
-          // Handle specific error cases
-          if (response.status === 401) {
-            errorMessage = 'You are not authorized to perform this action. Please log in again.';
-          } else if (response.status === 403) {
-            errorMessage = 'You do not have permission to reactivate this listing.';
-          } else if (response.status === 404) {
-            errorMessage = 'Listing not found. It may have been removed.';
-          }
-
-          console.error(`[REACTIVATE] Error ${response.status}:`, errorData);
-        } catch (parseError) {
-          console.error(`[REACTIVATE] Failed to parse error response:`, parseError);
-          errorMessage = `Server error (${response.status}). Please try again.`;
-        }
-
-        throw new Error(errorMessage);
-      }
-    } catch (error) {
-      console.error('[REACTIVATE] Error:', error);
-      toast({
-        title: "❌ Reactivation Failed",
-        description: error instanceof Error ? error.message : "Failed to reactivate listing. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsUpdating(null);
-    }
-  };
-
-  const handleAppealSubmission = async () => {
-    if (!appealDialog.listing || !appealMessage.trim()) {
-      toast({
-        title: "Appeal Message Required",
-        description: "Please provide a detailed message explaining why this listing should be reconsidered.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
-      setIsSubmittingAppeal(true);
-      console.log(`[APPEAL] Submitting appeal for listing ${appealDialog.listing.id}`);
-
-      const response = await fetch(`/api/listings/${appealDialog.listing.id}/appeal`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          appealMessage: appealMessage.trim(),
-          originalRejectionReason: appealDialog.listing.admin_notes,
-          originalRejectionCategory: appealDialog.listing.rejection_category
-        }),
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        console.log(`[APPEAL] Success:`, result);
-
-        // Update local state to show appeal submitted
-        setListings(prev => prev.map(listing =>
-          listing.id === appealDialog.listing!.id
-            ? {
-                ...listing,
-                status: 'appealing_rejection',
-                appeal_status: 'pending',
-                appeal_message: appealMessage.trim(),
-                appeal_created_at: new Date().toISOString()
-              }
-            : listing
-        ));
-
-        toast({
-          title: "✅ Appeal Submitted",
-          description: "Your appeal has been submitted and will be reviewed by our admin team. You'll be notified of the decision."
-        });
-
-        // Close dialog and reset form
-        setAppealDialog({ isOpen: false, listing: null });
-        setAppealMessage('');
-
-      } else {
-        let errorMessage = 'Failed to submit appeal';
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.error || errorMessage;
-        } catch (parseError) {
-          console.error(`[APPEAL] Failed to parse error response:`, parseError);
-        }
-        throw new Error(errorMessage);
-      }
-    } catch (error) {
-      console.error('[APPEAL] Error:', error);
-      toast({
-        title: "❌ Appeal Submission Failed",
-        description: error instanceof Error ? error.message : "Failed to submit appeal. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSubmittingAppeal(false);
-    }
-  };
-
-  const openAppealDialog = (listing: ListingData) => {
-    setAppealDialog({ isOpen: true, listing });
-    setAppealMessage('');
-  };
 
   // Enhanced status badge function with rejection handling
   const getStatusBadge = (listing: ListingData) => {
@@ -416,21 +194,11 @@ export default function ManageSellerListingsPage() {
     return category ? categoryMap[category] || category : 'Not specified';
   };
 
-  // Function to determine if listing can be edited
-  const canEditListing = (status: string) => {
-    return !['rejected_by_admin', 'appealing_rejection', 'under_review'].includes(status);
-  };
-
-  // Function to determine if listing can be appealed
-  const canAppealListing = (listing: ListingData) => {
-    return listing.status === 'rejected_by_admin' && !listing.appeal_status;
-  };
-
   if (isLoading) {
     return (
       <DashboardPageShell
         title="My Listings"
-        description="Manage your business listings, track their status, and respond to inquiries."
+        description="View your business listings and their current status."
       >
         <Card className="flex-1 min-h-0 w-full flex flex-col overflow-hidden bg-card border">
           {/* Top band: half image + badge/title/quick-facts lines */}
@@ -467,8 +235,6 @@ export default function ManageSellerListingsPage() {
             <div className="shrink-0 flex flex-wrap gap-2">
               <Skeleton className="h-10 w-28" />
               <Skeleton className="h-10 w-28" />
-              <Skeleton className="h-10 w-28" />
-              <Skeleton className="h-10 w-28" />
             </div>
           </div>
         </Card>
@@ -483,28 +249,26 @@ export default function ManageSellerListingsPage() {
   return (
     <DashboardPageShell
       title="My Listings"
-      description="Manage your business listings, track their status, and respond to inquiries."
-      headerActions={listings.length > 0 ? (
-        <Button asChild variant="outline" size="sm" className="border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white">
-          <Link href="/seller-dashboard/listings/create"><PlusCircle className="h-4 w-4 mr-2" />Create New Listing</Link>
-        </Button>
-      ) : undefined}
+      description="View your business listings and their current status."
     >
       {listings.length === 0 ? (
         <div className="flex flex-1 h-full flex-col items-center justify-center text-center border border-dashed border-border p-8">
           <NobridgeIcon icon="business-listing" size="xl" className="mb-6 text-muted-foreground opacity-70" />
           <h2 className="text-lg font-semibold text-foreground mb-2 font-heading">No Listings Yet</h2>
-          <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-            Showcase your business to motivated buyers. Create your first listing to get started.
+          <p className="text-muted-foreground max-w-md mx-auto">
+            Our team will set up your listing once you&apos;re verified. There&apos;s nothing you need to do here yet — we&apos;ll be in touch.
           </p>
-          <Button asChild size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90">
-            <Link href="/seller-dashboard/listings/create">
-              <PlusCircle className="mr-2 h-5 w-5" /> Create Your First Listing
-            </Link>
-          </Button>
         </div>
       ) : (
         <>
+          {/* Managed-by-team notice */}
+          <Alert className="shrink-0">
+            <Info className="h-4 w-4" />
+            <AlertDescription>
+              Your listing is managed by the Nobridge team. Contact us to request changes.
+            </AlertDescription>
+          </Alert>
+
           <Card className="flex-1 min-h-0 w-full flex flex-col overflow-hidden bg-card border">
               {/* TOP ROW: image (left half) + title & status (right half) */}
               <div className="h-2/5 min-h-0 flex flex-row border-b">
@@ -673,25 +437,14 @@ export default function ManageSellerListingsPage() {
                   </Alert>
                 )}
 
-                {/* Action row — equal-width columns, single row */}
+                {/* Action row — read-only: public view (when live) + inquiries */}
                 <div className="shrink-0 grid grid-flow-col auto-cols-fr gap-2 pt-1">
-                    {/* Public View - Always available */}
-                    <Button variant="outline" asChild className="w-full border-input hover:bg-accent/50 hover:text-accent-foreground">
-                        <Link href={`/listings/${listing.id}`} target="_blank">
-                        <Eye className="h-4 w-4 mr-1 sm:mr-2" /> <span className="hidden sm:inline">Public View</span>
-                        </Link>
-                    </Button>
-
-                    {/* Edit - Only if listing can be edited */}
-                    {canEditListing(listing.status) ? (
+                    {/* View public listing — only when the listing is live on the marketplace */}
+                    {PUBLICLY_VISIBLE_STATUSES.includes(listing.status) && (
                       <Button variant="outline" asChild className="w-full border-input hover:bg-accent/50 hover:text-accent-foreground">
-                          <Link href={`/seller-dashboard/listings/${listing.id}/edit`}>
-                          <Edit3 className="h-4 w-4 mr-1 sm:mr-2" /> <span className="hidden sm:inline">Edit</span>
+                          <Link href={`/listings/${listing.id}`} target="_blank">
+                          <Eye className="h-4 w-4 mr-1 sm:mr-2" /> <span className="hidden sm:inline">View public listing</span>
                           </Link>
-                      </Button>
-                    ) : (
-                      <Button variant="outline" disabled className="w-full border-input opacity-50">
-                          <Edit3 className="h-4 w-4 mr-1 sm:mr-2" /> <span className="hidden sm:inline">Edit</span>
                       </Button>
                     )}
 
@@ -701,92 +454,6 @@ export default function ManageSellerListingsPage() {
                         <MessageSquare className="h-4 w-4 mr-1 sm:mr-2" /> Inquiries
                         </Link>
                     </Button>
-
-                    {/* Status-specific action button */}
-                    {listing.status === 'active' ? (
-                        <Button
-                          variant="outline"
-                          onClick={() => handleDeactivate(listing.id, listing.title)}
-                          disabled={isUpdating === listing.id}
-                          className="w-full border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                        >
-                          {isUpdating === listing.id ? (
-                            <Loader2 className="h-4 w-4 mr-1 sm:mr-2 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-4 w-4 mr-1 sm:mr-2" />
-                          )}
-                          Deactivate
-                        </Button>
-                    ) : (listing.status === 'inactive' || listing.status === 'withdrawn') && listing.approved_at ? (
-                         /* Reactivation is only offered for listings that were previously
-                          * approved by an admin. Never-approved listings must go through
-                          * the admin review queue instead. */
-                         <Button
-                           variant="outline"
-                           onClick={() => handleReactivate(listing.id, listing.title)}
-                           disabled={isUpdating === listing.id}
-                           className="w-full border-green-500/50 text-green-600 hover:bg-green-500/10 hover:text-green-700"
-                         >
-                           {isUpdating === listing.id ? (
-                             <Loader2 className="h-4 w-4 mr-1 sm:mr-2 animate-spin" />
-                           ) : (
-                             <CheckCircle2 className="h-4 w-4 mr-1 sm:mr-2" />
-                           )}
-                           Reactivate
-                        </Button>
-                    ) : canAppealListing(listing) ? (
-                        <Button
-                          variant="outline"
-                          onClick={() => openAppealDialog(listing)}
-                          className="w-full border-amber-500/50 text-amber-600 hover:bg-amber-500/10 hover:text-amber-700"
-                        >
-                          <MessageCircle className="h-4 w-4 mr-1 sm:mr-2" />
-                          Appeal
-                        </Button>
-                                        ) : listing.status === 'verified_anonymous' || listing.status === 'verified_public' ? (
-                        /* VERIFIED LISTINGS - Admin approved, seller can deactivate if needed
-                         *
-                         * STATUS EXPLANATION:
-                         * - verified_anonymous: Admin approved listing, shows basic business info publicly
-                         *   but hides detailed financials (annual revenue, net profit, cash flow, seller_id)
-                         * - verified_public: Admin approved listing, shows full verified details including
-                         *   all financial information and seller identification
-                         *
-                         * Both statuses indicate successful admin review and marketplace visibility.
-                         * Sellers can deactivate verified listings if they no longer want them active.
-                         * TODO: Consider renaming for clarity - "verified_limited" vs "verified_full"
-                         */
-                        <Button
-                          variant="outline"
-                          onClick={() => handleDeactivate(listing.id, listing.title)}
-                          disabled={isUpdating === listing.id}
-                          className="w-full border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                        >
-                          {isUpdating === listing.id ? (
-                            <Loader2 className="h-4 w-4 mr-1 sm:mr-2 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-4 w-4 mr-1 sm:mr-2" />
-                          )}
-                          Deactivate
-                        </Button>
-                    ) : (
-                        <Button variant="outline" disabled className="w-full border-input opacity-50">
-                          <Clock className="h-4 w-4 mr-1 sm:mr-2" />
-                          {listing.status === 'pending_approval' ? 'Pending Review' :
-                           listing.status === 'under_review' ? 'Reviewing' :
-                           listing.status === 'appealing_rejection' ? 'Appealing' :
-                           (listing.status === 'inactive' || listing.status === 'withdrawn') && !listing.approved_at ? 'Awaiting Approval' : 'Processing'}
-                        </Button>
-                    )}
-
-                    {/* Get Verified - joins the action row when applicable */}
-                    {profile?.verification_status !== 'verified' && listing.verification_status !== 'pending' && (
-                      <Button variant="secondary" className="w-full bg-yellow-100 text-yellow-700 hover:bg-yellow-200 dark:bg-yellow-700/20 dark:text-yellow-300" asChild>
-                          <Link href="/seller-dashboard/verification">
-                              <ShieldCheck className="h-4 w-4 mr-2" /> Get Verified
-                          </Link>
-                      </Button>
-                    )}
                 </div>
               </div>
           </Card>
@@ -804,107 +471,6 @@ export default function ManageSellerListingsPage() {
           )}
         </>
       )}
-
-      {/* Appeal Dialog */}
-      <Dialog open={appealDialog.isOpen} onOpenChange={(open) => {
-        if (!open) {
-          setAppealDialog({ isOpen: false, listing: null });
-          setAppealMessage('');
-        }
-      }}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <MessageCircle className="h-5 w-5 text-amber-600" />
-              Appeal Listing Rejection
-            </DialogTitle>
-            <DialogDescription>
-              Submit an appeal for "{appealDialog.listing?.title}". Please provide a detailed explanation of why this listing should be reconsidered.
-            </DialogDescription>
-          </DialogHeader>
-
-          {appealDialog.listing && (
-            <div className="space-y-4">
-              {/* Show original rejection details */}
-              <Alert className="border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20">
-                <XCircle className="h-4 w-4 text-red-600" />
-                <AlertDescription>
-                  <div className="font-medium text-red-800 dark:text-red-200 mb-1">
-                    Original Rejection: {getRejectionReasonDisplay(appealDialog.listing.rejection_category)}
-                  </div>
-                  {appealDialog.listing.admin_notes && (
-                    <div className="text-red-700 dark:text-red-300 text-sm">
-                      Admin Notes: {appealDialog.listing.admin_notes}
-                    </div>
-                  )}
-                </AlertDescription>
-              </Alert>
-
-              {/* Appeal message input */}
-              <div className="space-y-2">
-                <label htmlFor="appeal-message" className="text-sm font-medium">
-                  Your Appeal Message *
-                </label>
-                <Textarea
-                  id="appeal-message"
-                  placeholder="Please explain why you believe this listing should be approved. Include any additional information or corrections that address the rejection reason..."
-                  value={appealMessage}
-                  onChange={(e) => setAppealMessage(e.target.value)}
-                  rows={6}
-                  className="resize-none"
-                />
-                <div className="text-xs text-muted-foreground">
-                  {appealMessage.length}/1000 characters
-                </div>
-              </div>
-
-              {/* Guidelines */}
-              <Alert>
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription className="text-sm">
-                  <div className="font-medium mb-1">Appeal Guidelines:</div>
-                  <ul className="text-xs space-y-1 ml-4 list-disc">
-                    <li>Be specific about what changes you've made or why the rejection was incorrect</li>
-                    <li>Provide additional context or documentation if relevant</li>
-                    <li>Appeals are typically reviewed within 2-3 business days</li>
-                    <li>You can only submit one appeal per listing</li>
-                  </ul>
-                </AlertDescription>
-              </Alert>
-            </div>
-          )}
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setAppealDialog({ isOpen: false, listing: null });
-                setAppealMessage('');
-              }}
-              disabled={isSubmittingAppeal}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleAppealSubmission}
-              disabled={isSubmittingAppeal || !appealMessage.trim() || appealMessage.length > 1000}
-              className="bg-amber-600 hover:bg-amber-700 text-white"
-            >
-              {isSubmittingAppeal ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Submitting Appeal...
-                </>
-              ) : (
-                <>
-                  <MessageCircle className="h-4 w-4 mr-2" />
-                  Submit Appeal
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </DashboardPageShell>
   );
 }

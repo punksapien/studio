@@ -54,7 +54,8 @@ import {
   RefreshCw,
   Settings,
   Pencil,
-  MoreVertical
+  MoreVertical,
+  PlusCircle
 } from "lucide-react";
 import { industries } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
@@ -395,7 +396,18 @@ function AdminListingsPageContent() {
   }
 
   return (
-    <AdminPageShell title="Listing Management" description="View, search, filter, and manage all business listings on the platform.">
+    <AdminPageShell
+      title="Listing Management"
+      description="View, search, filter, and manage all business listings on the platform."
+      headerActions={
+        <Button asChild size="sm" className="bg-white text-brand-dark-blue hover:bg-white/90">
+          <Link href="/admin/listings/create">
+            <PlusCircle className="h-4 w-4 mr-2" />
+            Create Listing
+          </Link>
+        </Button>
+      }
+    >
           {/* Pending approval queue banner */}
           {(summary.statusCounts['pending_approval'] || 0) > 0 && (
             <button

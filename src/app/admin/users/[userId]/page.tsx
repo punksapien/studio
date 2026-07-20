@@ -18,6 +18,17 @@ import {
   KeyRound, Trash2, Ban, MessageSquare
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AdminPageShell } from "@/components/admin/page-header";
@@ -33,6 +44,8 @@ interface UserDetailResponse {
     fullName: string;
     email: string;
     phoneNumber: string;
+    additionalEmail?: string | null;
+    additionalPhone?: string | null;
     role: string;
     verificationStatus: string;
     country: string;
@@ -155,6 +168,11 @@ export default function AdminUserDetailPage() {
   const [isSetPasswordDialogOpen, setIsSetPasswordDialogOpen] = React.useState(false);
   const [deleteDialog, setDeleteDialog] = React.useState<{ open: boolean; block: boolean }>({ open: false, block: false });
 
+  // Seller verification action dialog state
+  const [verifyDialog, setVerifyDialog] = React.useState<{ open: boolean; action: 'verify_seller' | 'revoke_seller_verification' | null }>({ open: false, action: null });
+  const [verifyNote, setVerifyNote] = React.useState('');
+  const [verifyLoading, setVerifyLoading] = React.useState(false);
+
   // Fetch user data with SWR
   const {
     data,
@@ -258,6 +276,49 @@ export default function AdminUserDetailPage() {
     });
   };
 
+  const openVerifyDialog = (action: 'verify_seller' | 'revoke_seller_verification') => {
+    setVerifyNote('');
+    setVerifyDialog({ open: true, action });
+  };
+
+  const executeVerificationAction = async () => {
+    if (!verifyDialog.action) return;
+
+    try {
+      setVerifyLoading(true);
+
+      const response = await fetch(`/api/admin/users/${userId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: verifyDialog.action, note: verifyNote.trim() || undefined }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to update seller verification');
+      }
+
+      toast({
+        title: verifyDialog.action === 'verify_seller' ? "Seller Verified" : "Verification Revoked",
+        description: verifyDialog.action === 'verify_seller'
+          ? "This seller is now marked as verified."
+          : "This seller's verification has been revoked.",
+      });
+
+      setVerifyDialog({ open: false, action: null });
+      setVerifyNote('');
+      await refetchUser();
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : 'Failed to update seller verification',
+        variant: "destructive",
+      });
+    } finally {
+      setVerifyLoading(false);
+    }
+  };
+
   return (
     <AdminPageShell title="User Details" description="Full profile, activity and management actions for this user." scrollable>
       <div className="space-y-8">
@@ -335,6 +396,48 @@ export default function AdminUserDetailPage() {
         </Card>
       )}
 
+      {/* Seller Verification */}
+      {user.role === 'seller' && (
+        <Card className="shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5 text-primary" />
+              Seller Verification
+            </CardTitle>
+            <CardDescription>
+              Manage this seller's verification status. Verification is initiated by the Nobridge team.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-muted-foreground">Current status:</span>
+                <VerificationStatusBadge status={user.verificationStatus} size="lg" />
+              </div>
+              {user.verificationStatus === 'verified' ? (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => openVerifyDialog('revoke_seller_verification')}
+                >
+                  <ShieldAlert className="mr-2 h-4 w-4" />
+                  Revoke Verification
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  onClick={() => openVerifyDialog('verify_seller')}
+                  className="bg-green-600 text-white hover:bg-green-700"
+                >
+                  <ShieldCheck className="mr-2 h-4 w-4" />
+                  Verify Seller
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Main Profile Card */}
       <Card className="shadow-lg">
         <CardHeader>
@@ -365,6 +468,12 @@ export default function AdminUserDetailPage() {
             <Section title="Contact Information">
               <Row label="Email"><span className="break-all">{user.email}</span></Row>
               <Row label="Phone">{user.phoneNumber || 'Not provided'}</Row>
+              {user.additionalEmail && (
+                <Row label="Additional email"><span className="break-all">{user.additionalEmail}</span></Row>
+              )}
+              {user.additionalPhone && (
+                <Row label="Additional phone">{user.additionalPhone}</Row>
+              )}
               <Row label="Country">{user.country || 'Not provided'}</Row>
             </Section>
 
@@ -562,6 +671,12 @@ export default function AdminUserDetailPage() {
                   <Row label="Full Name">{user.fullName}</Row>
                   <Row label="Email"><span className="break-all">{user.email}</span></Row>
                   <Row label="Phone">{user.phoneNumber || 'Not provided'}</Row>
+                  {user.additionalEmail && (
+                    <Row label="Additional email"><span className="break-all">{user.additionalEmail}</span></Row>
+                  )}
+                  {user.additionalPhone && (
+                    <Row label="Additional phone">{user.additionalPhone}</Row>
+                  )}
                   <Row label="Country">{user.country || 'Not provided'}</Row>
                   <Row label="Role"><span className="capitalize">{user.role}</span></Row>
                 </Section>
@@ -760,6 +875,54 @@ export default function AdminUserDetailPage() {
         } : null}
         onDeleted={() => router.push('/admin/users')}
       />
+
+      {/* Seller verification confirmation dialog */}
+      <AlertDialog
+        open={verifyDialog.open}
+        onOpenChange={(open) => {
+          if (!verifyLoading) setVerifyDialog(prev => ({ ...prev, open }));
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {verifyDialog.action === 'verify_seller' ? 'Verify Seller' : 'Revoke Verification'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {verifyDialog.action === 'verify_seller'
+                ? `Mark ${user.fullName} as a verified seller. Their listings will reflect verified status.`
+                : `Revoke ${user.fullName}'s verified status. This will remove the verified badge from their listings.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Note (Optional)</label>
+            <Textarea
+              placeholder="Add an internal note about this action..."
+              value={verifyNote}
+              onChange={(e) => setVerifyNote(e.target.value)}
+              disabled={verifyLoading}
+            />
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={verifyLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                executeVerificationAction();
+              }}
+              disabled={verifyLoading}
+              className={verifyDialog.action === 'revoke_seller_verification'
+                ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
+                : 'bg-green-600 text-white hover:bg-green-700'}
+            >
+              {verifyLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {verifyDialog.action === 'verify_seller' ? 'Verify Seller' : 'Revoke Verification'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       </div>
     </AdminPageShell>
   );

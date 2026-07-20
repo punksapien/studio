@@ -81,44 +81,14 @@ export async function PUT(
       )
     }
 
-    // Check ownership (unless user is admin)
-    if (profile?.role !== 'admin' && existingListing.seller_id !== user.id) {
+    // Listing status changes are admin-only; sellers are read-only.
+    if (profile?.role !== 'admin') {
       return NextResponse.json(
-        { error: 'You can only update your own listings' },
+        { error: 'Listings are managed by the Nobridge team.' },
         { status: 403 }
       )
     }
-
-    // Status transition rules — explicit allowlist for sellers, anything for admins.
-    // Sellers may take a listing DOWN at any time, but may only bring one back to a
-    // public status if it was previously approved by an admin (approved_at is set).
-    // A DB trigger (enforce_listing_approval_gate) backstops these rules.
-    if (profile?.role !== 'admin') {
-      const sellerTakedownStatuses = ['inactive', 'withdrawn', 'sold', 'closed_deal']
-      const sellerNonPublicStatuses = ['draft', 'pending_approval']
-
-      if (status === 'active') {
-        const reactivatableFrom = ['inactive', 'withdrawn', 'sold', 'closed_deal']
-        if (!existingListing.approved_at || !reactivatableFrom.includes(existingListing.status)) {
-          return NextResponse.json(
-            { error: 'This listing has not been approved yet. It will become visible once an admin approves it.' },
-            { status: 403 }
-          )
-        }
-        console.log(`[LISTING-REACTIVATE] Previously-approved listing ${id} reactivated by user ${user.id}`)
-      } else if (sellerTakedownStatuses.includes(status)) {
-        console.log(`[LISTING-TAKEDOWN] Listing ${id} set to ${status} by user ${user.id}`)
-      } else if (sellerNonPublicStatuses.includes(status)) {
-        console.log(`[LISTING-${status.toUpperCase()}] Listing ${id} set to ${status} by user ${user.id}`)
-      } else {
-        return NextResponse.json(
-          { error: `Only admins can set a listing to '${status}'` },
-          { status: 403 }
-        )
-      }
-    } else {
-      console.log(`[LISTING-STATUS] Admin ${user.id} setting listing ${id} to ${status}`)
-    }
+    console.log(`[LISTING-STATUS] Admin ${user.id} setting listing ${id} to ${status}`)
 
     const updateData: Record<string, any> = {
       status: status,

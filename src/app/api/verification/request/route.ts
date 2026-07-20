@@ -17,6 +17,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Seller verification is team-initiated; sellers cannot submit or bump
+    // verification requests. Buyers keep the flow.
+    if (authResult.profile.role === 'seller') {
+      return NextResponse.json(
+        { error: 'Seller verification is initiated by the Nobridge team. We will contact you.' },
+        { status: 403 }
+      );
+    }
+
     // Parse request body
     const body = await request.json();
     const {

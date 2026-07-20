@@ -33,7 +33,9 @@ export async function PUT(request: NextRequest) {
       buyer_persona_other,
       investment_focus_description,
       preferred_investment_size,
-      key_industries_of_interest
+      key_industries_of_interest,
+      additional_email,
+      additional_phone
     } = body
 
     // Prepare update data (only include non-undefined fields)
@@ -52,6 +54,42 @@ export async function PUT(request: NextRequest) {
     if (investment_focus_description !== undefined) updateData.investment_focus_description = investment_focus_description
     if (preferred_investment_size !== undefined) updateData.preferred_investment_size = preferred_investment_size
     if (key_industries_of_interest !== undefined) updateData.key_industries_of_interest = key_industries_of_interest
+
+    // Optional extra contact fields sellers can provide pre-verification.
+    // Validation mirrors src/app/api/verification/request/route.ts for the same
+    // fields. Semantics: undefined = field untouched; empty string = clear to
+    // null; invalid non-empty value = 400.
+    if (additional_email !== undefined) {
+      const trimmed = typeof additional_email === 'string' ? additional_email.trim() : ''
+      const normalizedAdditionalEmail = trimmed === '' ? null : trimmed
+      if (normalizedAdditionalEmail !== null) {
+        if (normalizedAdditionalEmail.length > 255) {
+          return NextResponse.json(
+            { error: 'additional_email must be 255 characters or fewer' },
+            { status: 400 }
+          )
+        }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedAdditionalEmail)) {
+          return NextResponse.json(
+            { error: 'additional_email must be a valid email address' },
+            { status: 400 }
+          )
+        }
+      }
+      updateData.additional_email = normalizedAdditionalEmail
+    }
+
+    if (additional_phone !== undefined) {
+      const trimmed = typeof additional_phone === 'string' ? additional_phone.trim() : ''
+      const normalizedAdditionalPhone = trimmed === '' ? null : trimmed
+      if (normalizedAdditionalPhone !== null && !/^[+]?[\d\s\-().]{5,24}$/.test(normalizedAdditionalPhone)) {
+        return NextResponse.json(
+          { error: 'additional_phone must be a valid phone number' },
+          { status: 400 }
+        )
+      }
+      updateData.additional_phone = normalizedAdditionalPhone
+    }
 
     console.log('Updating profile with data:', updateData)
 

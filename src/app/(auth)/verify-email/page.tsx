@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { AuthCardWrapper } from "@/components/auth/auth-card-wrapper";
 import { useState, useTransition, Suspense, useEffect, useRef } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertTriangle, CheckCircle2, Mail, KeyRound, Loader2, Info } from "lucide-react";
+import { AlertTriangle, Mail, KeyRound, Loader2, Info } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { auth } from "@/lib/auth";
@@ -37,7 +37,6 @@ function VerifyEmailContent() {
   const pkceError = searchParams.get("error") === 'pkce_failed';
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [resendLoading, setResendLoading] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [rateLimitCountdown, setRateLimitCountdown] = useState(0);
@@ -76,7 +75,6 @@ function VerifyEmailContent() {
       console.log('[AUTO-SEND] Initiating automatic verification email for:', email);
 
       setError("");
-      setSuccess("");
       setResendLoading(true);
 
       // Use startTransition for better UX during auto-send
@@ -198,7 +196,6 @@ function VerifyEmailContent() {
 
   const onSubmit = (values: z.infer<typeof OTPSchema>) => {
     setError("");
-    setSuccess("");
     setIsLoading(true);
 
     startTransition(async () => {
@@ -217,7 +214,6 @@ function VerifyEmailContent() {
         });
 
         if (result.user) {
-          setSuccess("Email verified successfully! Proceeding to next step...");
           toast({
             title: "Email Verified!",
             description: "Your email has been successfully verified."
@@ -318,7 +314,6 @@ function VerifyEmailContent() {
     console.log('[MANUAL-RESEND] User clicked resend button for:', email);
 
     setError("");
-    setSuccess("");
     setResendLoading(true);
 
     startTransition(async () => {
@@ -364,8 +359,7 @@ function VerifyEmailContent() {
 
         console.log('[MANUAL-RESEND] Success! Email sent successfully');
 
-        // Show success state and toast
-        setSuccess("Verification email sent successfully!");
+        // Show success toast
         toast({
           title: "Email Sent!",
           description: `A new verification email has been sent to ${email}. Please check your inbox and spam folder.`,
@@ -390,7 +384,7 @@ function VerifyEmailContent() {
 
   return (
     <AuthCardWrapper
-      headerLabel="Verify Your Email"
+      hideLogo
       backButtonLabel={
         type === 'login' ? "Back to Login" :
         type === 'resend' ? "Try Login Instead" :
@@ -402,36 +396,28 @@ function VerifyEmailContent() {
         (email ? `/auth/register?email=${encodeURIComponent(email)}` : "/auth/register")
       }
     >
-      <div className="space-y-6">
+      <div className="space-y-4">
         <div className="text-center">
-          <Mail className="mx-auto h-12 w-12 text-primary mb-4" />
-          <h1 className="text-2xl font-semibold text-foreground mb-2">
-            {type === 'resend' ? 'Account Found - Verify Email' :
-             type === 'login' ? 'Email Verification Required' :
-             'Check Your Inbox'}
-          </h1>
-          <p className="text-muted-foreground text-sm mb-1">
-            {type === 'resend' ? 'Your account exists but needs email verification. We\'ve sent a new verification email to:' :
-             type === 'login' ? 'You must verify your email before logging in. A verification email has been sent to:' :
-             'We\'ve sent a verification email to:'}
+          <Mail className="mx-auto h-8 w-8 text-primary mb-2" />
+          <h1 className="text-xl font-semibold text-foreground mb-1">Verify your email address</h1>
+          <p className="text-sm text-muted-foreground">
+            Check your inbox, we have sent a verification email to{' '}
+            <span className="font-medium text-primary">{email}</span>
           </p>
-          <p className="font-medium text-primary mb-6">{email}</p>
+          <p className="text-xs text-muted-foreground italic mt-1">Please check your spam folder as well.</p>
         </div>
 
-        <Alert className="bg-primary/5 border-primary/20">
+        <Alert className="bg-primary/5 border-primary/20 [&>svg]:top-1/2 [&>svg]:-translate-y-1/2">
           <Info className="h-4 w-4 text-primary/80" />
-          <AlertTitle className="text-primary/90 font-medium">Two Ways to Verify!</AlertTitle>
           <AlertDescription className="text-sm text-primary/80">
-            Your email contains a <strong>6-digit code</strong> to enter below, and a
-            <strong> one-click link</strong> to verify instantly.
-            <br/>
-            Can&apos;t find it? Check your spam/junk folder or resend the email.
+            The email contains a <span className="font-semibold">6-digit code</span> to enter below, or there is a{' '}
+            <span className="font-semibold">one-click link</span> that you can use to verify instantly.
           </AlertDescription>
         </Alert>
 
         <Card>
-          <CardHeader>
-            <CardTitle className="text-xl text-center">Enter Verification Code</CardTitle>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg text-center">Enter Verification Code</CardTitle>
           </CardHeader>
           <CardContent>
             <Form {...form}>
@@ -448,7 +434,7 @@ function VerifyEmailContent() {
                           placeholder="123456"
                           disabled={isLoading || isPending}
                           maxLength={6}
-                          className="text-center text-2xl tracking-[0.3em] h-14 font-mono border-2 border-input focus:border-primary"
+                          className="text-center text-2xl tracking-[0.3em] h-12 font-mono border border-input focus:border-primary"
                           autoComplete="one-time-code"
                         />
                       </FormControl>
@@ -462,39 +448,31 @@ function VerifyEmailContent() {
                 </Button>
               </form>
             </Form>
+
+            <div className="border-t mt-4 pt-4 text-center">
+              <p className="text-sm text-muted-foreground mb-2">
+                Didn&apos;t receive the email or need a new code?
+              </p>
+              <Button
+                onClick={handleResendEmail}
+                variant="outline"
+                className="w-full"
+                disabled={resendLoading || rateLimitCountdown > 0}
+              >
+                {resendLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {resendLoading ? "Sending..." :
+                 rateLimitCountdown > 0 ? `Wait ${rateLimitCountdown}s` :
+                 "Resend Verification Email"}
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
-        <div className="text-center pt-4 border-t">
-          <p className="text-sm text-muted-foreground mb-3">
-            Didn&apos;t receive the email or need a new code?
-          </p>
-          <Button
-            onClick={handleResendEmail}
-            variant="outline"
-            className="w-full"
-            disabled={resendLoading || rateLimitCountdown > 0}
-          >
-            {resendLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {resendLoading ? "Sending..." :
-             rateLimitCountdown > 0 ? `Wait ${rateLimitCountdown}s` :
-             "Resend Verification Email"}
-          </Button>
-        </div>
-
         {error && (
-          <Alert variant="destructive" className="mt-6">
+          <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>Verification Failed</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
-        {success && (
-          <Alert variant="default" className="mt-6 bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-700/50">
-            <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
-            <AlertTitle className="text-green-700 dark:text-green-300">Success!</AlertTitle>
-            <AlertDescription className="text-green-600 dark:text-green-400">{success}</AlertDescription>
           </Alert>
         )}
 

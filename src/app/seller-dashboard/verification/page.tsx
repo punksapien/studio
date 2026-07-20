@@ -3,641 +3,148 @@
 // Force dynamic rendering due to client-side interactivity
 export const dynamic = 'force-dynamic'
 
-import React, { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useToast } from '@/hooks/use-toast';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { CheckCircle, Clock, XCircle, AlertCircle, Loader2, Shield, FileText, Building, RefreshCw, Pencil, Check, X, Plus } from 'lucide-react';
-import { Suspense } from 'react';
 import Link from 'next/link';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { CheckCircle, Clock, ShieldCheck, Loader2, AlertCircle } from 'lucide-react';
 import { DashboardPageShell } from '@/components/shared/dashboard-page-shell';
+import { VerificationStatusBadge } from '@/components/shared/verification-status-badge';
 
-const VERIFICATION_DESCRIPTION = 'Get verified to build trust with potential buyers and access premium features.';
+const VERIFICATION_DESCRIPTION = 'Your verification is handled by the Nobridge team.';
 
-// Import our new TanStack Query hooks
-import { useCurrentUser } from '@/hooks/queries/use-user-data';
-import { useVerificationRequest } from '@/hooks/queries/use-verification-data';
-import { updateUserProfile } from '@/hooks/use-current-user';
+// Request statuses that mean the team is actively working a verification.
+const OPEN_REQUEST_STATUSES = ['New Request', 'Contacted', 'Docs Under Review', 'More Info Requested'];
 
-// Loading skeleton component
-function LoadingSkeleton() {
-  return (
-    <div className="space-y-6">
-      <div className="h-8 bg-muted animate-pulse rounded-md" />
-      <Card>
-        <CardHeader>
-          <div className="h-6 bg-muted animate-pulse rounded-md w-1/3" />
-          <div className="h-4 bg-muted animate-pulse rounded-md w-2/3" />
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="space-y-2">
-              <div className="h-4 bg-muted animate-pulse rounded-md w-1/4" />
-              <div className="h-9 bg-muted animate-pulse rounded-md" />
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
-// Error fallback component
-function ErrorFallback({ error, retry }: { error: Error; retry: () => void }) {
-  return (
-    <Card className="border-destructive">
-      <CardHeader>
-        <CardTitle className="text-destructive flex items-center gap-2">
-          <AlertCircle className="h-5 w-5" />
-          Something went wrong
-        </CardTitle>
-        <CardDescription>
-          {error.message || 'Failed to load verification data'}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Button onClick={retry} variant="outline">
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Try again
-        </Button>
-      </CardContent>
-    </Card>
-  );
-}
-
-// Status badge component
-function StatusBadge({ status }: { status: string }) {
-  const getStatusConfig = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case 'approved':
-        return { icon: CheckCircle, className: 'bg-green-50 text-green-700 border-green-200', label: 'Approved' };
-      case 'pending':
-        return { icon: Clock, className: 'bg-yellow-50 text-yellow-700 border-yellow-200', label: 'Pending Review' };
-      case 'rejected':
-        return { icon: XCircle, className: 'bg-red-50 text-red-700 border-red-200', label: 'Rejected' };
-      default:
-        return { icon: AlertCircle, className: 'bg-gray-50 text-gray-700 border-gray-200', label: 'Not Submitted' };
-    }
-  };
-
-  const config = getStatusConfig(status);
-  const Icon = config.icon;
-
-  return (
-    <Badge variant="outline" className={config.className}>
-      <Icon className="h-3 w-3 mr-1" />
-      {config.label}
-    </Badge>
-  );
-}
-
-// Main verification content component
-function VerificationContent() {
+export default function SellerVerificationPage() {
   const searchParams = useSearchParams();
-  const { toast } = useToast();
+  // TEMPORARY DEV PREVIEW — dev-only state override (?preview_status=anonymous|pending_verification|verified|rejected)
+  const previewStatus =
+    process.env.NODE_ENV === 'development' ? searchParams.get('preview_status') : null;
+  const [status, setStatus] = useState<string | null>(null);
+  const [requests, setRequests] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Use our new TanStack Query hooks
-  const { user, profile, loading: isLoadingUser, error: userError, refetch: refetchUser } = useCurrentUser();
-  const { requests, currentStatus, isLoading: isLoadingRequests, error: requestsError, refetch: refetchRequests } = useVerificationRequest();
-
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [verificationType, setVerificationType] = useState<'profile' | 'listing'>('profile');
-  const [selectedListingId, setSelectedListingId] = useState<string | undefined>(searchParams.get('listingId') || undefined);
-
-  // Inline name editing
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [nameValue, setNameValue] = useState('');
-  const [isSavingName, setIsSavingName] = useState(false);
-
-  // Optional additional contact fields
-  const [additionalEmail, setAdditionalEmail] = useState('');
-  const [additionalPhone, setAdditionalPhone] = useState('');
-  const [showEmailInput, setShowEmailInput] = useState(false);
-  const [showPhoneInput, setShowPhoneInput] = useState(false);
-
-  const handleSaveName = async () => {
-    const trimmed = nameValue.trim();
-    if (!trimmed) {
-      toast({
-        title: 'Name Required',
-        description: 'Your name cannot be empty.',
-        variant: 'destructive',
-      });
+  useEffect(() => {
+    if (previewStatus) {
+      setStatus(previewStatus);
+      setIsLoading(false);
       return;
     }
+    let active = true;
+    (async () => {
+      try {
+        const res = await fetch('/api/verification/request');
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || `Failed to load verification status (HTTP ${res.status})`);
+        }
+        const data = await res.json();
+        if (!active) return;
+        setStatus(data.current_status ?? null);
+        setRequests(Array.isArray(data.requests) ? data.requests : []);
+      } catch (e) {
+        if (active) setError(e instanceof Error ? e.message : 'Failed to load verification status');
+      } finally {
+        if (active) setIsLoading(false);
+      }
+    })();
+    return () => { active = false; };
+  }, [previewStatus]);
 
-    setIsSavingName(true);
-    try {
-      await updateUserProfile({ full_name: trimmed });
-      await refetchUser();
-      setIsEditingName(false);
-      toast({
-        title: 'Name Updated',
-        description: 'Your name has been saved.',
-      });
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to update your name. Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsSavingName(false);
-    }
-  };
-
-  // Combined loading state
-  const isLoading = isLoadingUser || isLoadingRequests;
-
-  // Combined error state
-  const error = userError || requestsError;
-
-  // Handle errors
-  if (error && !isLoading) {
-    return (
-      <DashboardPageShell title="Verification" description={VERIFICATION_DESCRIPTION} scrollable>
-        <ErrorFallback
-          error={error as Error}
-          retry={() => {
-            refetchUser();
-            refetchRequests();
-          }}
-        />
-      </DashboardPageShell>
-    );
-  }
-
-  // Handle loading state
   if (isLoading) {
     return (
       <DashboardPageShell title="Verification" description={VERIFICATION_DESCRIPTION} scrollable>
-        <LoadingSkeleton />
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+          <span>Loading verification status...</span>
+        </div>
       </DashboardPageShell>
     );
   }
 
-  // Handle unauthenticated state
-  if (!user || !profile) {
+  if (error) {
     return (
-      <DashboardPageShell title="Verification" description="Please log in to access verification." scrollable>
-        <Card className="border-destructive">
-          <CardHeader>
-            <CardTitle className="text-destructive">Authentication Required</CardTitle>
-            <CardDescription>Please log in to access verification.</CardDescription>
-          </CardHeader>
-        </Card>
+      <DashboardPageShell title="Verification" description={VERIFICATION_DESCRIPTION} scrollable>
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       </DashboardPageShell>
     );
   }
 
-  // Check if user has a pending verification request
-  const hasPendingRequest = requests.some((r: any) =>
-    ['New Request', 'Contacted', 'Docs Under Review', 'More Info Requested'].includes(r.status)
-  );
-
-  // If user already has a pending request, show pending status
-  if (hasPendingRequest || currentStatus === 'pending_verification') {
-    const pendingRequest = requests.find((r: any) =>
-      ['New Request', 'Contacted', 'Docs Under Review', 'More Info Requested'].includes(r.status)
-    );
-
-    return (
-      <DashboardPageShell
-        title="Verification"
-        description={VERIFICATION_DESCRIPTION}
-        scrollable
-        actions={<StatusBadge status="pending" />}
-      >
-        <Card className="bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-700/50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
-              <Clock className="h-7 w-7" /> Verification Pending
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-blue-600 dark:text-blue-400">
-              Your verification request has been submitted and is currently {pendingRequest?.status.toLowerCase() || 'being processed'}.
-              Our team will contact you at the phone number provided.
-            </p>
-            {pendingRequest?.best_time_to_call && (
-              <p className="text-sm text-blue-500 dark:text-blue-300 mt-2">
-                Best time to call: {pendingRequest.best_time_to_call}
-              </p>
-            )}
-            {pendingRequest?.user_notes && (
-              <div className="mt-3">
-                <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Your notes:</p>
-                <p className="text-sm text-blue-500 dark:text-blue-300 mt-1">{pendingRequest.user_notes}</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </DashboardPageShell>
-    );
-  }
-
-  // If user is already verified
-  if (currentStatus === 'verified') {
-    return (
-      <DashboardPageShell
-        title="Verification"
-        description="You are a verified seller with full platform access."
-        scrollable
-        actions={<StatusBadge status="approved" />}
-      >
-        {/* Verification Success Card */}
-        <Card className="bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-700/50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-300">
-              <CheckCircle className="h-7 w-7" /> You are a Verified Seller!
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-green-600 dark:text-green-400">
-              Congratulations! Your seller profile is fully verified.
-              You can now create verified listings that will display full details to buyers.
-            </p>
-
-            <div className="bg-white/50 dark:bg-black/20 p-4">
-              <h4 className="font-medium text-green-700 dark:text-green-300 mb-2">Verification Benefits:</h4>
-              <ul className="text-sm text-green-600 dark:text-green-400 space-y-1">
-                <li>• Create listings with full business details visible to buyers</li>
-                <li>• Higher visibility in search results</li>
-                <li>• Verified badge on all your listings</li>
-                <li>• Access to premium seller features</li>
-                <li>• Direct buyer inquiries and messaging</li>
-              </ul>
-            </div>
-
-            <div className="flex gap-3 pt-2">
-              <Button asChild className="bg-green-600 hover:bg-green-700">
-                <Link href="/seller-dashboard/listings/create">
-                  Create Your First Listing
-                </Link>
-              </Button>
-              <Button asChild variant="outline" className="border-green-300 text-green-700 hover:bg-green-50">
-                <Link href="/seller-dashboard/listings">
-                  View My Listings
-                </Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Verification History */}
-        {requests.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="h-5 w-5" />
-                Verification History
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {requests.map((request: any, index: number) => (
-                  <div key={request.id || index} className="flex items-center justify-between p-3 border">
-                    <div>
-                      <p className="font-medium">
-                        {request.verification_type === 'profile' ? 'Profile Verification' : 'Listing Verification'}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Submitted {new Date(request.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <StatusBadge status={request.status} />
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-      </DashboardPageShell>
-    );
-  }
-
-     const handleSubmit = async (e: React.FormEvent) => {
-     e.preventDefault();
-     setIsSubmitting(true);
-
-     try {
-       const requestData = {
-         request_type: verificationType === 'profile' ? 'user_verification' : 'listing_verification',
-         listing_id: verificationType === 'listing' ? selectedListingId : undefined,
-         reason: verificationType === 'profile'
-           ? 'Seller profile verification request'
-           : `Listing verification request for listing ID: ${selectedListingId}`,
-         phone_number: profile?.phone_number || '',
-         additional_email: additionalEmail.trim() || undefined,
-         additional_phone: additionalPhone.trim() || undefined
-       };
-
-       const response = await fetch('/api/verification/request', {
-         method: 'POST',
-         headers: { 'Content-Type': 'application/json' },
-         body: JSON.stringify(requestData),
-       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to submit verification request');
-      }
-
-             toast({
-         title: 'Verification Request Submitted',
-         description: 'Our team has received your request and will contact you soon.',
-       });
-
-       // Refetch verification data to show updated status
-       refetchRequests();
-    } catch (error) {
-      console.error('Verification submission error:', error);
-      toast({
-        title: 'Submission Failed',
-        description: error instanceof Error ? error.message : 'Please try again later.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  const hasOpenRequest = requests.some((r) => OPEN_REQUEST_STATUSES.includes(r?.status));
+  const isVerified = status === 'verified';
+  const isPending = status === 'pending_verification' || hasOpenRequest;
 
   return (
     <DashboardPageShell
       title="Verification"
       description={VERIFICATION_DESCRIPTION}
       scrollable
-      actions={<StatusBadge status={currentStatus || 'not_submitted'} />}
+      actions={<VerificationStatusBadge status={status} />}
     >
-      {/* Current Status Card */}
-      {requests.length > 0 && (
-        <Card>
+      {isVerified ? (
+        <Card className="bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-700/50">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5" />
-              Verification Status
+            <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-300">
+              <CheckCircle className="h-7 w-7" /> You&apos;re verified
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {requests.map((request: any, index: number) => (
-                <div key={request.id || index} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div>
-                    <p className="font-medium">
-                      {request.verification_type === 'profile' ? 'Profile Verification' : 'Listing Verification'}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Submitted {new Date(request.created_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <StatusBadge status={request.status} />
-                </div>
-              ))}
+          <CardContent className="space-y-4">
+            <p className="text-green-600 dark:text-green-400">
+              Your seller profile has been verified by the Nobridge team. Your listings can now display full,
+              verified business details to buyers.
+            </p>
+            <div className="bg-white/50 dark:bg-black/20 p-4">
+              <h4 className="font-medium text-green-700 dark:text-green-300 mb-2">What this unlocks:</h4>
+              <ul className="text-sm text-green-600 dark:text-green-400 space-y-1">
+                <li>• A verified badge on your listings</li>
+                <li>• Full business details shown to buyers</li>
+                <li>• Higher visibility in search results</li>
+                <li>• Direct buyer inquiries and messaging</li>
+              </ul>
+            </div>
+            <div className="pt-2">
+              <Button asChild variant="outline" className="border-green-300 text-green-700 hover:bg-green-50">
+                <Link href="/seller-dashboard/listings">View My Listings</Link>
+              </Button>
             </div>
           </CardContent>
         </Card>
+      ) : isPending ? (
+        <Card className="bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-700/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+              <Clock className="h-7 w-7" /> Verification in progress
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-blue-600 dark:text-blue-400">
+              Our team is reviewing your verification. We&apos;ll contact you if we need anything further —
+              there&apos;s nothing you need to do here.
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ShieldCheck className="h-7 w-7 text-primary" /> Verification is handled by our team
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground">
+              Verification is handled by the Nobridge team — we&apos;ll contact you to complete it. You don&apos;t
+              need to submit anything from here.
+            </p>
+          </CardContent>
+        </Card>
       )}
-
-             {/* Verification Form */}
-       <Card>
-         <CardContent className="space-y-6 pt-6">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* User Information Section */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium flex items-center gap-2">
-                <Building className="h-4 w-4" />
-                Profile Information
-              </h3>
-              <Separator />
-
-              <div className="border divide-y">
-                {/* Name row (inline editable) */}
-                <div className="flex items-start justify-between gap-3 p-4">
-                  <div className="min-w-0 flex-1">
-                    <Label className="text-sm text-muted-foreground">Full Name</Label>
-                    {isEditingName ? (
-                      <div className="mt-1 flex items-center gap-2">
-                        <Input
-                          value={nameValue}
-                          onChange={(e) => setNameValue(e.target.value)}
-                          disabled={isSavingName}
-                          autoFocus
-                          placeholder="Your full name"
-                        />
-                        <Button
-                          type="button"
-                          size="icon"
-                          variant="ghost"
-                          onClick={handleSaveName}
-                          disabled={isSavingName}
-                          aria-label="Save name"
-                        >
-                          {isSavingName ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Check className="h-4 w-4" />
-                          )}
-                        </Button>
-                        <Button
-                          type="button"
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => setIsEditingName(false)}
-                          disabled={isSavingName}
-                          aria-label="Cancel editing name"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ) : (
-                      <p className="mt-1 text-sm">{profile.full_name || 'Not provided'}</p>
-                    )}
-                  </div>
-                  {!isEditingName && (
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => {
-                        setNameValue(profile.full_name || '');
-                        setIsEditingName(true);
-                      }}
-                      aria-label="Edit name"
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-
-                {/* Email row */}
-                <div className="p-4">
-                  <Label className="text-sm text-muted-foreground">Email</Label>
-                  <p className="mt-1 text-sm">{user.email || 'Not provided'}</p>
-                  {showEmailInput ? (
-                    <div className="mt-2 flex items-center gap-2">
-                      <Input
-                        type="email"
-                        placeholder="Additional email (optional)"
-                        value={additionalEmail}
-                        onChange={(e) => setAdditionalEmail(e.target.value)}
-                      />
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => {
-                          setShowEmailInput(false);
-                          setAdditionalEmail('');
-                        }}
-                        aria-label="Remove additional email"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <Button
-                      type="button"
-                      variant="link"
-                      size="sm"
-                      className="mt-1 h-auto p-0 text-primary"
-                      onClick={() => setShowEmailInput(true)}
-                    >
-                      <Plus className="mr-1 h-3 w-3" /> Add another email
-                    </Button>
-                  )}
-                </div>
-
-                {/* Phone row */}
-                <div className="p-4">
-                  <Label className="text-sm text-muted-foreground">Phone Number</Label>
-                  <p className="mt-1 text-sm">{profile.phone_number || 'Not provided'}</p>
-                  {showPhoneInput ? (
-                    <div className="mt-2 flex items-center gap-2">
-                      <Input
-                        type="tel"
-                        placeholder="Additional phone (optional)"
-                        value={additionalPhone}
-                        onChange={(e) => setAdditionalPhone(e.target.value)}
-                      />
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => {
-                          setShowPhoneInput(false);
-                          setAdditionalPhone('');
-                        }}
-                        aria-label="Remove additional phone"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <Button
-                      type="button"
-                      variant="link"
-                      size="sm"
-                      className="mt-1 h-auto p-0 text-primary"
-                      onClick={() => setShowPhoneInput(true)}
-                    >
-                      <Plus className="mr-1 h-3 w-3" /> Add another phone
-                    </Button>
-                  )}
-                </div>
-
-                {/* Company (read-only) */}
-                {(profile.company_name || profile.initial_company_name || profile.company) && (
-                  <div className="p-4">
-                    <Label className="text-sm text-muted-foreground">Company</Label>
-                    <p className="mt-1 text-sm">{profile.company_name || profile.initial_company_name || profile.company}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Verification Type */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium">Verification Type</h3>
-              <Separator />
-
-              <RadioGroup
-                value={verificationType}
-                onValueChange={(value: 'profile' | 'listing') => setVerificationType(value)}
-                className="grid grid-cols-1 md:grid-cols-2 gap-4"
-              >
-                <div className="flex items-center space-x-2 p-4 border">
-                  <RadioGroupItem value="profile" id="profile" />
-                  <div className="flex-1">
-                    <Label htmlFor="profile" className="font-medium">Profile Verification</Label>
-                    <p className="text-sm text-muted-foreground">Verify your identity and business information</p>
-                  </div>
-                </div>
-                                 <div className="flex items-center space-x-2 p-4 border opacity-50">
-                   <RadioGroupItem value="listing" id="listing" disabled />
-                   <div className="flex-1">
-                     <Label htmlFor="listing" className="font-medium text-muted-foreground">Listing Verification</Label>
-                     <p className="text-sm text-muted-foreground">Coming soon - verify a specific business listing</p>
-                   </div>
-                 </div>
-              </RadioGroup>
-            </div>
-
-                         {/* Listing Selection - Disabled for now */}
-             {verificationType === 'listing' && (
-               <div className="space-y-4 opacity-50">
-                 <h3 className="text-lg font-medium text-muted-foreground">Select Listing</h3>
-                 <Separator />
-                 <Select disabled>
-                   <SelectTrigger>
-                     <SelectValue placeholder="Listing verification coming soon" />
-                   </SelectTrigger>
-                 </Select>
-               </div>
-             )}
-
-             {/* Submit Button */}
-             <div className="flex justify-end">
-               <Button
-                 type="submit"
-                 disabled={isSubmitting || verificationType === 'listing'}
-                 className="min-w-[120px]"
-               >
-                 {isSubmitting ? (
-                   <>
-                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                     Submitting...
-                   </>
-                 ) : (
-                   'Request Verification'
-                 )}
-               </Button>
-             </div>
-          </form>
-        </CardContent>
-      </Card>
     </DashboardPageShell>
   );
 }
-
-// Main page component with Suspense boundary
-export default function SellerVerificationPage() {
-  return (
-    <Suspense
-      fallback={
-        <DashboardPageShell title="Verification" description={VERIFICATION_DESCRIPTION} scrollable>
-          <LoadingSkeleton />
-        </DashboardPageShell>
-      }
-    >
-      <VerificationContent />
-    </Suspense>
-  );
-}
-

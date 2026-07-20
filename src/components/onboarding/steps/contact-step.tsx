@@ -15,7 +15,7 @@ interface ContactStepProps {
   isPending: boolean;
 }
 
-/** Onboarding step 1 (both roles): full name + phone number. All optional — the step is skippable. */
+/** Onboarding step 1 (both roles): full name + phone number. Both are required — this step cannot be skipped. */
 export function ContactStepFields({ control, isPending }: ContactStepProps) {
   return (
     <>

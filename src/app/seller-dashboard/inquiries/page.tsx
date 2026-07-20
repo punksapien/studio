@@ -289,15 +289,10 @@ export default function SellerInquiriesPage() {
             {userListings.length === 0 ? (
               // User has no listings
               <>
-                <p className="text-xl font-semibold text-muted-foreground">No listings created yet.</p>
+                <p className="text-xl font-semibold text-muted-foreground">No listings yet.</p>
             <p className="text-sm text-muted-foreground mt-1">
-                  Create your first business listing to start receiving inquiries from potential buyers.
+                  Your listings are managed by the Nobridge team. Once your listing is live, inquiries from potential buyers will appear here.
             </p>
-                <Button asChild className="mt-4" variant="default">
-              <Link href="/seller-dashboard/listings/create">
-                Create Your First Listing
-              </Link>
-            </Button>
               </>
             ) : (
               // User has listings but no inquiries
@@ -312,11 +307,6 @@ export default function SellerInquiriesPage() {
                     <Link href="/seller-dashboard/listings">
                       <Eye className="mr-2 h-4 w-4" />
                       View My Listings
-                    </Link>
-                  </Button>
-                  <Button asChild variant="default">
-                    <Link href="/seller-dashboard/listings/create">
-                      Create Another Listing
                     </Link>
                   </Button>
                 </div>

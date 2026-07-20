@@ -27,11 +27,14 @@ import { CompanyStepFields } from '@/components/onboarding/steps/company-step';
 import { employeeCountRanges, revenueRanges } from '@/lib/types';
 
 // --- Schemas ---
-// Every field is optional: each step can be skipped entirely, and an empty
-// "Continue" is legal. Enum fields are validated only when a value is chosen.
+// Step 1 (full name + phone) is required. The remaining steps and fields are
+// optional: those steps can be skipped entirely, and an empty "Continue" is
+// legal. Enum fields are validated only when a value is chosen.
 const Step1Schema = z.object({
-  fullName: z.string().optional(),
-  phoneNumber: z.string().optional(),
+  fullName: z.string().trim().min(1, { message: 'Full name is required.' }),
+  phoneNumber: z.string().trim()
+    .min(7, { message: 'Phone number is required.' })
+    .regex(/^\+?[0-9\s().-]{7,20}$/, { message: 'Please enter a valid phone number.' }),
 });
 
 const Step2Schema = z.object({
@@ -263,7 +266,7 @@ export default function SellerOnboardingStepPage() {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)}>
-        <Card className="bg-brand-white p-0">
+        <Card className="bg-brand-white p-0 border-0 shadow-none">
           {renderStepContent()}
 
           <CardFooter className="flex flex-col-reverse sm:flex-row sm:justify-between gap-3 pt-8 border-t mt-6 p-6 md:p-10">
@@ -276,16 +279,18 @@ export default function SellerOnboardingStepPage() {
               >
                 <ArrowLeft className="mr-2 h-4 w-4" /> Previous
               </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={handleSkip}
-                disabled={isBusy}
-                className="text-muted-foreground"
-              >
-                {isSkipping && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Skip for now
-              </Button>
+              {currentStep > 1 && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={handleSkip}
+                  disabled={isBusy}
+                  className="text-muted-foreground"
+                >
+                  {isSkipping && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Skip for now
+                </Button>
+              )}
             </div>
 
             <Button

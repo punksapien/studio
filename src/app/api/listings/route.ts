@@ -1,47 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
-import { supabaseAdmin } from '@/lib/supabase-admin'
 import { authServer } from '@/lib/auth-server'
 import { normalizeIndustryValue, normalizeCountryValue } from '@/lib/marketplace-utils'
 import { sampleListings, transformSampleForList } from '@/lib/sample-listings'
-import { sendEmailWithResend } from '@/lib/resend-service'
-
-// Notify all admins (in-app + optional email) that a new listing awaits review
-async function notifyAdminsOfPendingListing(listingId: string, listingTitle: string) {
-  const { data: admins, error: adminsError } = await supabaseAdmin
-    .from('user_profiles')
-    .select('id')
-    .eq('role', 'admin')
-
-  if (adminsError) {
-    console.error('[LISTINGS-CREATE] Failed to fetch admins for notification:', adminsError)
-  } else if (admins && admins.length > 0) {
-    const { error: notificationError } = await supabaseAdmin
-      .from('notifications')
-      .insert(admins.map((admin) => ({
-        user_id: admin.id,
-        type: 'listing_update',
-        message: `New listing "${listingTitle}" is awaiting approval.`,
-        link: '/admin/listings?status=pending_approval',
-        is_read: false,
-      })))
-    if (notificationError) {
-      console.error('[LISTINGS-CREATE] Failed to create admin notifications:', notificationError)
-    }
-  }
-
-  const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL
-  if (adminEmail) {
-    await sendEmailWithResend({
-      to: adminEmail,
-      from: process.env.NODE_ENV === 'production' ? 'noreply@nobridge.co' : 'onboarding@resend.dev',
-      subject: `New listing pending approval: ${listingTitle}`,
-      html: `<p>A new listing has been submitted and is awaiting review:</p>
-             <p><strong>${listingTitle}</strong></p>
-             <p><a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://nobridge.co'}/admin/listings/${listingId}">Review this listing</a></p>`,
-    })
-  }
-}
 
 // GET /api/listings - Get all listings with filtering, search, and pagination
 export async function GET(request: NextRequest) {
@@ -268,103 +229,20 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// POST /api/listings - Listing creation is admin-managed; sellers are read-only.
 export async function POST(request: NextRequest) {
   try {
     const user = await authServer.getCurrentUser(request)
     if (!user) {
-      console.error('[LISTINGS-CREATE] Authentication failed - no user found')
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
-    console.log(`[LISTINGS-CREATE] Authenticated user: ${user.id}`)
-    const userProfile = await authServer.getCurrentUserProfile(request)
-    if (!userProfile || userProfile.role !== 'seller') {
-      console.error(`[LISTINGS-CREATE] Access denied - user ${user.id} is not a seller. Role: ${userProfile?.role || 'none'}`)
-      return NextResponse.json({ error: 'Only sellers can create listings' }, { status: 403 })
-    }
-    console.log(`[LISTINGS-CREATE] Seller verified: ${user.id}, verification status: ${userProfile.verification_status}`)
-    let body: any
-    try {
-      body = await request.json()
-    } catch (error) {
-      console.error('[LISTINGS-CREATE] Invalid JSON in request body:', error)
-      return NextResponse.json({ error: 'Invalid request body - must be valid JSON' }, { status: 400 })
-    }
-    const requiredFields = ['listingTitleAnonymous', 'anonymousBusinessDescription', 'askingPrice', 'industry', 'locationCountry', 'locationCityRegionGeneral', 'annualRevenueRange']
-    const missingFields = requiredFields.filter(field => !body[field])
-    if (missingFields.length > 0) {
-      console.error(`[LISTINGS-CREATE] Missing required fields: ${missingFields.join(', ')}`)
-      return NextResponse.json({ error: `Missing required fields: ${missingFields.join(', ')}` }, { status: 400 })
-    }
-    const askingPrice = parseFloat(body.askingPrice)
-    if (isNaN(askingPrice) || askingPrice <= 0) {
-      console.error(`[LISTINGS-CREATE] Invalid asking price: ${body.askingPrice}`)
-      return NextResponse.json({ error: 'Asking price must be a positive number' }, { status: 400 })
-    }
-    const listingData = {
-      seller_id: user.id,
-      listing_title_anonymous: String(body.listingTitleAnonymous).trim(),
-      anonymous_business_description: String(body.anonymousBusinessDescription).trim(),
-      asking_price: askingPrice,
-      industry: String(body.industry).trim(),
-      location_country: String(body.locationCountry).trim(),
-      location_city_region_general: String(body.locationCityRegionGeneral).trim(),
-      year_established: body.yearEstablished ? parseInt(body.yearEstablished) : null,
-      number_of_employees: body.numberOfEmployees || null,
-      business_website_url: body.businessWebsiteUrl ? String(body.businessWebsiteUrl).trim() : null,
-      image_urls: Array.isArray(body.image_urls) ? body.image_urls : (body.image_urls ? [body.image_urls] : []),
-      business_model: body.businessModel ? String(body.businessModel).trim() : null,
-      annual_revenue_range: body.annualRevenueRange || null,
-      net_profit_margin_range: body.netProfitMarginRange || null,
-      specific_annual_revenue_last_year: body.specificAnnualRevenueLastYear ? parseFloat(body.specificAnnualRevenueLastYear) : null,
-      specific_net_profit_last_year: body.specificNetProfitLastYear ? parseFloat(body.specificNetProfitLastYear) : null,
-      adjusted_cash_flow: body.adjustedCashFlow ? parseFloat(body.adjustedCashFlow) : null,
-      key_strength_1: body.keyStrength1 ? String(body.keyStrength1).substring(0, 200) : null,
-      key_strength_2: body.keyStrength2 ? String(body.keyStrength2).substring(0, 200) : null,
-      key_strength_3: body.keyStrength3 ? String(body.keyStrength3).substring(0, 200) : null,
-      growth_opportunity_1: body.growthOpportunity1 ? String(body.growthOpportunity1).substring(0, 200) : null,
-      growth_opportunity_2: body.growthOpportunity2 ? String(body.growthOpportunity2).substring(0, 200) : null,
-      growth_opportunity_3: body.growthOpportunity3 ? String(body.growthOpportunity3).substring(0, 200) : null,
-      deal_structure_looking_for: Array.isArray(body.dealStructureLookingFor) ? body.dealStructureLookingFor : [],
-      reason_for_selling_anonymous: body.reasonForSellingAnonymous ? String(body.reasonForSellingAnonymous).trim() : null,
-      detailed_reason_for_selling: body.detailedReasonForSelling ? String(body.detailedReasonForSelling).trim() : null,
-      technology_stack: body.technologyStack ? String(body.technologyStack).trim() : null,
-      actual_company_name: body.actualCompanyName ? String(body.actualCompanyName).trim() : null,
-      full_business_address: body.fullBusinessAddress ? String(body.fullBusinessAddress).trim() : null,
-      adjusted_cash_flow_explanation: body.adjustedCashFlowExplanation ? String(body.adjustedCashFlowExplanation).trim() : null,
-      seller_role_and_time_commitment: body.sellerRoleAndTimeCommitment ? String(body.sellerRoleAndTimeCommitment).trim() : null,
-      post_sale_transition_support: body.postSaleTransitionSupport ? String(body.postSaleTransitionSupport).trim() : null,
-      financial_documents_url: body.financial_documents_url || null,
-      key_metrics_report_url: body.key_metrics_report_url || null,
-      ownership_documents_url: body.ownership_documents_url || null,
-      financial_snapshot_url: body.financial_snapshot_url || null,
-      ownership_details_url: body.ownership_details_url || null,
-      location_real_estate_info_url: body.location_real_estate_info_url || null,
-      web_presence_info_url: body.web_presence_info_url || null,
-      secure_data_room_link: body.secureDataRoomLink ? String(body.secureDataRoomLink).trim() : null,
-      // All new listings require admin approval before becoming publicly visible
-      status: 'pending_approval',
-      is_seller_verified: userProfile.verification_status === 'verified',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    }
-    console.log(`[LISTINGS-CREATE] Prepared listing data for user ${user.id}:`, { title: listingData.listing_title_anonymous, industry: listingData.industry, asking_price: listingData.asking_price, status: listingData.status })
-    const { supabase: authenticatedSupabase } = authServer.createServerClient(request)
-    const { data: newListing, error } = await authenticatedSupabase.from('listings').insert(listingData).select('*').single()
-    if (error) {
-      console.error(`[LISTINGS-CREATE] Database error for user ${user.id}:`, error)
-      if (error.code === '42501') return NextResponse.json({ error: 'Permission denied. Please ensure you are logged in as a seller.' }, { status: 403 })
-      else if (error.code === '23505') return NextResponse.json({ error: 'A listing with this information already exists.' }, { status: 409 })
-      else if (error.code === '23514') return NextResponse.json({ error: 'Invalid data provided. Please check all fields and try again.' }, { status: 400 })
-      else return NextResponse.json({ error: 'Failed to create listing. Please try again.' }, { status: 500 })
-    }
-    console.log(`[LISTINGS-CREATE] Successfully created listing ${newListing.id} for user ${user.id}`)
 
-    // Notify admins of the new pending listing (fire-and-forget; never block the response)
-    notifyAdminsOfPendingListing(newListing.id, newListing.listing_title_anonymous).catch((notifyError) => {
-      console.error('[LISTINGS-CREATE] Failed to notify admins of pending listing:', notifyError)
-    })
-
-    return NextResponse.json({ message: 'Listing submitted for review. It will become publicly visible once approved by our team.', listing: { id: newListing.id, title: newListing.listing_title_anonymous, status: newListing.status, created_at: newListing.created_at } }, { status: 201 })
+    // Listings are created on behalf of sellers by the Nobridge team via the
+    // admin API. Self-serve creation is disabled.
+    return NextResponse.json(
+      { error: 'Listing creation is managed by the Nobridge team.' },
+      { status: 403 }
+    )
   } catch (error) {
     console.error('[LISTINGS-CREATE] Unexpected error:', error)
     return NextResponse.json({ error: 'An unexpected error occurred. Please try again.' }, { status: 500 })

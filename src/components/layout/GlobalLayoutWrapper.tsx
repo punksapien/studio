@@ -19,9 +19,12 @@ export default function GlobalLayoutWrapper({ children }: GlobalLayoutWrapperPro
   const isAdminRoute = pathname === '/admin' || pathname.startsWith('/admin/');
   const isBuyerDashboardRoute = pathname === '/dashboard' || pathname.startsWith('/dashboard/');
   const isSellerDashboardRoute = pathname === '/seller-dashboard' || pathname.startsWith('/seller-dashboard/');
+  // TEMPORARY DEV PREVIEW — do not commit / remove before deploy
+  const isDevPreviewDashboardRoute = pathname === '/dev-preview/dashboard' || pathname.startsWith('/dev-preview/dashboard/')
+    || pathname === '/dev-preview/seller-dashboard' || pathname.startsWith('/dev-preview/seller-dashboard/');
 
   // Consolidate the check for any dashboard-like route
-  const isDedicatedLayoutRoute = isAdminRoute || isBuyerDashboardRoute || isSellerDashboardRoute;
+  const isDedicatedLayoutRoute = isAdminRoute || isBuyerDashboardRoute || isSellerDashboardRoute || isDevPreviewDashboardRoute;
 
   if (isDedicatedLayoutRoute) {
     // For routes with their own dedicated layouts, render children directly.

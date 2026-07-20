@@ -222,11 +222,11 @@ export async function PUT(
       )
     }
 
-    // Check ownership (unless user is admin)
+    // Listings are managed by the Nobridge team — admin-only.
     const userProfile = await authServer.getCurrentUserProfile(request)
-    if (userProfile?.role !== 'admin' && existingListing.seller_id !== user.id) {
+    if (userProfile?.role !== 'admin') {
       return NextResponse.json(
-        { error: 'You can only update your own listings' },
+        { error: 'Listings are managed by the Nobridge team.' },
         { status: 403 }
       )
     }
@@ -357,11 +357,11 @@ export async function DELETE(
       )
     }
 
-    // Check ownership (unless user is admin)
+    // Listings are managed by the Nobridge team — admin-only.
     const userProfile = await authServer.getCurrentUserProfile(request)
-    if (userProfile?.role !== 'admin' && existingListing.seller_id !== user.id) {
+    if (userProfile?.role !== 'admin') {
       return NextResponse.json(
-        { error: 'You can only delete your own listings' },
+        { error: 'Listings are managed by the Nobridge team.' },
         { status: 403 }
       )
     }
@@ -446,11 +446,11 @@ export async function PATCH(
       )
     }
 
-    // Check ownership (unless user is admin)
+    // Listings are managed by the Nobridge team — admin-only.
     const userProfile = await authServer.getCurrentUserProfile(request)
-    if (userProfile?.role !== 'admin' && existingListing.seller_id !== user.id) {
+    if (userProfile?.role !== 'admin') {
       return NextResponse.json(
-        { error: 'You can only update your own listings' },
+        { error: 'Listings are managed by the Nobridge team.' },
         { status: 403 }
       )
     }

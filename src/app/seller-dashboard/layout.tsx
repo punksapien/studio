@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import * as React from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import {
@@ -24,10 +24,9 @@ import {
   MessageSquare,
   Settings,
   Bell,
-  MessageSquareQuote,
   Home,
   Briefcase,
-  ShieldCheck
+  Sparkles
 } from 'lucide-react';
 import LogoutButton from '@/components/auth/LogoutButton';
 import { Loader2 } from 'lucide-react';
@@ -50,16 +49,28 @@ const sidebarStyles = `
 
 const sellerSidebarNavItems = [
   { title: 'Overview', href: '/seller-dashboard', icon: LayoutDashboard, tooltip: "Dashboard Overview" },
-  { title: 'My Listings', href: '/seller-dashboard/listings', icon: Briefcase, tooltip: "Manage Listings" },
+  { title: 'My Listings', href: '/seller-dashboard/listings', icon: Briefcase, tooltip: "View Listings" },
   { title: 'My Inquiries', href: '/seller-dashboard/inquiries', icon: MessageSquare, tooltip: "View Inquiries" },
   // { title: 'Messages', href: '/seller-dashboard/messages', icon: Mail, tooltip: "My Conversations" },
-  { title: 'Verification', href: '/seller-dashboard/verification', icon: ShieldCheck, tooltip: "Account/Listing Verification" },
   { title: 'Notifications', href: '/seller-dashboard/notifications', icon: Bell, tooltip: "My Notifications" },
   { title: 'Settings', href: '/seller-dashboard/settings', icon: Settings, tooltip: "Account Settings" },
 ];
 
-const utilityNavItems = [
-  { title: 'FAQ', href: '/faq', icon: MessageSquareQuote, tooltip: "Frequently Asked Questions" },
+const onboardingNavItem = {
+  title: 'Onboarding',
+  href: '/seller-dashboard/onboarding',
+  icon: Sparkles,
+  tooltip: 'Getting started',
+};
+
+// Pre-verification, these are the only interactive destinations.
+const ALWAYS_UNLOCKED_TITLES = new Set(['Onboarding', 'Settings']);
+
+// Path prefixes an unverified seller is allowed to reach without being bounced to Onboarding.
+const UNVERIFIED_ALLOWED_PREFIXES = [
+  '/seller-dashboard/onboarding',
+  '/seller-dashboard/settings',
+  '/seller-dashboard/profile',
 ];
 
 export default function SellerDashboardLayout({
@@ -68,8 +79,34 @@ export default function SellerDashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { profile, isLoading } = useAuth();
   const [inquiryCount, setInquiryCount] = React.useState(0);
+
+  // Lock state: only ever lock when a seller profile is loaded and not verified.
+  // When profile is null (middleware-trusted session) we never lock.
+  const isSeller = profile?.role === 'seller';
+  const isUnverified = isSeller && profile.verification_status !== 'verified';
+
+  // Build the nav for the current state. Verification item is removed in all states.
+  const navItems = isUnverified
+    ? [onboardingNavItem, ...sellerSidebarNavItems]
+    : sellerSidebarNavItems;
+
+  // When unverified and sitting on a locked deep link, bounce to Onboarding.
+  const isOnAllowedPath =
+    !isUnverified ||
+    UNVERIFIED_ALLOWED_PREFIXES.some(
+      (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+    );
+  const shouldRedirectToOnboarding =
+    isUnverified && !isOnAllowedPath && !pathname.startsWith('/dev-preview');
+
+  React.useEffect(() => {
+    if (shouldRedirectToOnboarding) {
+      router.replace('/seller-dashboard/onboarding');
+    }
+  }, [shouldRedirectToOnboarding, router]);
 
   // Flat seller theme: covers portaled UI (dialogs, dropdowns, tooltips) too
   React.useEffect(() => {
@@ -161,10 +198,30 @@ export default function SellerDashboardLayout({
                 <SidebarSeparator className="bg-gray-200" />
               </div>
               <SidebarMenu className="space-y-1">
-                {sellerSidebarNavItems.map((item) => {
+                {navItems.map((item) => {
                   const IconComponent = item.icon;
                   const iconProps = { className: "h-4 w-4 mr-3 shrink-0" };
                   const isActive = getIsActive(item.href, item.title);
+                  const isLocked = isUnverified && !ALWAYS_UNLOCKED_TITLES.has(item.title);
+
+                  // Locked items keep the exact same size/position but are
+                  // non-interactive: no <Link>, muted styling, a lock affordance.
+                  if (isLocked) {
+                    return (
+                      <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton
+                          aria-disabled="true"
+                          tooltip={{ children: 'Available after verification', className: "bg-gray-800 text-white border-gray-600" }}
+                          className="h-11 rounded-none px-4 text-gray-400 cursor-not-allowed opacity-60 hover:bg-transparent hover:text-gray-400"
+                        >
+                          <span className="flex items-center w-full">
+                            <IconComponent {...iconProps} />
+                            <span className="truncate font-medium">{item.title}</span>
+                          </span>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  }
 
                   return (
                   <SidebarMenuItem key={item.title}>
@@ -187,40 +244,6 @@ export default function SellerDashboardLayout({
                         {item.title === 'My Inquiries' && inquiryCount > 0 && (
                           <Badge variant="secondary" className="ml-auto">{inquiryCount}</Badge>
                         )}
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                )})}
-              </SidebarMenu>
-
-              <div className="py-4">
-                <SidebarSeparator className="bg-gray-200" />
-              </div>
-
-              <SidebarMenu className="space-y-1">
-                {utilityNavItems.map((item) => {
-                  const IconComponent = item.icon;
-                  const iconProps = { className: "h-4 w-4 mr-3 shrink-0" };
-                  const isActive = getIsActive(item.href, item.title);
-
-                  return (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isActive}
-                      tooltip={{ children: item.tooltip, className: "bg-gray-800 text-white border-gray-600" }}
-                      className={`
-                        h-11 rounded-none px-4 transition-colors duration-200
-                        focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-white
-                        ${isActive
-                          ? 'bg-primary text-primary-foreground'
-                          : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
-                        }
-                      `}
-                    >
-                      <Link href={item.href} className="flex items-center w-full">
-                        <IconComponent {...iconProps} />
-                        <span className="truncate font-medium">{item.title}</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -250,7 +273,14 @@ export default function SellerDashboardLayout({
               <SidebarTrigger className="rounded-none hover:bg-gray-100 transition-colors duration-200"/>
            </header>
            <div className="px-4 pb-4 pt-2 md:px-6 md:pb-6 md:pt-6 flex-1 min-h-0 overflow-hidden flex flex-col bg-brand-dark-blue">
-            {children}
+            {shouldRedirectToOnboarding ? (
+              <div className="flex flex-1 flex-col items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-white" />
+                <p className="mt-4 text-lg text-white/70">Redirecting...</p>
+              </div>
+            ) : (
+              children
+            )}
            </div>
         </SidebarInset>
       </div>

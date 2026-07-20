@@ -32,7 +32,7 @@ export default function BuyerOnboardingLayout({
             Complete Your Buyer Profile
           </h1>
           <p className="text-muted-foreground">
-            A few quick details to personalize your experience — you can skip any step and come back later.
+            A few quick details to personalize your experience — you can skip the optional steps and come back later.
           </p>
         </div>
 
@@ -40,7 +40,7 @@ export default function BuyerOnboardingLayout({
           <BuyerStepper currentStep={currentStep} stepTitles={buyerStepTitles} />
         </div>
 
-        <main className="bg-brand-white p-6 md:p-10 rounded-xl shadow-xl">
+        <main className="bg-brand-white p-6 md:p-10 rounded-none">
           {children}
         </main>
       </div>

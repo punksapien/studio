@@ -17,6 +17,8 @@ export interface UserProfile {
   email: string
   full_name: string
   phone_number?: string
+  additional_email?: string | null
+  additional_phone?: string | null
   country?: string
   role: UserRole
   is_email_verified: boolean

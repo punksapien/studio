@@ -62,6 +62,7 @@ export async function middleware(req: NextRequest) {
                        pathname.startsWith('/assets/') || // Static assets
                        pathname.startsWith('/listings/') || // Listing detail pages - now public
                        pathname.startsWith('/resources/') || // Blog post detail pages - public
+                       pathname.startsWith('/dev-preview') || // TEMPORARY dev preview — remove before deploy
                        pathname.includes('.') // Files like .png, .svg etc.
 
   // Allow public paths (except auth pages - they need special handling)
@@ -342,6 +343,28 @@ export async function middleware(req: NextRequest) {
   if (profile.role === 'seller' && !(pathname.startsWith('/seller-dashboard') || pathname.startsWith('/marketplace') || pathname.startsWith('/listings/'))) {
     console.log(`[MIDDLEWARE] ${correlationId} | Seller accessing wrong dashboard: ${pathname} -> /seller-dashboard`)
     return NextResponse.redirect(new URL('/seller-dashboard', req.url))
+  }
+
+  // Server-side lockdown for unverified sellers. The client seller layout greys the
+  // nav and bounces to Onboarding, but that only holds in the browser — this backstops
+  // it on every full navigation with a fresh server-side profile. Only fires for a
+  // seller already allowed on /seller-dashboard (the role-correctness redirect above
+  // has run). Allowed prefixes MUST mirror the client layout's UNVERIFIED_ALLOWED_PREFIXES.
+  // /api/* is returned earlier and /dev-preview/* doesn't start with '/seller-dashboard',
+  // so both are naturally excluded; admins and verified sellers are unaffected.
+  if (profile.role === 'seller' && profile.verification_status !== 'verified' && pathname.startsWith('/seller-dashboard')) {
+    const UNVERIFIED_ALLOWED_PREFIXES = [
+      '/seller-dashboard/onboarding',
+      '/seller-dashboard/settings',
+      '/seller-dashboard/profile',
+    ]
+    const isOnAllowedPath = UNVERIFIED_ALLOWED_PREFIXES.some(
+      (prefix) => pathname === prefix || pathname.startsWith(prefix + '/')
+    )
+    if (!isOnAllowedPath) {
+      console.log(`[MIDDLEWARE] ${correlationId} | Unverified seller ${user.id} accessing locked route ${pathname}, redirecting to /seller-dashboard/onboarding`)
+      return NextResponse.redirect(new URL('/seller-dashboard/onboarding', req.url))
+    }
   }
 
   if (profile.role === 'admin' && (pathname.startsWith('/dashboard') || pathname.startsWith('/seller-dashboard'))) {

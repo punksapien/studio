@@ -482,7 +482,7 @@ export default function ListingDetailPage() {
     // Seller/Owner access - full document management capabilities
     if (isOwner) {
       if (!href || href.trim() === "" || href.trim() === "#") {
-        return <p className="text-sm text-slate-600">You haven't uploaded this document yet. <Link href={`/seller-dashboard/listings/${listing.id}/edit`} className="text-blue-600 hover:underline">Upload now</Link></p>;
+        return <p className="text-sm text-slate-600">This document hasn't been uploaded yet.</p>;
       }
       return <Link href={href} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-400 hover:text-blue-200 hover:underline font-medium flex items-center gap-1"><FileText className="h-4 w-4" />{children}</Link>;
     }
