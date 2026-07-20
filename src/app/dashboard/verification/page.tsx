@@ -433,7 +433,7 @@ function BuyerVerificationContent() {
                   <strong>Phone number required:</strong> Please add a phone number to your profile before requesting verification.
                 </p>
                 <Button asChild variant="outline" size="sm" className="mt-2">
-                  <Link href="/dashboard/profile">Update Profile</Link>
+                  <Link href="/dashboard/settings">Update Profile</Link>
                 </Button>
               </CardContent>
             </Card>
