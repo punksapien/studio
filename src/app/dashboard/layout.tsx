@@ -26,7 +26,6 @@ import {
   Settings,
   Bell,
   ShoppingCart,
-  MessageSquareQuote,
   Home,
   Loader2,
   Sparkles
@@ -57,8 +56,7 @@ const buyerSidebarNavItems = [
 ];
 
 const utilityNavItems = [
-  { title: 'Marketplace', href: '/marketplace', icon: ShoppingCart, tooltip: "Browse Marketplace" },
-  { title: 'FAQ', href: '/faq', icon: MessageSquareQuote, tooltip: "Frequently Asked Questions" },
+  { title: 'Browse Marketplace', href: '/marketplace', icon: ShoppingCart, tooltip: "Browse Marketplace" },
 ];
 
 const onboardingNavItem = {
