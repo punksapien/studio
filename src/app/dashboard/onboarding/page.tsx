@@ -3,7 +3,7 @@
 // Force dynamic rendering due to client-side interactivity
 export const dynamic = 'force-dynamic'
 
-import { useEffect, useMemo, useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -11,14 +11,6 @@ import * as z from 'zod';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   Form,
   FormControl,
@@ -29,15 +21,38 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, Mail, Plus, Sparkles } from 'lucide-react';
+import { Loader2, Mail, Phone, Sparkles } from 'lucide-react';
 import { DashboardPageShell } from '@/components/shared/dashboard-page-shell';
-import { CollapsibleField } from '@/components/onboarding/collapsible-field';
+import { ContactStepFields } from '@/components/onboarding/steps/contact-step';
+import { CompanyStepFields } from '@/components/onboarding/steps/company-step';
+import { BuyerDetailsStepFields } from '@/components/onboarding/steps/buyer-details-step';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import { updateUserProfile } from '@/hooks/use-current-user';
-import { allCountries, BuyerPersonaTypes, PreferredInvestmentSizes } from '@/lib/types';
 
 const ONBOARDING_DESCRIPTION = "Welcome to Nobridge. Here's what happens next.";
+
+// Loose phone pattern shared with the verification request API.
+const PHONE_REGEX = /^[+]?[\d\s\-().]{5,24}$/;
+
+// Alternative contact methods form — mirrors the seller onboarding page.
+const ContactSchema = z.object({
+  additional_email: z
+    .string()
+    .trim()
+    .max(255, { message: 'Email must be 255 characters or fewer.' })
+    .email({ message: 'Please enter a valid email address.' })
+    .optional()
+    .or(z.literal('')),
+  additional_phone: z
+    .string()
+    .trim()
+    .regex(PHONE_REGEX, { message: 'Please enter a valid phone number.' })
+    .optional()
+    .or(z.literal('')),
+});
+
+type ContactValues = z.infer<typeof ContactSchema>;
 
 // Catch-up / edit form: mirrors the buyer wizard's fields but everything is optional.
 const DetailsSchema = z.object({
@@ -50,73 +65,44 @@ const DetailsSchema = z.object({
   investmentFocusDescription: z.string().optional(),
   preferredInvestmentSize: z.string().optional(),
   keyIndustriesOfInterest: z.string().optional(),
-  additionalEmail: z.string().optional(),
-  additionalPhone: z.string().optional(),
 }).refine(
   data => data.buyerPersonaType !== 'Other' || (data.buyerPersonaOther && data.buyerPersonaOther.trim() !== ''),
   { message: "Please specify your role if 'Other' is selected.", path: ['buyerPersonaOther'] }
 );
 
 type DetailsValues = z.infer<typeof DetailsSchema>;
-type FieldName = keyof DetailsValues;
 
-// Finish-off fields, in display order (buyerPersonaOther is a conditional child of buyerPersonaType).
-const DETAIL_FIELDS: FieldName[] = [
-  'fullName',
-  'phoneNumber',
-  'country',
-  'companyName',
-  'buyerPersonaType',
-  'investmentFocusDescription',
-  'preferredInvestmentSize',
-  'keyIndustriesOfInterest',
-];
+// Map the finish-off form's camelCase values → user_profiles columns, omitting empty
+// values. Mirrors the buyer wizard's profileUpdateForStep mapping/omit-empty logic.
+function detailsProfileUpdate(values: DetailsValues): Record<string, string> {
+  const pick = (obj: Record<string, string | undefined>) =>
+    Object.fromEntries(Object.entries(obj).filter(([, v]) => v && v.trim() !== '')) as Record<string, string>;
 
-// Alternative contact fields, handled with the same reveal pattern.
-const CONTACT_FIELDS: FieldName[] = ['additionalEmail', 'additionalPhone'];
-
-// camelCase form name → user_profiles column.
-const COLUMN_MAP: Record<FieldName, string> = {
-  fullName: 'full_name',
-  phoneNumber: 'phone_number',
-  country: 'country',
-  companyName: 'initial_company_name',
-  buyerPersonaType: 'buyer_persona_type',
-  buyerPersonaOther: 'buyer_persona_other',
-  investmentFocusDescription: 'investment_focus_description',
-  preferredInvestmentSize: 'preferred_investment_size',
-  keyIndustriesOfInterest: 'key_industries_of_interest',
-  additionalEmail: 'additional_email',
-  additionalPhone: 'additional_phone',
-};
-
-// Short labels used by the "+ Add <label>" buttons.
-const FIELD_LABELS: Record<FieldName, string> = {
-  fullName: 'Full Name',
-  phoneNumber: 'Phone Number',
-  country: 'Country',
-  companyName: 'Company Name',
-  buyerPersonaType: 'Primary Role / Buyer Type',
-  buyerPersonaOther: 'Role',
-  investmentFocusDescription: 'Investment Focus',
-  preferredInvestmentSize: 'Preferred Investment Size',
-  keyIndustriesOfInterest: 'Key Industries of Interest',
-  additionalEmail: 'another email',
-  additionalPhone: 'another phone',
-};
+  return pick({
+    full_name: values.fullName,
+    phone_number: values.phoneNumber,
+    country: values.country,
+    initial_company_name: values.companyName,
+    buyer_persona_type: values.buyerPersonaType,
+    buyer_persona_other: values.buyerPersonaType === 'Other' ? values.buyerPersonaOther : undefined,
+    investment_focus_description: values.investmentFocusDescription,
+    preferred_investment_size: values.preferredInvestmentSize,
+    key_industries_of_interest: values.keyIndustriesOfInterest,
+  });
+}
 
 export default function BuyerOnboardingPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { profile, isLoading, refreshAuth } = useAuth();
   const { toast } = useToast();
-  const [isSaving, startSaving] = useTransition();
+  const [isSavingContact, startSavingContact] = useTransition();
+  const [isSavingDetails, startSavingDetails] = useTransition();
 
-  // Fields the user has explicitly revealed via a "+ Add" button.
-  const [revealed, setRevealed] = useState<Set<FieldName>>(new Set());
-  // Gate the form's controls until the profile has been applied via form.reset().
-  // Radix Selects must mount AFTER the reset so they reflect their saved value;
-  // mounting them empty and resetting afterward leaves them stuck on the placeholder.
+  // Gate the finish-off form's controls until the profile has been applied via
+  // form.reset(). Radix Selects must mount AFTER the reset so they reflect their
+  // saved value; mounting them empty and resetting afterward leaves them stuck on
+  // the placeholder.
   const [isPrefilled, setIsPrefilled] = useState(false);
 
   // TEMPORARY DEV PREVIEW — dev-only state override
@@ -159,7 +145,15 @@ export default function BuyerOnboardingPage() {
 
   const firstName = profile?.full_name?.split(' ')[0] || 'there';
 
-  const form = useForm<DetailsValues>({
+  const contactForm = useForm<ContactValues>({
+    resolver: zodResolver(ContactSchema),
+    defaultValues: {
+      additional_email: '',
+      additional_phone: '',
+    },
+  });
+
+  const detailsForm = useForm<DetailsValues>({
     resolver: zodResolver(DetailsSchema),
     defaultValues: {
       fullName: '',
@@ -171,15 +165,20 @@ export default function BuyerOnboardingPage() {
       investmentFocusDescription: '',
       preferredInvestmentSize: '',
       keyIndustriesOfInterest: '',
-      additionalEmail: '',
-      additionalPhone: '',
     },
   });
 
-  // Prefill from the saved profile once it loads.
+  // Prefill both forms from the saved profile once it loads. Keyed on profile.id so
+  // the 60s refreshAuth poll — which yields a new profile object but the same id —
+  // never re-runs this and never wipes in-progress edits. The details form's Selects
+  // are mounted only after this reset (see detailsReady) so they show saved values.
   useEffect(() => {
     if (!profile) return;
-    form.reset({
+    contactForm.reset({
+      additional_email: profile.additional_email || '',
+      additional_phone: profile.additional_phone || '',
+    });
+    detailsForm.reset({
       fullName: profile.full_name || '',
       phoneNumber: profile.phone_number || '',
       country: profile.country || '',
@@ -189,327 +188,43 @@ export default function BuyerOnboardingPage() {
       investmentFocusDescription: profile.investment_focus_description || '',
       preferredInvestmentSize: profile.preferred_investment_size || '',
       keyIndustriesOfInterest: profile.key_industries_of_interest || '',
-      additionalEmail: profile.additional_email || '',
-      additionalPhone: profile.additional_phone || '',
     });
-    // Mount the controls now that values are applied (batched with reset above so
-    // Selects first render WITH their saved value). Keyed on profile.id so the 60s
-    // refreshAuth poll — which yields a new profile object but the same id — never
-    // re-runs this and never wipes in-progress edits.
     setIsPrefilled(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile?.id]);
 
-  // A field is "initial" if the loaded profile already holds a value for it.
-  const initialValues = useMemo<Record<FieldName, string>>(() => ({
-    fullName: profile?.full_name || '',
-    phoneNumber: profile?.phone_number || '',
-    country: profile?.country || '',
-    companyName: profile?.initial_company_name || '',
-    buyerPersonaType: profile?.buyer_persona_type || '',
-    buyerPersonaOther: profile?.buyer_persona_other || '',
-    investmentFocusDescription: profile?.investment_focus_description || '',
-    preferredInvestmentSize: profile?.preferred_investment_size || '',
-    keyIndustriesOfInterest: profile?.key_industries_of_interest || '',
-    additionalEmail: profile?.additional_email || '',
-    additionalPhone: profile?.additional_phone || '',
-  }), [profile]);
-
-  const hasInitial = (name: FieldName) => Boolean(initialValues[name] && initialValues[name].trim() !== '');
-  // A field is shown if it was pre-filled or has been revealed. Pre-filled fields
-  // are always visible with no remove control; revealed ones get a ✕ to collapse.
-  const isShown = (name: FieldName) => hasInitial(name) || revealed.has(name);
-
-  const buyerPersonaType = form.watch('buyerPersonaType');
-
-  const handleReveal = (name: FieldName) => {
-    setRevealed((prev) => {
-      const next = new Set(prev);
-      next.add(name);
-      return next;
-    });
-  };
-
-  const handleRemove = (name: FieldName) => {
-    setRevealed((prev) => {
-      const next = new Set(prev);
-      next.delete(name);
-      return next;
-    });
-    form.setValue(name, '');
-    // The persona "Other" free-text is a child of the persona field — clear it too.
-    if (name === 'buyerPersonaType') {
-      form.setValue('buyerPersonaOther', '');
-    }
-  };
-
-  const renderField = (name: FieldName) => {
-    switch (name) {
-      case 'fullName':
-        return (
-          <FormField
-            control={form.control}
-            name="fullName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Full Name</FormLabel>
-                <FormControl>
-                  <Input {...field} placeholder="John Doe" autoComplete="name" disabled={isSaving} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        );
-      case 'phoneNumber':
-        return (
-          <FormField
-            control={form.control}
-            name="phoneNumber"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Phone Number</FormLabel>
-                <FormControl>
-                  <Input {...field} type="tel" placeholder="+1 555 123 4567" autoComplete="tel" disabled={isSaving} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        );
-      case 'country':
-        return (
-          <FormField
-            control={form.control}
-            name="country"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Country</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value || ''} disabled={isSaving}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select your country" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {allCountries.map((country) => (
-                      <SelectItem key={country} value={country}>
-                        {country}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        );
-      case 'companyName':
-        return (
-          <FormField
-            control={form.control}
-            name="companyName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Company Name</FormLabel>
-                <FormControl>
-                  <Input {...field} placeholder="Company Name" autoComplete="organization" disabled={isSaving} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        );
-      case 'buyerPersonaType':
-        return (
-          <div className="space-y-6">
-            <FormField
-              control={form.control}
-              name="buyerPersonaType"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>I am a/an: (Primary Role / Buyer Type)</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value || ''} disabled={isSaving}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select your primary role" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {BuyerPersonaTypes.map((type) => (
-                        <SelectItem key={type} value={type}>
-                          {type}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            {buyerPersonaType === 'Other' && (
-              <FormField
-                control={form.control}
-                name="buyerPersonaOther"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Please Specify Role</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Your specific role" disabled={isSaving} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-          </div>
-        );
-      case 'investmentFocusDescription':
-        return (
-          <FormField
-            control={form.control}
-            name="investmentFocusDescription"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Investment Focus or What You&apos;re Looking For</FormLabel>
-                <FormControl>
-                  <Textarea
-                    {...field}
-                    placeholder="e.g., SaaS businesses in Southeast Asia with $100k-$1M ARR, turnarounds in manufacturing, e-commerce brands for scaling."
-                    disabled={isSaving}
-                    rows={3}
-                  />
-                </FormControl>
-                <FormDescription>Briefly describe your primary investment criteria or the types of businesses you are seeking.</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        );
-      case 'preferredInvestmentSize':
-        return (
-          <FormField
-            control={form.control}
-            name="preferredInvestmentSize"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Preferred Investment Size (Approximate)</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value || ''} disabled={isSaving}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select preferred investment size" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {PreferredInvestmentSizes.map((size) => (
-                      <SelectItem key={size} value={size}>
-                        {size}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        );
-      case 'keyIndustriesOfInterest':
-        return (
-          <FormField
-            control={form.control}
-            name="keyIndustriesOfInterest"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Key Industries of Interest</FormLabel>
-                <FormControl>
-                  <Textarea
-                    {...field}
-                    placeholder="e.g., Technology, E-commerce, Healthcare, Manufacturing, B2B Services. Please list a few."
-                    disabled={isSaving}
-                    rows={3}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        );
-      case 'additionalEmail':
-        return (
-          <FormField
-            control={form.control}
-            name="additionalEmail"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Additional Email</FormLabel>
-                <FormControl>
-                  <Input
-                    type="email"
-                    placeholder="you@example.com"
-                    {...field}
-                    value={field.value ?? ''}
-                    disabled={isSaving}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        );
-      case 'additionalPhone':
-        return (
-          <FormField
-            control={form.control}
-            name="additionalPhone"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Additional Phone</FormLabel>
-                <FormControl>
-                  <Input
-                    type="tel"
-                    placeholder="+1 555 123 4567"
-                    {...field}
-                    value={field.value ?? ''}
-                    disabled={isSaving}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        );
-      default:
-        return null;
-    }
-  };
-
-  const hiddenDetailFields = DETAIL_FIELDS.filter((name) => !isShown(name));
-  const hiddenContactFields = CONTACT_FIELDS.filter((name) => !isShown(name));
-
-  // Render the form once prefill has run. When there's no profile at all (e.g. the
-  // dev preview override with no session) there's nothing to prefill, so it's ready.
+  // Render the finish-off form once prefill has run. When there's no profile at all
+  // (e.g. the dev preview override with no session) there's nothing to prefill, so
+  // it's ready.
   const detailsReady = isPrefilled || !profile;
 
-  const onSubmit = (values: DetailsValues) => {
-    startSaving(async () => {
+  const onContactSubmit = (values: ContactValues) => {
+    startSavingContact(async () => {
       try {
-        // Only persist fields that are shown and non-empty → their snake_case columns.
-        const update: Record<string, string> = {};
-        for (const name of [...DETAIL_FIELDS, ...CONTACT_FIELDS]) {
-          if (!isShown(name)) continue;
-          const value = values[name];
-          if (value && value.trim() !== '') {
-            update[COLUMN_MAP[name]] = value.trim();
-          }
-        }
-        // Persona "Other" free-text only when the persona field is shown and set to Other.
-        if (isShown('buyerPersonaType') && values.buyerPersonaType === 'Other') {
-          const other = values.buyerPersonaOther;
-          if (other && other.trim() !== '') {
-            update[COLUMN_MAP.buyerPersonaOther] = other.trim();
-          }
-        }
+        await updateUserProfile({
+          additional_email: values.additional_email?.trim() || null,
+          additional_phone: values.additional_phone?.trim() || null,
+        });
+        toast({
+          title: 'Contact details saved',
+          description: "Thanks. We'll use these to reach you if we need to.",
+        });
+        await refreshAuth();
+      } catch (error) {
+        toast({
+          variant: 'destructive',
+          title: 'Could not save',
+          description:
+            error instanceof Error ? error.message : 'Something went wrong. Please try again.',
+        });
+      }
+    });
+  };
 
+  const onDetailsSubmit = (values: DetailsValues) => {
+    startSavingDetails(async () => {
+      try {
+        const update = detailsProfileUpdate(values);
         if (Object.keys(update).length > 0) {
           await updateUserProfile(update);
         }
@@ -612,6 +327,89 @@ export default function BuyerOnboardingPage() {
         </CardContent>
       </Card>
 
+      {/* Contact card */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Let us know if you have any alternative contact methods</CardTitle>
+          <CardDescription>
+            Here are the details we have on file. If there&apos;s another email or phone number where
+            we can reach you, add it below.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Account Email
+              </p>
+              <p className="flex items-center gap-2 text-sm text-foreground">
+                <Mail className="h-4 w-4 shrink-0 text-muted-foreground" />
+                {profile?.email || 'Not provided'}
+              </p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Phone Number
+              </p>
+              <p className="flex items-center gap-2 text-sm text-foreground">
+                <Phone className="h-4 w-4 shrink-0 text-muted-foreground" />
+                {profile?.phone_number || 'Not provided'}
+              </p>
+            </div>
+          </div>
+
+          <Form {...contactForm}>
+            <form onSubmit={contactForm.handleSubmit(onContactSubmit)} className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <FormField
+                  control={contactForm.control}
+                  name="additional_email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Additional Email</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="email"
+                          placeholder="you@example.com"
+                          {...field}
+                          value={field.value ?? ''}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={contactForm.control}
+                  name="additional_phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Additional Phone</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="tel"
+                          placeholder="+1 555 123 4567"
+                          {...field}
+                          value={field.value ?? ''}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <FormDescription>
+                Leave a field blank to clear it. This is entirely optional.
+              </FormDescription>
+              <Button type="submit" disabled={isSavingContact}>
+                {isSavingContact && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Save contact details
+              </Button>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+
       {/* Clean break between the concierge welcome and the optional details form */}
       <div className="space-y-2">
         <Separator />
@@ -636,101 +434,18 @@ export default function BuyerOnboardingPage() {
               <span>Loading your details...</span>
             </div>
           ) : (
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              {/* Editable list: pre-filled fields (no remove) + revealed fields (with ✕) */}
-              <div className="space-y-6">
-                {DETAIL_FIELDS.map((name) => (
-                  <CollapsibleField
-                    key={name}
-                    label={FIELD_LABELS[name]}
-                    shown={isShown(name)}
-                    removable={!hasInitial(name)}
-                    onRemove={() => handleRemove(name)}
-                  >
-                    {renderField(name)}
-                  </CollapsibleField>
-                ))}
-              </div>
+            <Form {...detailsForm}>
+              <form onSubmit={detailsForm.handleSubmit(onDetailsSubmit)} className="space-y-6">
+                <ContactStepFields control={detailsForm.control} isPending={isSavingDetails} />
+                <CompanyStepFields control={detailsForm.control} isPending={isSavingDetails} />
+                <BuyerDetailsStepFields control={detailsForm.control} isPending={isSavingDetails} />
 
-              {/* Add anything you skipped */}
-              {hiddenDetailFields.length > 0 && (
-                <div className="space-y-3 border-t pt-6">
-                  <p className="text-sm font-medium text-foreground">Add anything you skipped</p>
-                  <div className="flex flex-wrap gap-2">
-                    {hiddenDetailFields.map((name) => (
-                      <Button
-                        key={name}
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleReveal(name)}
-                        disabled={isSaving}
-                      >
-                        <Plus className="mr-1 h-3 w-3" /> Add {FIELD_LABELS[name]}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Alternative contact methods */}
-              <div className="space-y-4 border-t pt-6">
-                <div>
-                  <h4 className="font-semibold text-foreground">Alternative contact methods</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Here are the details we have on file. If there&apos;s another email or phone
-                    number where we can reach you, add it below.
-                  </p>
-                </div>
-
-                <div className="space-y-1">
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    Account Email
-                  </p>
-                  <p className="flex items-center gap-2 text-sm text-foreground">
-                    <Mail className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    {profile?.email || 'Not provided'}
-                  </p>
-                </div>
-
-                {CONTACT_FIELDS.map((name) => (
-                  <CollapsibleField
-                    key={name}
-                    label={FIELD_LABELS[name]}
-                    shown={isShown(name)}
-                    removable={!hasInitial(name)}
-                    onRemove={() => handleRemove(name)}
-                  >
-                    {renderField(name)}
-                  </CollapsibleField>
-                ))}
-
-                {hiddenContactFields.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {hiddenContactFields.map((name) => (
-                      <Button
-                        key={name}
-                        type="button"
-                        variant="link"
-                        size="sm"
-                        className="h-auto p-0 text-primary"
-                        onClick={() => handleReveal(name)}
-                        disabled={isSaving}
-                      >
-                        <Plus className="mr-1 h-3 w-3" /> Add {FIELD_LABELS[name]}
-                      </Button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <Button type="submit" disabled={isSaving}>
-                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Save my details
-              </Button>
-            </form>
-          </Form>
+                <Button type="submit" disabled={isSavingDetails}>
+                  {isSavingDetails && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Save my details
+                </Button>
+              </form>
+            </Form>
           )}
         </CardContent>
       </Card>
