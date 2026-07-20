@@ -92,6 +92,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Only buyers can create inquiries' }, { status: 403 });
     }
 
+    const lockdownEnabled = process.env.NEXT_PUBLIC_BUYER_VERIFICATION_LOCKDOWN === 'true';
+    if (lockdownEnabled && profile?.verification_status !== 'verified') {
+      return NextResponse.json(
+        { error: 'Please complete verification before contacting sellers.', code: 'verification_required' },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const { listing_id, message } = body; // message is now optional
 

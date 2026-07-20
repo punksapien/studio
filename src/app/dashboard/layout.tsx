@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import * as React from 'react';
+import { useAuth } from '@/contexts/auth-context';
 import {
   SidebarProvider,
   Sidebar,
@@ -28,9 +29,9 @@ import {
   ShoppingCart,
   MessageSquareQuote,
   Home,
-  ShieldCheck
+  Loader2,
+  Sparkles
 } from 'lucide-react';
-import type { UserRole } from '@/lib/types';
 import LogoutButton from '@/components/auth/LogoutButton';
 
 // Flat buyer theme: square corners and no shadows everywhere in the buyer area.
@@ -48,14 +49,11 @@ const sidebarStyles = `
   }
 `;
 
-const currentUserRole: UserRole | null = 'buyer';
-
 const buyerSidebarNavItems = [
   { title: 'Overview', href: '/dashboard', icon: LayoutDashboard, tooltip: "Dashboard Overview" },
   { title: 'My Profile', href: '/dashboard/profile', icon: UserCircle, tooltip: "Manage Profile" },
   { title: 'My Inquiries', href: '/dashboard/inquiries', icon: MessageSquare, tooltip: "View Inquiries" },
   // { title: 'Messages', href: '/dashboard/messages', icon: Mail, tooltip: "My Conversations" },
-  { title: 'Verification', href: '/dashboard/verification', icon: ShieldCheck, tooltip: "Account Verification" },
   { title: 'Notifications', href: '/dashboard/notifications', icon: Bell, tooltip: "My Notifications" },
   { title: 'Settings', href: '/dashboard/settings', icon: Settings, tooltip: "Account Settings" },
 ];
@@ -65,13 +63,58 @@ const utilityNavItems = [
   { title: 'FAQ', href: '/faq', icon: MessageSquareQuote, tooltip: "Frequently Asked Questions" },
 ];
 
+const onboardingNavItem = {
+  title: 'Onboarding',
+  href: '/dashboard/onboarding',
+  icon: Sparkles,
+  tooltip: 'Getting started',
+};
+
+// Pre-verification, these are the only interactive destinations.
+const ALWAYS_UNLOCKED_TITLES = new Set(['Onboarding', 'Settings', 'My Profile']);
+
+// Path prefixes an unverified buyer is allowed to reach without being bounced to Onboarding.
+const UNVERIFIED_ALLOWED_PREFIXES = [
+  '/dashboard/onboarding',
+  '/dashboard/settings',
+  '/dashboard/profile',
+];
+
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { profile, isLoading } = useAuth();
   const [inquiryCount, setInquiryCount] = React.useState(0);
+
+  // Lock state: only ever lock when a buyer profile is loaded and not verified.
+  // When profile is null (middleware-trusted session) we never lock.
+  const lockdownEnabled = process.env.NEXT_PUBLIC_BUYER_VERIFICATION_LOCKDOWN === 'true';
+  const isBuyer = profile?.role === 'buyer';
+  const isUnverified = lockdownEnabled && isBuyer && profile?.verification_status !== 'verified';
+
+  // Build the nav for the current state. Onboarding is prepended only when locked.
+  const navItems = isUnverified
+    ? [onboardingNavItem, ...buyerSidebarNavItems]
+    : buyerSidebarNavItems;
+
+  // When unverified and sitting on a locked deep link, bounce to Onboarding.
+  const isOnAllowedPath =
+    !isUnverified ||
+    UNVERIFIED_ALLOWED_PREFIXES.some(
+      (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+    );
+  const shouldRedirectToOnboarding =
+    isUnverified && !isOnAllowedPath && !pathname.startsWith('/dev-preview');
+
+  React.useEffect(() => {
+    if (shouldRedirectToOnboarding) {
+      router.replace('/dashboard/onboarding');
+    }
+  }, [shouldRedirectToOnboarding, router]);
 
   // Flat buyer theme: covers portaled UI (dialogs, dropdowns, tooltips) too
   React.useEffect(() => {
@@ -109,12 +152,34 @@ export default function DashboardLayout({
     return pathname.startsWith(href) && (pathname.length === href.length || pathname[href.length] === '/');
   };
 
-  if (currentUserRole !== 'buyer') {
-     return (
+  // Show loading state while fetching user data - but don't block access
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="mt-4 text-lg text-muted-foreground">Loading dashboard...</p>
+      </div>
+    );
+  }
+
+  // If we have profile data, check role-based access
+  // If no profile data, trust middleware and render dashboard (middleware handles auth)
+  if (profile && profile.role !== 'buyer') {
+    return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background">
         <Logo size="2xl" forceTheme="light" />
-        <p className="mt-4 text-lg text-muted-foreground">Access Denied or incorrect role. This is the Buyer Dashboard.</p>
-         <Button asChild className="mt-4"><Link href="/">Go to Homepage</Link></Button>
+        <h1 className="mt-4 text-2xl font-semibold text-foreground">Access Denied</h1>
+        <p className="mt-2 text-lg text-muted-foreground">
+          You must be logged in as a buyer to view this page.
+        </p>
+        <p className="text-sm text-muted-foreground mb-4">
+          Your current role: {profile.role}
+        </p>
+        <Button asChild className="mt-4">
+          <Link href={profile.role === 'admin' ? '/admin' : '/seller-dashboard'}>
+            Go to {profile.role === 'admin' ? 'Admin' : 'Seller'} Dashboard
+          </Link>
+        </Button>
       </div>
     );
   }
@@ -136,10 +201,30 @@ export default function DashboardLayout({
                 <SidebarSeparator className="bg-gray-200" />
               </div>
               <SidebarMenu className="space-y-1">
-                {buyerSidebarNavItems.map((item) => {
+                {navItems.map((item) => {
                   const IconComponent = item.icon;
                   const iconProps = { className: "h-4 w-4 mr-3 shrink-0" };
                   const isActive = getIsActive(item.href);
+                  const isLocked = isUnverified && !ALWAYS_UNLOCKED_TITLES.has(item.title);
+
+                  // Locked items keep the exact same size/position but are
+                  // non-interactive: no <Link>, muted styling, a lock affordance.
+                  if (isLocked) {
+                    return (
+                      <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton
+                          aria-disabled="true"
+                          tooltip={{ children: 'Available after verification', className: "bg-gray-800 text-white border-gray-600" }}
+                          className="h-11 rounded-none px-4 text-gray-400 cursor-not-allowed opacity-60 hover:bg-transparent hover:text-gray-400"
+                        >
+                          <span className="flex items-center w-full">
+                            <IconComponent {...iconProps} />
+                            <span className="truncate font-medium">{item.title}</span>
+                          </span>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  }
 
                   return (
                   <SidebarMenuItem key={item.title}>
@@ -225,7 +310,14 @@ export default function DashboardLayout({
               <SidebarTrigger className="rounded-none hover:bg-gray-100 transition-colors duration-200"/>
            </header>
            <div className="px-4 pb-4 pt-2 md:px-6 md:pb-6 md:pt-6 flex-1 min-h-0 overflow-hidden flex flex-col bg-brand-dark-blue">
-            {children}
+            {shouldRedirectToOnboarding ? (
+              <div className="flex flex-1 flex-col items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-white" />
+                <p className="mt-4 text-lg text-white/70">Redirecting...</p>
+              </div>
+            ) : (
+              children
+            )}
            </div>
         </SidebarInset>
       </div>

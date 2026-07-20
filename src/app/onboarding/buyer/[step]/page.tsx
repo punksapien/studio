@@ -10,23 +10,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Form } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, ArrowRight, Briefcase, Building2, CheckCircle, Loader2, UserCircle } from 'lucide-react';
 import { updateOnboardingStatus, updateUserProfile } from '@/hooks/use-current-user';
 import { useCurrentUser } from '@/hooks/use-cached-profile';
 import { ContactStepFields } from '@/components/onboarding/steps/contact-step';
 import { CompanyStepFields } from '@/components/onboarding/steps/company-step';
-import { BuyerPersonaTypes, PreferredInvestmentSizes } from '@/lib/types';
+import { BuyerDetailsStepFields } from '@/components/onboarding/steps/buyer-details-step';
 
 // --- Schemas ---
 // Step 1 (full name + phone) is required. The remaining steps and fields are
@@ -129,7 +120,6 @@ export default function BuyerOnboardingStepPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile?.id, currentStep]);
 
-  const watchedBuyerPersonaType = form.watch('buyerPersonaType');
   const isFinalStep = currentStep === TOTAL_STEPS;
 
   const onSubmit = async (values: BuyerOnboardingValues) => {
@@ -224,110 +214,7 @@ export default function BuyerOnboardingStepPage() {
               <CardDescription>Help us match you with the right opportunities.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <FormField
-                control={form.control}
-                name="buyerPersonaType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>I am a/an: (Primary Role / Buyer Type)</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ''} disabled={isBusy}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select your primary role" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {BuyerPersonaTypes.map((type) => (
-                          <SelectItem key={type} value={type}>
-                            {type}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {watchedBuyerPersonaType === 'Other' && (
-                <FormField
-                  control={form.control}
-                  name="buyerPersonaOther"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Please Specify Role</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Your specific role" disabled={isBusy} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-
-              <FormField
-                control={form.control}
-                name="investmentFocusDescription"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Investment Focus or What You&apos;re Looking For</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        {...field}
-                        placeholder="e.g., SaaS businesses in Southeast Asia with $100k-$1M ARR, turnarounds in manufacturing, e-commerce brands for scaling."
-                        disabled={isBusy}
-                        rows={3}
-                      />
-                    </FormControl>
-                    <FormDescription>Briefly describe your primary investment criteria or the types of businesses you are seeking.</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="preferredInvestmentSize"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Preferred Investment Size (Approximate)</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ''} disabled={isBusy}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select preferred investment size" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {PreferredInvestmentSizes.map((size) => (
-                          <SelectItem key={size} value={size}>
-                            {size}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="keyIndustriesOfInterest"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Key Industries of Interest</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        {...field}
-                        placeholder="e.g., Technology, E-commerce, Healthcare, Manufacturing, B2B Services. Please list a few."
-                        disabled={isBusy}
-                        rows={3}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <BuyerDetailsStepFields control={form.control} isPending={isBusy} />
             </CardContent>
           </>
         );

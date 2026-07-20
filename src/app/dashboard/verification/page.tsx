@@ -249,6 +249,31 @@ function BuyerVerificationContent() {
       );
     }
 
+    // Under the concierge model, buyer verification is team-handled: show a
+    // passive informational card instead of the self-service request form.
+    if (process.env.NEXT_PUBLIC_BUYER_VERIFICATION_LOCKDOWN === 'true') {
+      return (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <ShieldCheck className="h-7 w-7 text-primary" /> Verification in progress
+            </CardTitle>
+            <CardDescription>
+              Our team reviews and verifies every buyer account. We'll be in touch within 72 hours — nothing else is required from you right now.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Want to speed things up? Completing your details helps our team verify you faster.
+            </p>
+            <Button asChild variant="outline" className="mt-4">
+              <Link href="/dashboard/onboarding">Finish your details</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      );
+    }
+
     // Show verification form for anonymous or rejected users
     return renderVerificationForm();
   };

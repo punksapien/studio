@@ -26,6 +26,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Under the concierge model, buyer verification is also team-handled;
+    // buyers cannot self-submit or bump verification requests when locked down.
+    if (
+      process.env.NEXT_PUBLIC_BUYER_VERIFICATION_LOCKDOWN === 'true' &&
+      authResult.profile.role === 'buyer'
+    ) {
+      return NextResponse.json(
+        { error: 'Buyer verification is handled by the Nobridge team. We will contact you.' },
+        { status: 403 }
+      );
+    }
+
     // Parse request body
     const body = await request.json();
     const {

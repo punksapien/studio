@@ -367,6 +367,32 @@ export async function middleware(req: NextRequest) {
     }
   }
 
+  // Server-side lockdown for unverified buyers. Mirrors the seller gate above and backstops
+  // the client dashboard layout on every full navigation with a fresh server-side profile.
+  // Only fires for a buyer already allowed on /dashboard (the role-correctness redirect above
+  // has run). Allowed prefixes MUST mirror the client layout's UNVERIFIED_ALLOWED_PREFIXES.
+  // /api/* is returned earlier and /dev-preview/* doesn't start with '/dashboard',
+  // so both are naturally excluded; admins and verified buyers are unaffected.
+  if (
+    process.env.NEXT_PUBLIC_BUYER_VERIFICATION_LOCKDOWN === 'true' &&
+    profile.role === 'buyer' &&
+    profile.verification_status !== 'verified' &&
+    pathname.startsWith('/dashboard')
+  ) {
+    const BUYER_UNVERIFIED_ALLOWED_PREFIXES = [
+      '/dashboard/onboarding',
+      '/dashboard/settings',
+      '/dashboard/profile',
+    ]
+    const isOnAllowedPath = BUYER_UNVERIFIED_ALLOWED_PREFIXES.some(
+      (prefix) => pathname === prefix || pathname.startsWith(prefix + '/')
+    )
+    if (!isOnAllowedPath) {
+      console.log(`[MIDDLEWARE] ${correlationId} | Unverified buyer ${user.id} accessing locked route ${pathname}, redirecting to /dashboard/onboarding`)
+      return NextResponse.redirect(new URL('/dashboard/onboarding', req.url))
+    }
+  }
+
   if (profile.role === 'admin' && (pathname.startsWith('/dashboard') || pathname.startsWith('/seller-dashboard'))) {
     console.log(`[MIDDLEWARE] ${correlationId} | Admin accessing wrong dashboard: ${pathname} -> /admin`)
     return NextResponse.redirect(new URL('/admin', req.url))
