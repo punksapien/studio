@@ -1,0 +1,7 @@
+# Keep local-only dev preview scaffolding out of production deploys.
+# These routes install a mock auth/fetch layer and must never ship live.
+src/app/dev-preview/
+
+# Local test harnesses / scratch (never part of a deploy)
+*.e2e-*.mjs
+.e2e-*.mjs
