@@ -271,7 +271,7 @@ export default function BuyerOnboardingPage() {
   return (
     <DashboardPageShell title="Onboarding" description={ONBOARDING_DESCRIPTION} scrollable>
       {/* Welcome card */}
-      <Card>
+      <Card className="bg-brand-light-gray">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-2xl">
             <Sparkles className="h-6 w-6 text-primary" /> Hey {firstName} 👋
@@ -328,7 +328,7 @@ export default function BuyerOnboardingPage() {
       </Card>
 
       {/* Contact card */}
-      <Card>
+      <Card className="bg-brand-light-gray">
         <CardHeader>
           <CardTitle>Let us know if you have any alternative contact methods</CardTitle>
           <CardDescription>
@@ -410,12 +410,14 @@ export default function BuyerOnboardingPage() {
         </CardContent>
       </Card>
 
-      {/* Clean break between the concierge welcome and the optional details form */}
-      <div className="space-y-2">
-        <Separator />
-        <p className="text-center text-xs font-medium uppercase tracking-wide text-muted-foreground">
+      {/* Clean break between the concierge welcome and the optional details form.
+          Caption centered on the line so it has equal spacing above and below. */}
+      <div className="flex items-center gap-4">
+        <Separator className="flex-1" />
+        <span className="shrink-0 text-xs font-medium uppercase tracking-wide text-muted-foreground">
           Optional — while you wait
-        </p>
+        </span>
+        <Separator className="flex-1" />
       </div>
 
       {/* Finish off your details card */}
