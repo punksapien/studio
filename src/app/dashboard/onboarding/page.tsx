@@ -3,7 +3,7 @@
 // Force dynamic rendering due to client-side interactivity
 export const dynamic = 'force-dynamic'
 
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useTransition } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -23,9 +23,8 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { Loader2, Mail, Phone, Sparkles } from 'lucide-react';
 import { DashboardPageShell } from '@/components/shared/dashboard-page-shell';
-import { ContactStepFields } from '@/components/onboarding/steps/contact-step';
-import { CompanyStepFields } from '@/components/onboarding/steps/company-step';
-import { BuyerDetailsStepFields } from '@/components/onboarding/steps/buyer-details-step';
+import { InlineEditField } from '@/components/onboarding/inline-edit-field';
+import { allCountries, BuyerPersonaTypes, PreferredInvestmentSizes } from '@/lib/types';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import { updateUserProfile } from '@/hooks/use-current-user';
@@ -54,56 +53,12 @@ const ContactSchema = z.object({
 
 type ContactValues = z.infer<typeof ContactSchema>;
 
-// Catch-up / edit form: mirrors the buyer wizard's fields but everything is optional.
-const DetailsSchema = z.object({
-  fullName: z.string().optional(),
-  phoneNumber: z.string().optional(),
-  country: z.string().optional(),
-  companyName: z.string().optional(),
-  buyerPersonaType: z.string().optional(),
-  buyerPersonaOther: z.string().optional(),
-  investmentFocusDescription: z.string().optional(),
-  preferredInvestmentSize: z.string().optional(),
-  keyIndustriesOfInterest: z.string().optional(),
-}).refine(
-  data => data.buyerPersonaType !== 'Other' || (data.buyerPersonaOther && data.buyerPersonaOther.trim() !== ''),
-  { message: "Please specify your role if 'Other' is selected.", path: ['buyerPersonaOther'] }
-);
-
-type DetailsValues = z.infer<typeof DetailsSchema>;
-
-// Map the finish-off form's camelCase values → user_profiles columns, omitting empty
-// values. Mirrors the buyer wizard's profileUpdateForStep mapping/omit-empty logic.
-function detailsProfileUpdate(values: DetailsValues): Record<string, string> {
-  const pick = (obj: Record<string, string | undefined>) =>
-    Object.fromEntries(Object.entries(obj).filter(([, v]) => v && v.trim() !== '')) as Record<string, string>;
-
-  return pick({
-    full_name: values.fullName,
-    phone_number: values.phoneNumber,
-    country: values.country,
-    initial_company_name: values.companyName,
-    buyer_persona_type: values.buyerPersonaType,
-    buyer_persona_other: values.buyerPersonaType === 'Other' ? values.buyerPersonaOther : undefined,
-    investment_focus_description: values.investmentFocusDescription,
-    preferred_investment_size: values.preferredInvestmentSize,
-    key_industries_of_interest: values.keyIndustriesOfInterest,
-  });
-}
-
 export default function BuyerOnboardingPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { profile, isLoading, refreshAuth } = useAuth();
   const { toast } = useToast();
   const [isSavingContact, startSavingContact] = useTransition();
-  const [isSavingDetails, startSavingDetails] = useTransition();
-
-  // Gate the finish-off form's controls until the profile has been applied via
-  // form.reset(). Radix Selects must mount AFTER the reset so they reflect their
-  // saved value; mounting them empty and resetting afterward leaves them stuck on
-  // the placeholder.
-  const [isPrefilled, setIsPrefilled] = useState(false);
 
   // TEMPORARY DEV PREVIEW — dev-only state override
   // (?preview_status=anonymous|pending_verification|verified|rejected). Forces the
@@ -153,50 +108,57 @@ export default function BuyerOnboardingPage() {
     },
   });
 
-  const detailsForm = useForm<DetailsValues>({
-    resolver: zodResolver(DetailsSchema),
-    defaultValues: {
-      fullName: '',
-      phoneNumber: '',
-      country: '',
-      companyName: '',
-      buyerPersonaType: '',
-      buyerPersonaOther: '',
-      investmentFocusDescription: '',
-      preferredInvestmentSize: '',
-      keyIndustriesOfInterest: '',
-    },
-  });
-
-  // Prefill both forms from the saved profile once it loads. Keyed on profile.id so
-  // the 60s refreshAuth poll — which yields a new profile object but the same id —
-  // never re-runs this and never wipes in-progress edits. The details form's Selects
-  // are mounted only after this reset (see detailsReady) so they show saved values.
+  // Prefill the contact form from the saved profile once it loads. Keyed on
+  // profile.id so the 60s refreshAuth poll — which yields a new profile object but
+  // the same id — never re-runs this and never wipes in-progress edits. The
+  // finish-off rows read straight from `profile`, so they need no reset here.
   useEffect(() => {
     if (!profile) return;
     contactForm.reset({
       additional_email: profile.additional_email || '',
       additional_phone: profile.additional_phone || '',
     });
-    detailsForm.reset({
-      fullName: profile.full_name || '',
-      phoneNumber: profile.phone_number || '',
-      country: profile.country || '',
-      companyName: profile.initial_company_name || '',
-      buyerPersonaType: profile.buyer_persona_type || '',
-      buyerPersonaOther: profile.buyer_persona_other || '',
-      investmentFocusDescription: profile.investment_focus_description || '',
-      preferredInvestmentSize: profile.preferred_investment_size || '',
-      keyIndustriesOfInterest: profile.key_industries_of_interest || '',
-    });
-    setIsPrefilled(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile?.id]);
 
-  // Render the finish-off form once prefill has run. When there's no profile at all
-  // (e.g. the dev preview override with no session) there's nothing to prefill, so
-  // it's ready.
-  const detailsReady = isPrefilled || !profile;
+  // Save a single finish-off field to its user_profiles column. Trims and coerces
+  // empty strings to null. Re-throws on failure so the InlineEditField reverts.
+  const saveField = async (column: string, value: string) => {
+    try {
+      await updateUserProfile({ [column]: value.trim() || null });
+      await refreshAuth();
+      toast({ title: 'Saved', description: 'Your details have been updated.' });
+    } catch (e) {
+      toast({
+        variant: 'destructive',
+        title: 'Could not save',
+        description: e instanceof Error ? e.message : 'Please try again.',
+      });
+      throw e; // let the field revert to display on failure
+    }
+  };
+
+  // Persona is special: switching away from 'Other' must also clear the free-text
+  // "other" value. When it stays 'Other', the newly-shown row saves it on its own.
+  const savePersona = async (value: string) => {
+    const v = value.trim();
+    try {
+      const update: Record<string, string | null> =
+        v !== 'Other'
+          ? { buyer_persona_type: v || null, buyer_persona_other: null }
+          : { buyer_persona_type: v };
+      await updateUserProfile(update);
+      await refreshAuth();
+      toast({ title: 'Saved', description: 'Your details have been updated.' });
+    } catch (e) {
+      toast({
+        variant: 'destructive',
+        title: 'Could not save',
+        description: e instanceof Error ? e.message : 'Please try again.',
+      });
+      throw e; // let the field revert to display on failure
+    }
+  };
 
   const onContactSubmit = (values: ContactValues) => {
     startSavingContact(async () => {
@@ -210,29 +172,6 @@ export default function BuyerOnboardingPage() {
           description: "Thanks. We'll use these to reach you if we need to.",
         });
         await refreshAuth();
-      } catch (error) {
-        toast({
-          variant: 'destructive',
-          title: 'Could not save',
-          description:
-            error instanceof Error ? error.message : 'Something went wrong. Please try again.',
-        });
-      }
-    });
-  };
-
-  const onDetailsSubmit = (values: DetailsValues) => {
-    startSavingDetails(async () => {
-      try {
-        const update = detailsProfileUpdate(values);
-        if (Object.keys(update).length > 0) {
-          await updateUserProfile(update);
-        }
-        await refreshAuth();
-        toast({
-          title: 'Details saved',
-          description: "Thanks. We've updated your profile.",
-        });
       } catch (error) {
         toast({
           variant: 'destructive',
@@ -318,7 +257,7 @@ export default function BuyerOnboardingPage() {
               </li>
             </ol>
           </div>
-          <div className="border-l-2 border-primary bg-muted/50 p-4">
+          <div className="border-l-2 border-primary bg-white p-4">
             <p className="text-sm text-muted-foreground">
               <span className="font-medium text-foreground">Nothing else is required from you right now.</span>{' '}
               Please wait 72 hours and check your email. We&apos;ll be in touch.
@@ -429,26 +368,68 @@ export default function BuyerOnboardingPage() {
             sign-up. It all helps our team verify you faster.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          {!detailsReady ? (
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Loader2 className="h-5 w-5 animate-spin text-primary" />
-              <span>Loading your details...</span>
-            </div>
-          ) : (
-            <Form {...detailsForm}>
-              <form onSubmit={detailsForm.handleSubmit(onDetailsSubmit)} className="space-y-6">
-                <ContactStepFields control={detailsForm.control} isPending={isSavingDetails} />
-                <CompanyStepFields control={detailsForm.control} isPending={isSavingDetails} />
-                <BuyerDetailsStepFields control={detailsForm.control} isPending={isSavingDetails} />
-
-                <Button type="submit" disabled={isSavingDetails}>
-                  {isSavingDetails && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Save my details
-                </Button>
-              </form>
-            </Form>
+        <CardContent className="space-y-6">
+          <InlineEditField
+            label="Full Name"
+            value={profile?.full_name || ''}
+            type="text"
+            placeholder="Your full name"
+            onSave={(v) => saveField('full_name', v)}
+          />
+          <InlineEditField
+            label="Country"
+            value={profile?.country || ''}
+            type="select"
+            options={allCountries}
+            placeholder="Select your country"
+            onSave={(v) => saveField('country', v)}
+          />
+          <InlineEditField
+            label="Company Name"
+            value={profile?.initial_company_name || ''}
+            type="text"
+            placeholder="Your company name"
+            onSave={(v) => saveField('initial_company_name', v)}
+          />
+          <InlineEditField
+            label="I am a/an: (Primary Role / Buyer Type)"
+            value={profile?.buyer_persona_type || ''}
+            type="select"
+            options={BuyerPersonaTypes}
+            placeholder="Select your primary role"
+            onSave={savePersona}
+          />
+          {profile?.buyer_persona_type === 'Other' && (
+            <InlineEditField
+              label="Please Specify Role"
+              value={profile?.buyer_persona_other || ''}
+              type="text"
+              placeholder="Your specific role"
+              onSave={(v) => saveField('buyer_persona_other', v)}
+            />
           )}
+          <InlineEditField
+            label="Investment Focus or What You're Looking For"
+            value={profile?.investment_focus_description || ''}
+            type="textarea"
+            placeholder="e.g., SaaS businesses in Southeast Asia with $100k-$1M ARR, turnarounds in manufacturing, e-commerce brands for scaling."
+            onSave={(v) => saveField('investment_focus_description', v)}
+          />
+          <InlineEditField
+            label="Preferred Investment Size (Approximate)"
+            value={profile?.preferred_investment_size || ''}
+            type="select"
+            options={PreferredInvestmentSizes}
+            placeholder="Select preferred investment size"
+            onSave={(v) => saveField('preferred_investment_size', v)}
+          />
+          <InlineEditField
+            label="Key Industries of Interest"
+            value={profile?.key_industries_of_interest || ''}
+            type="textarea"
+            placeholder="e.g., Technology, E-commerce, Healthcare, Manufacturing, B2B Services. Please list a few."
+            onSave={(v) => saveField('key_industries_of_interest', v)}
+          />
         </CardContent>
       </Card>
     </DashboardPageShell>
