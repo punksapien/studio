@@ -22,7 +22,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
   LayoutDashboard,
-  UserCircle,
   MessageSquare,
   Settings,
   Bell,
@@ -51,7 +50,6 @@ const sidebarStyles = `
 
 const buyerSidebarNavItems = [
   { title: 'Overview', href: '/dashboard', icon: LayoutDashboard, tooltip: "Dashboard Overview" },
-  { title: 'My Profile', href: '/dashboard/profile', icon: UserCircle, tooltip: "Manage Profile" },
   { title: 'My Inquiries', href: '/dashboard/inquiries', icon: MessageSquare, tooltip: "View Inquiries" },
   // { title: 'Messages', href: '/dashboard/messages', icon: Mail, tooltip: "My Conversations" },
   { title: 'Notifications', href: '/dashboard/notifications', icon: Bell, tooltip: "My Notifications" },
@@ -71,7 +69,7 @@ const onboardingNavItem = {
 };
 
 // Pre-verification, these are the only interactive destinations.
-const ALWAYS_UNLOCKED_TITLES = new Set(['Onboarding', 'Settings', 'My Profile']);
+const ALWAYS_UNLOCKED_TITLES = new Set(['Onboarding', 'Settings']);
 
 // Path prefixes an unverified buyer is allowed to reach without being bounced to Onboarding.
 const UNVERIFIED_ALLOWED_PREFIXES = [
@@ -141,14 +139,15 @@ export default function DashboardLayout({
   }, []);
 
   // Compute active state for a nav item. General rule: exact match for the
-  // Overview route, or startsWith with a path boundary for sub-paths. Buyer
-  // routes have no prefix collisions, so no special cases are needed.
-  const getIsActive = (href: string) => {
+  // Overview route, or startsWith with a path boundary for sub-paths.
+  const getIsActive = (href: string, title?: string) => {
     const overviewPath = '/dashboard';
 
     if (href === overviewPath) {
       return pathname === overviewPath;
     }
+    // Profile is now reached via Settings, so Settings stays active on the profile page too.
+    if (title === 'Settings') return pathname.startsWith('/dashboard/settings') || pathname.startsWith('/dashboard/profile');
     return pathname.startsWith(href) && (pathname.length === href.length || pathname[href.length] === '/');
   };
 
@@ -204,7 +203,7 @@ export default function DashboardLayout({
                 {navItems.map((item) => {
                   const IconComponent = item.icon;
                   const iconProps = { className: "h-4 w-4 mr-3 shrink-0" };
-                  const isActive = getIsActive(item.href);
+                  const isActive = getIsActive(item.href, item.title);
                   const isLocked = isUnverified && !ALWAYS_UNLOCKED_TITLES.has(item.title);
 
                   // Locked items keep the exact same size/position but are
@@ -261,7 +260,7 @@ export default function DashboardLayout({
                 {utilityNavItems.map((item) => {
                   const IconComponent = item.icon;
                   const iconProps = { className: "h-4 w-4 mr-3 shrink-0" };
-                  const isActive = getIsActive(item.href);
+                  const isActive = getIsActive(item.href, item.title);
 
                   return (
                   <SidebarMenuItem key={item.title}>

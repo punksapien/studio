@@ -28,7 +28,7 @@ import { useTransition, useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
 import { useCurrentUser } from "@/hooks/use-cached-profile";
-import { Loader2, RefreshCw, AlertCircle } from "lucide-react";
+import { Loader2, RefreshCw, AlertCircle, ArrowLeft, KeyRound } from "lucide-react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
@@ -54,6 +54,15 @@ const ProfileSchema = z.object({
   }
 });
 
+const PasswordChangeSchema = z.object({
+  currentPassword: z.string().min(1, "Current password is required."),
+  newPassword: z.string().min(8, "New password must be at least 8 characters."),
+  confirmNewPassword: z.string(),
+}).refine(data => data.newPassword === data.confirmNewPassword, {
+  message: "New passwords do not match.",
+  path: ["confirmNewPassword"],
+});
+
 const defaultProfileValues: Partial<z.infer<typeof ProfileSchema>> = {
   fullName: "",
   phoneNumber: "",
@@ -69,6 +78,7 @@ export default function BuyerProfilePage() {
   const { toast } = useToast();
   const router = useRouter();
   const [isProfilePending, startProfileTransition] = useTransition();
+  const [isPasswordPending, startPasswordTransition] = useTransition();
   const [hasInitialized, setHasInitialized] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const [isSessionReady, setIsSessionReady] = useState(false);
@@ -87,6 +97,15 @@ export default function BuyerProfilePage() {
   const profileForm = useForm<z.infer<typeof ProfileSchema>>({
     resolver: zodResolver(ProfileSchema),
     defaultValues: defaultProfileValues,
+  });
+
+  const passwordForm = useForm<z.infer<typeof PasswordChangeSchema>>({
+    resolver: zodResolver(PasswordChangeSchema),
+    defaultValues: {
+      currentPassword: "",
+      newPassword: "",
+      confirmNewPassword: "",
+    },
   });
 
   // Combined loading state
@@ -220,12 +239,32 @@ export default function BuyerProfilePage() {
     });
   };
 
+  const onPasswordSubmit = (values: z.infer<typeof PasswordChangeSchema>) => {
+    startPasswordTransition(async () => {
+      console.log("Password change values:", values);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      if (values.currentPassword === "wrongpassword") {
+        passwordForm.setError("currentPassword", { type: "manual", message: "Incorrect current password."});
+        toast({ variant: "destructive", title: "Error", description: "Failed to change password. Incorrect current password." });
+      } else {
+        toast({ title: "Password Changed", description: "Your password has been successfully updated." });
+        passwordForm.reset();
+      }
+    });
+  };
+
+  const backToSettings = (
+    <Button asChild variant="outline" size="sm" className="border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white">
+      <Link href="/dashboard/settings"><ArrowLeft className="h-4 w-4 mr-2" />Back to Settings</Link>
+    </Button>
+  );
+
   const watchedBuyerPersonaType = profileForm.watch("buyerPersonaType");
 
   // Show loading state
   if (isLoading || !isSessionReady) {
     return (
-      <DashboardPageShell title="My Profile" description="Update your personal details and investment focus.">
+      <DashboardPageShell headerActions={backToSettings} title="My Profile" description="Update your personal details and investment focus.">
         <div className="flex flex-1 items-center justify-center">
           <div className="text-center">
             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
@@ -239,7 +278,7 @@ export default function BuyerProfilePage() {
   // Show error state if no user/profile after loading
   if (!authUser && !user && hasInitialized) {
     return (
-      <DashboardPageShell title="My Profile" description="Update your personal details and investment focus.">
+      <DashboardPageShell headerActions={backToSettings} title="My Profile" description="Update your personal details and investment focus.">
         <div className="flex flex-1 flex-col items-center justify-center">
           <AlertCircle className="h-12 w-12 text-destructive mb-4" />
           <h2 className="text-lg font-semibold text-destructive mb-2">Session Error</h2>
@@ -267,7 +306,7 @@ export default function BuyerProfilePage() {
   // Check role after loading
   if (currentProfile && currentProfile.role !== 'buyer') {
     return (
-      <DashboardPageShell title="My Profile" description="Update your personal details and investment focus.">
+      <DashboardPageShell headerActions={backToSettings} title="My Profile" description="Update your personal details and investment focus.">
         <div className="flex flex-1 flex-col items-center justify-center text-center">
           <h2 className="text-lg font-semibold tracking-tight">Access Denied</h2>
           <p className="text-muted-foreground mb-4">This page is only accessible to buyer accounts.</p>
@@ -280,7 +319,7 @@ export default function BuyerProfilePage() {
   }
 
   return (
-    <DashboardPageShell scrollable title="My Profile" description="Update your personal details and investment focus.">
+    <DashboardPageShell scrollable headerActions={backToSettings} title="My Profile" description="Update your personal details and investment focus.">
       <Card>
         <CardHeader>
           <CardTitle className="text-lg font-semibold">Personal Information</CardTitle>
@@ -478,13 +517,51 @@ export default function BuyerProfilePage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg font-semibold">Additional Settings</CardTitle>
-          <CardDescription>Access additional account settings and security options.</CardDescription>
+          <CardTitle className="text-lg font-semibold flex items-center"><KeyRound className="mr-2 h-5 w-5"/>Change Password</CardTitle>
+          <CardDescription>Update your account password.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Button variant="outline" asChild>
-            <Link href="/dashboard/settings">Go to Account Settings</Link>
-          </Button>
+          <Form {...passwordForm}>
+            <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-6">
+              <FormField
+                control={passwordForm.control}
+                name="currentPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel htmlFor="currentPassword">Current Password</FormLabel>
+                    <FormControl><Input id="currentPassword" {...field} type="password" disabled={isPasswordPending} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={passwordForm.control}
+                name="newPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel htmlFor="newPassword">New Password</FormLabel>
+                    <FormControl><Input id="newPassword" {...field} type="password" disabled={isPasswordPending} /></FormControl>
+                    <FormDescription className="text-xs">Must be at least 8 characters.</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={passwordForm.control}
+                name="confirmNewPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel htmlFor="confirmNewPassword">Confirm New Password</FormLabel>
+                    <FormControl><Input id="confirmNewPassword" {...field} type="password" disabled={isPasswordPending} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Button type="submit" disabled={isPasswordPending}>
+                {isPasswordPending ? "Changing..." : "Change Password"}
+              </Button>
+            </form>
+          </Form>
         </CardContent>
       </Card>
     </DashboardPageShell>

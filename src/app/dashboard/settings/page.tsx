@@ -9,65 +9,18 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, KeyRound } from "lucide-react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import * as z from "zod";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormMessage,
-  FormLabel,
-  FormDescription,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import { AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useTransition } from "react";
+import Link from "next/link";
 import { DashboardPageShell } from "@/components/shared/dashboard-page-shell";
-
-const PasswordChangeSchema = z.object({
-  currentPassword: z.string().min(1, "Current password is required."),
-  newPassword: z.string().min(8, "New password must be at least 8 characters."),
-  confirmNewPassword: z.string(),
-}).refine(data => data.newPassword === data.confirmNewPassword, {
-  message: "New passwords do not match.",
-  path: ["confirmNewPassword"],
-});
 
 
 export default function SettingsPage() {
   const { toast } = useToast();
-  const [isPasswordPending, startPasswordTransition] = useTransition();
 
   const [emailNotifications, setEmailNotifications] = React.useState(true);
   const [newInquiryAlerts, setNewInquiryAlerts] = React.useState(true);
   const [listingStatusAlerts, setListingStatusAlerts] = React.useState(true);
-
-
-  const passwordForm = useForm<z.infer<typeof PasswordChangeSchema>>({
-    resolver: zodResolver(PasswordChangeSchema),
-    defaultValues: {
-      currentPassword: "",
-      newPassword: "",
-      confirmNewPassword: "",
-    },
-  });
-
-  const onPasswordSubmit = (values: z.infer<typeof PasswordChangeSchema>) => {
-    startPasswordTransition(async () => {
-      console.log("Password change values:", values);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      if (values.currentPassword === "wrongpassword") {
-        passwordForm.setError("currentPassword", { type: "manual", message: "Incorrect current password."});
-        toast({ variant: "destructive", title: "Error", description: "Failed to change password. Incorrect current password." });
-      } else {
-        toast({ title: "Password Changed", description: "Your password has been successfully updated." });
-        passwordForm.reset();
-      }
-    });
-  };
 
   const handleNotificationPreferenceSave = () => {
     console.log("Notification preferences saved:", { emailNotifications, newInquiryAlerts, listingStatusAlerts });
@@ -77,6 +30,23 @@ export default function SettingsPage() {
 
   return (
     <DashboardPageShell scrollable title="Settings" description="Manage your notification preferences and account.">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold">Profile & Account Management</CardTitle>
+          <CardDescription>Links to manage your public profile and account security.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Button variant="outline" asChild>
+            <Link href="/dashboard/profile">Edit My Buyer Profile</Link>
+          </Button>
+          <p className="text-sm text-muted-foreground">
+            To change your password, please go to your profile page.
+          </p>
+        </CardContent>
+      </Card>
+
+      <Separator/>
+
       <Card>
         <CardHeader>
           <CardTitle className="text-lg font-semibold">Notification Preferences</CardTitle>
@@ -120,58 +90,6 @@ export default function SettingsPage() {
             />
           </div>
            <Button onClick={handleNotificationPreferenceSave}>Save Notification Preferences</Button>
-        </CardContent>
-      </Card>
-
-      <Separator/>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold flex items-center"><KeyRound className="mr-2 h-5 w-5"/>Change Password</CardTitle>
-          <CardDescription>Update your account password.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...passwordForm}>
-            <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-6">
-              <FormField
-                control={passwordForm.control}
-                name="currentPassword"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel htmlFor="currentPassword">Current Password</FormLabel>
-                    <FormControl><Input id="currentPassword" {...field} type="password" disabled={isPasswordPending} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={passwordForm.control}
-                name="newPassword"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel htmlFor="newPassword">New Password</FormLabel>
-                    <FormControl><Input id="newPassword" {...field} type="password" disabled={isPasswordPending} /></FormControl>
-                    <FormDescription className="text-xs">Must be at least 8 characters.</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={passwordForm.control}
-                name="confirmNewPassword"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel htmlFor="confirmNewPassword">Confirm New Password</FormLabel>
-                    <FormControl><Input id="confirmNewPassword" {...field} type="password" disabled={isPasswordPending} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" disabled={isPasswordPending}>
-                {isPasswordPending ? "Changing..." : "Change Password"}
-              </Button>
-            </form>
-          </Form>
         </CardContent>
       </Card>
 
