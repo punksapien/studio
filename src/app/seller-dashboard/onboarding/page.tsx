@@ -68,6 +68,7 @@ export default function SellerOnboardingPage() {
 
   const effectiveStatus = previewStatus ?? profile?.verification_status ?? null;
   const isVerified = effectiveStatus === 'verified';
+  const isRejected = effectiveStatus === 'rejected';
 
   // This page is pre-verification only — verified sellers get bounced to the dashboard.
   useEffect(() => {
@@ -205,47 +206,67 @@ export default function SellerOnboardingPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <p className="text-muted-foreground">
-            You&apos;ve taken the first steps toward selling your business. From here, our team does the
-            heavy lifting. You won&apos;t have to fill out long forms or upload documents on your own.
-          </p>
-          <div>
-            <h4 className="mb-3 font-semibold text-foreground">What happens next</h4>
-            <ol className="space-y-3">
-              <li className="flex gap-3">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center bg-primary text-sm font-semibold text-primary-foreground">
-                  1
-                </span>
-                <span className="text-muted-foreground">
-                  Our team will be in touch soon, within the next 72 hours, to review your account
-                  and help you complete verification.
-                </span>
-              </li>
-              <li className="flex gap-3">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center bg-primary text-sm font-semibold text-primary-foreground">
-                  2
-                </span>
-                <span className="text-muted-foreground">
-                  Once you&apos;re verified, we&apos;ll build and publish an optimized listing for you.
-                </span>
-              </li>
-              <li className="flex gap-3">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center bg-primary text-sm font-semibold text-primary-foreground">
-                  3
-                </span>
-                <span className="text-muted-foreground">
-                  Buyers will start sending you inquiries, and you&apos;ll respond right here in your
-                  dashboard.
-                </span>
-              </li>
-            </ol>
-          </div>
-          <div className="border-l-2 border-primary bg-white p-4">
-            <p className="text-sm text-muted-foreground">
-              <span className="font-medium text-foreground">Nothing else is required from you right now.</span>{' '}
-              Please wait 72 hours and check your email. We&apos;ll be in touch.
-            </p>
-          </div>
+          {isRejected ? (
+            <>
+              <p className="text-muted-foreground">
+                We reviewed your account and couldn&apos;t complete verification yet — so we
+                can&apos;t build your listing just yet. This doesn&apos;t have to be the end of the
+                road; our team will reach out about the next steps.
+              </p>
+              <div className="border-l-2 border-destructive bg-white p-4">
+                <p className="text-sm text-muted-foreground">
+                  <span className="font-medium text-foreground">
+                    We&apos;ll be in touch about your account.
+                  </span>{' '}
+                  In the meantime, you can review and update your details below.
+                </p>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="text-muted-foreground">
+                You&apos;ve taken the first steps toward selling your business. From here, our team does the
+                heavy lifting. You won&apos;t have to fill out long forms or upload documents on your own.
+              </p>
+              <div>
+                <h4 className="mb-3 font-semibold text-foreground">What happens next</h4>
+                <ol className="space-y-3">
+                  <li className="flex gap-3">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center bg-primary text-sm font-semibold text-primary-foreground">
+                      1
+                    </span>
+                    <span className="text-muted-foreground">
+                      Our team will be in touch soon, within the next 72 hours, to review your account
+                      and help you complete verification.
+                    </span>
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center bg-primary text-sm font-semibold text-primary-foreground">
+                      2
+                    </span>
+                    <span className="text-muted-foreground">
+                      Once you&apos;re verified, we&apos;ll build and publish an optimized listing for you.
+                    </span>
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center bg-primary text-sm font-semibold text-primary-foreground">
+                      3
+                    </span>
+                    <span className="text-muted-foreground">
+                      Buyers will start sending you inquiries, and you&apos;ll respond right here in your
+                      dashboard.
+                    </span>
+                  </li>
+                </ol>
+              </div>
+              <div className="border-l-2 border-primary bg-white p-4">
+                <p className="text-sm text-muted-foreground">
+                  <span className="font-medium text-foreground">Nothing else is required from you right now.</span>{' '}
+                  Please wait 72 hours and check your email. We&apos;ll be in touch.
+                </p>
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
 

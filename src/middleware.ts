@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { middlewareAuth, type UserProfile } from './lib/middleware-auth'
 import { validateVerificationToken, isEmailPendingVerification } from './lib/verification-token'
+import { getLockdownRedirect, isBuyerLockdownFlagOn } from '@/lib/lockdown'
 
 /**
  * Production-Grade Middleware with Authentication & Onboarding Flow
@@ -352,18 +353,16 @@ export async function middleware(req: NextRequest) {
   // has run). Allowed prefixes MUST mirror the client layout's UNVERIFIED_ALLOWED_PREFIXES.
   // /api/* is returned earlier and /dev-preview/* doesn't start with '/seller-dashboard',
   // so both are naturally excluded; admins and verified sellers are unaffected.
-  if (profile.role === 'seller' && profile.verification_status !== 'verified' && pathname.startsWith('/seller-dashboard')) {
-    const UNVERIFIED_ALLOWED_PREFIXES = [
-      '/seller-dashboard/onboarding',
-      '/seller-dashboard/settings',
-      '/seller-dashboard/profile',
-    ]
-    const isOnAllowedPath = UNVERIFIED_ALLOWED_PREFIXES.some(
-      (prefix) => pathname === prefix || pathname.startsWith(prefix + '/')
-    )
-    if (!isOnAllowedPath) {
+  if (profile.role === 'seller') {
+    const sellerLockdownTarget = getLockdownRedirect({
+      role: profile.role,
+      verificationStatus: profile.verification_status,
+      pathname,
+      buyerFlagOn: isBuyerLockdownFlagOn(),
+    })
+    if (sellerLockdownTarget) {
       console.log(`[MIDDLEWARE] ${correlationId} | Unverified seller ${user.id} accessing locked route ${pathname}, redirecting to /seller-dashboard/onboarding`)
-      return NextResponse.redirect(new URL('/seller-dashboard/onboarding', req.url))
+      return NextResponse.redirect(new URL(sellerLockdownTarget, req.url))
     }
   }
 
@@ -373,23 +372,16 @@ export async function middleware(req: NextRequest) {
   // has run). Allowed prefixes MUST mirror the client layout's UNVERIFIED_ALLOWED_PREFIXES.
   // /api/* is returned earlier and /dev-preview/* doesn't start with '/dashboard',
   // so both are naturally excluded; admins and verified buyers are unaffected.
-  if (
-    process.env.NEXT_PUBLIC_BUYER_VERIFICATION_LOCKDOWN === 'true' &&
-    profile.role === 'buyer' &&
-    profile.verification_status !== 'verified' &&
-    pathname.startsWith('/dashboard')
-  ) {
-    const BUYER_UNVERIFIED_ALLOWED_PREFIXES = [
-      '/dashboard/onboarding',
-      '/dashboard/settings',
-      '/dashboard/profile',
-    ]
-    const isOnAllowedPath = BUYER_UNVERIFIED_ALLOWED_PREFIXES.some(
-      (prefix) => pathname === prefix || pathname.startsWith(prefix + '/')
-    )
-    if (!isOnAllowedPath) {
+  if (profile.role === 'buyer') {
+    const buyerLockdownTarget = getLockdownRedirect({
+      role: profile.role,
+      verificationStatus: profile.verification_status,
+      pathname,
+      buyerFlagOn: isBuyerLockdownFlagOn(),
+    })
+    if (buyerLockdownTarget) {
       console.log(`[MIDDLEWARE] ${correlationId} | Unverified buyer ${user.id} accessing locked route ${pathname}, redirecting to /dashboard/onboarding`)
-      return NextResponse.redirect(new URL('/dashboard/onboarding', req.url))
+      return NextResponse.redirect(new URL(buyerLockdownTarget, req.url))
     }
   }
 

@@ -31,6 +31,11 @@ import {
   Sparkles
 } from 'lucide-react';
 import LogoutButton from '@/components/auth/LogoutButton';
+import {
+  BUYER_UNVERIFIED_ALLOWED_PREFIXES,
+  isUnverifiedAllowedPath,
+  isBuyerLockdownFlagOn,
+} from '@/lib/lockdown';
 
 // Flat buyer theme: square corners and no shadows everywhere in the buyer area.
 // Applied via a class on <body> so portaled elements (dialogs, dropdowns,
@@ -69,13 +74,6 @@ const onboardingNavItem = {
 // Pre-verification, these are the only interactive destinations.
 const ALWAYS_UNLOCKED_TITLES = new Set(['Onboarding', 'Settings']);
 
-// Path prefixes an unverified buyer is allowed to reach without being bounced to Onboarding.
-const UNVERIFIED_ALLOWED_PREFIXES = [
-  '/dashboard/onboarding',
-  '/dashboard/settings',
-  '/dashboard/profile',
-];
-
 export default function DashboardLayout({
   children,
 }: {
@@ -88,7 +86,7 @@ export default function DashboardLayout({
 
   // Lock state: only ever lock when a buyer profile is loaded and not verified.
   // When profile is null (middleware-trusted session) we never lock.
-  const lockdownEnabled = process.env.NEXT_PUBLIC_BUYER_VERIFICATION_LOCKDOWN === 'true';
+  const lockdownEnabled = isBuyerLockdownFlagOn();
   const isBuyer = profile?.role === 'buyer';
   const isUnverified = lockdownEnabled && isBuyer && profile?.verification_status !== 'verified';
 
@@ -100,9 +98,7 @@ export default function DashboardLayout({
   // When unverified and sitting on a locked deep link, bounce to Onboarding.
   const isOnAllowedPath =
     !isUnverified ||
-    UNVERIFIED_ALLOWED_PREFIXES.some(
-      (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
-    );
+    isUnverifiedAllowedPath(pathname, BUYER_UNVERIFIED_ALLOWED_PREFIXES);
   const shouldRedirectToOnboarding =
     isUnverified && !isOnAllowedPath && !pathname.startsWith('/dev-preview');
 
