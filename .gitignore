@@ -58,3 +58,6 @@ firestore-debug.log
 /python-scripts/__pycache__
 /python-scripts/venv
 .env*.local
+
+# temporary image-optimization backups
+originals-backup/

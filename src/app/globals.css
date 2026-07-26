@@ -1,17 +1,12 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@600&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Custom Font - Montserrat Arabic Regular for Headings */
-@font-face {
-  font-family: 'Montserrat Arabic';
-  src: url('/assets/Montserrat-Arabic Regular 400.otf') format('opentype');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
+/*
+ * Typefaces are self-hosted via next/font in src/app/layout.tsx and exposed as
+ * CSS variables: --font-satoshi (body), --font-heading (Montserrat Arabic),
+ * --font-inter (decorative glyphs).
+ */
 
 @layer base {
   :root {
@@ -133,10 +128,10 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: 'Satoshi', sans-serif; /* Ensure Satoshi is primary */
+    font-family: var(--font-satoshi), sans-serif; /* Ensure Satoshi is primary */
   }
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Montserrat Arabic', 'Satoshi', sans-serif; /* Use Montserrat Arabic for headings */
+    font-family: var(--font-heading), var(--font-satoshi), sans-serif; /* Use Montserrat Arabic for headings */
     @apply tracking-tight;
   }
 }
@@ -156,7 +151,7 @@
 
 /* Utility class to explicitly use Montserrat Arabic font for headings */
 .font-heading {
-  font-family: 'Montserrat Arabic', 'Satoshi', sans-serif;
+  font-family: var(--font-heading), var(--font-satoshi), sans-serif;
 }
 
 /* Page section vertical guide lines */

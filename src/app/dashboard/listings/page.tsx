@@ -9,6 +9,9 @@ import Image from "next/image";
 import { Eye, ShieldCheck, AlertTriangle, Briefcase, Info } from "lucide-react";
 import { DashboardPageShell } from "@/components/shared/dashboard-page-shell";
 
+// Auth-gated segment: keep dynamic rendering (previously inherited from the root layout).
+export const dynamic = 'force-dynamic';
+
 // Filter listings for the current seller (placeholder: 'user1')
 const sellerListings: Listing[] = sampleListings.filter(l => l.sellerId === 'user1');
 

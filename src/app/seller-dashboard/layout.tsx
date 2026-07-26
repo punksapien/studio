@@ -1,5 +1,8 @@
 'use client';
 
+// Force dynamic rendering due to client-side interactivity
+export const dynamic = 'force-dynamic'
+
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import * as React from 'react';
@@ -31,6 +34,10 @@ import {
 import LogoutButton from '@/components/auth/LogoutButton';
 import { Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import {
+  SELLER_UNVERIFIED_ALLOWED_PREFIXES,
+  isUnverifiedAllowedPath,
+} from '@/lib/lockdown';
 
 // Flat seller theme: square corners and no shadows everywhere in the seller area.
 // Applied via a class on <body> so portaled elements (dialogs, dropdowns,
@@ -66,13 +73,6 @@ const onboardingNavItem = {
 // Pre-verification, these are the only interactive destinations.
 const ALWAYS_UNLOCKED_TITLES = new Set(['Onboarding', 'Settings']);
 
-// Path prefixes an unverified seller is allowed to reach without being bounced to Onboarding.
-const UNVERIFIED_ALLOWED_PREFIXES = [
-  '/seller-dashboard/onboarding',
-  '/seller-dashboard/settings',
-  '/seller-dashboard/profile',
-];
-
 export default function SellerDashboardLayout({
   children,
 }: {
@@ -96,9 +96,7 @@ export default function SellerDashboardLayout({
   // When unverified and sitting on a locked deep link, bounce to Onboarding.
   const isOnAllowedPath =
     !isUnverified ||
-    UNVERIFIED_ALLOWED_PREFIXES.some(
-      (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
-    );
+    isUnverifiedAllowedPath(pathname, SELLER_UNVERIFIED_ALLOWED_PREFIXES);
   const shouldRedirectToOnboarding =
     isUnverified && !isOnAllowedPath && !pathname.startsWith('/dev-preview');
 

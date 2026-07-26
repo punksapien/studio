@@ -1,5 +1,8 @@
 'use client';
 
+// Force dynamic rendering due to client-side interactivity
+export const dynamic = 'force-dynamic'
+
 import * as React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -36,6 +39,7 @@ import {
   MailWarning,
   MailCheck,
   ChevronDown,
+  UserX,
 } from 'lucide-react';
 import LogoutButton from '@/components/auth/LogoutButton';
 import { useAuth } from '@/contexts/auth-context';
@@ -63,6 +67,7 @@ const adminSidebarNavGroups = [
       { title: 'Listing Management', href: '/admin/listings', icon: Briefcase, tooltip: "Manage Listings" },
       { title: 'Appeal Management', href: '/admin/appeals', icon: MessageSquare, tooltip: "Review Listing Appeals" },
       { title: 'Engagement Queue', href: '/admin/engagement-queue', icon: BellRing, tooltip: "Engagement Queue" },
+      { title: 'Deletion Requests', href: '/admin/account-deletion-requests', icon: UserX, tooltip: 'User-requested account deletions' },
     ],
   },
   {

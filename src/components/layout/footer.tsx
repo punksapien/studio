@@ -60,7 +60,7 @@ export function Footer() {
               </p>
               <div className="flex flex-col space-y-2">
                 <Link href="/how-selling-works" className="flex items-center gap-2 hover:text-brand-white transition-colors duration-300">
-                  <span className="text-white/40 text-[5px] shrink-0">&#x25CF;</span> List Your Business
+                  <span className="text-white/40 text-[5px] shrink-0">&#x25CF;</span> Sell Your Business
                 </Link>
                 <Link href="/seller-services" className="flex items-center gap-2 hover:text-brand-white transition-colors duration-300">
                   <span className="text-white/40 text-[5px] shrink-0">&#x25CF;</span> Services for sellers

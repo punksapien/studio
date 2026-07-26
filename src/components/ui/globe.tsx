@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Color, Scene, Fog, PerspectiveCamera, Vector3 } from "three";
 import ThreeGlobe from "three-globe";
 import { useThree, Canvas, extend } from "@react-three/fiber";
@@ -59,6 +59,11 @@ export type GlobeConfig = {
 interface WorldProps {
   globeConfig: GlobeConfig;
   data: Position[];
+}
+
+interface WorldCanvasProps extends WorldProps {
+  /** When false the r3f render loop is paused (globe is off-screen). */
+  inView?: boolean;
 }
 
 let numbersOfRings = [0];
@@ -239,7 +244,7 @@ export function WebGLRendererConfig() {
   const { gl, size } = useThree();
 
   useEffect(() => {
-    gl.setPixelRatio(window.devicePixelRatio);
+    gl.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     gl.setSize(size.width, size.height);
     gl.setClearColor(0xffaaff, 0);
   }, []);
@@ -247,11 +252,19 @@ export function WebGLRendererConfig() {
   return null;
 }
 
-export function World(props: WorldProps) {
-  const { globeConfig } = props;
-  const scene = new Scene();
+export function World(props: WorldCanvasProps) {
+  const { globeConfig, data, inView = true } = props;
+  // Created once — re-instantiating the Scene/Camera on every render tears down
+  // and rebuilds the whole three.js graph.
+  const scene = useMemo(() => new Scene(), []);
+  const camera = useMemo(() => new PerspectiveCamera(50, aspect, 180, 1800), []);
   return (
-    <Canvas scene={scene} camera={new PerspectiveCamera(50, aspect, 180, 1800)}>
+    <Canvas
+      scene={scene}
+      camera={camera}
+      dpr={[1, 2]}
+      frameloop={inView ? "always" : "never"}
+    >
       <WebGLRendererConfig />
       <ambientLight color={globeConfig.ambientLight} intensity={1.5} />
       <directionalLight
@@ -267,7 +280,7 @@ export function World(props: WorldProps) {
         position={new Vector3(-200, 500, 200)}
         intensity={0.8}
       />
-      <Globe {...props} />
+      <Globe globeConfig={globeConfig} data={data} />
       <OrbitControls
         enablePan={false}
         enableZoom={false}

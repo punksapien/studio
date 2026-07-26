@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from "react";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -11,13 +11,8 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { NobridgeIcon, NobridgeIconType } from '@/components/ui/nobridge-icon';
-import { AnimatedBackground } from '@/components/ui/animated-background';
 import { FadeIn } from '@/components/ui/fade-in';
-import dynamic from 'next/dynamic';
-
-const World = dynamic(() => import('@/components/ui/globe').then((m) => m.World), {
-  ssr: false,
-});
+import { LazyGlobe } from '@/components/ui/lazy-globe';
 
 
 const PlaceholderLogo = ({ text = "Logo", className = "" }: { text?: string, className?: string }) => (
@@ -54,6 +49,38 @@ const featuredCompanyLogos = [
 export default function HomePage() {
   const [featuredListings, setFeaturedListings] = useState<FeaturedListing[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const heroVideoRef = useRef<HTMLVideoElement>(null);
+
+  // Keep the hero background video playing: retry autoplay if the browser blocks
+  // it, and resume if it stalls, gets paused, or the tab is re-focused. This
+  // prevents the "blank frame + stuck play button" the poster otherwise falls back to.
+  useEffect(() => {
+    const video = heroVideoRef.current;
+    if (!video) return;
+
+    const tryPlay = () => {
+      const p = video.play();
+      if (p && typeof p.catch === 'function') p.catch(() => {});
+    };
+
+    tryPlay();
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') tryPlay();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    video.addEventListener('pause', tryPlay);
+    video.addEventListener('stalled', tryPlay);
+    video.addEventListener('ended', tryPlay);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      video.removeEventListener('pause', tryPlay);
+      video.removeEventListener('stalled', tryPlay);
+      video.removeEventListener('ended', tryPlay);
+    };
+  }, []);
 
   // Fetch featured listings: top 2 by revenue per country (Indonesia + Malaysia)
   useEffect(() => {
@@ -84,13 +111,19 @@ export default function HomePage() {
       <section className="w-full relative text-brand-white section-lines-light">
         <div className="absolute inset-0 z-0">
           <video
+            ref={heroVideoRef}
             autoPlay
             muted
             loop
             playsInline
+            preload="metadata"
+            poster="/assets/hero-poster.jpg"
+            aria-hidden="true"
             className="absolute inset-0 w-full h-full object-cover"
           >
+            <source src="/assets/hero-video.webm" type="video/webm" />
             <source src="/assets/hero-video.mp4" type="video/mp4" />
+            <track kind="captions" src="/assets/hero-video.vtt" srcLang="en" label="English" />
           </video>
           <div className="absolute inset-0 bg-black/30" />
         </div>
@@ -104,10 +137,10 @@ export default function HomePage() {
             </span>
           </a>
           <h1 style={{ letterSpacing: '-2.5px' }} className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-normal !leading-tight mb-6 font-heading animate-in slide-in-from-bottom-8 fade-in duration-1000 delay-100">
-            Where As<span style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: '0.92em' }}>i</span>an bus<span style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: '0.92em' }}>i</span>nesses<br />meet global cap<span style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: '0.92em' }}>i</span>tal
+            Where As<span style={{ fontFamily: 'var(--font-inter)', fontWeight: 600, fontSize: '0.92em' }}>i</span>an bus<span style={{ fontFamily: 'var(--font-inter)', fontWeight: 600, fontSize: '0.92em' }}>i</span>nesses<br />meet global cap<span style={{ fontFamily: 'var(--font-inter)', fontWeight: 600, fontSize: '0.92em' }}>i</span>tal
           </h1>
           <p className="text-sm sm:text-lg md:text-xl lg:text-2xl text-brand-light-gray max-w-[85%] sm:max-w-3xl mx-auto mb-10 animate-in slide-in-from-bottom-8 fade-in duration-1000 delay-200 text-balance sm:text-pretty">
-            Nobridge is the advisory firm built for Asian SMEs, connecting sellers with global acquirers, guiding buyers into new markets, and powering deals through a live deal marketplace.
+            Nobridge is an M&amp;A advisory firm specializing in Asia&apos;s mid-market - connecting founders and owners with global acquirers, and guiding buyers into the region&apos;s most compelling growth markets.
           </p>
           <div className="mb-10 text-sm md:text-base text-brand-light-gray animate-in slide-in-from-bottom-8 fade-in duration-1000 delay-300">
             {/* Desktop: original single row with pipes, no borders */}
@@ -144,7 +177,7 @@ export default function HomePage() {
               Talk to Us <ArrowRight className="ml-2 h-5 w-5" />
             </Link>
             <Link href="/marketplace" className="inline-flex items-center justify-center whitespace-nowrap rounded-none text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-brand-white text-brand-white hover:bg-brand-white/10 h-11 py-3 px-8 text-base min-w-[220px] sm:min-w-[260px]">
-              Browse Marketplace <SearchIconLucide className="ml-2 h-5 w-5" />
+              Check Open Deals <SearchIconLucide className="ml-2 h-5 w-5" />
             </Link>
           </div>
         </div>
@@ -232,7 +265,7 @@ export default function HomePage() {
                           "border border-brand-dark-blue/10 h-56 bg-white relative overflow-hidden",
                           index > 0 && "border-l-0"
                         )}>
-                          <Image src={card.src} alt={card.alt} fill className="object-contain scale-[0.8]" />
+                          <Image src={card.src} alt={card.alt} fill sizes="(min-width: 768px) 33vw, 100vw" className="object-contain scale-[0.8]" />
                         </div>
                       </FadeIn>
                     ))}
@@ -267,7 +300,7 @@ export default function HomePage() {
                         "border border-brand-dark-blue/10 h-48 bg-white relative overflow-hidden",
                         index > 0 && "border-t-0"
                       )}>
-                        <Image src={card.src} alt={card.alt} fill className="object-contain scale-[0.8]" />
+                        <Image src={card.src} alt={card.alt} fill sizes="(min-width: 768px) 33vw, 100vw" className="object-contain scale-[0.8]" />
                       </div>
                       <div className={cn(
                         "group relative border border-brand-dark-blue/10 border-t-0 bg-white p-6 sm:p-8 flex flex-col overflow-hidden"
@@ -363,6 +396,7 @@ export default function HomePage() {
                       src={step.image}
                       alt={step.title}
                       fill
+                      sizes="(min-width: 768px) 23vw, 100vw"
                       className="object-contain"
                     />
                   </div>
@@ -391,6 +425,7 @@ export default function HomePage() {
                   src="/assets/marketplace-preview-v4.png"
                   alt="Browse live acquisition targets in Asia"
                   fill
+                  sizes="(min-width: 768px) 50vw, 100vw"
                   className="object-contain"
                 />
               </div>
@@ -479,6 +514,7 @@ export default function HomePage() {
                         alt={listing.title}
                         width={400}
                         height={400}
+                        sizes="(min-width: 768px) 25vw, 50vw"
                         className="w-full h-full object-cover scale-[0.7]"
                         data-ai-hint={listing.industry ? listing.industry.toLowerCase().replace(/\s+/g, '-') : "business"}
                       />
@@ -501,7 +537,7 @@ export default function HomePage() {
                         )}
                       </div>
                       <div className="mt-auto pt-3 border-t border-brand-dark-blue/10">
-                        <Link href={`/listings/${listing.id}`} className="inline-flex items-center text-xs font-medium text-brand-dark-blue hover:text-brand-sky-blue transition-colors">
+                        <Link href={`/listings/${listing.id}`} aria-label={`View details for ${listing.title}`} className="inline-flex items-center text-xs font-medium text-brand-dark-blue hover:text-brand-sky-blue transition-colors">
                           View Details <ArrowRight className="ml-1 h-3 w-3" />
                         </Link>
                       </div>
@@ -529,6 +565,7 @@ export default function HomePage() {
                           alt={listing.title}
                           width={400}
                           height={400}
+                          sizes="(min-width: 768px) 25vw, 50vw"
                           className="w-full h-full object-cover scale-[0.7]"
                           data-ai-hint={listing.industry ? listing.industry.toLowerCase().replace(/\s+/g, '-') : "business"}
                         />
@@ -551,7 +588,7 @@ export default function HomePage() {
                           )}
                         </div>
                         <div className="mt-auto pt-4 border-t border-brand-dark-blue/10">
-                          <Link href={`/listings/${listing.id}`} className="inline-flex items-center text-sm font-medium text-brand-dark-blue hover:text-brand-sky-blue transition-colors">
+                          <Link href={`/listings/${listing.id}`} aria-label={`View details for ${listing.title}`} className="inline-flex items-center text-sm font-medium text-brand-dark-blue hover:text-brand-sky-blue transition-colors">
                             View Details <ArrowRight className="ml-2 h-4 w-4" />
                           </Link>
                         </div>
@@ -578,7 +615,7 @@ export default function HomePage() {
           <FadeIn direction="up" delay={300}>
             <div className="border border-brand-dark-blue/10 border-t-0 bg-brand-white py-6 text-center">
               <Link href="/marketplace" className="inline-flex items-center text-sm font-medium text-brand-dark-blue hover:text-brand-sky-blue transition-colors">
-                Access the Marketplace <ArrowRight className="ml-2 h-4 w-4" />
+                View Open Acquisition Opportunities <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </div>
           </FadeIn>
@@ -603,7 +640,7 @@ export default function HomePage() {
             <div className="border border-white/15 flex flex-col md:flex-row">
               {/* Left - Interactive globe */}
               <div className="md:w-1/2 bg-white border-b md:border-b-0 md:border-r border-brand-dark-blue/10 flex items-center justify-center aspect-[4/3] md:aspect-square relative overflow-hidden">
-                <World
+                <LazyGlobe
                   data={[
                     /* === Asian routes (dark blue #0D0D39) === */
                     { order: 1, startLat: 1.3521, startLng: 103.8198, endLat: 35.6762, endLng: 139.6503, arcAlt: 0.25, color: "#0D0D39" },
@@ -725,7 +762,7 @@ export default function HomePage() {
               >
                 <div className="bg-white p-5 sm:p-8 md:p-10 h-full flex flex-col">
                   <card.icon className="h-5 w-5 text-brand-dark-blue/70 mb-4" strokeWidth={1.5} />
-                  <h4 className="text-lg font-normal text-brand-dark-blue font-heading mb-3">{card.title}</h4>
+                  <h3 className="text-lg font-normal text-brand-dark-blue font-heading mb-3">{card.title}</h3>
                   <p className="text-muted-foreground text-sm leading-relaxed text-justify">{card.body}</p>
                 </div>
               </FadeIn>
@@ -741,7 +778,7 @@ export default function HomePage() {
         <div className="container mx-auto">
           <FadeIn direction="up">
             <div className="border border-brand-dark-blue/10">
-              <div className="relative px-4 sm:px-8 md:px-16 py-16 md:py-0 md:aspect-[21/9] text-center overflow-hidden" style={{ backgroundImage: 'url(/assets/cta-cityscape-light.png)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
+              <div className="relative px-4 sm:px-8 md:px-16 py-16 md:py-0 md:aspect-[21/9] text-center overflow-hidden" style={{ backgroundImage: 'url(/assets/cta-cityscape-light.webp)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
                 <div className="relative z-10 flex flex-col items-center justify-center h-full">
                   <div className="border border-brand-dark-blue/20 bg-white/50 backdrop-blur-sm px-6 sm:px-10 md:px-16 py-8 sm:py-10 md:py-14">
                     <h2 className="text-3xl md:text-4xl font-normal tracking-tight text-brand-dark-blue mb-4 font-heading">Speak Wi<span style={{ fontSize: '1.06em' }}>t</span>h Our <span style={{ fontSize: '1.06em' }}>T</span>eam</h2>

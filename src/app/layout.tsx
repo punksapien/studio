@@ -1,18 +1,44 @@
 import type { Metadata } from 'next';
+import localFont from 'next/font/local';
+import { Inter } from 'next/font/google';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import GlobalLayoutWrapper from '@/components/layout/GlobalLayoutWrapper';
 import NoticeListener from '@/components/NoticeListener';
+import OfferPopup from '@/components/marketing/OfferPopup';
 import { DebugState } from '@/components/shared/DebugState';
 import { AuthProvider } from '@/contexts/auth-context';
 import { SWRProvider } from '@/contexts/swr-provider';
 import { QueryProvider } from '@/contexts/query-provider';
-import { GeistSans } from 'geist/font/sans';
-import { Toaster as SonnerToaster } from "sonner";
 import StructuredData from '@/components/seo/StructuredData';
 
-// Force all pages to be dynamic
-export const dynamic = 'force-dynamic';
+// Self-hosted typefaces (no third-party font requests at runtime)
+const satoshi = localFont({
+  src: [
+    { path: '../fonts/Satoshi-Regular.woff2', weight: '400', style: 'normal' },
+    { path: '../fonts/Satoshi-Medium.woff2', weight: '500', style: 'normal' },
+    { path: '../fonts/Satoshi-Bold.woff2', weight: '700', style: 'normal' },
+    { path: '../fonts/Satoshi-Black.woff2', weight: '900', style: 'normal' },
+  ],
+  variable: '--font-satoshi',
+  display: 'swap',
+});
+
+const montserratArabic = localFont({
+  src: '../fonts/MontserratArabic-Regular.woff2',
+  weight: '400',
+  style: 'normal',
+  variable: '--font-heading',
+  display: 'swap',
+});
+
+const inter = Inter({
+  weight: '600',
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+  preload: true,
+});
 
 export const metadata: Metadata = {
   title: {
@@ -88,7 +114,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${satoshi.variable} ${montserratArabic.variable} ${inter.variable}`}
+    >
       <head>
         {/* Favicons and icons */}
         <link rel="icon" href="/nobridge-favicon.ico?v=3" sizes="any" />
@@ -96,12 +126,6 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png?v=3" />
         <meta name="theme-color" content="#0D0D39" />
 
-        {/* Satoshi Font from Fontshare CDN */}
-        <link rel="preconnect" href="https://api.fontshare.com" />
-        <link
-          rel="stylesheet"
-          href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap"
-        />
         <StructuredData type="organization" />
       </head>
       <body className="font-sans antialiased flex flex-col min-h-screen bg-background text-foreground">
@@ -112,8 +136,9 @@ export default function RootLayout({
                 {children}
               </GlobalLayoutWrapper>
               <NoticeListener />
+              <OfferPopup />
               <Toaster />
-              <DebugState />
+              {process.env.NODE_ENV !== 'production' && <DebugState />}
             </AuthProvider>
           </SWRProvider>
         </QueryProvider>

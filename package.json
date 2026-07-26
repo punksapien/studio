@@ -6,6 +6,13 @@
   "engines": {
     "node": ">=20 <21"
   },
+  "browserslist": [
+    "chrome >= 92",
+    "edge >= 92",
+    "firefox >= 91",
+    "safari >= 15",
+    "not dead"
+  ],
   "scripts": {
     "dev": "next dev --turbopack -p 9002",
     "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
@@ -14,6 +21,8 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "smoke:lockdown": "tsx scripts/smoke-lockdown.ts",
     "reset-test-users": "tsx scripts/reset-test-users.ts",
     "create-admin": "node scripts/create-admin-user.js",
     "create-admin-remote": "node scripts/create-admin-user-remote.js",
@@ -101,6 +110,7 @@
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
     "tsx": "^4.20.3",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "vitest": "^3.2.7"
   }
 }

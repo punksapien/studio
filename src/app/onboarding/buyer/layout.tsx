@@ -1,6 +1,9 @@
 
 'use client';
 
+// Force dynamic rendering due to client-side interactivity
+export const dynamic = 'force-dynamic'
+
 import * as React from 'react';
 import { BuyerStepper } from '@/components/onboarding/buyer-stepper';
 import { useParams } from 'next/navigation';

@@ -251,7 +251,7 @@ export default function AdminAnalyticsPage() {
       </div>
       {/* ... other existing metric sections ... */}
       <Separator className="bg-brand-light-gray/80"/>
-      <h2 className="text-lg font-semibold tracking-tight pt-4 text-brand-dark-blue" style={{ fontFamily: "'Satoshi', sans-serif" }}>Recent Activity (7 Days)</h2>
+      <h2 className="text-lg font-semibold tracking-tight pt-4 text-brand-dark-blue" style={{ fontFamily: "var(--font-satoshi), sans-serif" }}>Recent Activity (7 Days)</h2>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <Card className="shadow-md bg-brand-white">
           <CardHeader className="pb-2">
@@ -304,7 +304,7 @@ export default function AdminAnalyticsPage() {
       </div>
 
       <Separator className="bg-brand-light-gray/80"/>
-      <h2 className="text-lg font-semibold tracking-tight pt-4 text-brand-dark-blue" style={{ fontFamily: "'Satoshi', sans-serif" }}>Connection Funnel</h2>
+      <h2 className="text-lg font-semibold tracking-tight pt-4 text-brand-dark-blue" style={{ fontFamily: "var(--font-satoshi), sans-serif" }}>Connection Funnel</h2>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card className="shadow-md bg-brand-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -339,7 +339,7 @@ export default function AdminAnalyticsPage() {
       </div>
       {/* Charts Section */}
       <Separator className="bg-brand-light-gray/80"/>
-      <h2 className="text-lg font-semibold tracking-tight pt-4 text-brand-dark-blue" style={{ fontFamily: "'Satoshi', sans-serif" }}>Activity Charts</h2>
+      <h2 className="text-lg font-semibold tracking-tight pt-4 text-brand-dark-blue" style={{ fontFamily: "var(--font-satoshi), sans-serif" }}>Activity Charts</h2>
       <div className="grid gap-6 lg:grid-cols-2">
         {/* User Growth Over Time Chart */}
         <Card className="shadow-md bg-brand-white">
@@ -457,7 +457,7 @@ export default function AdminAnalyticsPage() {
 
       {/* Sync System Observability Section */}
       <Separator className="bg-brand-light-gray/80 my-8" />
-      <h2 className="text-lg font-semibold tracking-tight pt-4 text-brand-dark-blue" style={{ fontFamily: "'Satoshi', sans-serif" }}>Universal Sync System Observability</h2>
+      <h2 className="text-lg font-semibold tracking-tight pt-4 text-brand-dark-blue" style={{ fontFamily: "var(--font-satoshi), sans-serif" }}>Universal Sync System Observability</h2>
 
       {/* Sync Performance Metrics */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">

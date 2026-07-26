@@ -38,7 +38,7 @@ const navLinkGroups: NavLinkGroup[] = [
     label: "Sell Your Business",
     triggerIcon: Briefcase,
     items: [
-      { href: "/how-selling-works", label: "List Your Business", icon: FileText },
+      { href: "/how-selling-works", label: "Sell Your Business", icon: FileText },
       { href: "/how-selling-works", label: "How Selling Works", icon: Info },
       { href: "/seller-services", label: "Seller Services", icon: Briefcase },
     ],
@@ -47,7 +47,7 @@ const navLinkGroups: NavLinkGroup[] = [
     label: "Buy a Business",
     triggerIcon: ShoppingCart,
     items: [
-      { href: "/marketplace", label: "Visit Marketplace", icon: Search },
+      { href: "/marketplace", label: "Check Open Deals", icon: Search },
       { href: "/how-buying-works", label: "How Buying Works", icon: Info },
       { href: "/buyer-services", label: "Buyer Services", icon: ShoppingCart },
     ],

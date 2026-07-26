@@ -25,7 +25,7 @@ export function DashboardPageShell({ title, description, actions, headerActions,
           holder's top edge at exactly y=88 — level with the divider. */}
       <div className="shrink-0 flex items-center justify-between gap-4 pb-2 md:h-[64px] md:pb-4">
         <div className="flex flex-col justify-center gap-0.5 min-w-0">
-          <h1 className="text-lg font-semibold tracking-tight text-white" style={{ fontFamily: "'Satoshi', sans-serif" }}>{title}</h1>
+          <h1 className="text-lg font-semibold tracking-tight text-white" style={{ fontFamily: "var(--font-satoshi), sans-serif" }}>{title}</h1>
           <p className="text-sm text-white/70">{description}</p>
         </div>
         {headerActions && <div className="flex items-center gap-2 shrink-0">{headerActions}</div>}

@@ -20,8 +20,11 @@ import {
   FormMessage,
   FormDescription,
 } from '@/components/ui/form';
+import { Separator } from '@/components/ui/separator';
 import { Loader2, Mail, Phone, Sparkles } from 'lucide-react';
 import { DashboardPageShell } from '@/components/shared/dashboard-page-shell';
+import { InlineEditField } from '@/components/onboarding/inline-edit-field';
+import { allCountries, employeeCountRanges, revenueRanges } from '@/lib/types';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import { updateUserProfile } from '@/hooks/use-current-user';
@@ -55,6 +58,7 @@ export default function SellerOnboardingPage() {
   const { profile, isLoading, refreshAuth } = useAuth();
   const { toast } = useToast();
   const [isSaving, startSaving] = useTransition();
+  const [isPrefilled, setIsPrefilled] = useState(false);
 
   // TEMPORARY DEV PREVIEW — dev-only state override
   // (?preview_status=anonymous|pending_verification|verified|rejected). Forces the
@@ -64,6 +68,7 @@ export default function SellerOnboardingPage() {
 
   const effectiveStatus = previewStatus ?? profile?.verification_status ?? null;
   const isVerified = effectiveStatus === 'verified';
+  const isRejected = effectiveStatus === 'rejected';
 
   // This page is pre-verification only — verified sellers get bounced to the dashboard.
   useEffect(() => {
@@ -115,6 +120,32 @@ export default function SellerOnboardingPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [additionalEmailValue, additionalPhoneValue]);
 
+  // Gate the finish-off form until the profile is applied so Radix Selects mount
+  // populated. Keyed on profile.id so the 60s refreshAuth poll — which yields a new
+  // profile object but the same id — never re-runs this.
+  useEffect(() => {
+    if (!profile) return;
+    setIsPrefilled(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.id]);
+
+  // Save a single finish-off field to its user_profiles column. Trims and coerces
+  // empty strings to null. Re-throws on failure so the InlineEditField reverts.
+  const saveField = async (column: string, value: string) => {
+    try {
+      await updateUserProfile({ [column]: value.trim() || null });
+      await refreshAuth();
+      toast({ title: 'Saved', description: 'Your details have been updated.' });
+    } catch (e) {
+      toast({
+        variant: 'destructive',
+        title: 'Could not save',
+        description: e instanceof Error ? e.message : 'Please try again.',
+      });
+      throw e; // let the field revert to display on failure
+    }
+  };
+
   const onSubmit = (values: ContactValues) => {
     startSaving(async () => {
       try {
@@ -165,7 +196,7 @@ export default function SellerOnboardingPage() {
   return (
     <DashboardPageShell title="Onboarding" description={ONBOARDING_DESCRIPTION} scrollable>
       {/* Welcome card */}
-      <Card>
+      <Card className="bg-brand-light-gray">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-2xl">
             <Sparkles className="h-6 w-6 text-primary" /> Hey {firstName} 👋
@@ -175,52 +206,72 @@ export default function SellerOnboardingPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <p className="text-muted-foreground">
-            You&apos;ve taken the first steps toward selling your business. From here, our team does the
-            heavy lifting. You won&apos;t have to fill out long forms or upload documents on your own.
-          </p>
-          <div>
-            <h4 className="mb-3 font-semibold text-foreground">What happens next</h4>
-            <ol className="space-y-3">
-              <li className="flex gap-3">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center bg-primary text-sm font-semibold text-primary-foreground">
-                  1
-                </span>
-                <span className="text-muted-foreground">
-                  Our team will be in touch soon, within the next 72 hours, to review your account
-                  and help you complete verification.
-                </span>
-              </li>
-              <li className="flex gap-3">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center bg-primary text-sm font-semibold text-primary-foreground">
-                  2
-                </span>
-                <span className="text-muted-foreground">
-                  Once you&apos;re verified, we&apos;ll build and publish an optimized listing for you.
-                </span>
-              </li>
-              <li className="flex gap-3">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center bg-primary text-sm font-semibold text-primary-foreground">
-                  3
-                </span>
-                <span className="text-muted-foreground">
-                  Buyers will start sending you inquiries, and you&apos;ll respond right here in your
-                  dashboard.
-                </span>
-              </li>
-            </ol>
-          </div>
-          <div className="border-l-2 border-primary bg-muted/50 p-4">
-            <p className="text-sm text-muted-foreground">
-              <span className="font-medium text-foreground">Nothing else is required from you right now.</span>{' '}
-              Please wait 72 hours and check your email. We&apos;ll be in touch.
-            </p>
-          </div>
+          {isRejected ? (
+            <>
+              <p className="text-muted-foreground">
+                We reviewed your account and couldn&apos;t complete verification yet — so we
+                can&apos;t build your listing just yet. This doesn&apos;t have to be the end of the
+                road; our team will reach out about the next steps.
+              </p>
+              <div className="border-l-2 border-destructive bg-white p-4">
+                <p className="text-sm text-muted-foreground">
+                  <span className="font-medium text-foreground">
+                    We&apos;ll be in touch about your account.
+                  </span>{' '}
+                  In the meantime, you can review and update your details below.
+                </p>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="text-muted-foreground">
+                You&apos;ve taken the first steps toward selling your business. From here, our team does the
+                heavy lifting. You won&apos;t have to fill out long forms or upload documents on your own.
+              </p>
+              <div>
+                <h4 className="mb-3 font-semibold text-foreground">What happens next</h4>
+                <ol className="space-y-3">
+                  <li className="flex gap-3">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center bg-primary text-sm font-semibold text-primary-foreground">
+                      1
+                    </span>
+                    <span className="text-muted-foreground">
+                      Our team will be in touch soon, within the next 72 hours, to review your account
+                      and help you complete verification.
+                    </span>
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center bg-primary text-sm font-semibold text-primary-foreground">
+                      2
+                    </span>
+                    <span className="text-muted-foreground">
+                      Once you&apos;re verified, we&apos;ll build and publish an optimized listing for you.
+                    </span>
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center bg-primary text-sm font-semibold text-primary-foreground">
+                      3
+                    </span>
+                    <span className="text-muted-foreground">
+                      Buyers will start sending you inquiries, and you&apos;ll respond right here in your
+                      dashboard.
+                    </span>
+                  </li>
+                </ol>
+              </div>
+              <div className="border-l-2 border-primary bg-white p-4">
+                <p className="text-sm text-muted-foreground">
+                  <span className="font-medium text-foreground">Nothing else is required from you right now.</span>{' '}
+                  Please wait 72 hours and check your email. We&apos;ll be in touch.
+                </p>
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
 
       {/* Contact card */}
-      <Card>
+      <Card className="bg-brand-light-gray">
         <CardHeader>
           <CardTitle>Let us know if you have any alternative contact methods</CardTitle>
           <CardDescription>
@@ -299,6 +350,76 @@ export default function SellerOnboardingPage() {
               </Button>
             </form>
           </Form>
+        </CardContent>
+      </Card>
+
+      {/* Clean break between the concierge welcome and the optional details form.
+          Caption centered on the line so it has equal spacing above and below. */}
+      <div className="flex items-center gap-4">
+        <Separator className="flex-1" />
+        <span className="shrink-0 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          Optional — while you wait
+        </span>
+        <Separator className="flex-1" />
+      </div>
+
+      {/* Finish off your details card */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Finish off your details</CardTitle>
+          <CardDescription>
+            Edit anything you&apos;ve already submitted below, and add anything you skipped during
+            sign-up.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {isPrefilled || !profile ? (
+            <>
+              <InlineEditField
+                label="Full Name"
+                value={profile?.full_name || ''}
+                type="text"
+                placeholder="Your full name"
+                onSave={(v) => saveField('full_name', v)}
+              />
+              <InlineEditField
+                label="Country"
+                value={profile?.country || ''}
+                type="select"
+                options={allCountries}
+                placeholder="Select your country"
+                onSave={(v) => saveField('country', v)}
+              />
+              <InlineEditField
+                label="Company Name"
+                value={profile?.initial_company_name || ''}
+                type="text"
+                placeholder="Your company name"
+                onSave={(v) => saveField('initial_company_name', v)}
+              />
+              <InlineEditField
+                label="Company Size"
+                value={profile?.company_size_range || ''}
+                type="select"
+                options={employeeCountRanges}
+                placeholder="Select your company size"
+                onSave={(v) => saveField('company_size_range', v)}
+              />
+              <InlineEditField
+                label="Annual Revenue"
+                value={profile?.annual_revenue_range || ''}
+                type="select"
+                options={revenueRanges}
+                placeholder="Select your annual revenue"
+                onSave={(v) => saveField('annual_revenue_range', v)}
+              />
+            </>
+          ) : (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              <span className="text-sm">Loading your details...</span>
+            </div>
+          )}
         </CardContent>
       </Card>
     </DashboardPageShell>

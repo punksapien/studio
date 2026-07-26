@@ -29,7 +29,7 @@ export default {
     },
   	extend: {
       fontFamily: {
-        sans: ["Satoshi", ...fontFamily.sans], // Prioritize Satoshi
+        sans: ["var(--font-satoshi)", ...fontFamily.sans], // Prioritize Satoshi
         // mono: ['var(--font-geist-mono)', ...fontFamily.mono], // Keep if you use a specific mono font elsewhere
       },
   		colors: {

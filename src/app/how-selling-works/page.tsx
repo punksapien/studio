@@ -280,7 +280,7 @@ export default function HowSellingWorksPage() {
         <div className="container mx-auto">
           <FadeIn direction="up">
             <div className="border border-brand-dark-blue/10">
-              <div className="relative px-4 sm:px-8 md:px-16 py-16 md:py-0 md:aspect-[21/9] text-center overflow-hidden" style={{ backgroundImage: 'url(/assets/cta-cityscape-light.png)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
+              <div className="relative px-4 sm:px-8 md:px-16 py-16 md:py-0 md:aspect-[21/9] text-center overflow-hidden" style={{ backgroundImage: 'url(/assets/cta-cityscape-light.webp)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
                 <div className="relative z-10 flex flex-col items-center justify-center h-full">
                   <div className="border border-brand-dark-blue/20 bg-white/50 backdrop-blur-sm px-6 sm:px-10 md:px-16 py-8 sm:py-10 md:py-14">
                     <h2 className="text-3xl md:text-4xl font-normal tracking-tight text-brand-dark-blue mb-4 font-heading">

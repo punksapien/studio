@@ -48,12 +48,15 @@ function BlogCard({ post, index }: { post: BlogPostListItem; index: number }) {
         {/* Image — always rendered, placeholder if no cover */}
         <div className="relative aspect-square overflow-hidden border-b border-brand-dark-blue/10 bg-brand-light-gray">
           {post.cover_image_url ? (
-            <Image
-              src={post.cover_image_url}
-              alt={post.title}
-              fill
-              className="object-cover group-hover:scale-[1.02] transition-transform duration-500"
-            />
+            <>
+              <Image
+                src={post.cover_image_url}
+                alt={post.title}
+                fill
+                className="object-cover group-hover:scale-[1.02] transition-transform duration-500"
+              />
+              <div className="absolute inset-0 bg-brand-dark-blue/50 pointer-events-none" />
+            </>
           ) : (
             <div className="absolute inset-0 flex items-center justify-center">
               <svg className="w-10 h-10 text-brand-dark-blue/10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">

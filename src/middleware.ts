@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { middlewareAuth, type UserProfile } from './lib/middleware-auth'
 import { validateVerificationToken, isEmailPendingVerification } from './lib/verification-token'
+import { getLockdownRedirect, isBuyerLockdownFlagOn } from '@/lib/lockdown'
+
+// Per-request tracing is dev-only; console.error/console.warn still fire in production.
+const debugLog = process.env.NODE_ENV !== 'production' ? console.log : () => {}
 
 /**
  * Production-Grade Middleware with Authentication & Onboarding Flow
@@ -18,13 +22,9 @@ export async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname
   const res = NextResponse.next()
 
-  // Add security headers to all responses
-  res.headers.set('X-Content-Type-Options', 'nosniff')
-  res.headers.set('X-Frame-Options', 'DENY')
-  res.headers.set('X-XSS-Protection', '1; mode=block')
-  res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+  // Security headers are set centrally in next.config.ts headers().
 
-  console.log(`[MIDDLEWARE] ${new Date().toISOString()} | ${req.method} ${pathname} | User-Agent: ${req.headers.get('user-agent')?.slice(0, 50)}...`)
+  debugLog(`[MIDDLEWARE] ${new Date().toISOString()} | ${req.method} ${pathname} | User-Agent: ${req.headers.get('user-agent')?.slice(0, 50)}...`)
 
   // Public paths that don't require authentication
   const publicPaths = [
@@ -68,7 +68,7 @@ export async function middleware(req: NextRequest) {
   // Allow public paths (except auth pages - they need special handling)
   if (isPublicPath && !pathname.startsWith('/auth/')) {
     const middlewareTime = Date.now() - startTime
-    console.log(`[MIDDLEWARE] PUBLIC | ${pathname} | Time: ${middlewareTime}ms`)
+    debugLog(`[MIDDLEWARE] PUBLIC | ${pathname} | Time: ${middlewareTime}ms`)
     return res
   }
 
@@ -76,7 +76,7 @@ export async function middleware(req: NextRequest) {
   // Exception: Auth API routes might need middleware processing
   if (pathname.startsWith('/api/') && !pathname.startsWith('/api/auth/')) {
     const middlewareTime = Date.now() - startTime
-    console.log(`[MIDDLEWARE] API-PASSTHROUGH | ${pathname} | Time: ${middlewareTime}ms`)
+    debugLog(`[MIDDLEWARE] API-PASSTHROUGH | ${pathname} | Time: ${middlewareTime}ms`)
     return res
   }
 
@@ -91,14 +91,14 @@ export async function middleware(req: NextRequest) {
   if (pathname === '/verify-email') {
     // Scenario 1: Authenticated user with unverified email - ALLOW
     if (success && user && profile && !profile.is_email_verified) {
-      console.log(`[MIDDLEWARE] ${correlationId} | Authenticated user with unverified email accessing /verify-email - ALLOWED`)
+      debugLog(`[MIDDLEWARE] ${correlationId} | Authenticated user with unverified email accessing /verify-email - ALLOWED`)
       return res
     }
 
     // Scenario 2: Authenticated user with verified email - REDIRECT to dashboard
     if (success && user && profile && profile.is_email_verified) {
       const redirect = middlewareAuth.determineRedirectUrl(profile, pathname, correlationId)
-      console.log(`[MIDDLEWARE] ${correlationId} | Already verified user accessing /verify-email, redirecting to ${redirect.url}`)
+      debugLog(`[MIDDLEWARE] ${correlationId} | Already verified user accessing /verify-email, redirecting to ${redirect.url}`)
       return NextResponse.redirect(new URL(redirect.url, req.url))
     }
 
@@ -107,7 +107,7 @@ export async function middleware(req: NextRequest) {
     const email = req.nextUrl.searchParams.get('email')
 
     if (token && email) {
-      console.log(`[MIDDLEWARE] ${correlationId} | Unauthenticated access to /verify-email with token - validating`)
+      debugLog(`[MIDDLEWARE] ${correlationId} | Unauthenticated access to /verify-email with token - validating`)
 
       // Validate the token
       const verifiedToken = await validateVerificationToken(token)
@@ -118,13 +118,13 @@ export async function middleware(req: NextRequest) {
         const isPending = await isEmailPendingVerification(email)
 
         if (isPending) {
-          console.log(`[MIDDLEWARE] ${correlationId} | Valid verification token for ${email} - ALLOWED`)
+          debugLog(`[MIDDLEWARE] ${correlationId} | Valid verification token for ${email} - ALLOWED`)
           return res
         }
 
-        console.log(`[MIDDLEWARE] ${correlationId} | Token valid but email ${email} not pending verification - DENIED`)
+        debugLog(`[MIDDLEWARE] ${correlationId} | Token valid but email ${email} not pending verification - DENIED`)
       } else {
-        console.log(`[MIDDLEWARE] ${correlationId} | Invalid verification token - DENIED`)
+        debugLog(`[MIDDLEWARE] ${correlationId} | Invalid verification token - DENIED`)
       }
     }
 
@@ -138,13 +138,13 @@ export async function middleware(req: NextRequest) {
       const isPending = await isEmailPendingVerification(email)
 
       if (isPending) {
-        console.log(`[MIDDLEWARE] ${correlationId} | Access from registration flow for ${email} - ALLOWED`)
+        debugLog(`[MIDDLEWARE] ${correlationId} | Access from registration flow for ${email} - ALLOWED`)
         return res
       }
     }
 
     // All security checks failed - redirect to login
-    console.log(`[MIDDLEWARE] ${correlationId} | Unauthorized access to /verify-email - redirecting to login`)
+    debugLog(`[MIDDLEWARE] ${correlationId} | Unauthorized access to /verify-email - redirecting to login`)
     return NextResponse.redirect(new URL('/auth/login', req.url))
   }
 
@@ -154,7 +154,7 @@ export async function middleware(req: NextRequest) {
       // User is authenticated - redirect away from auth pages
       if (['/auth/login', '/auth/register'].includes(pathname) || pathname.startsWith('/auth/register/')) {
         const redirect = middlewareAuth.determineRedirectUrl(profile, pathname, correlationId)
-        console.log(`[MIDDLEWARE] ${correlationId} | Authenticated user accessing auth page, redirecting to ${redirect.url} (${redirect.reason})`)
+        debugLog(`[MIDDLEWARE] ${correlationId} | Authenticated user accessing auth page, redirecting to ${redirect.url} (${redirect.reason})`)
 
         middlewareAuth.logOnboardingState(
           correlationId,
@@ -168,14 +168,14 @@ export async function middleware(req: NextRequest) {
       }
     }
     // Allow access to other auth pages like /auth/callback, /auth/update-password etc.
-    console.log(`[MIDDLEWARE] ${correlationId} | Auth page access: ${pathname} - ALLOWED`)
+    debugLog(`[MIDDLEWARE] ${correlationId} | Auth page access: ${pathname} - ALLOWED`)
     return res
   }
 
   // Handle admin login page - redirect authenticated admins to admin dashboard
   if (pathname === '/admin/login') {
     if (success && user && profile && profile.role === 'admin') {
-      console.log(`[MIDDLEWARE] ${correlationId} | Authenticated admin accessing /admin/login, redirecting to /admin`)
+      debugLog(`[MIDDLEWARE] ${correlationId} | Authenticated admin accessing /admin/login, redirecting to /admin`)
 
       middlewareAuth.logOnboardingState(
         correlationId,
@@ -188,14 +188,14 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(new URL('/admin', req.url))
     }
     // Allow unauthenticated access or non-admin users to see the login page
-    console.log(`[MIDDLEWARE] ${correlationId} | Admin login page access - ALLOWED`)
+    debugLog(`[MIDDLEWARE] ${correlationId} | Admin login page access - ALLOWED`)
     return res
   }
 
   // Handle protected routes - require authentication
   if (!success || !user || !profile) {
-    console.log(`[MIDDLEWARE] ${correlationId} | Unauthenticated access to ${pathname}, redirecting to login`)
-    console.log(`[MIDDLEWARE] ${correlationId} | Auth failure reason: ${error?.type || 'unknown'} | Strategy: ${strategy || 'none'}`)
+    debugLog(`[MIDDLEWARE] ${correlationId} | Unauthenticated access to ${pathname}, redirecting to login`)
+    debugLog(`[MIDDLEWARE] ${correlationId} | Auth failure reason: ${error?.type || 'unknown'} | Strategy: ${strategy || 'none'}`)
 
     // Determine correct login page based on route namespace
     const loginPath = pathname.startsWith('/admin') ? '/admin/login' : '/auth/login'
@@ -230,7 +230,7 @@ export async function middleware(req: NextRequest) {
   }
 
   // User is authenticated and has profile - log current state
-  console.log(`[MIDDLEWARE] ${correlationId} | Authenticated user: ${user.id} | Role: ${profile.role} | Email verified: ${profile.is_email_verified} | Onboarding: ${profile.is_onboarding_completed} | Step: ${profile.onboarding_step_completed}`)
+  debugLog(`[MIDDLEWARE] ${correlationId} | Authenticated user: ${user.id} | Role: ${profile.role} | Email verified: ${profile.is_email_verified} | Onboarding: ${profile.is_onboarding_completed} | Step: ${profile.onboarding_step_completed}`)
 
   middlewareAuth.logOnboardingState(
     correlationId,
@@ -265,7 +265,7 @@ export async function middleware(req: NextRequest) {
   )
 
   if (!isAdmin && !profile.is_email_verified && isProtectedRoute) {
-    console.log(`[MIDDLEWARE] ${correlationId} | Unverified user ${user.id} (${user.email}) attempting to access protected route: ${pathname}`)
+    debugLog(`[MIDDLEWARE] ${correlationId} | Unverified user ${user.id} (${user.email}) attempting to access protected route: ${pathname}`)
 
     middlewareAuth.logOnboardingState(
       correlationId,
@@ -283,7 +283,7 @@ export async function middleware(req: NextRequest) {
 
     // For API routes, return proper JSON response instead of HTML redirect
     if (pathname.startsWith('/api/')) {
-      console.log(`[MIDDLEWARE] ${correlationId} | Unverified user accessing API route ${pathname}, returning JSON error`)
+      debugLog(`[MIDDLEWARE] ${correlationId} | Unverified user accessing API route ${pathname}, returning JSON error`)
       return new NextResponse(
         JSON.stringify({
           error: 'Email verification required',
@@ -303,7 +303,7 @@ export async function middleware(req: NextRequest) {
       )
     }
 
-    console.log(`[MIDDLEWARE] ${correlationId} | Redirecting unverified user to: ${verifyEmailUrl.toString()}`)
+    debugLog(`[MIDDLEWARE] ${correlationId} | Redirecting unverified user to: ${verifyEmailUrl.toString()}`)
     const response = NextResponse.redirect(verifyEmailUrl)
     response.headers.set('x-middleware-rewrite', verifyEmailUrl.toString())
     return response
@@ -324,7 +324,7 @@ export async function middleware(req: NextRequest) {
     // UNCOMMENT THE LINE BELOW TO RESTORE ONBOARDING ENFORCEMENT:
     // return handleDashboardRoutes(req, res, user, profile, correlationId, pathname)
 
-    console.log(`[MIDDLEWARE] ${correlationId} | Dashboard access granted (onboarding bypassed for MVP)`)
+    debugLog(`[MIDDLEWARE] ${correlationId} | Dashboard access granted (onboarding bypassed for MVP)`)
   }
 
 
@@ -336,12 +336,12 @@ export async function middleware(req: NextRequest) {
 
   // Ensure user is on the correct dashboard for their role (for other protected routes)
   if (profile.role === 'buyer' && !pathname.startsWith('/dashboard')) {
-    console.log(`[MIDDLEWARE] ${correlationId} | Buyer accessing wrong dashboard: ${pathname} -> /dashboard`)
+    debugLog(`[MIDDLEWARE] ${correlationId} | Buyer accessing wrong dashboard: ${pathname} -> /dashboard`)
     return NextResponse.redirect(new URL('/dashboard', req.url))
   }
 
   if (profile.role === 'seller' && !(pathname.startsWith('/seller-dashboard') || pathname.startsWith('/marketplace') || pathname.startsWith('/listings/'))) {
-    console.log(`[MIDDLEWARE] ${correlationId} | Seller accessing wrong dashboard: ${pathname} -> /seller-dashboard`)
+    debugLog(`[MIDDLEWARE] ${correlationId} | Seller accessing wrong dashboard: ${pathname} -> /seller-dashboard`)
     return NextResponse.redirect(new URL('/seller-dashboard', req.url))
   }
 
@@ -352,29 +352,46 @@ export async function middleware(req: NextRequest) {
   // has run). Allowed prefixes MUST mirror the client layout's UNVERIFIED_ALLOWED_PREFIXES.
   // /api/* is returned earlier and /dev-preview/* doesn't start with '/seller-dashboard',
   // so both are naturally excluded; admins and verified sellers are unaffected.
-  if (profile.role === 'seller' && profile.verification_status !== 'verified' && pathname.startsWith('/seller-dashboard')) {
-    const UNVERIFIED_ALLOWED_PREFIXES = [
-      '/seller-dashboard/onboarding',
-      '/seller-dashboard/settings',
-      '/seller-dashboard/profile',
-    ]
-    const isOnAllowedPath = UNVERIFIED_ALLOWED_PREFIXES.some(
-      (prefix) => pathname === prefix || pathname.startsWith(prefix + '/')
-    )
-    if (!isOnAllowedPath) {
-      console.log(`[MIDDLEWARE] ${correlationId} | Unverified seller ${user.id} accessing locked route ${pathname}, redirecting to /seller-dashboard/onboarding`)
-      return NextResponse.redirect(new URL('/seller-dashboard/onboarding', req.url))
+  if (profile.role === 'seller') {
+    const sellerLockdownTarget = getLockdownRedirect({
+      role: profile.role,
+      verificationStatus: profile.verification_status,
+      pathname,
+      buyerFlagOn: isBuyerLockdownFlagOn(),
+    })
+    if (sellerLockdownTarget) {
+      debugLog(`[MIDDLEWARE] ${correlationId} | Unverified seller ${user.id} accessing locked route ${pathname}, redirecting to /seller-dashboard/onboarding`)
+      return NextResponse.redirect(new URL(sellerLockdownTarget, req.url))
+    }
+  }
+
+  // Server-side lockdown for unverified buyers. Mirrors the seller gate above and backstops
+  // the client dashboard layout on every full navigation with a fresh server-side profile.
+  // Only fires for a buyer already allowed on /dashboard (the role-correctness redirect above
+  // has run). Allowed prefixes MUST mirror the client layout's UNVERIFIED_ALLOWED_PREFIXES.
+  // /api/* is returned earlier and /dev-preview/* doesn't start with '/dashboard',
+  // so both are naturally excluded; admins and verified buyers are unaffected.
+  if (profile.role === 'buyer') {
+    const buyerLockdownTarget = getLockdownRedirect({
+      role: profile.role,
+      verificationStatus: profile.verification_status,
+      pathname,
+      buyerFlagOn: isBuyerLockdownFlagOn(),
+    })
+    if (buyerLockdownTarget) {
+      debugLog(`[MIDDLEWARE] ${correlationId} | Unverified buyer ${user.id} accessing locked route ${pathname}, redirecting to /dashboard/onboarding`)
+      return NextResponse.redirect(new URL(buyerLockdownTarget, req.url))
     }
   }
 
   if (profile.role === 'admin' && (pathname.startsWith('/dashboard') || pathname.startsWith('/seller-dashboard'))) {
-    console.log(`[MIDDLEWARE] ${correlationId} | Admin accessing wrong dashboard: ${pathname} -> /admin`)
+    debugLog(`[MIDDLEWARE] ${correlationId} | Admin accessing wrong dashboard: ${pathname} -> /admin`)
     return NextResponse.redirect(new URL('/admin', req.url))
   }
 
   // Enforce admin-only access to /admin routes
   if (pathname.startsWith('/admin') && profile.role !== 'admin') {
-    console.log(`[MIDDLEWARE] ${correlationId} | Non-admin role (${profile.role}) attempted to access admin area: ${pathname}`)
+    debugLog(`[MIDDLEWARE] ${correlationId} | Non-admin role (${profile.role}) attempted to access admin area: ${pathname}`)
 
     // If API route under /admin, return JSON 403
     if (pathname.startsWith('/api/')) {
@@ -402,7 +419,7 @@ export async function middleware(req: NextRequest) {
 
   // Allow access to other protected routes
   const middlewareTime = Date.now() - startTime
-  console.log(`[MIDDLEWARE] ${correlationId} | Protected route access: ${pathname} - ALLOWED | Total time: ${middlewareTime}ms`)
+  debugLog(`[MIDDLEWARE] ${correlationId} | Protected route access: ${pathname} - ALLOWED | Total time: ${middlewareTime}ms`)
   return res
 }
 
@@ -421,7 +438,7 @@ function handleOnboardingRoutes(
   // If onboarding is complete, redirect away from onboarding pages
   if (is_onboarding_completed) {
     const dashboardUrl = role === 'seller' ? '/seller-dashboard' : role === 'admin' ? '/admin' : '/dashboard'
-    console.log(`[MIDDLEWARE] ${correlationId} | Onboarding complete, redirecting from ${pathname} to ${dashboardUrl}`)
+    debugLog(`[MIDDLEWARE] ${correlationId} | Onboarding complete, redirecting from ${pathname} to ${dashboardUrl}`)
 
     middlewareAuth.logOnboardingState(
       correlationId,
@@ -437,7 +454,7 @@ function handleOnboardingRoutes(
   // Check if user is on the correct role's onboarding path
   const expectedOnboardingRolePath = `/onboarding/${role}`
   if (!pathname.startsWith(expectedOnboardingRolePath)) {
-    console.log(`[MIDDLEWARE] ${correlationId} | Wrong onboarding path: User role ${role} accessing ${pathname}`)
+    debugLog(`[MIDDLEWARE] ${correlationId} | Wrong onboarding path: User role ${role} accessing ${pathname}`)
 
     const redirect = middlewareAuth.determineRedirectUrl(profile, pathname, correlationId)
 
@@ -462,14 +479,14 @@ function handleOnboardingRoutes(
     const expectedStep = (onboarding_step_completed ?? 0) + 1;
     // Allow revisiting completed steps (<= onboarding_step_completed)
     if (requestedStep > expectedStep) {
-      console.log(`[MIDDLEWARE] ${correlationId} | User attempted to skip ahead to step ${requestedStep}; expected ${expectedStep}. Redirecting.`);
+      debugLog(`[MIDDLEWARE] ${correlationId} | User attempted to skip ahead to step ${requestedStep}; expected ${expectedStep}. Redirecting.`);
       const redirectUrl = new URL(`/onboarding/${role}/${expectedStep}`, req.url);
       redirectUrl.searchParams.set('notice', 'complete_previous_step');
       return NextResponse.redirect(redirectUrl);
     }
   }
 
-  console.log(`[MIDDLEWARE] ${correlationId} | Onboarding route access: ${pathname} - ALLOWED`)
+  debugLog(`[MIDDLEWARE] ${correlationId} | Onboarding route access: ${pathname} - ALLOWED`)
 
   middlewareAuth.logOnboardingState(
     correlationId,
@@ -497,7 +514,7 @@ function handleDashboardRoutes(
 
   // Enforce onboarding completion for dashboard access (EXEMPT ADMINS - they don't need onboarding)
   if (role !== 'admin' && !is_onboarding_completed) {
-    console.log(`[MIDDLEWARE] ${correlationId} | Onboarding incomplete, redirecting from ${pathname}`)
+    debugLog(`[MIDDLEWARE] ${correlationId} | Onboarding incomplete, redirecting from ${pathname}`)
 
     const redirect = middlewareAuth.determineRedirectUrl(profile, pathname, correlationId)
 
@@ -516,21 +533,21 @@ function handleDashboardRoutes(
 
   // Ensure user lands on their correct dashboard page
   if (role === 'buyer' && !pathname.startsWith('/dashboard')) {
-    console.log(`[MIDDLEWARE] ${correlationId} | Buyer attempting to access ${pathname}. Redirecting to /dashboard`)
+    debugLog(`[MIDDLEWARE] ${correlationId} | Buyer attempting to access ${pathname}. Redirecting to /dashboard`)
     return NextResponse.redirect(new URL('/dashboard', req.url))
   }
 
   if (role === 'seller' && !pathname.startsWith('/seller-dashboard')) {
-    console.log(`[MIDDLEWARE] ${correlationId} | Seller attempting to access ${pathname}. Redirecting to /seller-dashboard`)
+    debugLog(`[MIDDLEWARE] ${correlationId} | Seller attempting to access ${pathname}. Redirecting to /seller-dashboard`)
     return NextResponse.redirect(new URL('/seller-dashboard', req.url))
   }
 
   if (role === 'admin' && !pathname.startsWith('/admin')) {
-    console.log(`[MIDDLEWARE] ${correlationId} | Admin attempting to access ${pathname}. Redirecting to /admin`)
+    debugLog(`[MIDDLEWARE] ${correlationId} | Admin attempting to access ${pathname}. Redirecting to /admin`)
     return NextResponse.redirect(new URL('/admin', req.url))
   }
 
-  console.log(`[MIDDLEWARE] ${correlationId} | Dashboard access: ${pathname} - ALLOWED`)
+  debugLog(`[MIDDLEWARE] ${correlationId} | Dashboard access: ${pathname} - ALLOWED`)
 
   middlewareAuth.logOnboardingState(
     correlationId,

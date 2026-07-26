@@ -1,3 +1,6 @@
+// Auth-sensitive segment: keep dynamic rendering (previously inherited from the root layout).
+export const dynamic = 'force-dynamic';
+
 export default function AuthLayout({
   children,
 }: {

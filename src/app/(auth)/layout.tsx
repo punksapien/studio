@@ -1,4 +1,7 @@
 
+// Auth-sensitive segment: keep dynamic rendering (previously inherited from the root layout).
+export const dynamic = 'force-dynamic';
+
 export default function AuthPagesLayout({ // Renamed from AuthLayout for clarity
   children,
 }: {

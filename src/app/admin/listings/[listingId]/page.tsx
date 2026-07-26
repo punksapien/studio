@@ -13,6 +13,9 @@ import { notFound } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { NobridgeIcon, NobridgeIconType } from '@/components/ui/nobridge-icon';
 
+// Auth-gated segment: keep dynamic rendering (previously inherited from the root layout).
+export const dynamic = 'force-dynamic';
+
 
 async function getListingDetails(id: string): Promise<Listing | undefined> {
   return sampleListings.find(listing => listing.id === id);

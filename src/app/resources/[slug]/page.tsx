@@ -125,6 +125,7 @@ export default async function BlogPostPage({
                         priority
                         className="object-cover"
                       />
+                      <div className="absolute inset-0 bg-brand-dark-blue/50 pointer-events-none" />
                     </div>
                   ) : (
                     <div className="w-full h-full bg-white/5 flex items-center justify-center">
@@ -154,7 +155,7 @@ export default async function BlogPostPage({
                 {/* Left: article content (~80%) */}
                 <div className="flex-1 min-w-0 border border-brand-dark-blue/10 p-6 md:p-10 lg:p-14">
                   <div
-                    className="prose prose-lg max-w-none prose-headings:font-heading prose-headings:text-brand-dark-blue prose-a:text-brand-sky-blue prose-a:no-underline hover:prose-a:underline prose-img:border prose-img:border-brand-dark-blue/10 prose-p:text-muted-foreground prose-li:text-muted-foreground"
+                    className="prose prose-lg max-w-none prose-headings:font-heading prose-headings:font-semibold prose-headings:text-brand-dark-blue prose-a:text-brand-sky-blue prose-a:no-underline hover:prose-a:underline prose-img:border prose-img:border-brand-dark-blue/10 prose-p:text-muted-foreground prose-li:text-muted-foreground prose-p:text-justify prose-li:text-justify"
                     dangerouslySetInnerHTML={{ __html: post.content }}
                   />
                 </div>
@@ -238,12 +239,15 @@ export default async function BlogPostPage({
                         >
                           <div className="relative aspect-[16/10] overflow-hidden border-b border-brand-dark-blue/10 bg-brand-light-gray">
                             {related.cover_image_url ? (
-                              <Image
-                                src={related.cover_image_url}
-                                alt={related.title}
-                                fill
-                                className="object-cover group-hover:scale-[1.02] transition-transform duration-500"
-                              />
+                              <>
+                                <Image
+                                  src={related.cover_image_url}
+                                  alt={related.title}
+                                  fill
+                                  className="object-cover group-hover:scale-[1.02] transition-transform duration-500"
+                                />
+                                <div className="absolute inset-0 bg-brand-dark-blue/50 pointer-events-none" />
+                              </>
                             ) : (
                               <div className="absolute inset-0 flex items-center justify-center">
                                 <svg className="w-8 h-8 text-brand-dark-blue/10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">

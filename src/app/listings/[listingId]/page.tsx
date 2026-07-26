@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic'
 import * as React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useParams, notFound } from 'next/navigation';
+import { useParams, notFound, useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -295,6 +295,7 @@ function ImageGallery({ imageUrls, listingTitle }: { imageUrls?: string[]; listi
 
 export default function ListingDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const { toast } = useToast();
   const listingId = typeof params.listingId === 'string' ? params.listingId : '';
 
@@ -434,6 +435,16 @@ export default function ListingDetailPage() {
     }
     if (currentUser.role === 'seller') {
       toast({ title: 'Action Not Available', description: 'Sellers cannot inquire about businesses.', className: 'border-yellow-200 bg-yellow-50 text-yellow-800' });
+      return;
+    }
+    const lockdownEnabled = process.env.NEXT_PUBLIC_BUYER_VERIFICATION_LOCKDOWN === 'true';
+    if (lockdownEnabled && !isVerifiedBuyer(currentUser)) {
+      toast({
+        title: 'Verification required',
+        description: 'Complete verification to contact sellers. Redirecting you now…',
+        variant: 'destructive',
+      });
+      router.push('/dashboard/onboarding');
       return;
     }
     if (inquirySent) {

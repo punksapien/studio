@@ -99,7 +99,7 @@ function MarketplaceContent() {
       <div className="container pt-32 md:pt-36 pb-16 md:pb-24 relative z-10">
         <div className="mb-6 w-full bg-white/10 backdrop-blur-md p-4 sm:p-6 md:p-8 rounded-none border border-white/20 shadow-xl">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl sm:text-3xl font-normal tracking-tight text-white font-heading">Business Marke<span style={{ fontSize: '1.06em' }}>t</span>place</h1>
+            <h1 className="text-2xl sm:text-3xl font-normal tracking-tight text-white font-heading">Open Acquisition Opportunities</h1>
             <Globe className="h-6 w-6 sm:h-8 sm:w-8 text-white shrink-0" />
           </div>
           <Separator className="bg-white/10 my-4" />
