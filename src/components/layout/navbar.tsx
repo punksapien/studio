@@ -19,7 +19,6 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { Logo } from '@/components/shared/logo';
 import { useAuth } from '@/contexts/auth-context';
-import { motion, useScroll, useMotionValueEvent, AnimatePresence } from 'framer-motion';
 
 interface NavLinkItem {
   href: string;
@@ -84,15 +83,28 @@ export function Navbar() {
 
   const [scrolled, setScrolled] = useState(!hasDarkHero && !forceDarkNav);
 
-  const { scrollY } = useScroll();
+  // Plain passive scroll listener. It only re-renders when the boolean actually flips,
+  // so scrolling costs a comparison instead of a React state update per tick.
+  const scrolledRef = useRef(scrolled);
 
-  useMotionValueEvent(scrollY, "change", (latest) => {
-    setScrolled(forceDarkNav ? false : hasDarkHero ? latest > 20 : true);
-  });
-
-  // Keep the style in sync on client-side navigation (the navbar persists across pages)
   React.useEffect(() => {
-    setScrolled(forceDarkNav ? false : hasDarkHero ? window.scrollY > 20 : true);
+    const compute = () => (forceDarkNav ? false : hasDarkHero ? window.scrollY > 20 : true);
+    // Ref and state must move together, otherwise onScroll compares against a stale ref
+    // and skips the update that would flip the style back.
+    const sync = (next: boolean) => {
+      scrolledRef.current = next;
+      setScrolled(next);
+    };
+
+    sync(compute()); // correct on mount AND on client-side navigation (the navbar persists across pages)
+
+    const onScroll = () => {
+      const next = compute();
+      if (next !== scrolledRef.current) sync(next);
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
   }, [pathname, forceDarkNav, hasDarkHero]);
 
   const openMenu = (label: string) => {
@@ -168,7 +180,7 @@ export function Navbar() {
   }, [activeMenu]);
 
   return (
-    <motion.header
+    <header
       className="fixed top-0 left-0 right-0 z-50 pt-6 pointer-events-none"
     >
       <div className="container mx-auto">
@@ -178,7 +190,7 @@ export function Navbar() {
         onMouseLeave={closeMenu}
       >
       <div className={cn(
-        "relative flex h-[72px] items-center justify-between px-4 transition-all duration-300",
+        "relative flex h-[72px] items-center justify-between px-4 transition-[background-color,border-color,box-shadow] duration-300",
         scrolled
           ? activeMenu
             ? "bg-white border border-brand-dark-blue/10 shadow-sm border-b-0"
@@ -372,16 +384,11 @@ export function Navbar() {
       </div>
 
       {/* Mega dropdown panel */}
-      <AnimatePresence>
-        {activeMenu && (activeGroup || activeMenu === "__account") && (
-          <motion.div
+      {activeMenu && (activeGroup || activeMenu === "__account") && (
+          <div
             key={activeMenu}
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2, ease: "easeInOut" }}
             className={cn(
-              "overflow-hidden border-x border-b",
+              "overflow-hidden border-x border-b animate-in fade-in slide-in-from-top-2 duration-200",
               scrolled
                 ? "bg-white border-brand-dark-blue/10"
                 : "bg-brand-dark-blue border-white/15"
@@ -508,12 +515,11 @@ export function Navbar() {
                 )}
               </div>
             </div>
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
 
       </div>
       </div>
-    </motion.header>
+    </header>
   );
 }

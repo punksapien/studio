@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';
+import { cn } from '@/lib/utils';
 
 interface LogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
@@ -42,26 +43,39 @@ export function Logo({ size = 'xl', forceTheme }: LogoProps) {
     useDarkElementsLogoFile = true;
   }
 
-  const logoSrc = useDarkElementsLogoFile
-    ? '/assets/nobridge_logo_light_trimmed@2x.png'
-    : '/assets/nobridge_logo_dark_trimmed@2x.png';
-
   if (!mounted && !forceTheme) {
     // Avoid hydration mismatch during SSR if theme isn't forced
     return <div style={{ width: `${width}px`, height: `${height}px` }} aria-hidden="true" className="inline-block" />;
   }
 
+  // Both variants stay mounted so that flipping themes (e.g. the navbar crossing its
+  // scroll threshold) never swaps an <img> src mid-scroll. The inactive one is kept out
+  // of flow and fully transparent, so it is already fetched and decoded when it is needed.
+  const variants = [
+    { src: '/assets/nobridge_logo_light_trimmed@2x.png', active: useDarkElementsLogoFile },
+    { src: '/assets/nobridge_logo_dark_trimmed@2x.png', active: !useDarkElementsLogoFile },
+  ];
+
   return (
-    <Link href="/" className="flex items-center" aria-label="Nobridge Home">
-      <Image
-        src={logoSrc}
-        alt="Nobridge"
-        width={width}
-        height={height}
-        className="object-contain"
-        style={{ height: 'auto' }}
-        priority
-      />
+    <Link href="/" className="relative flex items-center" aria-label="Nobridge Home">
+      {variants.map(({ src, active }) => (
+        <Image
+          key={src}
+          src={src}
+          alt={active ? 'Nobridge' : ''}
+          aria-hidden={active ? undefined : true}
+          width={width}
+          height={height}
+          className={cn(
+            'object-contain',
+            !active && 'pointer-events-none absolute left-0 top-0 w-full opacity-0'
+          )}
+          style={{ height: 'auto' }}
+          // Only the visible variant is worth a preload; the hidden one is still in the
+          // viewport, so next/image loads it eagerly enough for the scroll-threshold swap.
+          priority={active}
+        />
+      ))}
     </Link>
   );
 }

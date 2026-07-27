@@ -90,6 +90,9 @@ export default function SellerOnboardingPage() {
     };
     window.addEventListener('focus', handleFocus);
     const intervalId = setInterval(() => {
+      // Skip the tick entirely while the tab is in the background — the focus
+      // listener above already refreshes the moment the user comes back.
+      if (document.visibilityState !== 'visible') return;
       refreshAuth();
     }, 60_000);
 

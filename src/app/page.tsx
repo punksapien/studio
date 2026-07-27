@@ -46,14 +46,95 @@ const featuredCompanyLogos = [
   { src: "/assets/featured-independent-observer.png", alt: "Independent Observer", dataAiHint: "company logo" },
 ];
 
+// Globe props are module-scope constants so their identity is stable across
+// HomePage re-renders. The globe's data effect is keyed on `data` identity and
+// rebuilds the entire three.js scene (including hex polygons over the ~417KB
+// globe.json) when it changes — passing fresh literals made that fire on every
+// render. These are pure literals with no component state/props dependencies.
+const GLOBE_ARCS = [
+  /* === Asian routes (dark blue #0D0D39) === */
+  { order: 1, startLat: 1.3521, startLng: 103.8198, endLat: 35.6762, endLng: 139.6503, arcAlt: 0.25, color: "#0D0D39" },
+  { order: 1, startLat: -6.2088, startLng: 106.8456, endLat: 22.3193, endLng: 114.1694, arcAlt: 0.15, color: "#0D0D39" },
+  { order: 2, startLat: 3.139, startLng: 101.6869, endLat: 37.5665, endLng: 126.978, arcAlt: 0.25, color: "#0D0D39" },
+  { order: 2, startLat: 13.7563, startLng: 100.5018, endLat: 1.3521, endLng: 103.8198, arcAlt: 0.1, color: "#0D0D39" },
+  { order: 3, startLat: 21.0278, startLng: 105.8342, endLat: -6.2088, endLng: 106.8456, arcAlt: 0.15, color: "#0D0D39" },
+  { order: 3, startLat: 14.5995, startLng: 120.9842, endLat: 35.6762, endLng: 139.6503, arcAlt: 0.2, color: "#0D0D39" },
+  { order: 4, startLat: 22.3193, startLng: 114.1694, endLat: 1.3521, endLng: 103.8198, arcAlt: 0.1, color: "#0D0D39" },
+  { order: 4, startLat: 35.6762, startLng: 139.6503, endLat: 37.5665, endLng: 126.978, arcAlt: 0.08, color: "#0D0D39" },
+  { order: 5, startLat: 11.5564, startLng: 104.9282, endLat: 13.7563, endLng: 100.5018, arcAlt: 0.06, color: "#0D0D39" },
+  { order: 5, startLat: 1.3521, startLng: 103.8198, endLat: -6.2088, endLng: 106.8456, arcAlt: 0.08, color: "#0D0D39" },
+  { order: 6, startLat: 19.076, startLng: 72.8777, endLat: 1.3521, endLng: 103.8198, arcAlt: 0.25, color: "#0D0D39" },
+  { order: 6, startLat: 3.139, startLng: 101.6869, endLat: 14.5995, endLng: 120.9842, arcAlt: 0.15, color: "#0D0D39" },
+  { order: 7, startLat: 22.3193, startLng: 114.1694, endLat: 35.6762, endLng: 139.6503, arcAlt: 0.2, color: "#0D0D39" },
+  { order: 7, startLat: 37.5665, startLng: 126.978, endLat: -6.2088, endLng: 106.8456, arcAlt: 0.3, color: "#0D0D39" },
+  { order: 8, startLat: 25.0343, startLng: 121.5645, endLat: 1.3521, endLng: 103.8198, arcAlt: 0.2, color: "#0D0D39" },
+  { order: 8, startLat: 16.8661, startLng: 96.1951, endLat: 22.3193, endLng: 114.1694, arcAlt: 0.15, color: "#0D0D39" },
+  { order: 9, startLat: 28.6139, startLng: 77.209, endLat: 3.139, endLng: 101.6869, arcAlt: 0.2, color: "#0D0D39" },
+  { order: 9, startLat: 31.2304, startLng: 121.4737, endLat: 22.3193, endLng: 114.1694, arcAlt: 0.1, color: "#0D0D39" },
+  { order: 10, startLat: 39.9042, startLng: 116.4074, endLat: 35.6762, endLng: 139.6503, arcAlt: 0.15, color: "#0D0D39" },
+  { order: 10, startLat: -6.2088, startLng: 106.8456, endLat: 3.139, endLng: 101.6869, arcAlt: 0.08, color: "#0D0D39" },
+
+  /* === Global routes (dark lines, white dots) === */
+  { order: 1, startLat: 1.3521, startLng: 103.8198, endLat: 51.5074, endLng: -0.1278, arcAlt: 0.5, color: "#0D0D39", dotColor: "#0D0D39" },
+  { order: 2, startLat: 22.3193, startLng: 114.1694, endLat: 40.7128, endLng: -74.006, arcAlt: 0.55, color: "#0D0D39", dotColor: "#0D0D39" },
+  { order: 3, startLat: 35.6762, startLng: 139.6503, endLat: 37.7749, endLng: -122.4194, arcAlt: 0.5, color: "#0D0D39", dotColor: "#0D0D39" },
+  { order: 3, startLat: -6.2088, startLng: 106.8456, endLat: 25.2048, endLng: 55.2708, arcAlt: 0.3, color: "#0D0D39", dotColor: "#0D0D39" },
+  { order: 4, startLat: 3.139, startLng: 101.6869, endLat: -33.8688, endLng: 151.2093, arcAlt: 0.3, color: "#0D0D39", dotColor: "#0D0D39" },
+  { order: 5, startLat: 1.3521, startLng: 103.8198, endLat: 48.8566, endLng: 2.3522, arcAlt: 0.5, color: "#0D0D39", dotColor: "#0D0D39" },
+  { order: 5, startLat: 22.3193, startLng: 114.1694, endLat: 52.52, endLng: 13.405, arcAlt: 0.5, color: "#0D0D39", dotColor: "#0D0D39" },
+  { order: 6, startLat: 35.6762, startLng: 139.6503, endLat: 34.0522, endLng: -118.2437, arcAlt: 0.5, color: "#0D0D39", dotColor: "#0D0D39" },
+  { order: 6, startLat: 37.5665, startLng: 126.978, endLat: 51.5074, endLng: -0.1278, arcAlt: 0.5, color: "#0D0D39", dotColor: "#0D0D39" },
+  { order: 7, startLat: 1.3521, startLng: 103.8198, endLat: 47.6062, endLng: -122.3321, arcAlt: 0.55, color: "#0D0D39", dotColor: "#0D0D39" },
+  { order: 7, startLat: -6.2088, startLng: 106.8456, endLat: -23.5505, endLng: -46.6333, arcAlt: 0.6, color: "#0D0D39", dotColor: "#0D0D39" },
+  { order: 8, startLat: 51.5074, startLng: -0.1278, endLat: 40.7128, endLng: -74.006, arcAlt: 0.3, color: "#0D0D39", dotColor: "#0D0D39" },
+  { order: 8, startLat: 48.8566, startLng: 2.3522, endLat: 25.2048, endLng: 55.2708, arcAlt: 0.3, color: "#0D0D39", dotColor: "#0D0D39" },
+  { order: 9, startLat: 40.7128, startLng: -74.006, endLat: -23.5505, endLng: -46.6333, arcAlt: 0.4, color: "#0D0D39", dotColor: "#0D0D39" },
+  { order: 9, startLat: 52.52, startLng: 13.405, endLat: 55.7558, endLng: 37.6173, arcAlt: 0.15, color: "#0D0D39", dotColor: "#0D0D39" },
+  { order: 10, startLat: 37.7749, startLng: -122.4194, endLat: 19.4326, endLng: -99.1332, arcAlt: 0.2, color: "#0D0D39", dotColor: "#0D0D39" },
+  { order: 10, startLat: 25.2048, startLng: 55.2708, endLat: -1.2921, endLng: 36.8219, arcAlt: 0.25, color: "#0D0D39", dotColor: "#0D0D39" },
+  { order: 11, startLat: 51.5074, startLng: -0.1278, endLat: 43.6532, endLng: -79.3832, arcAlt: 0.3, color: "#0D0D39", dotColor: "#0D0D39" },
+  { order: 11, startLat: -33.8688, startLng: 151.2093, endLat: -36.8485, endLng: 174.7633, arcAlt: 0.1, color: "#0D0D39", dotColor: "#0D0D39" },
+  { order: 12, startLat: 34.0522, startLng: -118.2437, endLat: 41.8781, endLng: -87.6298, arcAlt: 0.15, color: "#0D0D39", dotColor: "#0D0D39" },
+  { order: 12, startLat: 55.7558, startLng: 37.6173, endLat: 59.3293, endLng: 18.0686, arcAlt: 0.12, color: "#0D0D39", dotColor: "#0D0D39" },
+];
+
+const GLOBE_CONFIG = {
+  pointSize: 4,
+  globeColor: "#F4F6FC",
+  showAtmosphere: true,
+  atmosphereColor: "#0D0D39",
+  atmosphereAltitude: 0.1,
+  emissive: "#F4F6FC",
+  emissiveIntensity: 1.0,
+  shininess: 0.05,
+  polygonColor: "rgba(13,13,57,0.8)",
+  ambientLight: "#ffffff",
+  directionalLeftLight: "#ffffff",
+  directionalTopLight: "#ffffff",
+  pointLight: "#ffffff",
+  arcTime: 1000,
+  arcLength: 0.9,
+  rings: 1,
+  maxRings: 3,
+  initialPosition: { lat: 1.3521, lng: 103.8198 },
+  autoRotate: true,
+  autoRotateSpeed: 0.5,
+};
+
 export default function HomePage() {
   const [featuredListings, setFeaturedListings] = useState<FeaturedListing[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const heroVideoRef = useRef<HTMLVideoElement>(null);
 
-  // Keep the hero background video playing: retry autoplay if the browser blocks
-  // it, and resume if it stalls, gets paused, or the tab is re-focused. This
-  // prevents the "blank frame + stuck play button" the poster otherwise falls back to.
+  // Keep the hero background video playing *while it is visible*: retry autoplay
+  // if the browser blocks it, and resume if it stalls, ends, or the tab is
+  // re-focused. This prevents the "blank frame + stuck play button" the poster
+  // otherwise falls back to.
+  //
+  // Deliberately NO 'pause' -> replay listener: that fought the browser's own
+  // offscreen power-saving pause and kept video decode running through the whole
+  // scroll of this page. Instead an IntersectionObserver pauses the video once the
+  // hero leaves the viewport and resumes it on return.
   useEffect(() => {
     const video = heroVideoRef.current;
     if (!video) return;
@@ -65,18 +146,36 @@ export default function HomePage() {
 
     tryPlay();
 
+    // Assume visible until the observer tells us otherwise (and in environments
+    // without IntersectionObserver, so behaviour is unchanged there).
+    let isIntersecting = true;
+
     const handleVisibility = () => {
-      if (document.visibilityState === 'visible') tryPlay();
+      if (document.visibilityState === 'visible' && isIntersecting) tryPlay();
     };
 
     document.addEventListener('visibilitychange', handleVisibility);
-    video.addEventListener('pause', tryPlay);
     video.addEventListener('stalled', tryPlay);
     video.addEventListener('ended', tryPlay);
 
+    let observer: IntersectionObserver | undefined;
+    if (typeof IntersectionObserver !== 'undefined') {
+      observer = new IntersectionObserver((entries) => {
+        const entry = entries[entries.length - 1];
+        if (!entry) return;
+        isIntersecting = entry.isIntersecting;
+        if (entry.isIntersecting) {
+          tryPlay();
+        } else {
+          video.pause();
+        }
+      });
+      observer.observe(video);
+    }
+
     return () => {
+      observer?.disconnect();
       document.removeEventListener('visibilitychange', handleVisibility);
-      video.removeEventListener('pause', tryPlay);
       video.removeEventListener('stalled', tryPlay);
       video.removeEventListener('ended', tryPlay);
     };
@@ -641,74 +740,8 @@ export default function HomePage() {
               {/* Left - Interactive globe */}
               <div className="md:w-1/2 bg-white border-b md:border-b-0 md:border-r border-brand-dark-blue/10 flex items-center justify-center aspect-[4/3] md:aspect-square relative overflow-hidden">
                 <LazyGlobe
-                  data={[
-                    /* === Asian routes (dark blue #0D0D39) === */
-                    { order: 1, startLat: 1.3521, startLng: 103.8198, endLat: 35.6762, endLng: 139.6503, arcAlt: 0.25, color: "#0D0D39" },
-                    { order: 1, startLat: -6.2088, startLng: 106.8456, endLat: 22.3193, endLng: 114.1694, arcAlt: 0.15, color: "#0D0D39" },
-                    { order: 2, startLat: 3.139, startLng: 101.6869, endLat: 37.5665, endLng: 126.978, arcAlt: 0.25, color: "#0D0D39" },
-                    { order: 2, startLat: 13.7563, startLng: 100.5018, endLat: 1.3521, endLng: 103.8198, arcAlt: 0.1, color: "#0D0D39" },
-                    { order: 3, startLat: 21.0278, startLng: 105.8342, endLat: -6.2088, endLng: 106.8456, arcAlt: 0.15, color: "#0D0D39" },
-                    { order: 3, startLat: 14.5995, startLng: 120.9842, endLat: 35.6762, endLng: 139.6503, arcAlt: 0.2, color: "#0D0D39" },
-                    { order: 4, startLat: 22.3193, startLng: 114.1694, endLat: 1.3521, endLng: 103.8198, arcAlt: 0.1, color: "#0D0D39" },
-                    { order: 4, startLat: 35.6762, startLng: 139.6503, endLat: 37.5665, endLng: 126.978, arcAlt: 0.08, color: "#0D0D39" },
-                    { order: 5, startLat: 11.5564, startLng: 104.9282, endLat: 13.7563, endLng: 100.5018, arcAlt: 0.06, color: "#0D0D39" },
-                    { order: 5, startLat: 1.3521, startLng: 103.8198, endLat: -6.2088, endLng: 106.8456, arcAlt: 0.08, color: "#0D0D39" },
-                    { order: 6, startLat: 19.076, startLng: 72.8777, endLat: 1.3521, endLng: 103.8198, arcAlt: 0.25, color: "#0D0D39" },
-                    { order: 6, startLat: 3.139, startLng: 101.6869, endLat: 14.5995, endLng: 120.9842, arcAlt: 0.15, color: "#0D0D39" },
-                    { order: 7, startLat: 22.3193, startLng: 114.1694, endLat: 35.6762, endLng: 139.6503, arcAlt: 0.2, color: "#0D0D39" },
-                    { order: 7, startLat: 37.5665, startLng: 126.978, endLat: -6.2088, endLng: 106.8456, arcAlt: 0.3, color: "#0D0D39" },
-                    { order: 8, startLat: 25.0343, startLng: 121.5645, endLat: 1.3521, endLng: 103.8198, arcAlt: 0.2, color: "#0D0D39" },
-                    { order: 8, startLat: 16.8661, startLng: 96.1951, endLat: 22.3193, endLng: 114.1694, arcAlt: 0.15, color: "#0D0D39" },
-                    { order: 9, startLat: 28.6139, startLng: 77.209, endLat: 3.139, endLng: 101.6869, arcAlt: 0.2, color: "#0D0D39" },
-                    { order: 9, startLat: 31.2304, startLng: 121.4737, endLat: 22.3193, endLng: 114.1694, arcAlt: 0.1, color: "#0D0D39" },
-                    { order: 10, startLat: 39.9042, startLng: 116.4074, endLat: 35.6762, endLng: 139.6503, arcAlt: 0.15, color: "#0D0D39" },
-                    { order: 10, startLat: -6.2088, startLng: 106.8456, endLat: 3.139, endLng: 101.6869, arcAlt: 0.08, color: "#0D0D39" },
-
-                    /* === Global routes (dark lines, white dots) === */
-                    { order: 1, startLat: 1.3521, startLng: 103.8198, endLat: 51.5074, endLng: -0.1278, arcAlt: 0.5, color: "#0D0D39", dotColor: "#0D0D39" },
-                    { order: 2, startLat: 22.3193, startLng: 114.1694, endLat: 40.7128, endLng: -74.006, arcAlt: 0.55, color: "#0D0D39", dotColor: "#0D0D39" },
-                    { order: 3, startLat: 35.6762, startLng: 139.6503, endLat: 37.7749, endLng: -122.4194, arcAlt: 0.5, color: "#0D0D39", dotColor: "#0D0D39" },
-                    { order: 3, startLat: -6.2088, startLng: 106.8456, endLat: 25.2048, endLng: 55.2708, arcAlt: 0.3, color: "#0D0D39", dotColor: "#0D0D39" },
-                    { order: 4, startLat: 3.139, startLng: 101.6869, endLat: -33.8688, endLng: 151.2093, arcAlt: 0.3, color: "#0D0D39", dotColor: "#0D0D39" },
-                    { order: 5, startLat: 1.3521, startLng: 103.8198, endLat: 48.8566, endLng: 2.3522, arcAlt: 0.5, color: "#0D0D39", dotColor: "#0D0D39" },
-                    { order: 5, startLat: 22.3193, startLng: 114.1694, endLat: 52.52, endLng: 13.405, arcAlt: 0.5, color: "#0D0D39", dotColor: "#0D0D39" },
-                    { order: 6, startLat: 35.6762, startLng: 139.6503, endLat: 34.0522, endLng: -118.2437, arcAlt: 0.5, color: "#0D0D39", dotColor: "#0D0D39" },
-                    { order: 6, startLat: 37.5665, startLng: 126.978, endLat: 51.5074, endLng: -0.1278, arcAlt: 0.5, color: "#0D0D39", dotColor: "#0D0D39" },
-                    { order: 7, startLat: 1.3521, startLng: 103.8198, endLat: 47.6062, endLng: -122.3321, arcAlt: 0.55, color: "#0D0D39", dotColor: "#0D0D39" },
-                    { order: 7, startLat: -6.2088, startLng: 106.8456, endLat: -23.5505, endLng: -46.6333, arcAlt: 0.6, color: "#0D0D39", dotColor: "#0D0D39" },
-                    { order: 8, startLat: 51.5074, startLng: -0.1278, endLat: 40.7128, endLng: -74.006, arcAlt: 0.3, color: "#0D0D39", dotColor: "#0D0D39" },
-                    { order: 8, startLat: 48.8566, startLng: 2.3522, endLat: 25.2048, endLng: 55.2708, arcAlt: 0.3, color: "#0D0D39", dotColor: "#0D0D39" },
-                    { order: 9, startLat: 40.7128, startLng: -74.006, endLat: -23.5505, endLng: -46.6333, arcAlt: 0.4, color: "#0D0D39", dotColor: "#0D0D39" },
-                    { order: 9, startLat: 52.52, startLng: 13.405, endLat: 55.7558, endLng: 37.6173, arcAlt: 0.15, color: "#0D0D39", dotColor: "#0D0D39" },
-                    { order: 10, startLat: 37.7749, startLng: -122.4194, endLat: 19.4326, endLng: -99.1332, arcAlt: 0.2, color: "#0D0D39", dotColor: "#0D0D39" },
-                    { order: 10, startLat: 25.2048, startLng: 55.2708, endLat: -1.2921, endLng: 36.8219, arcAlt: 0.25, color: "#0D0D39", dotColor: "#0D0D39" },
-                    { order: 11, startLat: 51.5074, startLng: -0.1278, endLat: 43.6532, endLng: -79.3832, arcAlt: 0.3, color: "#0D0D39", dotColor: "#0D0D39" },
-                    { order: 11, startLat: -33.8688, startLng: 151.2093, endLat: -36.8485, endLng: 174.7633, arcAlt: 0.1, color: "#0D0D39", dotColor: "#0D0D39" },
-                    { order: 12, startLat: 34.0522, startLng: -118.2437, endLat: 41.8781, endLng: -87.6298, arcAlt: 0.15, color: "#0D0D39", dotColor: "#0D0D39" },
-                    { order: 12, startLat: 55.7558, startLng: 37.6173, endLat: 59.3293, endLng: 18.0686, arcAlt: 0.12, color: "#0D0D39", dotColor: "#0D0D39" },
-                  ]}
-                  globeConfig={{
-                    pointSize: 4,
-                    globeColor: "#F4F6FC",
-                    showAtmosphere: true,
-                    atmosphereColor: "#0D0D39",
-                    atmosphereAltitude: 0.1,
-                    emissive: "#F4F6FC",
-                    emissiveIntensity: 1.0,
-                    shininess: 0.05,
-                    polygonColor: "rgba(13,13,57,0.8)",
-                    ambientLight: "#ffffff",
-                    directionalLeftLight: "#ffffff",
-                    directionalTopLight: "#ffffff",
-                    pointLight: "#ffffff",
-                    arcTime: 1000,
-                    arcLength: 0.9,
-                    rings: 1,
-                    maxRings: 3,
-                    initialPosition: { lat: 1.3521, lng: 103.8198 },
-                    autoRotate: true,
-                    autoRotateSpeed: 0.5,
-                  }}
+                  data={GLOBE_ARCS}
+                  globeConfig={GLOBE_CONFIG}
                 />
               </div>
               {/* Right - Quote, body, stats */}

@@ -6,57 +6,66 @@
   z-index: -1;
   background-color: #0D0D39;
   overflow: hidden;
-  transform: translateZ(0);
-  will-change: transform;
-  backface-visibility: hidden;
-  perspective: 1000px;
 }
 
+/*
+ * Every layer is its own <svg> root, stacked in DOM order and sized to the
+ * container. Transforms on an <svg> element are composited on the GPU (unlike
+ * transforms on SVG children, which re-rasterise the whole SVG on the main
+ * thread every frame).
+ */
 .svg {
+  position: absolute;
+  top: 0;
+  left: 0;
   display: block;
   width: 100%;
   height: 100%;
-}
-
-.wave {
-  transform-origin: center center;
-  will-change: transform, opacity;
-  transform: translateZ(0);
-  backface-visibility: hidden;
+  pointer-events: none;
 }
 
 .layer1 {
   animation: sway 7s ease-in-out infinite alternate;
+  transform-origin: center center;
+  will-change: transform;
 }
 
 .layer2 {
   animation: sway 9s ease-in-out infinite alternate-reverse;
   opacity: 0.9;
+  transform-origin: center center;
+  will-change: transform;
 }
 
 .layer3 {
   animation: sway 10s ease-in-out infinite alternate;
   transform-origin: top left;
+  will-change: transform;
 }
 
 .layer4 {
   animation: breathe 6s ease-in-out infinite alternate;
+  transform-origin: center center;
+  will-change: transform, opacity;
 }
 
 .layer5 {
   animation: sway 12s ease-in-out infinite alternate-reverse;
   transform-origin: top left;
+  will-change: transform;
 }
 
+/* Translations are percentages of the svg root's own box so they replicate the original
+   viewBox user-unit drift (X / 1440, Y / 900) now that the transform lives on the root. */
 @keyframes sway {
   0% {
     transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
   }
   50% {
-    transform: translate3d(20px, 10px, 0) rotate(1deg) scale(1.01);
+    transform: translate3d(1.3889%, 1.1111%, 0) rotate(1deg) scale(1.01);
   }
   100% {
-    transform: translate3d(-15px, -5px, 0) rotate(-1deg) scale(1.02);
+    transform: translate3d(-1.0417%, -0.5556%, 0) rotate(-1deg) scale(1.02);
   }
 }
 
@@ -66,7 +75,23 @@
     opacity: 0.6;
   }
   100% {
-    transform: scale(1.08) translate3d(-20px, 10px, 0);
+    transform: scale(1.08) translate3d(-1.3889%, 1.1111%, 0);
     opacity: 0.85;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .layer1,
+  .layer2,
+  .layer3,
+  .layer4,
+  .layer5 {
+    animation: none;
+  }
+
+  /* layer4 animates opacity too — freeze it at the keyframe start value so
+     stopping the animation does not change how it renders. */
+  .layer4 {
+    opacity: 0.6;
   }
 }

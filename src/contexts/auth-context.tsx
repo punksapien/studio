@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, ReactNode } from 'react';
+import React, { createContext, useCallback, useContext, useMemo, useRef, ReactNode } from 'react';
 import { useGlobalAuth } from '@/hooks/use-cached-profile';
 import { supabase } from '@/lib/supabase';
 import type { UserProfile, User } from '@/lib/auth';
@@ -22,21 +22,35 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const { user, profile, isLoading, error, refreshAuth } = useGlobalAuth();
+  const {
+    user,
+    profile,
+    isLoading,
+    error,
+    refreshAuth: latestRefreshAuth,
+  } = useGlobalAuth();
+
+  // `useGlobalAuth` hands back a brand-new `() => mutate()` closure on every
+  // render. Keep the newest one in a ref and expose a stable wrapper so the
+  // context value below can actually stay referentially equal across renders.
+  const refreshAuthRef = useRef(latestRefreshAuth);
+  refreshAuthRef.current = latestRefreshAuth;
+
+  const refreshAuth = useCallback(() => refreshAuthRef.current(), []);
 
   // Global cache invalidation functions
-  const invalidateAuth = () => {
+  const invalidateAuth = useCallback(() => {
     // This will force all components using auth to refetch
     mutate('auth');
-  };
+  }, []);
 
-  const invalidateAll = () => {
+  const invalidateAll = useCallback(() => {
     // Invalidate all SWR caches (useful after logout)
     mutate(() => true, undefined, { revalidate: false });
-  };
+  }, []);
 
   // 🔥 CENTRALIZED LOGOUT: Handles both Supabase signout and cache invalidation
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       // First clear Supabase auth session
       const { error } = await supabase.auth.signOut();
@@ -57,18 +71,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       invalidateAuth();
       throw error; // Re-throw so components can handle the error
     }
-  };
+  }, [invalidateAuth, refreshAuth]);
 
-  const value: AuthContextValue = {
-    user,
-    profile,
-    isLoading,
-    error,
-    refreshAuth,
-    invalidateAuth,
-    invalidateAll,
-    logout,
-  };
+  const value = useMemo<AuthContextValue>(
+    () => ({
+      user,
+      profile,
+      isLoading,
+      error,
+      refreshAuth,
+      invalidateAuth,
+      invalidateAll,
+      logout,
+    }),
+    [user, profile, isLoading, error, refreshAuth, invalidateAuth, invalidateAll, logout]
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

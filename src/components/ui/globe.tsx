@@ -68,7 +68,7 @@ interface WorldCanvasProps extends WorldProps {
 
 let numbersOfRings = [0];
 
-export function Globe({ globeConfig, data }: WorldProps) {
+export function Globe({ globeConfig, data, inView = true }: WorldCanvasProps) {
   const globeRef = useRef<ThreeGlobe | null>(null);
   const groupRef = useRef();
   const [isInitialized, setIsInitialized] = useState(false);
@@ -208,9 +208,12 @@ export function Globe({ globeConfig, data }: WorldProps) {
     defaultProps.maxRings,
   ]);
 
-  // Handle rings animation with cleanup
+  // Handle rings animation with cleanup. Skipped while off-screen: the render
+  // frameloop is already paused there, so regenerating ring geometry every 2s
+  // would burn main-thread time producing frames nobody sees. Scrolling back
+  // into view re-runs this effect and restarts the timer.
   useEffect(() => {
-    if (!globeRef.current || !isInitialized || !data) return;
+    if (!globeRef.current || !isInitialized || !data || !inView) return;
 
     const interval = setInterval(() => {
       if (!globeRef.current) return;
@@ -235,7 +238,7 @@ export function Globe({ globeConfig, data }: WorldProps) {
     return () => {
       clearInterval(interval);
     };
-  }, [isInitialized, data]);
+  }, [isInitialized, data, inView]);
 
   return <group ref={groupRef} />;
 }
@@ -280,7 +283,7 @@ export function World(props: WorldCanvasProps) {
         position={new Vector3(-200, 500, 200)}
         intensity={0.8}
       />
-      <Globe globeConfig={globeConfig} data={data} />
+      <Globe globeConfig={globeConfig} data={data} inView={inView} />
       <OrbitControls
         enablePan={false}
         enableZoom={false}

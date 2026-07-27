@@ -45,14 +45,13 @@ export const FadeIn = forwardRef<HTMLDivElement, FadeInProps>(function FadeIn(
             }
         );
 
-        if (ref.current) {
-            observer.observe(ref.current);
+        const el = ref.current;
+        if (el) {
+            observer.observe(el);
         }
 
         return () => {
-            if (ref.current) {
-                observer.unobserve(ref.current);
-            }
+            observer.disconnect();
         };
     }, []);
 
@@ -83,7 +82,7 @@ export const FadeIn = forwardRef<HTMLDivElement, FadeInProps>(function FadeIn(
                 }
             }}
             className={cn(
-                'transition-all',
+                'transition-opacity',
                 isVisible ? 'opacity-100 animate-in fade-in zoom-in-95' : 'opacity-0',
                 isVisible && getDirectionClass(),
                 fullWidth ? 'w-full' : '',
