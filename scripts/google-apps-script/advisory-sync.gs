@@ -73,7 +73,6 @@ function SYNC_ADVISORIES() {
         sourceId: syncId,
         sheetName: sheet.getName(),
         rowNumber: sheetRow,
-        status: deriveAdvisoryStatus_(data),
         data: data,
       });
     }
@@ -145,15 +144,6 @@ function buildBusinessPayload_(headers, rawRow, displayRow) {
   return payload;
 }
 
-function deriveAdvisoryStatus_(data) {
-  function pending(value) {
-    const text = String(value === null || value === undefined ? '' : value).trim().toLowerCase();
-    return !text || ['pending', 'in progress', 'in-progress', 'awaiting', 'awaiting review', 'tbd'].indexOf(text) >= 0;
-  }
-
-  return (!pending(data['Verdict']) || !pending(data['Ops Action'])) ? 'resolved' : 'pending';
-}
-
 function computeRowHash_(data) {
   const text = JSON.stringify(data);
   const bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, text, Utilities.Charset.UTF_8);
@@ -170,7 +160,6 @@ function sendAdvisoryBatch_(sheet, headerIndex, batch, apiUrl, apiKey) {
         sourceId: item.sourceId,
         sheetName: item.sheetName,
         rowNumber: item.rowNumber,
-        status: item.status,
         data: item.data,
       };
     }),
@@ -190,11 +179,18 @@ function sendAdvisoryBatch_(sheet, headerIndex, batch, apiUrl, apiKey) {
     throw new Error('Advisory API HTTP ' + code + ': ' + body.slice(0, 500));
   }
 
+  const parsed = JSON.parse(body || '{}');
+  const statusById = {};
+  (parsed.records || []).forEach(function (record) {
+    statusById[String(record.source_id || '')] = String(record.status || '');
+  });
+
   const syncedAt = new Date();
   batch.forEach(function (item) {
     sheet.getRange(item.sheetRow, headerIndex['_SYNC_HASH'] + 1).setValue(item.hash);
     sheet.getRange(item.sheetRow, headerIndex['_SYNCED_AT'] + 1).setValue(syncedAt);
-    sheet.getRange(item.sheetRow, headerIndex['_SYNC_STATUS'] + 1).setValue(item.status.toUpperCase());
+    sheet.getRange(item.sheetRow, headerIndex['_SYNC_STATUS'] + 1)
+      .setValue((statusById[item.sourceId] || 'SYNCED').toUpperCase());
   });
 }
 

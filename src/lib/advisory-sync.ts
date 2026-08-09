@@ -6,7 +6,7 @@ export interface AdvisorySyncRecordInput {
   sourceId: string
   sheetName: string
   rowNumber?: number | null
-  status?: 'pending' | 'resolved'
+  status?: 'pending' | 'pending_reason' | 'resolved'
   data: AdvisoryPayload
 }
 
@@ -14,7 +14,7 @@ export interface NormalizedAdvisoryRecord {
   source_id: string
   sheet_name: string
   row_number: number | null
-  status: 'pending' | 'resolved'
+  status: 'pending' | 'pending_reason' | 'resolved'
   advisor: string | null
   token: string | null
   entry_date_text: string | null
@@ -85,14 +85,19 @@ function isPendingValue(value: unknown): boolean {
   return !text || ['pending', 'in progress', 'in-progress', 'awaiting', 'awaiting review', 'tbd'].includes(text)
 }
 
-export function deriveAdvisoryStatus(data: AdvisoryPayload): 'pending' | 'resolved' {
-  const verdict = getField(data, 'Verdict')
-  const opsAction = getField(data, 'Ops Action')
+export function deriveAdvisoryStatus(data: AdvisoryPayload): 'pending' | 'pending_reason' | 'resolved' {
+  const opsActionText = textOrNull(getField(data, 'Ops Action'))?.toLowerCase()
+  const rejectionReason = getField(data, 'Rejection Reason')
 
-  // The workbook contains both formula-driven Verdict and human-entered Ops Action.
-  // A row is resolved as soon as either has a non-pending terminal value.
-  if (!isPendingValue(verdict) || !isPendingValue(opsAction)) return 'resolved'
-  return 'pending'
+  // In the uploaded workbook, Verdict is formula-driven while Ops Action is the
+  // human review decision. Do not resolve a record merely because Verdict has
+  // already calculated APPROVE/REJECT.
+  if (!opsActionText || isPendingValue(opsActionText)) return 'pending'
+
+  const isRejected = ['reject', 'rejected'].includes(opsActionText)
+  if (isRejected && isPendingValue(rejectionReason)) return 'pending_reason'
+
+  return 'resolved'
 }
 
 export function normalizeAdvisoryRecord(input: AdvisorySyncRecordInput): NormalizedAdvisoryRecord {
@@ -107,7 +112,9 @@ export function normalizeAdvisoryRecord(input: AdvisorySyncRecordInput): Normali
   if (!isPlainObject(input.data)) throw new Error('data must be an object containing the row columns')
 
   const derivedStatus = deriveAdvisoryStatus(input.data)
-  const status = input.status === 'pending' || input.status === 'resolved' ? input.status : derivedStatus
+  const status = ['pending', 'pending_reason', 'resolved'].includes(input.status || '')
+    ? input.status as 'pending' | 'pending_reason' | 'resolved'
+    : derivedStatus
 
   return {
     source_id: input.sourceId.trim(),
@@ -156,7 +163,7 @@ export async function upsertAdvisories(records: NormalizedAdvisoryRecord[]) {
 }
 
 export interface AdvisoryListFilters {
-  status?: 'pending' | 'resolved'
+  status?: 'pending' | 'pending_reason' | 'resolved'
   advisor?: string
   token?: string
   limit: number

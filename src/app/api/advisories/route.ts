@@ -16,7 +16,9 @@ export async function GET(request: NextRequest) {
 
     const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(Math.trunc(rawLimit), 1), 500) : 100
     const offset = Number.isFinite(rawOffset) ? Math.max(Math.trunc(rawOffset), 0) : 0
-    const status = statusParam === 'pending' || statusParam === 'resolved' ? statusParam : undefined
+    const status = statusParam === 'pending' || statusParam === 'pending_reason' || statusParam === 'resolved'
+      ? statusParam
+      : undefined
 
     const result = await listAdvisories({
       status,

@@ -6,7 +6,7 @@ create table if not exists public.advisories (
   source_id text not null unique,
   sheet_name text not null,
   row_number integer,
-  status text not null default 'pending' check (status in ('pending', 'resolved')),
+  status text not null default 'pending' check (status in ('pending', 'pending_reason', 'resolved')),
   advisor text,
   token text,
   entry_date_text text,

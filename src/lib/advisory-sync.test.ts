@@ -2,16 +2,20 @@ import { describe, expect, it } from 'vitest'
 import { deriveAdvisoryStatus, normalizeAdvisoryRecord, parseSyncRequestBody } from './advisory-sync'
 
 describe('advisory sync normalization', () => {
-  it('keeps a pending row pending', () => {
-    expect(deriveAdvisoryStatus({ Verdict: 'Pending', 'Ops Action': 'Pending' })).toBe('pending')
+  it('keeps a pending row pending even when formula verdict has calculated', () => {
+    expect(deriveAdvisoryStatus({ Verdict: 'REJECT', 'Ops Action': 'Pending' })).toBe('pending')
   })
 
-  it('resolves when verdict is terminal', () => {
-    expect(deriveAdvisoryStatus({ Verdict: 'APPROVE', 'Ops Action': 'Pending' })).toBe('resolved')
+  it('does not resolve from formula verdict alone', () => {
+    expect(deriveAdvisoryStatus({ Verdict: 'APPROVE', 'Ops Action': null })).toBe('pending')
   })
 
-  it('resolves when ops action is terminal even if verdict is blank', () => {
-    expect(deriveAdvisoryStatus({ Verdict: null, 'Ops Action': 'Rejected' })).toBe('resolved')
+  it('waits for a rejection reason after a rejected ops action', () => {
+    expect(deriveAdvisoryStatus({ Verdict: null, 'Ops Action': 'Rejected', 'Rejection Reason': null })).toBe('pending_reason')
+  })
+
+  it('resolves a rejected row once its reason exists', () => {
+    expect(deriveAdvisoryStatus({ 'Ops Action': 'Rejected', 'Rejection Reason': 'Framework' })).toBe('resolved')
   })
 
   it('extracts normalized dashboard fields while preserving the full payload', () => {

@@ -47,12 +47,11 @@ curl -X POST https://YOUR_DOMAIN/api/advisories/sync \
       "sourceId": "manual-test-001",
       "sheetName": "Revised  Unified Quality Check",
       "rowNumber": 2,
-      "status": "pending",
       "data": {
         "Entry Date": "2026-08-09T15:00:00+05:30",
         "Advisor": "Test Advisor",
         "Token": "BTC_USDT",
-        "Verdict": "Pending",
+        "Verdict": "REJECT",
         "Ops Action": "Pending",
         "Rejection Reason": "Pending"
       }
@@ -60,7 +59,7 @@ curl -X POST https://YOUR_DOMAIN/api/advisories/sync \
   }'
 ```
 
-Then send the same `sourceId` with a terminal verdict/action. The table should still contain one row, updated in place.
+Then send the same `sourceId` with the human `Ops Action` changed. The table should still contain one row, updated in place.
 
 Read it back:
 
@@ -93,8 +92,9 @@ A row is eligible only when both `Entry Date` and `Advisor` are populated. Formu
 
 There is no long-lived Promise. Each spreadsheet row has a permanent `_SYNC_ID`.
 
-1. Initial row enters with pending/blank `Verdict` and `Ops Action` -> API upserts it as `pending`.
+1. Initial row enters while human review is unfinished -> API upserts it as `pending`.
 2. Later review fields change -> row hash changes.
 3. Next one-minute sync sends the same `_SYNC_ID` again.
 4. API upserts the existing database record instead of inserting a duplicate.
-5. A non-pending `Verdict` or `Ops Action` makes the canonical status `resolved`.
+5. Formula `Verdict` alone does not resolve the record. Human `Ops Action` drives resolution.
+6. A rejected `Ops Action` without `Rejection Reason` becomes `pending_reason`; once the reason is present it becomes `resolved`.
